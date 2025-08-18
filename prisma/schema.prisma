@@ -1,0 +1,82 @@
+// Prisma schema for Railway (PostgreSQL)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(uuid()) @db.Uuid
+  email       String   @unique
+  username    String   @unique
+  avatarUrl   String?  @map("avatar_url")
+  role        String   // 'user' | 'admin' | 'moderator'
+  preferences Json?    
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  projects    Project[]
+}
+
+model Project {
+  id           String   @id @default(uuid()) @db.Uuid
+  title        String
+  description  String?
+  thumbnailUrl String?  @map("thumbnail_url")
+  status       String   // 'draft' | 'in_progress' | 'completed' | 'archived'
+  tags         String[]
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  userId       String   @db.Uuid @map("user_id")
+  user         User     @relation(fields: [userId], references: [id])
+  scenes       Scene[]
+  timeline     Timeline?
+}
+
+model Scene {
+  id           String   @id @default(uuid()) @db.Uuid
+  title        String
+  description  String
+  prompt       Json
+  thumbnailUrl String?  @map("thumbnail_url")
+  duration     Int
+  order        Int
+  status       String   // 'pending' | 'generating' | 'completed' | 'failed'
+  aiGenerated  Boolean  @default(false) @map("ai_generated")
+  projectId    String   @db.Uuid @map("project_id")
+  project      Project  @relation(fields: [projectId], references: [id])
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+}
+
+model Preset {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  description  String
+  category     String
+  tags         String[]
+  thumbnailUrl String?  @map("thumbnail_url")
+  data         Json
+  isPublic     Boolean  @default(false) @map("is_public")
+  userId       String   @db.Uuid @map("user_id")
+  downloads    Int      @default(0)
+  rating       Decimal  @default(0)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+}
+
+model Timeline {
+  id            String   @id @default(uuid()) @db.Uuid
+  projectId     String   @db.Uuid @map("project_id") @unique
+  project       Project  @relation(fields: [projectId], references: [id])
+  beads         Json[]   @default([])
+  totalDuration Int      @default(0) @map("total_duration")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+}
+
+
