@@ -1,7 +1,2 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  /* config options here */
-};
-
-export default nextConfig;
+// migrated to next.config.mjs for Docker/CI builds without TypeScript at runtime
+export {};
