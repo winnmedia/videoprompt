@@ -14,8 +14,8 @@ COPY . .
 # Prisma generate at build time (dev deps available in builder)
 RUN npm run prisma:generate
 
-# Build Next.js
-RUN npm run build
+# Build Next.js (force production mode during build)
+RUN NODE_ENV=production npm run build
 
 FROM node:20.19-bullseye AS runner
 WORKDIR /app
