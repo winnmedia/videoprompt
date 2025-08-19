@@ -2,7 +2,7 @@ FROM node:20.19-bullseye AS builder
 
 WORKDIR /app
 
-ENV NODE_ENV=production \
+ENV NODE_ENV=development \
     NEXT_TELEMETRY_DISABLED=1 \
     NPM_CONFIG_CACHE=/tmp/.npm
 
