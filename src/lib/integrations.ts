@@ -1,35 +1,12 @@
 import type { LucideIcon } from "lucide-react"
 import {
   Zap,
-  ShoppingCart,
   BarChart,
   Mail,
-  Calendar,
-  FileText,
-  CreditCard,
-  Phone,
-  Video,
   Cloud,
   Globe,
-  Shield,
-  Camera,
-  Music,
-  Book,
-  Briefcase,
-  Coffee,
+  Video,
   Cpu,
-  Database,
-  Headphones,
-  Heart,
-  Image,
-  Key,
-  Laptop,
-  Map,
-  Printer,
-  Rocket,
-  Scissors,
-  Truck,
-  Wifi,
 } from "lucide-react"
 
 export type VideoPlanetIntegration = {
@@ -111,17 +88,6 @@ export const videoPlanetIntegrations: VideoPlanetIntegration[] = [
     lastSync: new Date().toISOString(),
   },
   {
-    id: "supabase",
-    name: "Supabase",
-    description: "실시간 데이터베이스 및 인증 시스템. 프로젝트 데이터 저장 및 사용자 관리.",
-    category: "Storage & Cloud",
-    icon: Database,
-    color: "#4CAF50",
-    status: "connected",
-    features: ["실시간 DB", "인증 시스템", "파일 스토리지", "API 관리"],
-    lastSync: new Date().toISOString(),
-  },
-  {
     id: "ffmpeg",
     name: "FFmpeg",
     description: "고성능 비디오 및 오디오 처리. 다양한 포맷 변환 및 편집 기능.",
@@ -173,20 +139,13 @@ export const videoPlanetIntegrations: VideoPlanetIntegration[] = [
   },
 ]
 
-// 카테고리별 통합 필터링
 export function getIntegrationsByCategory(category: string): VideoPlanetIntegration[] {
-  if (category === "All") {
-    return videoPlanetIntegrations
-  }
+  if (category === "All") return videoPlanetIntegrations
   return videoPlanetIntegrations.filter(integration => integration.category === category)
 }
-
-// 상태별 통합 필터링
 export function getIntegrationsByStatus(status: VideoPlanetIntegration['status']): VideoPlanetIntegration[] {
   return videoPlanetIntegrations.filter(integration => integration.status === status)
 }
-
-// 검색 기능
 export function searchIntegrations(query: string): VideoPlanetIntegration[] {
   const lowercaseQuery = query.toLowerCase()
   return videoPlanetIntegrations.filter(integration =>

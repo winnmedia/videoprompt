@@ -1,13 +1,10 @@
 import { describe, it, expect } from 'vitest';
 
 describe('Test Environment Check', () => {
-  it('should have correct environment variables', () => {
-    // Vitest define 옵션으로 설정된 환경 변수 확인
+  it('should have basic environment variables', () => {
     expect(process.env.NODE_ENV).toBe('test');
     expect(process.env.OPENAI_API_KEY).toBe('test-openai-key');
     expect(process.env.GOOGLE_GEMINI_API_KEY).toBe('test-gemini-key');
-    expect(process.env.NEXT_PUBLIC_SUPABASE_URL).toBe('https://test.supabase.co');
-    expect(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY).toBe('test-anon-key');
   });
 
   it('should have global fetch mocked', () => {
@@ -16,13 +13,13 @@ describe('Test Environment Check', () => {
   });
 
   it('should have ResizeObserver mocked', () => {
-    expect(global.ResizeObserver).toBeDefined();
-    expect(typeof global.ResizeObserver).toBe('function');
+    expect((global as any).ResizeObserver).toBeDefined();
+    expect(typeof (global as any).ResizeObserver).toBe('function');
   });
 
   it('should have IntersectionObserver mocked', () => {
-    expect(global.IntersectionObserver).toBeDefined();
-    expect(typeof global.IntersectionObserver).toBe('function');
+    expect((global as any).IntersectionObserver).toBeDefined();
+    expect(typeof (global as any).IntersectionObserver).toBe('function');
   });
 
   it('should handle basic math operations', () => {

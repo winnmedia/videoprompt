@@ -28,9 +28,7 @@ module.exports = {
   define: {
     'process.env.NODE_ENV': '"test"',
     'process.env.OPENAI_API_KEY': `"${process.env.OPENAI_API_KEY || 'test-openai-key'}"`,
-    'process.env.GOOGLE_GEMINI_API_KEY': `"${process.env.GOOGLE_GEMINI_API_KEY || 'test-gemini-key'}"`,
-    'process.env.NEXT_PUBLIC_SUPABASE_URL': `"${process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://test.supabase.co'}"`,
-    'process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY': `"${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'test-anon-key'}"`,
+    'process.env.GOOGLE_GEMINI_API_KEY': `"${process.env.GOOGLE_GEMINI_API_KEY || 'test-gemini-key'}"`
   },
   testEnvironmentOptions: {
     customExportConditions: ['node', 'node-addons'],

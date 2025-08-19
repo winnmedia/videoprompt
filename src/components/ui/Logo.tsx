@@ -13,28 +13,36 @@ export function Logo({ variant = 'default', size = 'md', className }: LogoProps)
     md: 'text-xl',
     lg: 'text-2xl',
     xl: 'text-3xl',
-  };
+  } as const;
 
   const iconSizes = {
     sm: 'w-6 h-6',
     md: 'w-8 h-8',
     lg: 'w-10 h-10',
     xl: 'w-12 h-12',
-  };
+  } as const;
+
+  const imgSize = {
+    sm: 24,
+    md: 32,
+    lg: 40,
+    xl: 48,
+  } as const;
+
+  const LogoMark = (
+    <img
+      src="/logo.svg"
+      width={imgSize[size]}
+      height={imgSize[size]}
+      alt="VideoPlanet"
+      className="inline-block"
+    />
+  );
 
   if (variant === 'icon') {
     return (
-      <div className={cn(
-        'bg-primary-500 rounded-lg flex items-center justify-center text-white font-bold shadow-primary',
-        iconSizes[size],
-        className
-      )}>
-        <span className={cn(
-          'font-bold',
-          size === 'sm' ? 'text-sm' : size === 'md' ? 'text-lg' : size === 'lg' ? 'text-xl' : 'text-2xl'
-        )}>
-          V
-        </span>
+      <div className={cn(iconSizes[size], className)} aria-label="VideoPlanet">
+        {LogoMark}
       </div>
     );
   }
@@ -42,17 +50,7 @@ export function Logo({ variant = 'default', size = 'md', className }: LogoProps)
   if (variant === 'compact') {
     return (
       <div className={cn('flex items-center space-x-2', className)}>
-        <div className={cn(
-          'bg-primary-500 rounded-lg flex items-center justify-center text-white font-bold shadow-primary',
-          iconSizes[size]
-        )}>
-          <span className={cn(
-            'font-bold',
-            size === 'sm' ? 'text-sm' : size === 'md' ? 'text-lg' : size === 'lg' ? 'text-xl' : 'text-2xl'
-          )}>
-            V
-          </span>
-        </div>
+        {LogoMark}
         <span className={cn('font-bold text-gray-900', sizes[size])}>
           VideoPlanet
         </span>
@@ -62,17 +60,7 @@ export function Logo({ variant = 'default', size = 'md', className }: LogoProps)
 
   return (
     <div className={cn('flex items-center space-x-3', className)}>
-      <div className={cn(
-        'bg-primary-500 rounded-xl flex items-center justify-center text-white font-bold shadow-primary',
-        iconSizes[size]
-      )}>
-        <span className={cn(
-          'font-bold',
-          size === 'sm' ? 'text-sm' : size === 'md' ? 'text-lg' : size === 'lg' ? 'text-xl' : 'text-2xl'
-        )}>
-          V
-        </span>
-      </div>
+      {LogoMark}
       <div className="flex flex-col">
         <span className={cn('font-bold text-gray-900 leading-tight', sizes[size])}>
           VideoPlanet

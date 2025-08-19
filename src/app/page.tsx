@@ -1,10 +1,13 @@
-import React from 'react';
+"use client";
+ 
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Logo } from '@/components/ui/Logo';
 
 export default function HomePage() {
+  const [heroInput, setHeroInput] = useState('');
   return (
     <div className="min-h-screen bg-white">
       {/* 헤더 */}
@@ -14,7 +17,7 @@ export default function HomePage() {
             <Logo variant="compact" size="lg" />
             <nav className="hidden md:flex items-center space-x-8">
               <Link href="/wizard" className="text-gray-700 hover:text-primary-600 font-medium">
-                장면 마법사
+                씬 플래너
               </Link>
               <Link href="/projects" className="text-gray-700 hover:text-primary-600 font-medium">
                 프로젝트
@@ -51,16 +54,12 @@ export default function HomePage() {
                   AI가 당신의 아이디어를 전문적인 영상 시나리오로 변환합니다.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <Link href="/wizard">
+                  <Link href="/wizard" className="w-full sm:w-auto">
                     <Button size="lg" className="w-full sm:w-auto">
                       <Icon name="wizard" size="lg" className="mr-3" />
-                      장면 마법사 시작하기
+                      AI 영상 생성
                     </Button>
                   </Link>
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                    <Icon name="play" size="lg" className="mr-3" />
-                    데모 보기
-                  </Button>
                 </div>
               </div>
               <div className="flex justify-center">
@@ -139,22 +138,32 @@ export default function HomePage() {
 
               {/* 입력 필드 */}
               <div className="border-t border-gray-200 p-4">
-                <div className="flex items-center space-x-3">
-                  <div className="flex-1">
-                    <input
-                      type="text"
-                      placeholder="이 곳에 시나리오를 넣어주세요!"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    />
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const q = encodeURIComponent(heroInput.trim());
+                    window.location.href = q ? `/wizard?q=${q}` : '/wizard';
+                  }}
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={heroInput}
+                        onChange={(e) => setHeroInput(e.target.value)}
+                        placeholder="이 곳에 시나리오를 넣어주세요!"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      />
+                    </div>
+                    <Button size="lg" className="rounded-full px-6" type="submit" data-testid="landing-generate-btn">
+                      <Icon name="wizard" size="sm" className="mr-2" />
+                      생성
+                    </Button>
                   </div>
-                  <Button size="lg" className="rounded-full px-6">
-                    <Icon name="send" size="sm" className="mr-2" />
-                    전송
-                  </Button>
-                </div>
+                </form>
                 <div className="mt-3 text-center">
                   <Link href="/wizard" className="text-primary-600 hover:text-primary-700 text-sm font-medium">
-                    장면 마법사에서 더 자세한 설정하기 →
+                    AI 영상 생성에서 더 자세한 설정하기 →
                   </Link>
                 </div>
               </div>
@@ -268,7 +277,7 @@ export default function HomePage() {
             <div>
               <h3 className="text-lg font-semibold mb-4">제품</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><Link href="/wizard" className="hover:text-white">장면 마법사</Link></li>
+                <li><Link href="/wizard" className="hover:text-white">씬 플래너</Link></li>
                 <li><Link href="/editor" className="hover:text-white">타임라인 에디터</Link></li>
                 <li><Link href="/presets" className="hover:text-white">프리셋</Link></li>
               </ul>

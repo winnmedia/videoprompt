@@ -23,6 +23,11 @@ export interface AIGenerationRequest {
   duration?: number;
   theme?: string;
   targetAudience?: string;
+  mood?: string;
+  camera?: string;
+  weather?: string;
+  characters?: string[];
+  actions?: string[];
 }
 
 export interface AIGenerationResponse {
@@ -52,27 +57,9 @@ class OpenAIClient {
 
   async generateScenePrompt(request: AIGenerationRequest): Promise<AIGenerationResponse> {
     try {
-      const systemPrompt = `당신은 전문적인 영상 시나리오 작가입니다. 
-다음 요구사항에 맞는 상세하고 창의적인 장면 프롬프트를 생성해주세요:
+      const systemPrompt = `You are a professional film prompt writer. Respond in English ONLY.\nGenerate a detailed and creative scene prompt based on the following requirements:\n\n- Theme: ${request.theme || 'general'}\n- Audience: ${request.targetAudience || 'general'}\n- Style: ${request.style || 'natural'}\n- Aspect Ratio: ${request.aspectRatio || '16:9'}\n- Duration: ${(request.duration || 2)}s\n- Mood: ${request.mood || 'default'}\n- Camera: ${request.camera || 'default'} (use English camera terms like wide, tracking, POV, top view, dolly-in, long take, handheld, drone orbital)\n- Weather: ${request.weather || 'default'}\n- Characters: ${(request.characters && request.characters.length) ? request.characters.join(', ') : 'none'}\n- Actions: ${(request.actions && request.actions.length) ? request.actions.join(', ') : 'none'}\n\nInclude:\n1) Visual description\n2) Camera movement and angles\n3) Lighting and mood\n4) Color palette\n5) 5-10 keywords (English only)\n\nReturn as valid JSON.`;
 
-- 테마: ${request.theme || '일반'}
-- 대상: ${request.targetAudience || '전체'}
-- 스타일: ${request.style || '자연스러운'}
-- 화면비: ${request.aspectRatio || '16:9'}
-- 지속시간: ${request.duration || 2}초
-
-프롬프트는 다음 요소를 포함해야 합니다:
-1. 장면의 시각적 묘사
-2. 카메라 움직임과 앵글
-3. 조명과 분위기
-4. 색상 팔레트
-5. 키워드 5-10개
-
-응답은 JSON 형식으로 제공해주세요.`;
-
-      const userPrompt = `주제: ${request.prompt}
-
-위 주제에 맞는 장면을 생성해주세요.`;
+      const userPrompt = `주제: ${request.prompt}\n\n위 주제에 맞는 장면을 생성해주세요.`;
 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -137,14 +124,9 @@ class OpenAIClient {
 
   async enhancePrompt(existingPrompt: string, feedback: string): Promise<AIGenerationResponse> {
     try {
-      const systemPrompt = `기존 프롬프트를 사용자 피드백에 따라 개선해주세요.
-더 구체적이고 시각적으로 명확하게 만들어주세요.`;
+      const systemPrompt = `Improve the existing prompt based on the user feedback. Respond in English ONLY. Make it more specific and visually clear.`;
 
-      const userPrompt = `기존 프롬프트: ${existingPrompt}
-
-개선 요청: ${feedback}
-
-개선된 프롬프트를 제공해주세요.`;
+      const userPrompt = `기존 프롬프트: ${existingPrompt}\n\n개선 요청: ${feedback}\n\n개선된 프롬프트를 제공해주세요.`;
 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -205,24 +187,7 @@ class GeminiClient {
 
   async generateScenePrompt(request: AIGenerationRequest): Promise<AIGenerationResponse> {
     try {
-      const prompt = `당신은 전문적인 영상 시나리오 작가입니다.
-
-주제: ${request.prompt}
-테마: ${request.theme || '일반'}
-대상: ${request.targetAudience || '전체'}
-스타일: ${request.style || '자연스러운'}
-화면비: ${request.aspectRatio || '16:9'}
-지속시간: ${request.duration || 2}초
-
-위 요구사항에 맞는 상세하고 창의적인 장면 프롬프트를 생성해주세요.
-프롬프트는 다음 요소를 포함해야 합니다:
-1. 장면의 시각적 묘사
-2. 카메라 움직임과 앵글
-3. 조명과 분위기
-4. 색상 팔레트
-5. 키워드 5-10개
-
-JSON 형식으로 응답해주세요.`;
+      const prompt = `You are a professional film prompt writer. Respond in English ONLY.\n\nSubject: ${request.prompt}\nTheme: ${request.theme || 'general'}\nAudience: ${request.targetAudience || 'general'}\nStyle: ${request.style || 'natural'}\nAspect Ratio: ${request.aspectRatio || '16:9'}\nDuration: ${(request.duration || 2)}s\nMood: ${request.mood || 'default'}\nCamera: ${request.camera || 'default'} (use English camera terms like wide, tracking, POV, top view, dolly-in, long take, handheld, drone orbital)\nWeather: ${request.weather || 'default'}\nCharacters: ${(request.characters && request.characters.length) ? request.characters.join(', ') : 'none'}\nActions: ${(request.actions && request.actions.length) ? request.actions.join(', ') : 'none'}\n\nCreate a detailed and creative scene prompt. Include:\n1) Visual description\n2) Camera movement and angles\n3) Lighting and mood\n4) Color palette\n5) 5-10 keywords (English only)\n\nReturn as valid JSON.`;
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`, {
         method: 'POST',
@@ -288,12 +253,7 @@ JSON 형식으로 응답해주세요.`;
 
   async enhancePrompt(existingPrompt: string, feedback: string): Promise<AIGenerationResponse> {
     try {
-      const prompt = `기존 프롬프트: ${existingPrompt}
-
-개선 요청: ${feedback}
-
-기존 프롬프트를 사용자 피드백에 따라 개선해주세요.
-더 구체적이고 시각적으로 명확하게 만들어주세요.`;
+      const prompt = `Existing prompt: ${existingPrompt}\n\nFeedback: ${feedback}\n\nImprove the prompt per the feedback in English ONLY. Make it more specific and visually clear.`;
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`, {
         method: 'POST',
@@ -442,7 +402,172 @@ export const createAIServiceManager = (): AIServiceManager => {
     },
   };
 
+  // Mock 모드: 키가 없거나 NEXT_PUBLIC_ENABLE_MOCK_API=true 인 경우
+  const isMock = (process.env.NEXT_PUBLIC_ENABLE_MOCK_API === 'true') || (!config.openai.apiKey && !config.gemini.apiKey);
+  if (isMock) {
+    class MockManager {
+      async generateScenePrompt(request: AIGenerationRequest): Promise<AIGenerationResponse> {
+        return {
+          success: true,
+          data: {
+            prompt: request.prompt,
+            enhancedPrompt: `A detailed cinematic description of: ${request.prompt}. Use English camera terms, realistic lighting, and clear composition.`,
+            suggestions: ['camera panning', 'warm lighting', 'rain ambience', 'wet surface reflections'],
+            metadata: { mock: true },
+          },
+        };
+      }
+      async enhancePrompt(existingPrompt: string, feedback: string): Promise<AIGenerationResponse> {
+        return {
+          success: true,
+          data: { prompt: existingPrompt, enhancedPrompt: `${existingPrompt} + ${feedback}`, suggestions: [], metadata: { mock: true } },
+        };
+      }
+      isServiceAvailable() { return true; }
+      getAvailableServices() { return ['openai'] as ('openai'|'gemini')[]; }
+    }
+    // @ts-expect-error: 런타임 호환 Mock 매니저 반환
+    return new MockManager();
+  }
+
   return new AIServiceManager(config);
 };
 
 export default createAIServiceManager;
+
+// --- Lightweight translator to English ---
+export async function translateToEnglish(text: string): Promise<string> {
+  const src = (text || '').trim();
+  if (!src) return '';
+  const openaiKey = process.env.OPENAI_API_KEY || '';
+  const geminiKey = process.env.GOOGLE_GEMINI_API_KEY || '';
+
+  try {
+    if (openaiKey) {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: 'Translate the user input into natural English. Output English only. No explanation. No quotes.' },
+            { role: 'user', content: src },
+          ],
+          temperature: 0.2,
+        }),
+      });
+      const data = await res.json();
+      const content = data.choices?.[0]?.message?.content;
+      return (content || src).trim();
+    }
+
+    if (geminiKey) {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: `Translate to English only. No explanation.\n\n${src}` }] }],
+          generationConfig: { temperature: 0.2 },
+        }),
+      });
+      const data = await res.json();
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      return (content || src).trim();
+    }
+  } catch (_) {}
+
+  // Mock/No key: return source as-is
+  return src;
+}
+
+// Extract rich scene components to fill JSON fields precisely
+export async function extractSceneComponents(input: {
+  scenario: string;
+  theme?: string;
+  style?: string;
+  aspectRatio?: string;
+  durationSec?: number;
+  mood?: string;
+  camera?: string;
+  weather?: string;
+}): Promise<{
+  key_elements: string[];
+  assembled_elements: string[];
+  negative_prompts: string[];
+  keywords: string[];
+  timelineBeats: { action: string; audio: string }[];
+}> {
+  const duration = input.durationSec ?? 8;
+  const beats = Math.max(1, Math.floor(duration / 2));
+  const openaiKey = process.env.OPENAI_API_KEY || '';
+  const geminiKey = process.env.GOOGLE_GEMINI_API_KEY || '';
+
+  const system = 'You are a film prompt structurer. Output ONLY valid JSON matching the schema.';
+  const user = `Compose structured components in English for a cinematic scene. Return JSON with fields: {
+  key_elements: string[]; // essential objects/events, 6-10
+  assembled_elements: string[]; // surfaces/lighting/prop textures, 3-5
+  negative_prompts: string[]; // safe constraints, 3-8
+  keywords: string[]; // 8-12 concise English tags
+  timelineBeats: { action: string; audio: string }[]; // exactly ${beats} items, 2s per beat
+}
+
+Context:
+- Scenario: ${input.scenario}
+- Theme: ${input.theme}
+- Style: ${input.style}
+- Aspect: ${input.aspectRatio}
+- Duration: ${duration}s
+- Mood: ${input.mood}
+- Camera: ${input.camera}
+- Weather: ${input.weather}
+
+Guidelines:
+- Use concise, vivid English.
+- timelineBeats.action: one sentence describing the visual beat.
+- timelineBeats.audio: one sentence listing sound design cues.
+- No extra commentary.`;
+
+  try {
+    if (openaiKey) {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${openaiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'gpt-4o-mini', temperature: 0.3, messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user },
+        ]})
+      });
+      const data = await res.json();
+      const content = data.choices?.[0]?.message?.content;
+      return JSON.parse(content);
+    }
+    if (geminiKey) {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+          contents: [{ parts: [{ text: `${system}\n\n${user}` }]}], generationConfig: { temperature: 0.3 }
+        })
+      });
+      const data = await res.json();
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      return JSON.parse(content);
+    }
+  } catch (e) {
+    // fallthrough to mock
+  }
+
+  // Mock fallback
+  const mockBeats = Array.from({ length: beats }).map((_, i) => ({
+    action: ['Wide establishing with rain on surfaces','Sniper dot triggers panic','Briefcase grab and rooftop chase','Helicopter light sweeps; pan up'][Math.min(i,3)],
+    audio: ['heavy rain, distant siren','laser whine, gunshots, shouts','footsteps, metal clank, wind','chopper blades, spotlight hum, bass swell'][Math.min(i,3)],
+  }));
+  return {
+    key_elements: ['opposing groups','metal briefcase','sniper laser dot','gunfire','helicopter spotlight','rooftop sprint'],
+    assembled_elements: ['reflective puddles','glowing lock panel','fog beam'],
+    negative_prompts: ['no blood','no text','no supernatural'],
+    keywords: ['rooftop','briefcase exchange','sniper ambush','helicopter chase','rain cinematic','thriller sfx'],
+    timelineBeats: mockBeats,
+  };
+}

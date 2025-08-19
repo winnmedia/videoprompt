@@ -52,17 +52,14 @@ export default function IntegrationsPage() {
   // 이벤트 핸들러
   const handleConnect = (id: string) => {
     console.log('Connecting to:', id);
-    // TODO: 실제 연결 로직 구현
   };
 
   const handleDisconnect = (id: string) => {
     console.log('Disconnecting from:', id);
-    // TODO: 실제 연결 해제 로직 구현
   };
 
   const handleConfigure = (id: string) => {
     console.log('Configuring:', id);
-    // TODO: 설정 페이지로 이동
   };
 
   return (
@@ -121,6 +118,7 @@ export default function IntegrationsPage() {
                 카테고리
               </label>
               <select
+                data-testid="category-select"
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -145,6 +143,7 @@ export default function IntegrationsPage() {
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" 
                 />
                 <input
+                  data-testid="search-input"
                   type="text"
                   placeholder="서비스 이름이나 설명으로 검색..."
                   value={searchQuery}

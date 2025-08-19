@@ -1,13 +1,13 @@
 import { vi, afterEach } from 'vitest';
 
 // Mock global objects
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
+(global as any).ResizeObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   disconnect: vi.fn(),
 }));
 
-global.IntersectionObserver = vi.fn().mockImplementation(() => ({
+(global as any).IntersectionObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   disconnect: vi.fn(),
@@ -16,7 +16,7 @@ global.IntersectionObserver = vi.fn().mockImplementation(() => ({
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: vi.fn().mockImplementation(query => ({
+  value: vi.fn().mockImplementation((query: string) => ({
     matches: false,
     media: query,
     onchange: null,
@@ -29,7 +29,7 @@ Object.defineProperty(window, 'matchMedia', {
 });
 
 // Mock fetch globally
-global.fetch = vi.fn();
+(global as any).fetch = vi.fn();
 
 // Mock Next.js modules
 vi.mock('next/navigation', () => ({
@@ -49,40 +49,6 @@ vi.mock('next/navigation', () => ({
 vi.mock('next/headers', () => ({
   headers: () => new Map(),
   cookies: () => new Map(),
-}));
-
-// Mock Supabase
-vi.mock('@supabase/supabase-js', () => ({
-  createClient: vi.fn().mockImplementation(() => ({
-    auth: {
-      signIn: vi.fn(),
-      signOut: vi.fn(),
-      getUser: vi.fn(),
-      onAuthStateChange: vi.fn(),
-    },
-    from: vi.fn().mockReturnValue({
-      select: vi.fn().mockReturnThis(),
-      insert: vi.fn().mockReturnThis(),
-      update: vi.fn().mockReturnThis(),
-      delete: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn(),
-      then: vi.fn(),
-    }),
-    storage: {
-      from: vi.fn().mockReturnValue({
-        upload: vi.fn(),
-        download: vi.fn(),
-        remove: vi.fn(),
-        list: vi.fn(),
-      }),
-    },
-    channel: vi.fn().mockReturnValue({
-      on: vi.fn().mockReturnThis(),
-      subscribe: vi.fn(),
-      unsubscribe: vi.fn(),
-    }),
-  })),
 }));
 
 // Cleanup after each test
