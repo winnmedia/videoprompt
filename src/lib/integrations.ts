@@ -1,3 +1,4 @@
+import type { LucideIcon } from "lucide-react"
 import {
   Zap,
   ShoppingCart,
@@ -30,14 +31,13 @@ import {
   Truck,
   Wifi,
 } from "lucide-react"
-import type React from "react"
 
 export type VideoPlanetIntegration = {
   id: string
   name: string
   description: string
   category: string
-  icon: React.ComponentType
+  icon: LucideIcon
   color: string
   status: 'connected' | 'disconnected' | 'pending'
   apiKey?: string
@@ -62,39 +62,6 @@ export const integrationCategories = [
   "E-commerce",
   "Customer Support",
 ]
-
-const iconMap = {
-  Zap,
-  ShoppingCart,
-  BarChart,
-  Mail,
-  Calendar,
-  FileText,
-  CreditCard,
-  Phone,
-  Video,
-  Cloud,
-  Globe,
-  Shield,
-  Camera,
-  Music,
-  Book,
-  Briefcase,
-  Coffee,
-  Cpu,
-  Database,
-  Headphones,
-  Heart,
-  Image,
-  Key,
-  Laptop,
-  Map,
-  Printer,
-  Rocket,
-  Scissors,
-  Truck,
-  Wifi,
-}
 
 const colorPalette = [
   "#FF4A00",

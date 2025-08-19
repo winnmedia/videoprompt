@@ -105,7 +105,8 @@ export function IntegrationCard({
               style={{ backgroundColor: `${integration.color}20` }}
             >
               <integration.icon
-                className="w-6 h-6 transition-transform duration-300"
+                size={24}
+                className="transition-transform duration-300"
                 style={{ color: integration.color }}
               />
             </div>

@@ -49,7 +49,7 @@ export const KidChoiceSchema = z.object({
     "롱테이크", "핸드헬드", "드론 오비탈"
   ]),
   weather: z.enum(["맑음", "비", "눈", "안개"]).optional(),
-  durationSec: z.enum([8, 10, 12]).default(8),
+  durationSec: z.union([z.literal(8), z.literal(10), z.literal(12)]).default(8),
 });
 
 // RecommendCard 스키마
@@ -62,7 +62,7 @@ export const RecommendCardSchema = z.object({
   room_description: z.string(),
   camera_setup: z.string(),
   keywords: z.array(z.string()),
-  durationSec: z.enum([8, 10, 12]),
+  durationSec: z.union([z.literal(8), z.literal(10), z.literal(12)]),
 });
 
 // PEL 관련 스키마

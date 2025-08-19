@@ -233,15 +233,20 @@ export type Database = {
 };
 
 // 타입 안전한 Supabase 클라이언트
-export const typedSupabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
+export const typedSupabase = (() => {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase 환경변수가 설정되지 않았습니다.');
+  }
+  return createClient<Database>(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
     },
-  },
-});
+    realtime: {
+      params: {
+        eventsPerSecond: 10,
+      },
+    },
+  });
+})();

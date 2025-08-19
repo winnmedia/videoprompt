@@ -90,7 +90,7 @@ const iconMap = {
   Scissors,
   Truck,
   Wifi,
-}
+} as const;
 
 const colorPalette = [
   "#FF4A00",
@@ -117,7 +117,7 @@ const colorPalette = [
 
 function generateIntegrations(count: number): Integration[] {
   const integrations: Integration[] = []
-  const iconKeys = Object.keys(iconMap)
+  const iconKeys = Object.keys(iconMap) as (keyof typeof iconMap)[]
 
   for (let i = 0; i < count; i++) {
     const iconKey = iconKeys[Math.floor(Math.random() * iconKeys.length)]
