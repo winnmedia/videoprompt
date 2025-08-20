@@ -14,6 +14,8 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
+    "test:e2e:dev": "PW_BASE_URL=http://localhost:3000 playwright test",
+    "test:e2e:ui": "PW_BASE_URL=http://localhost:3000 playwright test --ui",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "db:push": "prisma db push",
