@@ -99,6 +99,24 @@ export interface WizardLikeContext {
   actions?: string[];
   enhancedPrompt?: string;
   suggestions?: string[];
+  // Optional cinematic/technical fields for richer prompts
+  resolution?: string;
+  fps?: string;
+  genre?: string;
+  visualTone?: string;
+  cameraMovement?: string;
+  shotType?: string;
+  speed?: string;
+  lighting?: string;
+  colorPalette?: string;
+  soundAmbience?: string;
+  sfxDensity?: string;
+  safetyPreset?: string;
+  detailStrength?: string;
+  motionSmoothing?: string;
+  coherence?: string;
+  randomness?: string;
+  seed?: number;
 }
 
 export function translateWizardContextToEnglish(ctx: WizardLikeContext): WizardLikeContext {
