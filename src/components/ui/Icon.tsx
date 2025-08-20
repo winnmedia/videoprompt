@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 interface IconProps {
-  name: 'wizard' | 'projects' | 'presets' | 'check' | 'lightning' | 'clock' | 'target' | 'gear' | 'plus' | 'minus' | 'edit' | 'delete' | 'save' | 'play' | 'pause' | 'stop' | 'arrow-left' | 'loading' | 'user' | 'send' | 'search' | 'copy';
+  name: 'wizard' | 'projects' | 'presets' | 'check' | 'lightning' | 'clock' | 'target' | 'gear' | 'plus' | 'minus' | 'edit' | 'delete' | 'save' | 'play' | 'pause' | 'stop' | 'arrow-left' | 'loading' | 'user' | 'send' | 'search' | 'copy' | 'info';
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
 }
@@ -127,6 +127,11 @@ export function Icon({ name, size = 'md', className }: IconProps) {
     copy: (
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2M8 16h8a2 2 0 002-2v-6M8 16l-2 2m10-10l2-2" />
+      </svg>
+    ),
+    info: (
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" />
       </svg>
     ),
   };

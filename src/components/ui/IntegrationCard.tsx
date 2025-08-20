@@ -111,7 +111,7 @@ export function IntegrationCard({
               />
             </div>
             <div>
-              <CardTitle className="text-lg font-semibold text-gray-900">
+              <CardTitle className="text-lg font-semibold text-gray-900" data-testid={`integration-title-${integration.id}`}>
                 {integration.name}
               </CardTitle>
               <Badge 
