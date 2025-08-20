@@ -27,7 +27,7 @@ export default function RootLayout({
       <head>
         <meta
           httpEquiv="Content-Security-Policy"
-          content="default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' https://videoprompt-production.up.railway.app;"
+          content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://videoprompt-production.up.railway.app https://api.openai.com https://generativelanguage.googleapis.com; font-src 'self' data:; media-src 'self' data: blob:; base-uri 'self'; frame-ancestors 'self';"
         />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
