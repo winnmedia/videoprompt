@@ -277,7 +277,7 @@ export default function SceneWizardPage() {
           const prompt = buildVeo3PromptFromScene(scene);
           const english = await translateToEnglish(prompt);
           try { await navigator.clipboard.writeText(english); } catch {}
-          const payload: any = { prompt: english, aspect_ratio: scene.metadata?.aspect_ratio || selectedAspectRatio, duration_seconds: selectedDuration };
+          const payload: any = { prompt: english, aspect_ratio: scene.metadata?.aspect_ratio || selectedAspectRatio, duration_seconds: selectedDuration, model: 'seedance-1.0-pro' };
           if (webhookBase) payload.webhook_url = `${webhookBase}/api/seedance/webhook`;
           const res = await fetch('/api/seedance/create', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -295,24 +295,27 @@ export default function SceneWizardPage() {
       }
 
       // 단일 씬
-      const veo3 = buildVeo3PromptFromWizard({
-        scenario,
-        theme: selectedTheme,
-        style: selectedStyle,
-        aspectRatio: selectedAspectRatio,
-        durationSec: selectedDuration,
-        targetAudience,
-        mood,
-        camera,
-        weather,
-        characters,
-        actions,
-        enhancedPrompt: lastEnhancedPrompt,
-        suggestions: lastSuggestions,
-      });
-      const english = await translateToEnglish(veo3);
+      // 최종 프롬프트 미리보기 텍스트를 우선 사용 (한/영 상관없이 마지막에 영어화)
+      let finalText = (veo3Preview && veo3Preview.trim().length > 0)
+        ? veo3Preview
+        : buildVeo3PromptFromWizard({
+            scenario,
+            theme: selectedTheme,
+            style: selectedStyle,
+            aspectRatio: selectedAspectRatio,
+            durationSec: selectedDuration,
+            targetAudience,
+            mood,
+            camera,
+            weather,
+            characters,
+            actions,
+            enhancedPrompt: lastEnhancedPrompt,
+            suggestions: lastSuggestions,
+          });
+      const english = await translateToEnglish(finalText);
       try { await navigator.clipboard.writeText(english); } catch {}
-      const payload: any = { prompt: english, aspect_ratio: selectedAspectRatio, duration_seconds: selectedDuration };
+      const payload: any = { prompt: english, aspect_ratio: selectedAspectRatio, duration_seconds: selectedDuration, model: 'seedance-1.0-pro' };
       if (webhookBase) payload.webhook_url = `${webhookBase}/api/seedance/webhook`;
       const res = await fetch('/api/seedance/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const json = await res.json();
