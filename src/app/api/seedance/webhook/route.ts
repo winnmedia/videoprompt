@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { upsertJobState } from '@/lib/providers/seedanceStore';
 
 // TODO: 서명 검증 추가 (헤더 검증)
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const jobId = body.jobId || body.job_id || body.id || body.data?.jobId || body.data?.id;

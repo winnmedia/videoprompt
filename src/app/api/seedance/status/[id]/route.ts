@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { getSeedanceStatus } from '@/lib/providers/seedance';
 import { getJobState, upsertJobState } from '@/lib/providers/seedanceStore';
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
-  const { id } = params || {} as any;
+export async function GET(_req: NextRequest, context: { params: { id: string } }) {
+  const { id } = context.params || ({} as any);
   if (!id) return NextResponse.json({ ok: false, error: 'id required' }, { status: 400 });
   // 메모리 캐시 우선 반환
   const cached = getJobState(id);
