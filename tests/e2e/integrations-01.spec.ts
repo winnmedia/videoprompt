@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test('integrations-01: 카테고리/검색/상태 UI', async ({ page }) => {
-  await page.goto('http://localhost:3001/integrations');
+  await page.goto('/integrations');
 
   await page.getByTestId('category-select').selectOption('AI Services');
   await page.getByTestId('search-input').fill('OpenAI');

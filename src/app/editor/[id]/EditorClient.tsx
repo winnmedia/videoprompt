@@ -34,6 +34,9 @@ export default function EditorClient({ id }: EditorClientProps) {
     const arr = s.split(',').map(v => v.trim()).filter(Boolean);
     return arr;
   }, []);
+  const clientJobActive = useMemo(() => {
+    return !!(mounted && ((jobId && jobId.length > 0) || (jobIds && jobIds.length > 0)));
+  }, [mounted, jobId, jobIds]);
 
   useEffect(() => {
     setMounted(true);
@@ -201,13 +204,13 @@ export default function EditorClient({ id }: EditorClientProps) {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-sm border p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-gray-900">{(mounted && (jobId || jobIds.length)) ? 'Seedance 생성 미리보기' : '타임라인'}</h2>
-                {!(mounted && (jobId || jobIds.length)) && (
+                <h2 className="text-lg font-semibold text-gray-900">{clientJobActive ? 'Seedance 생성 미리보기' : '타임라인'}</h2>
+                {!clientJobActive && (
                   <Button onClick={handleAddBead} size="sm"><Icon name="plus" size="sm" className="mr-2" />구간 추가</Button>
                 )}
               </div>
 
-              {(mounted && (jobId || jobIds.length)) ? (
+              {clientJobActive ? (
                 <div className="relative bg-gray-50 rounded-lg p-6 border border-gray-200">
                   <div className="flex items-center justify-between mb-3">
                     <div className="text-sm font-medium text-gray-900">Seedance 작업 진행상황</div>
@@ -299,7 +302,7 @@ export default function EditorClient({ id }: EditorClientProps) {
                 </div>
               )}
 
-              {!jobId && (
+              {!clientJobActive && (
                 <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
                   <div className="text-center"><span className="font-medium text-gray-700">총 지속시간</span><div className="text-lg font-bold text-primary-600">{formatTime(totalDuration)}</div></div>
                   <div className="text-center"><span className="font-medium text-gray-700">구간 개수</span><div className="text-lg font-bold text-gray-600">{timeline.length}</div></div>

@@ -30,6 +30,12 @@ export default function SceneWizardPage() {
   const [negativePromptsText, setNegativePromptsText] = useState<string>('');
   const [enableFullSfx, setEnableFullSfx] = useState<boolean>(false);
   const [enableMoviePack, setEnableMoviePack] = useState<boolean>(false);
+  // Seedance 진행/결과 상태 (위저드 내 표시)
+  const [seedanceJobIds, setSeedanceJobIds] = useState<string[]>([]);
+  const [seedanceStatuses, setSeedanceStatuses] = useState<Record<string, { status: string; progress?: number; videoUrl?: string }>>({});
+  const [seedancePollMs, setSeedancePollMs] = useState<number>(2000);
+  const [seedanceError, setSeedanceError] = useState<string | null>(null);
+  const webhookBase = (process.env.NEXT_PUBLIC_SITE_URL && process.env.NEXT_PUBLIC_SITE_URL.startsWith('http')) ? process.env.NEXT_PUBLIC_SITE_URL : undefined;
 
   // 기본 옵션
   const [selectedTheme, setSelectedTheme] = useState('일반');
@@ -261,6 +267,7 @@ export default function SceneWizardPage() {
 
   const handleSeedanceCreate = async () => {
     try {
+      setSeedanceError(null);
       if (enableMoviePack) {
         // 4씬 영화팩: 각 씬을 개별 Seedance 작업으로 생성
         const pack = composeFourScenePack();
@@ -268,17 +275,20 @@ export default function SceneWizardPage() {
           const prompt = buildVeo3PromptFromScene(scene);
           const english = await translateToEnglish(prompt);
           try { await navigator.clipboard.writeText(english); } catch {}
+          const payload: any = { prompt: english, aspect_ratio: scene.metadata?.aspect_ratio || selectedAspectRatio, duration_seconds: selectedDuration };
+          if (webhookBase) payload.webhook_url = `${webhookBase}/api/seedance/webhook`;
           const res = await fetch('/api/seedance/create', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: english, aspect_ratio: scene.metadata?.aspect_ratio || selectedAspectRatio, duration_seconds: selectedDuration, webhook_url: `${window.location.origin}/api/seedance/webhook` }),
+            body: JSON.stringify(payload),
           });
           const json = await res.json();
-          if (!json.ok) throw new Error(json.error || 'Seedance failed');
+          if (!json.ok) throw new Error(json.error || JSON.stringify(json));
           return json.jobId || json.raw?.jobId || json.raw?.id || '';
         }));
-        const validJobs = jobs.filter(Boolean);
-        const id = `${Date.now()}`;
-        router.push(`/editor/${id}?jobs=${encodeURIComponent(validJobs.join(','))}`);
+        const validJobs = jobs.filter(Boolean) as string[];
+        setSeedanceJobIds(validJobs);
+        setSeedanceStatuses({});
+        setSeedancePollMs(2000);
         return;
       }
 
@@ -300,20 +310,43 @@ export default function SceneWizardPage() {
       });
       const english = await translateToEnglish(veo3);
       try { await navigator.clipboard.writeText(english); } catch {}
-      const res = await fetch('/api/seedance/create', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: english, aspect_ratio: selectedAspectRatio, duration_seconds: selectedDuration, webhook_url: `${window.location.origin}/api/seedance/webhook` }),
-      });
+      const payload: any = { prompt: english, aspect_ratio: selectedAspectRatio, duration_seconds: selectedDuration };
+      if (webhookBase) payload.webhook_url = `${webhookBase}/api/seedance/webhook`;
+      const res = await fetch('/api/seedance/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const json = await res.json();
-      if (!json.ok) throw new Error(json.error || 'Seedance failed');
+      if (!json.ok) throw new Error(json.error || JSON.stringify(json));
       const jobId = json.jobId || json.raw?.jobId || json.raw?.id || `${Date.now()}`;
-      const id = `${Date.now()}`;
-      router.push(`/editor/${id}?job=${encodeURIComponent(jobId)}`);
+      setSeedanceJobIds([jobId]);
+      setSeedanceStatuses({});
+      setSeedancePollMs(2000);
     } catch (e) {
       console.error('seedance create failed', e);
-      setError('Seedance 생성에 실패했습니다.');
+      setSeedanceError(e instanceof Error ? e.message : 'Seedance 생성에 실패했습니다.');
     }
   };
+
+  // Seedance 상태 폴링 (지수 백오프, 최대 10초)
+  useEffect(() => {
+    if (seedanceJobIds.length === 0) return;
+    let cancel = false;
+    let t: any;
+    const pollOne = async (id: string) => {
+      try {
+        const res = await fetch(`/api/seedance/status/${encodeURIComponent(id)}`);
+        const json = await res.json();
+        if (!cancel) setSeedanceStatuses(prev => ({ ...prev, [id]: { status: json.status, progress: json.progress, videoUrl: json.videoUrl } }));
+      } catch {}
+    };
+    const tick = async () => {
+      await Promise.all(seedanceJobIds.map(pollOne));
+      if (!cancel) {
+        t = setTimeout(tick, seedancePollMs);
+        setSeedancePollMs(ms => Math.min(10000, Math.floor(ms * 1.3)));
+      }
+    };
+    tick();
+    return () => { cancel = true; if (t) clearTimeout(t); };
+  }, [seedanceJobIds, seedancePollMs]);
 
   const handleSave = async () => {
     if (!generatedPrompt) return;
@@ -710,23 +743,72 @@ export default function SceneWizardPage() {
                       </div>
                     )}
                     <div className="flex gap-3 pt-2">
-                      <Button variant="outline" onClick={handleSave} className="flex-1">
-                        <Icon name="save" size="sm" className="mr-2" />
-                        장면 저장하기
-                      </Button>
-                      <Button variant="outline" onClick={handleCopyVeo3} className="flex-1" data-testid="copy-veo3-btn">
+                      <Button onClick={handleCopyVeo3} className="flex-1" data-testid="copy-veo3-btn">
                         <Icon name="copy" size="sm" className="mr-2" />
                         프롬프트 복사
                       </Button>
                       <Button variant="outline" onClick={handleSeedanceCreate} className="flex-1" title="Seedance로 영상 생성">
                         <Icon name="play" size="sm" className="mr-2" />
-                        Seedance로 생성
-                      </Button>
-                      <Button data-testid="open-editor-btn" onClick={handleOpenEditor} className="flex-1">
-                        <Icon name="edit" size="sm" className="mr-2" />
-                        에디터로 열기
+                        SEEDANCE로 생성
                       </Button>
                     </div>
+
+                    {seedanceJobIds.length > 0 && (
+                      <div className="mt-4 border rounded-lg p-4 bg-gray-50">
+                        <div className="text-sm font-medium text-gray-900 mb-2">Seedance 생성 진행상황</div>
+                        {seedanceError && (
+                          <div className="mb-3 text-sm text-red-600">{seedanceError}</div>
+                        )}
+                        {seedanceJobIds.length > 1 ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {seedanceJobIds.map((jid) => (
+                              <div key={jid} className="border rounded p-3 bg-white">
+                                <div className="text-xs text-gray-500 mb-1">{jid}</div>
+                                <div className="w-full bg-gray-200 h-2 rounded overflow-hidden">
+                                  <div className="bg-primary-500 h-2" style={{ width: `${Math.min(100, (seedanceStatuses[jid]?.progress ?? 5))}%` }} />
+                                </div>
+                                <div className="mt-2 text-sm text-gray-700">상태: {seedanceStatuses[jid]?.status || 'processing'}{seedanceStatuses[jid]?.progress != null ? ` • ${seedanceStatuses[jid]?.progress}%` : ''}</div>
+                                <div className="mt-2">
+                                  {seedanceStatuses[jid]?.videoUrl ? (
+                                    <>
+                                      <video src={seedanceStatuses[jid]?.videoUrl} controls className="w-full rounded border" autoPlay muted />
+                                      <div className="mt-2 flex items-center gap-2">
+                                        <a href={seedanceStatuses[jid]?.videoUrl!} target="_blank" rel="noreferrer" className="text-xs text-primary-600 hover:underline">새 탭에서 열기</a>
+                                        <a href={seedanceStatuses[jid]?.videoUrl!} download className="text-xs text-secondary-700 hover:underline">다운로드</a>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="aspect-video w-full bg-gray-100 rounded border grid place-items-center text-sm text-gray-500">영상 준비 중…</div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <>
+                            <div className="w-full bg-gray-200 h-2 rounded overflow-hidden">
+                              <div className="bg-primary-500 h-2" style={{ width: `${Math.min(100, (seedanceStatuses[seedanceJobIds[0]]?.progress ?? 5))}%` }} />
+                            </div>
+                            <div className="mt-2 text-sm text-gray-700">상태: {seedanceStatuses[seedanceJobIds[0]]?.status || 'processing'}{seedanceStatuses[seedanceJobIds[0]]?.progress != null ? ` • ${seedanceStatuses[seedanceJobIds[0]]?.progress}%` : ''}</div>
+                            <div className="mt-2">
+                              {seedanceStatuses[seedanceJobIds[0]]?.videoUrl ? (
+                                <>
+                                  <video src={seedanceStatuses[seedanceJobIds[0]]?.videoUrl} controls className="w-full rounded border" autoPlay muted />
+                                  <div className="mt-2 flex items-center gap-2">
+                                    <a href={seedanceStatuses[seedanceJobIds[0]]?.videoUrl} target="_blank" rel="noreferrer" className="text-sm text-primary-600 hover:underline">새 탭에서 열기</a>
+                                    <a href={seedanceStatuses[seedanceJobIds[0]]?.videoUrl} download className="text-sm text-secondary-700 hover:underline">다운로드</a>
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="aspect-video w-full bg-gray-100 rounded border grid place-items-center text-sm text-gray-500">
+                                  영상 준비 중…
+                                </div>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (

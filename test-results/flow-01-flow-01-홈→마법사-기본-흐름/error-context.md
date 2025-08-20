@@ -1,0 +1,101 @@
+# Page snapshot
+
+```yaml
+- banner:
+  - img "VideoPlanet"
+  - text: VideoPlanet
+  - navigation:
+    - link "씬 플래너":
+      - /url: /wizard
+    - link "프로젝트":
+      - /url: /projects
+    - link "프리셋":
+      - /url: /presets
+  - button "로그인"
+  - button "시작하기"
+- main:
+  - heading "AI로 만드는 영상 시나리오" [level=1]
+  - paragraph: VideoPlanet으로 상상력을 현실로 만들어보세요. AI가 당신의 아이디어를 전문적인 영상 시나리오로 변환합니다.
+  - link "AI 영상 생성":
+    - /url: /wizard
+    - button "AI 영상 생성":
+      - img
+      - text: AI 영상 생성
+  - img "VideoPlanet"
+  - text: VideoPlanet AI 영상 제작 플랫폼
+  - heading "시나리오 입력" [level=2]
+  - paragraph: AI와 대화하듯 시나리오를 입력하고 창의적인 영상을 만들어보세요
+  - text: VideoPlanet AI 어시스턴트
+  - img
+  - paragraph: 안녕하세요! 영상 시나리오를 만들어드릴게요. 어떤 장면을 상상하고 계신가요?
+  - paragraph: 아이가 부엌에서 쿠키를 만드는 장면을 만들어주세요!
+  - img
+  - img
+  - paragraph: 멋진 아이디어네요! 부엌에서 쿠키를 만드는 따뜻한 장면을 만들어드릴게요. 어떤 분위기로 만들까요?
+  - textbox "이 곳에 시나리오를 넣어주세요!"
+  - button "생성":
+    - img
+    - text: 생성
+  - link "AI 영상 생성에서 더 자세한 설정하기 →":
+    - /url: /wizard
+  - heading "VideoPlanet의 핵심 기능" [level=2]
+  - paragraph: AI 기술로 영상 제작을 혁신적으로 만들어보세요
+  - img
+  - heading "AI 장면 생성" [level=3]
+  - paragraph: 자연어로 설명하면 AI가 전문적인 영상 시나리오를 자동으로 생성합니다
+  - img
+  - heading "타임라인 에디터" [level=3]
+  - paragraph: 2초 구슬 단위로 정밀한 타임라인을 편집하고 액션을 추가할 수 있습니다
+  - img
+  - heading "프리셋 라이브러리" [level=3]
+  - paragraph: 다양한 테마와 스타일의 프리셋을 활용하여 빠르게 프로젝트를 시작하세요
+  - heading "간단한 3단계로 시작하기" [level=2]
+  - paragraph: 복잡한 도구 없이도 전문적인 영상을 만들 수 있습니다
+  - text: "1"
+  - heading "시나리오 입력" [level=3]
+  - paragraph: 원하는 장면을 자연어로 설명하세요. AI가 이해하고 최적화합니다
+  - text: "2"
+  - heading "AI 생성" [level=3]
+  - paragraph: OpenAI와 Gemini AI가 협력하여 창의적이고 상세한 장면을 생성합니다
+  - text: "3"
+  - heading "편집 및 완성" [level=3]
+  - paragraph: 타임라인 에디터로 세밀하게 조정하고 최종 영상을 완성하세요
+- contentinfo:
+  - img "VideoPlanet"
+  - text: VideoPlanet
+  - paragraph: AI 기술로 영상 제작을 혁신적으로 만들어가는 VideoPlanet입니다.
+  - heading "제품" [level=3]
+  - list:
+    - listitem:
+      - link "씬 플래너":
+        - /url: /wizard
+    - listitem:
+      - link "타임라인 에디터":
+        - /url: /editor
+    - listitem:
+      - link "프리셋":
+        - /url: /presets
+  - heading "지원" [level=3]
+  - list:
+    - listitem:
+      - link "문서":
+        - /url: /docs
+    - listitem:
+      - link "튜토리얼":
+        - /url: /tutorials
+    - listitem:
+      - link "문의":
+        - /url: /contact
+  - heading "회사" [level=3]
+  - list:
+    - listitem:
+      - link "소개":
+        - /url: /about
+    - listitem:
+      - link "블로그":
+        - /url: /blog
+    - listitem:
+      - link "채용":
+        - /url: /careers
+  - paragraph: © 2025 VideoPlanet. All rights reserved.
+```
