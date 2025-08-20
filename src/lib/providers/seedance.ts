@@ -65,6 +65,7 @@ export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promi
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
+        'X-Api-Key': apiKey,
       },
       body: JSON.stringify(body),
     });
@@ -125,6 +126,7 @@ export async function getSeedanceStatus(jobId: string): Promise<SeedanceStatusRe
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
+        'X-Api-Key': apiKey,
         'Content-Type': 'application/json',
       },
     });

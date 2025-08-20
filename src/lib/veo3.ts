@@ -44,6 +44,25 @@ export function buildVeo3PromptFromWizard(ctx: WizardContextInput): string {
     suggestions,
   } = eng as any;
 
+  // Read optional cinematic parameters if provided by caller
+  const resolution: string | undefined = (eng as any)?.resolution;
+  const fps: string | undefined = (eng as any)?.fps;
+  const genre: string | undefined = (eng as any)?.genre;
+  const visualTone: string | undefined = (eng as any)?.visualTone;
+  const cameraMovement: string | undefined = (eng as any)?.cameraMovement;
+  const shotType: string | undefined = (eng as any)?.shotType;
+  const speed: string | undefined = (eng as any)?.speed;
+  const lighting: string | undefined = (eng as any)?.lighting;
+  const colorPalette: string | undefined = (eng as any)?.colorPalette;
+  const soundAmbience: string | undefined = (eng as any)?.soundAmbience;
+  const sfxDensity: string | undefined = (eng as any)?.sfxDensity;
+  const safetyPreset: string | undefined = (eng as any)?.safetyPreset;
+  const detailStrength: string | undefined = (eng as any)?.detailStrength;
+  const motionSmoothing: string | undefined = (eng as any)?.motionSmoothing;
+  const coherence: string | undefined = (eng as any)?.coherence;
+  const randomness: string | undefined = (eng as any)?.randomness;
+  const seed: string | number | undefined = (eng as any)?.seed;
+
   // keep original text; upstream i18n handles translation
   const toEnglish = (text?: string) => text || '';
   const description = (enhancedPrompt && enhancedPrompt.trim()) ? enhancedPrompt : scenario;
@@ -54,13 +73,30 @@ export function buildVeo3PromptFromWizard(ctx: WizardContextInput): string {
     'Create a high-quality cinematic video with Google Veo 3.',
     '',
     // Tech specs
-    `Aspect: ${aspectRatio} | Duration: ${durationSec}s | Quality: ultra | Resolution: 4K`,
+    `Aspect: ${aspectRatio} | Duration: ${durationSec}s | Quality: ultra | Resolution: ${resolution || '4K'}${fps ? ` | FPS: ${fps}` : ''}`,
     `Style: ${toEnglish(style)} | Mood: ${toEnglish(mood) || 'default'} | Camera: ${translateCameraKoreanToEnglish(camera) || 'default'} | Weather: ${toEnglish(weather) || 'default'}`,
     `Target Audience: ${targetAudience || 'general'}`,
+    genre ? `Genre: ${toEnglish(genre)}` : undefined,
+    visualTone ? `Visual Tone: ${toEnglish(visualTone)}` : undefined,
     '',
     // Core description
     `Scene Theme: ${toEnglish(theme)}`,
     `Scene Description: ${toEnglish(description)}`,
+    '',
+    // Cinematography & Look
+    (cameraMovement || shotType) ? `Cinematography: ${[cameraMovement, shotType].filter(Boolean).map(toEnglish).join(', ')}` : undefined,
+    lighting ? `Lighting: ${toEnglish(lighting)}` : undefined,
+    colorPalette ? `Color Palette: ${toEnglish(colorPalette)}` : undefined,
+    soundAmbience ? `Sound Ambience: ${toEnglish(soundAmbience)}` : undefined,
+    sfxDensity ? `SFX Density: ${toEnglish(sfxDensity)}` : undefined,
+    safetyPreset ? `Safety Preset: ${toEnglish(safetyPreset)}` : undefined,
+    (detailStrength || motionSmoothing || coherence || randomness) ? `Technical: ${[
+      detailStrength && `detail=${toEnglish(detailStrength)}`,
+      motionSmoothing && `motion=${toEnglish(motionSmoothing)}`,
+      coherence && `coherence=${toEnglish(coherence)}`,
+      randomness && `randomness=${toEnglish(randomness)}`,
+    ].filter(Boolean).join(', ')}` : undefined,
+    seed !== undefined && seed !== '' ? `Seed: ${seed}` : undefined,
     '',
     // Elements
     `Characters: ${joinList(characters, 'none')}`,
