@@ -7,6 +7,7 @@ export interface SeedanceCreatePayload {
   webhook_url?: string;
   seed?: number;
   quality?: SeedanceQuality;
+  model?: string; // e.g., 'seedance-1.0-pro' | 'seedance-1.0-lite'
 }
 
 export interface SeedanceCreateResult {
@@ -23,12 +24,14 @@ function extractJobId(json: any): string | undefined {
   return json.jobId || json.job_id || json.id || json.data?.job_id || json.data?.id;
 }
 
-const DEFAULT_CREATE_URL = 'https://api.byteplusapi.com/seedance/v1/jobs'; // 가정: 실제 온보딩 문서 기준으로 변경 가능
-const DEFAULT_STATUS_URL = 'https://api.byteplusapi.com/seedance/v1/jobs/{id}';
+// BytePlus ModelArk Video Generation API (ref: https://docs.byteplus.com/en/docs/ModelArk/1520757)
+const DEFAULT_MODELARK_BASE = process.env.MODELARK_API_BASE || 'https://api.byteplusapi.com';
+const DEFAULT_CREATE_URL = `${DEFAULT_MODELARK_BASE}/modelark/video_generation/tasks`;
+const DEFAULT_STATUS_URL = `${DEFAULT_MODELARK_BASE}/modelark/video_generation/tasks/{id}`;
 
 export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promise<SeedanceCreateResult> {
   const url = process.env.SEEDANCE_API_URL_CREATE || DEFAULT_CREATE_URL;
-  const apiKey = process.env.SEEDANCE_API_KEY || '';
+  const apiKey = process.env.SEEDANCE_API_KEY || process.env.MODELARK_API_KEY || '';
 
   // Mock 모드 또는 환경변수 미설정 시 안전한 모의 응답
   if (!apiKey) {
@@ -42,13 +45,28 @@ export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promi
   }
 
   try {
+    // Transform to ModelArk request schema
+    const body = {
+      model: payload.model || (payload.quality === 'pro' ? 'seedance-1.0-pro' : 'seedance-1.0-lite'),
+      input: {
+        prompt: payload.prompt,
+      },
+      parameters: {
+        aspect_ratio: payload.aspect_ratio,
+        duration: payload.duration_seconds,
+        seed: payload.seed,
+        quality: payload.quality,
+      },
+      webhook_url: payload.webhook_url,
+    };
+
     const res = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(body),
     });
 
     const json = await res.json().catch(() => ({}));
@@ -56,13 +74,11 @@ export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promi
       return { ok: false, error: `Seedance API error: ${res.status}`, raw: json };
     }
 
-    return {
-      ok: true,
-      jobId: extractJobId(json),
-      status: json.status || 'queued',
-      dashboardUrl: json.dashboard_url || json.data?.dashboard_url,
-      raw: json,
-    };
+    // ModelArk response example: { data: { task_id, status, ... } }
+    const jobId = json?.data?.task_id || extractJobId(json);
+    const status = json?.data?.status || json.status || 'queued';
+    const dashboardUrl = json?.data?.dashboard_url || json.dashboard_url;
+    return { ok: true, jobId, status, dashboardUrl, raw: json };
   } catch (error: any) {
     return { ok: false, error: error?.message || 'Seedance request failed' };
   }
@@ -89,7 +105,7 @@ function buildStatusUrl(jobId: string): string | undefined {
 
 export async function getSeedanceStatus(jobId: string): Promise<SeedanceStatusResult> {
   const url = buildStatusUrl(jobId);
-  const apiKey = process.env.SEEDANCE_API_KEY || '';
+  const apiKey = process.env.SEEDANCE_API_KEY || process.env.MODELARK_API_KEY || '';
   if (!url || !apiKey) {
     // Mocked progress that completes fast
     const pct = Math.min(100, Math.floor(((Date.now() / 1000) % 10) * 10));
@@ -116,11 +132,11 @@ export async function getSeedanceStatus(jobId: string): Promise<SeedanceStatusRe
     if (!res.ok) {
       return { ok: false, jobId, status: 'error', error: `Seedance status error: ${res.status}`, raw: json };
     }
-    // 유연한 필드 파싱
-    const status = json.status || json.task_status || json.state || json.data?.status || json.job?.status || 'processing';
-    const progress = json.progress || json.data?.progress || json.percent || json.progress_percent || json.job?.progress;
-    const videoUrl = json.video_url || json.videoUrl || json.result?.video_url || json.result?.videoUrl || json.output?.video?.url || json.data?.video_url || json.data?.video?.url;
-    const dashboardUrl = json.dashboard_url || json.data?.dashboard_url || json.links?.dashboard;
+    // ModelArk status: { data: { status, progress, result: { video_url } } }
+    const status = json?.data?.status || json.status || json.task_status || json.state || 'processing';
+    const progress = json?.data?.progress ?? json.progress ?? json.percent;
+    const videoUrl = json?.data?.result?.video_url || json.video_url || json.result?.video_url || json.output?.video?.url;
+    const dashboardUrl = json?.data?.dashboard_url || json.dashboard_url || json.links?.dashboard;
     return {
       ok: true,
       jobId,
