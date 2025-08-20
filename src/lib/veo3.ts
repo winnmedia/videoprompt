@@ -1,21 +1,9 @@
 import { ScenePrompt } from '@/types/api';
 import { translateKoreanToEnglish, translateArray, translateWizardContextToEnglish } from '@/lib/i18n';
+import type { WizardLikeContext } from '@/lib/i18n';
 
-interface WizardContext {
-  scenario: string;
-  theme: string;
-  style: string;
-  aspectRatio: string;
-  durationSec: number;
-  targetAudience?: string;
-  mood?: string;
-  camera?: string;
-  weather?: string;
-  characters?: string[];
-  actions?: string[];
-  enhancedPrompt?: string;
-  suggestions?: string[];
-}
+// Accept a loose Wizard-like context (some fields optional) and normalize inside
+type WizardContextInput = WizardLikeContext;
 
 const joinList = (items?: string[] | null, fallback = 'none') => {
   if (!items || items.length === 0) return fallback;
@@ -37,24 +25,24 @@ function translateCameraKoreanToEnglish(label?: string): string | undefined {
   return map[label] || label;
 }
 
-export function buildVeo3PromptFromWizard(ctx: WizardContext): string {
+export function buildVeo3PromptFromWizard(ctx: WizardContextInput): string {
   // Ensure categorical fields are English even if caller skipped translation
   const eng = translateWizardContextToEnglish(ctx);
   const {
-    scenario,
-    theme,
-    style,
-    aspectRatio,
-    durationSec,
-    targetAudience,
-    mood,
-    camera,
-    weather,
+    scenario = '',
+    theme = '',
+    style = '',
+    aspectRatio = '16:9',
+    durationSec = 2,
+    targetAudience = 'general',
+    mood = '',
+    camera = '',
+    weather = '',
     characters,
     actions,
     enhancedPrompt,
     suggestions,
-  } = eng as WizardContext;
+  } = eng as any;
 
   // keep original text; upstream i18n handles translation
   const toEnglish = (text?: string) => text || '';
