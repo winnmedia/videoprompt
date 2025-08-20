@@ -1,6 +1,7 @@
 'use client';
+export const dynamic = 'force-dynamic';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { ScenePrompt } from '@/types/api';
@@ -13,11 +14,10 @@ import { parseCameraBeatsForGenre, finalizeCameraSetup } from '@/lib/pel/camera'
 import { translateWizardContextToEnglish } from '@/lib/i18n';
 import { composeFourScenePack } from '@/lib/composer/scenePack';
 import { composeFinalTextMulti, composeFinalTextSingle } from '@/lib/composer/finalText';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 export default function SceneWizardPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [scenario, setScenario] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPrompt, setGeneratedPrompt] = useState<ScenePrompt | null>(null);
@@ -91,13 +91,15 @@ export default function SceneWizardPage() {
     setArr(arr.includes(value) ? arr.filter(v => v !== value) : [...arr, value]);
   };
 
-  // 홈에서 넘어온 q 파라미터로 시나리오 초기화
+  // 홈에서 넘어온 q 파라미터로 시나리오 초기화 (CSR 전용)
   useEffect(() => {
-    const q = searchParams?.get('q');
-    if (q && !scenario) {
-      setScenario(q);
-    }
-  }, [searchParams]);
+    try {
+      const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+      const q = params?.get('q');
+      if (q && !scenario) setScenario(q);
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 최근 생성 로드
   useEffect(() => {
@@ -438,6 +440,7 @@ export default function SceneWizardPage() {
   };
 
   return (
+    <Suspense fallback={<div className="p-6 text-sm text-gray-500">로딩 중…</div>}>
     <div className="min-h-screen bg-gray-50">
       {/* 헤더 */}
       <div className="bg-white shadow-sm border-b">
@@ -908,5 +911,6 @@ export default function SceneWizardPage() {
         </div>
       </div>
     </div>
+    </Suspense>
   );
 }
