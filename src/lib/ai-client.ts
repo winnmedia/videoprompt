@@ -57,7 +57,7 @@ class OpenAIClient {
 
   async generateScenePrompt(request: AIGenerationRequest): Promise<AIGenerationResponse> {
     try {
-      const systemPrompt = `You are a professional film prompt writer. Respond in English ONLY.\nGenerate a detailed and creative scene prompt based on the following requirements:\n\n- Theme: ${request.theme || 'general'}\n- Audience: ${request.targetAudience || 'general'}\n- Style: ${request.style || 'natural'}\n- Aspect Ratio: ${request.aspectRatio || '16:9'}\n- Duration: ${(request.duration || 2)}s\n- Mood: ${request.mood || 'default'}\n- Camera: ${request.camera || 'default'} (use English camera terms like wide, tracking, POV, top view, dolly-in, long take, handheld, drone orbital)\n- Weather: ${request.weather || 'default'}\n- Characters: ${(request.characters && request.characters.length) ? request.characters.join(', ') : 'none'}\n- Actions: ${(request.actions && request.actions.length) ? request.actions.join(', ') : 'none'}\n\nInclude:\n1) Visual description\n2) Camera movement and angles\n3) Lighting and mood\n4) Color palette\n5) 5-10 keywords (English only)\n\nReturn as valid JSON.`;
+      const systemPrompt = `You are an award‑winning film director and cinematic prompt architect. Respond in English ONLY.\nGenerate a detailed and creative scene prompt based on the following requirements:\n\n- Theme: ${request.theme || 'general'}\n- Audience: ${request.targetAudience || 'general'}\n- Style: ${request.style || 'natural'}\n- Aspect Ratio: ${request.aspectRatio || '16:9'}\n- Duration: ${(request.duration || 2)}s\n- Mood: ${request.mood || 'default'}\n- Camera: ${request.camera || 'default'} (use English camera terms like wide, tracking, POV, top view, dolly-in, long take, handheld, drone orbital)\n- Weather: ${request.weather || 'default'}\n- Characters: ${(request.characters && request.characters.length) ? request.characters.join(', ') : 'none'}\n- Actions: ${(request.actions && request.actions.length) ? request.actions.join(', ') : 'none'}\n\nInclude:\n1) Visual description (cinematic, photorealistic)\n2) Camera movement and angles\n3) Lighting and mood\n4) Color palette\n5) 5-10 keywords (English only)\n\nReturn as valid JSON.`;
 
       const userPrompt = `주제: ${request.prompt}\n\n위 주제에 맞는 장면을 생성해주세요.`;
 
@@ -187,7 +187,7 @@ class GeminiClient {
 
   async generateScenePrompt(request: AIGenerationRequest): Promise<AIGenerationResponse> {
     try {
-      const prompt = `You are a professional film prompt writer. Respond in English ONLY.\n\nSubject: ${request.prompt}\nTheme: ${request.theme || 'general'}\nAudience: ${request.targetAudience || 'general'}\nStyle: ${request.style || 'natural'}\nAspect Ratio: ${request.aspectRatio || '16:9'}\nDuration: ${(request.duration || 2)}s\nMood: ${request.mood || 'default'}\nCamera: ${request.camera || 'default'} (use English camera terms like wide, tracking, POV, top view, dolly-in, long take, handheld, drone orbital)\nWeather: ${request.weather || 'default'}\nCharacters: ${(request.characters && request.characters.length) ? request.characters.join(', ') : 'none'}\nActions: ${(request.actions && request.actions.length) ? request.actions.join(', ') : 'none'}\n\nCreate a detailed and creative scene prompt. Include:\n1) Visual description\n2) Camera movement and angles\n3) Lighting and mood\n4) Color palette\n5) 5-10 keywords (English only)\n\nReturn as valid JSON.`;
+      const prompt = `You are an award‑winning film director and cinematic prompt architect. Respond in English ONLY.\n\nSubject: ${request.prompt}\nTheme: ${request.theme || 'general'}\nAudience: ${request.targetAudience || 'general'}\nStyle: ${request.style || 'natural'}\nAspect Ratio: ${request.aspectRatio || '16:9'}\nDuration: ${(request.duration || 2)}s\nMood: ${request.mood || 'default'}\nCamera: ${request.camera || 'default'} (use English camera terms like wide, tracking, POV, top view, dolly-in, long take, handheld, drone orbital)\nWeather: ${request.weather || 'default'}\nCharacters: ${(request.characters && request.characters.length) ? request.characters.join(', ') : 'none'}\nActions: ${(request.actions && request.actions.length) ? request.actions.join(', ') : 'none'}\n\nCreate a detailed and creative scene prompt. Include:\n1) Visual description\n2) Camera movement and angles\n3) Lighting and mood\n4) Color palette\n5) 5-10 keywords (English only)\n\nReturn as valid JSON.`;
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`, {
         method: 'POST',
@@ -453,7 +453,7 @@ export async function translateToEnglish(text: string): Promise<string> {
         body: JSON.stringify({
           model: 'gpt-4o-mini',
           messages: [
-            { role: 'system', content: 'Translate the user input into natural English. Output English only. No explanation. No quotes.' },
+            { role: 'system', content: 'You are an award-winning film director adapting ideas into concise, natural English prompts. Output English only. No explanation. No quotes.' },
             { role: 'user', content: src },
           ],
           temperature: 0.2,
@@ -481,6 +481,46 @@ export async function translateToEnglish(text: string): Promise<string> {
 
   // Mock/No key: return source as-is
   return src;
+}
+
+// --- Image prompt rewriter (LLM-assisted static composition) ---
+export async function rewritePromptForImage(imagePrompt: string): Promise<string> {
+  const src = (imagePrompt || '').trim();
+  if (!src) return '';
+  const openaiKey = process.env.OPENAI_API_KEY || '';
+  const geminiKey = process.env.GOOGLE_GEMINI_API_KEY || '';
+  const fallback = src;
+  try {
+    if (openaiKey) {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${openaiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          temperature: 0.4,
+          messages: [
+            { role: 'system', content: 'You are an award-winning still photographer and image prompt architect. Rewrite the user prompt into a single-image prompt optimized for Imagen/SDXL style: static composition, clear subject, framing (shot/lens implied), lighting, color grading, background, and 6-12 concise tags. English only. No extra commentary.' },
+            { role: 'user', content: src },
+          ],
+        }),
+      });
+      const data = await res.json();
+      const content = data.choices?.[0]?.message?.content;
+      return (content || fallback).trim();
+    }
+    if (geminiKey) {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+          contents: [{ parts: [{ text: `Rewrite for a single static image prompt. English only. No commentary.\n\n${src}` }]}],
+          generationConfig: { temperature: 0.4 },
+        })
+      });
+      const data = await res.json();
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      return (content || fallback).trim();
+    }
+  } catch (_) {}
+  return fallback;
 }
 
 // Extract rich scene components to fill JSON fields precisely

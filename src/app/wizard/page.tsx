@@ -5,7 +5,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { ScenePrompt } from '@/types/api';
-import { createAIServiceManager, translateToEnglish, extractSceneComponents } from '@/lib/ai-client';
+import { createAIServiceManager, translateToEnglish, extractSceneComponents, rewritePromptForImage } from '@/lib/ai-client';
 import { buildVeo3PromptFromScene } from '@/lib/veo3';
 import { buildVeo3PromptFromWizard } from '@/lib/veo3';
 import { buildImagenPrompt } from '@/lib/imagenPrompt';
@@ -622,8 +622,12 @@ export default function SceneWizardPage() {
         negativePrompts: negativePromptsText ? negativePromptsText.split(/\n|,/) : [],
         keywords: (generatedPrompt?.keywords as any) || [],
       });
-      const english = await translateToEnglish(imagePrompt);
-      const res = await fetch('/api/imagen/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: english, size: '1280x720', n: 1 }) });
+      let rewritten = imagePrompt;
+      try { rewritten = await rewritePromptForImage(imagePrompt); } catch {}
+      let english = rewritten;
+      try { english = await translateToEnglish(rewritten); } catch {}
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE || '';
+      const res = await fetch(`${apiBase}/api/imagen/preview`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: english, size: '1280x720', n: 1 }) });
       const json = await res.json();
       if (!json.ok) throw new Error(json.error || 'PREVIEW_FAILED');
       setImagePreviews(json.images || []);
@@ -640,8 +644,12 @@ export default function SceneWizardPage() {
     try {
       setIsImageLoading(true);
       setError(null);
-      const english = await translateToEnglish(finalText);
-      const res = await fetch('/api/imagen/preview', {
+      // Convert finalText (video-oriented) into image-oriented via LLM
+      let rewritten = finalText;
+      try { rewritten = await rewritePromptForImage(finalText); } catch {}
+      const english = await translateToEnglish(rewritten);
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE || '';
+      const res = await fetch(`${apiBase}/api/imagen/preview`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: english, size: '1280x720', n: 1 }),
       });
@@ -792,7 +800,7 @@ export default function SceneWizardPage() {
                   <Button variant="ghost" size="sm" onClick={handlePresetGarage} title="Garage Minimal (8s, 21:9)">Garage</Button>
                   <Button variant="ghost" size="sm" onClick={handlePresetTunnel} title="Tunnel POV (8s, 21:9)">Tunnel</Button>
                   <div className="ml-auto flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={handleImagenPreview} disabled={isImageLoading || !veo3Preview} title="최종 프롬프트 기반 16:9 이미지 미리보기 1장 생성">
+                    <Button variant="outline" size="sm" onClick={handleImagenPreview} disabled={isImageLoading || !generatedPrompt} title="최종 프롬프트 기반 16:9 이미지 미리보기 1장 생성">
                       {isImageLoading ? (<><Icon name="loading" size="sm" className="mr-1"/> 생성 중…</>) : '이미지 미리보기'}
                     </Button>
                   </div>
@@ -1214,7 +1222,7 @@ export default function SceneWizardPage() {
                         <Icon name="play" size="sm" className="mr-2" />
                         SEEDANCE로 생성
                       </Button>
-                      <Button variant="outline" onClick={handleImagenPreview} className="flex-1" disabled={isImageLoading || !veo3Preview} title="최종 프롬프트 기반 16:9 이미지 미리보기 1장 생성">
+                      <Button variant="outline" onClick={handleImagenPreview} className="flex-1" disabled={isImageLoading || !generatedPrompt} title="최종 프롬프트 기반 16:9 이미지 미리보기 1장 생성">
                         {isImageLoading ? (<><Icon name="loading" size="sm" className="mr-2" /> 미리보기 생성 중…</>) : '이미지 미리보기'}
                       </Button>
                     </div>

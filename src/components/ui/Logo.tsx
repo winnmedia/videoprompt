@@ -29,8 +29,11 @@ export function Logo({ variant = 'default', size = 'md', className }: LogoProps)
     xl: 48,
   } as const;
 
-  const mainLogoSrc = '/b_logo.svg';
-  const badgeLogoSrc = '/b_sb_logo.svg';
+  const ver = process.env.NEXT_PUBLIC_ASSET_VERSION || '';
+  const withVer = (p: string) => (ver ? `${p}?v=${ver}` : p);
+
+  const mainLogoSrc = withVer('/b_logo.svg');
+  const badgeLogoSrc = withVer('/b_sb_logo.svg');
 
   const LogoMark = (
     <img
@@ -39,6 +42,13 @@ export function Logo({ variant = 'default', size = 'md', className }: LogoProps)
       height={imgSize[size]}
       alt="VideoPlanet"
       className="inline-block"
+      onError={(e) => {
+        const el = e.currentTarget as HTMLImageElement;
+        if (!el.dataset.fallback) {
+          el.dataset.fallback = '1';
+          el.src = withVer('/logo.svg');
+        }
+      }}
     />
   );
 
@@ -58,6 +68,13 @@ export function Logo({ variant = 'default', size = 'md', className }: LogoProps)
         height={imgSize[size]}
         alt="VideoPlanet Badge"
         className={cn('inline-block', className)}
+        onError={(e) => {
+          const el = e.currentTarget as HTMLImageElement;
+          if (!el.dataset.fallback) {
+            el.dataset.fallback = '1';
+            el.src = withVer('/logo.svg');
+          }
+        }}
       />
     );
   }
