@@ -8,4 +8,10 @@ export default defineConfig({
     baseURL: process.env.PW_BASE_URL || 'http://localhost:3000',
     headless: true,
   },
+  webServer: {
+    command: 'npm run dev',
+    url: process.env.PW_BASE_URL || 'http://localhost:3000',
+    reuseExistingServer: true,
+    timeout: 120_000,
+  },
 });
