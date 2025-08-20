@@ -40,46 +40,22 @@ export default function HomePage() {
 
       {/* 메인 콘텐츠 */}
       <main>
-        {/* 히어로 섹션 */}
-        <section className="relative bg-gradient-to-br from-primary-50 to-blue-50 py-20">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              <div>
-                <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-6">
-                  AI로 만드는
-                  <span className="text-primary-600 block">영상 시나리오</span>
-                </h1>
-                <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-                  VideoPlanet으로 상상력을 현실로 만들어보세요. 
-                  AI가 당신의 아이디어를 전문적인 영상 시나리오로 변환합니다.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Link href="/wizard" className="w-full sm:w-auto">
-                    <Button size="lg" className="w-full sm:w-auto">
-                      <Icon name="wizard" size="lg" className="mr-3" />
-                      AI 영상 생성
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-              <div className="flex justify-center">
-                <Logo variant="default" size="xl" />
-              </div>
-            </div>
+        {/* 히어로 섹션: 문구만 남김 */}
+        <section className="relative bg-gradient-to-br from-primary-50 to-blue-50 py-16">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">
+              AI로 만드는 <span className="text-primary-600">영상 시나리오</span>
+            </h1>
+            <p className="mt-4 text-lg text-gray-600">
+              VideoPlanet으로 상상력을 현실로 만들어보세요. AI가 당신의 아이디어를 전문적인 영상 시나리오로 변환합니다.
+            </p>
           </div>
         </section>
 
-        {/* 채팅 UI 섹션 */}
-        <section className="py-20 bg-gray-50">
+        {/* 채팅 UI 섹션: 히어로 바로 아래 배치 */}
+        <section className="py-16 bg-gray-50">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                시나리오 입력
-              </h2>
-              <p className="text-lg text-gray-600">
-                AI와 대화하듯 시나리오를 입력하고 창의적인 영상을 만들어보세요
-              </p>
-            </div>
+            
 
             <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
               {/* 채팅 헤더 */}
