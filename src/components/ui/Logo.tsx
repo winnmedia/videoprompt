@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 interface LogoProps {
-  variant?: 'default' | 'compact' | 'icon';
+  variant?: 'default' | 'compact' | 'icon' | 'badge';
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
 }
@@ -29,9 +29,12 @@ export function Logo({ variant = 'default', size = 'md', className }: LogoProps)
     xl: 48,
   } as const;
 
+  const mainLogoSrc = '/b_logo.svg';
+  const badgeLogoSrc = '/b_sb_logo.svg';
+
   const LogoMark = (
     <img
-      src="/logo.svg"
+      src={mainLogoSrc}
       width={imgSize[size]}
       height={imgSize[size]}
       alt="VideoPlanet"
@@ -44,6 +47,18 @@ export function Logo({ variant = 'default', size = 'md', className }: LogoProps)
       <div className={cn(iconSizes[size], className)} aria-label="VideoPlanet">
         {LogoMark}
       </div>
+    );
+  }
+
+  if (variant === 'badge') {
+    return (
+      <img
+        src={badgeLogoSrc}
+        width={imgSize[size]}
+        height={imgSize[size]}
+        alt="VideoPlanet Badge"
+        className={cn('inline-block', className)}
+      />
     );
   }
 
