@@ -409,7 +409,7 @@ export default function SceneWizardPage() {
           const prompt = buildVeo3PromptFromScene(scene);
           const english = await translateToEnglish(prompt);
           try { await navigator.clipboard.writeText(english); } catch {}
-          const payload: any = { prompt: english, aspect_ratio: scene.metadata?.aspect_ratio || selectedAspectRatio, duration_seconds: selectedDuration, model: 'seedance-1.0-pro', webhook_url: webhookBase ? `${webhookBase}/api/seedance/webhook` : undefined };
+          const payload: any = { prompt: english, aspect_ratio: scene.metadata?.aspect_ratio || selectedAspectRatio, duration_seconds: selectedDuration, webhook_url: webhookBase ? `${webhookBase}/api/seedance/webhook` : undefined };
           return await createOne(payload);
         }));
         const validJobs = jobs.filter(Boolean) as string[];
@@ -459,7 +459,7 @@ export default function SceneWizardPage() {
           });
       const english = await translateToEnglish(finalText);
       try { await navigator.clipboard.writeText(english); } catch {}
-      const payload: any = { prompt: english, aspect_ratio: selectedAspectRatio, duration_seconds: selectedDuration, model: 'seedance-1.0-pro', webhook_url: webhookBase ? `${webhookBase}/api/seedance/webhook` : undefined };
+      const payload: any = { prompt: english, aspect_ratio: selectedAspectRatio, duration_seconds: selectedDuration, webhook_url: webhookBase ? `${webhookBase}/api/seedance/webhook` : undefined };
       const jobId = await createOne(payload);
       setSeedanceJobIds([jobId]);
       // 훅 사용으로 상태 초기화는 훅 재호출로 대체

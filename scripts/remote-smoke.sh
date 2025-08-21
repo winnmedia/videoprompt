@@ -23,7 +23,7 @@ curl -fsS -X POST "$PW_BASE_URL/api/imagen/preview" \
 echo "[smoke] POST /api/seedance/create"
 CREATE=$(curl -fsS -X POST "$PW_BASE_URL/api/seedance/create" \
   -H 'Content-Type: application/json' \
-  -d '{"prompt":"test cinematic scene","aspect_ratio":"16:9","duration_seconds":2,"model":"seedance-1.0-pro"}') || true
+  -d '{"prompt":"test cinematic scene","aspect_ratio":"16:9","duration_seconds":2}') || true
 echo "$CREATE" | jq . || echo "$CREATE"
 
 JOB=$(echo "$CREATE" | jq -r '.jobId // .raw.jobId // .raw.id // empty')
