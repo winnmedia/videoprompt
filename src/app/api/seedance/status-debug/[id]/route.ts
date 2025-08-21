@@ -39,10 +39,9 @@ export async function GET(_req: Request, ctx: any) {
       httpStatus: res.status,
       resolvedUrl: url,
       hasKey: Boolean(apiKey),
-      headers: Object.fromEntries(res.headers),
       parsed,
-      bodySnippet: (text || '').slice(0, 2000),
-    }, { status: res.ok ? 200 : 200 });
+      bodySnippet: (text || '').slice(0, 1024),
+    }, { status: 200 });
   } catch (e: any) {
     return NextResponse.json({
       ok: false,
