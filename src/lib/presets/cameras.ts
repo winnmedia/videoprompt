@@ -1,4 +1,4 @@
-import type { KidChoice } from '../schema';
+import type { KidChoice } from '@/lib/schema';
 
 export const CAMERA_PRESETS: Record<KidChoice["camera"], string> = {
   "와이드": "넓은 장면 소개로 시작 → 천천히 푸시인 → 마무리에서 가벼운 틸트",

@@ -31,6 +31,39 @@ const eslintConfig = [
       "@typescript-eslint/no-explicit-any": "off",
     },
   },
+  // FSD 의존 경계 강화: 상향 의존 및 내부 경로 직접 import 제한
+  {
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "src/**/app/**",
+                "../**/app/**",
+              ],
+              message: "하위 레이어에서 app 레이어로의 상향 의존은 금지됩니다.",
+            },
+            {
+              group: [
+                "../**/entities/**",
+                "../**/features/**",
+                "../**/widgets/**",
+              ],
+              message: "상향 의존 금지: FSD 레이어 규칙을 준수하세요.",
+            },
+            {
+              group: [
+                "**/*/src/**",
+              ],
+              message: "외부에서 내부 파일로 직접 import 하지 말고 Public API(배럴)를 사용하세요.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];
 
 export default eslintConfig;

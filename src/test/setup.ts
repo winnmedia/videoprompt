@@ -51,6 +51,9 @@ vi.mock('next/headers', () => ({
   cookies: () => new Map(),
 }));
 
+// Supabase 미사용: 관련 모듈 레퍼런스가 있을 경우 빈 모듈로 목 처리
+vi.mock('@/lib/supabase', () => ({}));
+
 // Cleanup after each test
 afterEach(() => {
   vi.clearAllMocks();

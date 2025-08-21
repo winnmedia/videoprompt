@@ -64,7 +64,7 @@ export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promi
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        // 일부 환경에서 긴 Authorization 헤더로 인한 Header overflow 방지: X-Api-Key만 사용
         'X-Api-Key': apiKey,
       },
       body: JSON.stringify(body),
@@ -125,7 +125,6 @@ export async function getSeedanceStatus(jobId: string): Promise<SeedanceStatusRe
     const res = await fetch(url, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
         'X-Api-Key': apiKey,
         'Content-Type': 'application/json',
       },

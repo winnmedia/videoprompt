@@ -49,7 +49,10 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
         // size는 구현별 다를 수 있어 메타로만 전달
         // width/height가 필요하면 여기서 파싱하여 전달
       } as any;
-      const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const controller = new AbortController();
+      const t = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: controller.signal as any });
+      clearTimeout(t);
       if (!res.ok) throw new Error(`google imagen http ${res.status}`);
       const json: any = await res.json();
       // 응답 스키마는 서비스에 따라 상이. 일반적으로 base64 이미지 리스트를 포함.
@@ -70,6 +73,8 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
     const key = process.env.MODELARK_API_KEY;
     if (!base || !key) return null;
     try {
+      const controller = new AbortController();
+      const t = setTimeout(() => controller.abort(), 8000);
       const res = await fetch(`${base}/v1/jobs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Api-Key': key },
@@ -78,7 +83,9 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
           input: { prompt: prompt.slice(0, 1500), size },
           parameters: { n },
         }),
+        signal: controller.signal as any,
       });
+      clearTimeout(t);
       const json: any = await res.json();
       const out: string[] = (json?.images || json?.result?.images || [])
         .map((it: any) => it?.b64_json ? `data:image/png;base64,${it.b64_json}` : it?.url)

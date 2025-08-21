@@ -18,3 +18,23 @@ export function formatTimestamp(seconds: number): string {
 export function createTimeRange(start: number, end: number): string {
   return `${formatTimestamp(start)}-${formatTimestamp(end)}`;
 }
+
+// AbortController 기반 fetch 타임아웃 유틸
+export async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 10000): Promise<Response> {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(input, { ...init, signal: controller.signal });
+    return res;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+export function safeJsonParse<T = any>(text: string): T | null {
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
