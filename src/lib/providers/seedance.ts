@@ -71,13 +71,19 @@ export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promi
     }
     const body: any = {
       model: modelId,
-      contents: [
+      content: [
         { type: 'text', text: payload.prompt },
       ],
     };
     if (payload.image_url) {
-      body.contents.push({ type: 'image_url', image_url: { url: payload.image_url } });
+      body.content.push({ type: 'image_url', image_url: { url: payload.image_url } });
     }
+    // Ark v3 parameters: duration(Seconds)→duration, aspect_ratio
+    const parameters: Record<string, any> = {};
+    if (typeof payload.duration_seconds === 'number') parameters.duration = payload.duration_seconds;
+    if (typeof payload.aspect_ratio === 'string' && payload.aspect_ratio.trim()) parameters.aspect_ratio = payload.aspect_ratio.trim();
+    if (typeof payload.seed === 'number') parameters.seed = payload.seed;
+    if (Object.keys(parameters).length > 0) body.parameters = parameters;
     if (payload.webhook_url) body.webhook_url = payload.webhook_url;
 
     // 10s 타임아웃 및 상세 에러 메시지 수집
@@ -175,7 +181,14 @@ export async function getSeedanceStatus(jobId: string): Promise<SeedanceStatusRe
     // ark v3 status
     const status = json?.data?.status || json?.status || json?.task_status || json?.state || 'processing';
     const progress = json?.data?.progress ?? json?.progress ?? json?.percent;
-    const videoUrl = json?.data?.video_url || json?.data?.result?.video_url || json?.video_url || json?.result?.video_url || json?.output?.video?.url;
+    const videoUrl =
+      json?.data?.video_url ||
+      json?.data?.result?.video_url ||
+      json?.data?.result?.output?.[0]?.url ||
+      json?.data?.output?.videos?.[0]?.url ||
+      json?.video_url ||
+      json?.result?.video_url ||
+      json?.output?.video?.url;
     const dashboardUrl = json?.data?.dashboard_url || json?.dashboard_url || json?.links?.dashboard;
     return {
       ok: true,
