@@ -277,9 +277,11 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
     const o2 = await tryOpenAI();
     if (o2 && o2.length) return { images: o2 };
   }
-  // 강제 LLM 모드인데 이미지가 나오지 않으면 에러 발생(플레이스홀더로 숨기지 않음)
+  // 강제 LLM 모드인데 이미지가 나오지 않으면 플레이스홀더로 폴백
   if (preferLLM) {
-    throw new Error('Google LLM image generation failed: no images returned. Check API enablement/quotas for Generative Language Images API.');
+    try { console.warn('Google LLM image generation failed: no images returned. Falling back to placeholder.'); } catch {}
+    const images = Array.from({ length: Math.max(1, Math.min(4, n)) }, () => buildPlaceholderSvg(prompt, size));
+    return { images };
   }
   // 강제 OpenAI 모드인데 이미지가 나오지 않으면 에러 발생
   if (preferOpenAI) {
