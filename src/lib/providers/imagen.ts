@@ -35,6 +35,7 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
 
   const apiKey = process.env.GOOGLE_GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   const providerPref = String(process.env.IMAGEN_PROVIDER || '').toLowerCase();
+  const llmModel = String(process.env.IMAGEN_LLM_MODEL || 'imagegeneration-004');
   const preferLLM = providerPref === 'llm' || providerPref === 'google' || providerPref === 'google-llm';
   const preferVertex = providerPref === 'vertex' || providerPref === 'google-vertex' || providerPref === 'vertex-ai';
   const preferOpenAI = providerPref === 'openai' || providerPref === 'openai-only' || providerPref === 'openai-images';
@@ -109,6 +110,17 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
 
       // 여러 변형 엔드포인트/바디를 순차 시도 (문서/버전 차이 대응)
       const attempts: { url: string; body: any }[] = [
+        {
+          // Imagen 4 (LLM via Generative Language API)
+          url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(llmModel)}:generate?key=${encodeURIComponent(apiKey)}`,
+          body: {
+            prompt: { text: String(prompt || '').slice(0, 1500) },
+            imageGenerationConfig: {
+              numberOfImages: Math.max(1, Math.min(4, n)),
+              imageSize: { width, height },
+            },
+          },
+        },
         {
           // Images API (Google AI Studio): imagegeneration:generate
           url: `https://generativelanguage.googleapis.com/v1beta/models/imagegeneration:generate?key=${encodeURIComponent(apiKey)}`,
@@ -268,6 +280,10 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
   // 강제 LLM 모드인데 이미지가 나오지 않으면 에러 발생(플레이스홀더로 숨기지 않음)
   if (preferLLM) {
     throw new Error('Google LLM image generation failed: no images returned. Check API enablement/quotas for Generative Language Images API.');
+  }
+  // 강제 OpenAI 모드인데 이미지가 나오지 않으면 에러 발생
+  if (preferOpenAI) {
+    throw new Error('OpenAI image generation failed: no images returned. Check OPENAI_API_KEY validity and Images API access.');
   }
   const m = await tryModelArk();
   if (m && m.length) return { images: m };
