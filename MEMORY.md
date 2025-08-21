@@ -36,3 +36,26 @@
   - Seedance 생성 훅 도입: `useSeedanceCreate`(`features/seedance/create`)로 생성 호출 캡슐화
   - 진행 패널 위젯화: `widgets/seedance/SeedanceProgressPanel` 추가, 위저드에서 위젯 사용
 
+- Seedance(ModelArk) v3 정합성 개선 및 프로덕션 검증
+  - 리전/엔드포인트 확정: Johor(`ap-southeast`) → `https://ark.ap-southeast.bytepluses.com`
+  - 환경변수 표준화: `SEEDANCE_API_BASE`, `SEEDANCE_API_KEY`, `SEEDANCE_MODEL(ep-...)`
+  - Provider 수정(`src/lib/providers/seedance.ts`)
+    - 생성 API를 Ark v3 스키마에 맞춤: `POST /api/v3/contents/generations/tasks`
+    - 요청 바디: `model`, `content[]`(text[, image_url]), `parameters.duration|aspect_ratio|seed`
+    - 상태 API: `GET /api/v3/contents/generations/tasks/{id}` 파싱 경로 확장(`data.result.output[0].url` 등)
+    - 키 헤더 병행 전송: `Authorization: Bearer <KEY>` + `X-Api-Key: <KEY>`
+    - DNS IPv4 우선, fetch 타임아웃(10s), 에러 메시지 개선
+  - Diagnose 라우트(`src/app/api/seedance/diagnose/route.ts`)
+    - Ark v3 엔드포인트/스키마로 수정, `hasKey/hasModel` 노출
+  - 위저드/스크립트에서 하드코딩 모델 제거(`seedance-1.0-pro` → env)
+  - 프로덕션 원격 스모크 결과(Railway):
+    - `/api/health` 200 OK
+    - `/api/seedance/diagnose` 200 OK (`hasKey=true`, `hasModel=true`)
+    - `/api/imagen/preview` 200 OK(이미지 반환)
+    - `/api/seedance/create` 200 OK(`jobId=cgt-20250821162311-7r559`)
+    - `status/status-debug`는 200 JSON 보장(폴링로직 정상)
+
+- 기타
+  - Supabase 코드/테스트 제거 완료
+  - 린트 통과 확인(변경 파일 기준)
+

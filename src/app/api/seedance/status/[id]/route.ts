@@ -16,7 +16,17 @@ export async function GET(_req: Request, context: any) {
     }
     const res = await getSeedanceStatus(id);
     if (res.ok) upsertJobState({ jobId: id, status: res.status, progress: res.progress, videoUrl: res.videoUrl });
-    return NextResponse.json(res, { status: 200 });
+    // 안전 응답: raw 등 대용량/비직렬화 필드를 제거
+    const safe = {
+      ok: res.ok,
+      jobId: id,
+      status: res.status,
+      progress: res.progress,
+      videoUrl: res.videoUrl,
+      dashboardUrl: (res as any).dashboardUrl,
+      error: res.ok ? undefined : res.error,
+    };
+    return NextResponse.json(safe, { status: 200 });
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e?.message || 'unknown error', jobId: context?.params?.id }, { status: 200 });
   }

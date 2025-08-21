@@ -65,7 +65,10 @@ export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promi
   try {
     // Transform to Ark v3 request schema (text-only basic). 일부 모델에서
     // duration/ratio 등의 파라미터는 제한적이므로 우선 안전한 최소 스키마로 전송한다.
-    const modelId = payload.model || DEFAULT_MODEL_ID;
+    // Prefer client-provided model only if it looks like a valid Endpoint ID (ep-...)
+    const requestedModel = (payload.model || '').trim();
+    const envModel = (DEFAULT_MODEL_ID || '').trim();
+    const modelId = (requestedModel && /^ep-[a-zA-Z0-9-]+$/.test(requestedModel)) ? requestedModel : envModel;
     if (!modelId) {
       return { ok: false, error: 'Seedance model/endpoint is not configured. Set SEEDANCE_MODEL (ep-...) or pass model in request.' };
     }
@@ -107,7 +110,7 @@ export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promi
 
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
-      return { ok: false, error: `Seedance API error: ${res.status}`, raw: json };
+      return { ok: false, error: `Seedance API error: ${res.status} (model=${modelId})`, raw: json };
     }
 
     // ark v3: id/ task_id
