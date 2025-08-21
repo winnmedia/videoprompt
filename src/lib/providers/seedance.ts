@@ -163,6 +163,7 @@ export async function getSeedanceStatus(jobId: string): Promise<SeedanceStatusRe
     clearTimeout(timeout);
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
+      // ark v3는 작업 생성 직후 404/400을 줄 수 있음: 약간의 지연 후 재시도 권장
       return { ok: false, jobId, status: 'error', error: `Seedance status error: ${res.status}`, raw: json };
     }
     // ark v3 status

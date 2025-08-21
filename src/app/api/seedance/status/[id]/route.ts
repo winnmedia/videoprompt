@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server';
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { getSeedanceStatus } from '@/lib/providers/seedance';
 import { getJobState, upsertJobState } from '@/lib/providers/seedanceStore';
 
