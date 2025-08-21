@@ -60,15 +60,24 @@ export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promi
       webhook_url: payload.webhook_url,
     };
 
+    // 10s 타임아웃 및 상세 에러 메시지 수집
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
     const res = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // 일부 환경에서 긴 Authorization 헤더로 인한 Header overflow 방지: X-Api-Key만 사용
+        // 일부 API는 둘 중 하나만 요구하므로 병행 전송
+        'Authorization': `Bearer ${apiKey}`,
         'X-Api-Key': apiKey,
+        'Accept': 'application/json',
       },
       body: JSON.stringify(body),
+      signal: controller.signal as any,
+    }).catch((e: any) => {
+      throw new Error(`network error: ${e?.message || 'fetch failed'}`);
     });
+    clearTimeout(timeout);
 
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -81,7 +90,8 @@ export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promi
     const dashboardUrl = json?.data?.dashboard_url || json.dashboard_url;
     return { ok: true, jobId, status, dashboardUrl, raw: json };
   } catch (error: any) {
-    return { ok: false, error: error?.message || 'Seedance request failed' };
+    const msg = error?.message || 'Seedance request failed';
+    return { ok: false, error: `${msg} @create ${url}` };
   }
 }
 
@@ -122,13 +132,21 @@ export async function getSeedanceStatus(jobId: string): Promise<SeedanceStatusRe
     };
   }
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
     const res = await fetch(url, {
       method: 'GET',
       headers: {
+        'Authorization': `Bearer ${apiKey}`,
         'X-Api-Key': apiKey,
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
+      signal: controller.signal as any,
+    }).catch((e: any) => {
+      throw new Error(`network error: ${e?.message || 'fetch failed'}`);
     });
+    clearTimeout(timeout);
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
       return { ok: false, jobId, status: 'error', error: `Seedance status error: ${res.status}`, raw: json };
@@ -148,7 +166,7 @@ export async function getSeedanceStatus(jobId: string): Promise<SeedanceStatusRe
       raw: json,
     };
   } catch (e: any) {
-    return { ok: false, jobId, status: 'error', error: e?.message || 'fetch failed' };
+    return { ok: false, jobId, status: 'error', error: `${e?.message || 'fetch failed'} @status ${url}` };
   }
 }
 
