@@ -37,6 +37,7 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
   const providerPref = String(process.env.IMAGEN_PROVIDER || '').toLowerCase();
   const preferLLM = providerPref === 'llm' || providerPref === 'google' || providerPref === 'google-llm';
   const preferVertex = providerPref === 'vertex' || providerPref === 'google-vertex' || providerPref === 'vertex-ai';
+  const preferOpenAI = providerPref === 'openai' || providerPref === 'openai-only' || providerPref === 'openai-images';
 
   // 0) Vertex AI(Imagen) — OAuth(Bearer)로 호출
   const tryVertex = async (): Promise<string[] | null> => {
@@ -207,13 +208,67 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
     }
   };
 
-  // 우선순위: (환경 지정) LLM 우선/Vertex 우선 → 기본은 Vertex → LLM
-  if (!preferLLM) {
+  // OpenAI Images API (gpt-image-1)
+  const tryOpenAI = async (): Promise<string[] | null> => {
+    const openaiKey = process.env.OPENAI_API_KEY || process.env.OPENAI_API_TOKEN;
+    if (!openaiKey) return null;
+    try {
+      const [wStr, hStr] = String(size).split('x');
+      const width = parseInt(wStr, 10) || 768;
+      const height = parseInt(hStr, 10) || 768;
+      const sz = `${width}x${height}`;
+      const url = 'https://api.openai.com/v1/images/generations';
+      const body = {
+        model: 'gpt-image-1',
+        prompt: String(prompt || '').slice(0, 1500),
+        size: sz,
+        n: Math.max(1, Math.min(4, n)),
+        response_format: 'b64_json',
+      } as any;
+      const controller = new AbortController();
+      const t = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openaiKey}`,
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal as any,
+      }).catch(() => null);
+      clearTimeout(t);
+      if (!res || !res.ok) return null;
+      const json: any = await res.json().catch(() => ({}));
+      const images: string[] = Array.isArray(json?.data) ? json.data
+        .map((d: any) => d?.b64_json)
+        .filter(Boolean)
+        .slice(0, n)
+        .map((b64: string) => `data:image/png;base64,${b64}`) : [];
+      return images.length ? images : null;
+    } catch {
+      return null;
+    }
+  };
+
+  // 우선순위: (환경 지정) OpenAI/LLM/Vertex → 기본은 Vertex → LLM → OpenAI
+  if (preferOpenAI) {
+    const o = await tryOpenAI();
+    if (o && o.length) return { images: o };
+  }
+  if (!preferLLM && !preferOpenAI) {
     const v = await tryVertex();
     if (v && v.length) return { images: v };
   }
   const g = await tryGoogle();
   if (g && g.length) return { images: g };
+  if (!preferLLM) {
+    const o2 = await tryOpenAI();
+    if (o2 && o2.length) return { images: o2 };
+  }
+  // 강제 LLM 모드인데 이미지가 나오지 않으면 에러 발생(플레이스홀더로 숨기지 않음)
+  if (preferLLM) {
+    throw new Error('Google LLM image generation failed: no images returned. Check API enablement/quotas for Generative Language Images API.');
+  }
   const m = await tryModelArk();
   if (m && m.length) return { images: m };
 
