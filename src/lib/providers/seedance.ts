@@ -63,25 +63,20 @@ export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promi
   }
 
   try {
-    // Transform to ark v3 request schema (text-only by default)
-    // duration/other hints는 프롬프트 suffix로 전달 (--duration X 등)
+    // Transform to Ark v3 request schema (text-only basic). 일부 모델에서
+    // duration/ratio 등의 파라미터는 제한적이므로 우선 안전한 최소 스키마로 전송한다.
     const modelId = payload.model || DEFAULT_MODEL_ID;
     if (!modelId) {
       return { ok: false, error: 'Seedance model/endpoint is not configured. Set SEEDANCE_MODEL (ep-...) or pass model in request.' };
     }
-    const suffix: string[] = [];
-    if (payload.duration_seconds) suffix.push(`--duration ${payload.duration_seconds}`);
-    if (payload.aspect_ratio) suffix.push(`--aspect ${payload.aspect_ratio}`);
-    if (payload.seed != null) suffix.push(`--seed ${payload.seed}`);
-    const promptWithFlags = `${payload.prompt}${suffix.length ? '  ' + suffix.join(' ') : ''}`;
     const body: any = {
       model: modelId,
-      content: [
-        { type: 'text', text: promptWithFlags },
+      contents: [
+        { type: 'text', text: payload.prompt },
       ],
     };
     if (payload.image_url) {
-      body.content.push({ type: 'image_url', image_url: { url: payload.image_url } });
+      body.contents.push({ type: 'image_url', image_url: { url: payload.image_url } });
     }
     if (payload.webhook_url) body.webhook_url = payload.webhook_url;
 

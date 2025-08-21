@@ -28,7 +28,7 @@ export async function GET() {
       },
       body: JSON.stringify({
         model: model || 'ep-missing',
-        content: [ { type: 'text', text: 'diagnose-ping --duration 1 --aspect 16:9' } ],
+        content: [ { type: 'text', text: 'diagnose-ping' } ],
       }),
       signal: controller.signal as any,
     });
