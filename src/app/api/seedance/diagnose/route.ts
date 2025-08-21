@@ -36,6 +36,7 @@ export async function GET() {
     return NextResponse.json({
       ok: res.ok,
       httpStatus: res.status,
+      headers: Object.fromEntries(res.headers),
       resolvedUrl: url,
       hasKey: Boolean(apiKey),
       bodySnippet: (text || '').slice(0, 1000),
