@@ -14,6 +14,7 @@ export async function GET(_req: Request, context: any) {
     if (cached) {
       return NextResponse.json({ ok: true, jobId: id, status: cached.status, progress: cached.progress, videoUrl: cached.videoUrl }, { status: 200 });
     }
+    // 폴백: 외부 조회는 최소화. 실패해도 200 + 에러만 전달
     const res = await getSeedanceStatus(id);
     if (res.ok) upsertJobState({ jobId: id, status: res.status, progress: res.progress, videoUrl: res.videoUrl });
     // 안전 응답: raw 등 대용량/비직렬화 필드를 제거
