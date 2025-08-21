@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { useSeedancePolling } from '@/features/seedance/status';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { buildVeo3PromptFromScene } from '@/lib/veo3';
@@ -48,26 +49,9 @@ export default function EditorClient({ id }: EditorClientProps) {
     }
   };
 
-  // Seedance polling status (unchanged)
-  const [seedanceStatuses, setSeedanceStatuses] = useState<Record<string, { status: string; progress?: number; videoUrl?: string }>>({});
-  useEffect(() => {
-    const ids = jobIds.length ? jobIds : (jobId ? [jobId] : []);
-    if (!ids.length) return;
-    let cancel = false; let t: any; let interval = 2000;
-    const pollOne = async (id: string) => {
-      try {
-        const res = await fetch(`/api/seedance/status/${encodeURIComponent(id)}`);
-        const json = await res.json();
-        if (!cancel) setSeedanceStatuses(prev => ({ ...prev, [id]: { status: json.status, progress: json.progress, videoUrl: json.videoUrl } }));
-      } catch {}
-    };
-    const tick = async () => {
-      await Promise.all(ids.map(pollOne));
-      if (!cancel) { t = setTimeout(tick, interval); interval = Math.min(10000, Math.floor(interval * 1.3)); }
-    };
-    tick();
-    return () => { cancel = true; if (t) clearTimeout(t); };
-  }, [jobId, jobIds]);
+  // Seedance polling moved to features hook (FSD)
+  const seedanceIdList = useMemo(() => (jobIds.length ? jobIds : (jobId ? [jobId] : [])), [jobId, jobIds]);
+  const { statuses: seedanceStatuses } = useSeedancePolling(seedanceIdList);
 
   return (
     <div className="min-h-screen bg-gray-50">

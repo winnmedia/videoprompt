@@ -1,100 +1,11 @@
 
 > videoplanet@0.1.0 dev
-> next dev --turbopack -p 3000
+> next dev --turbopack
 
+ ⚠ Port 3000 is in use by an unknown process, using available port 3001 instead.
    ▲ Next.js 15.4.6 (Turbopack)
-   - Local:        http://localhost:3000
-   - Network:      http://10.255.255.254:3000
+   - Local:        http://localhost:3001
+   - Network:      http://10.255.255.254:3001
 
  ✓ Starting...
- ✓ Ready in 1809ms
- ○ Compiling /api/health ...
- ✓ Compiled /api/health in 1609ms
- GET /api/health 200 in 1818ms
- GET /api/health 200 in 49ms
- ✓ Compiled /api/imagen/preview in 141ms
- POST /api/imagen/preview 200 in 189ms
- ✓ Compiled /api/seedance/create in 137ms
- POST /api/seedance/create 200 in 191ms
- ✓ Compiled /api/seedance/status/[id] in 119ms
-Error: Route "/api/seedance/status/[id]" used `params.id`. `params` should be awaited before using its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
-    at GET (src/app/api/seedance/status/[id]/route.ts:7:42)
-   5 | // Note: Avoid strict typing for the 2nd arg to satisfy Next.js route handler constraints
-   6 | export async function GET(_req: Request, context: any) {
->  7 |   const id: string | undefined = context?.params?.id;
-     |                                          ^
-   8 |   if (!id) return NextResponse.json({ ok: false, error: 'id required' }, { status: 400 });
-   9 |   // 메모리 캐시 우선 반환
-  10 |   const cached = getJobState(id);
- GET /api/seedance/status/mock-1755727189701 200 in 1000ms
-Error: Route "/api/seedance/status/[id]" used `params.id`. `params` should be awaited before using its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
-    at GET (src/app/api/seedance/status/[id]/route.ts:7:42)
-   5 | // Note: Avoid strict typing for the 2nd arg to satisfy Next.js route handler constraints
-   6 | export async function GET(_req: Request, context: any) {
->  7 |   const id: string | undefined = context?.params?.id;
-     |                                          ^
-   8 |   if (!id) return NextResponse.json({ ok: false, error: 'id required' }, { status: 400 });
-   9 |   // 메모리 캐시 우선 반환
-  10 |   const cached = getJobState(id);
- GET /api/seedance/status/mock-1755727189701 200 in 172ms
-Error: Route "/api/seedance/status/[id]" used `params.id`. `params` should be awaited before using its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
-    at GET (src/app/api/seedance/status/[id]/route.ts:7:42)
-   5 | // Note: Avoid strict typing for the 2nd arg to satisfy Next.js route handler constraints
-   6 | export async function GET(_req: Request, context: any) {
->  7 |   const id: string | undefined = context?.params?.id;
-     |                                          ^
-   8 |   if (!id) return NextResponse.json({ ok: false, error: 'id required' }, { status: 400 });
-   9 |   // 메모리 캐시 우선 반환
-  10 |   const cached = getJobState(id);
- GET /api/seedance/status/mock-1755727189701 200 in 189ms
-Error: Route "/api/seedance/status/[id]" used `params.id`. `params` should be awaited before using its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
-    at GET (src/app/api/seedance/status/[id]/route.ts:7:42)
-   5 | // Note: Avoid strict typing for the 2nd arg to satisfy Next.js route handler constraints
-   6 | export async function GET(_req: Request, context: any) {
->  7 |   const id: string | undefined = context?.params?.id;
-     |                                          ^
-   8 |   if (!id) return NextResponse.json({ ok: false, error: 'id required' }, { status: 400 });
-   9 |   // 메모리 캐시 우선 반환
-  10 |   const cached = getJobState(id);
- GET /api/seedance/status/mock-1755727189701 200 in 113ms
-Error: Route "/api/seedance/status/[id]" used `params.id`. `params` should be awaited before using its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
-    at GET (src/app/api/seedance/status/[id]/route.ts:7:42)
-   5 | // Note: Avoid strict typing for the 2nd arg to satisfy Next.js route handler constraints
-   6 | export async function GET(_req: Request, context: any) {
->  7 |   const id: string | undefined = context?.params?.id;
-     |                                          ^
-   8 |   if (!id) return NextResponse.json({ ok: false, error: 'id required' }, { status: 400 });
-   9 |   // 메모리 캐시 우선 반환
-  10 |   const cached = getJobState(id);
- GET /api/seedance/status/mock-1755727189701 200 in 113ms
-Error: Route "/api/seedance/status/[id]" used `params.id`. `params` should be awaited before using its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
-    at GET (src/app/api/seedance/status/[id]/route.ts:7:42)
-   5 | // Note: Avoid strict typing for the 2nd arg to satisfy Next.js route handler constraints
-   6 | export async function GET(_req: Request, context: any) {
->  7 |   const id: string | undefined = context?.params?.id;
-     |                                          ^
-   8 |   if (!id) return NextResponse.json({ ok: false, error: 'id required' }, { status: 400 });
-   9 |   // 메모리 캐시 우선 반환
-  10 |   const cached = getJobState(id);
- GET /api/seedance/status/mock-1755727189701 200 in 109ms
-Error: Route "/api/seedance/status/[id]" used `params.id`. `params` should be awaited before using its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
-    at GET (src/app/api/seedance/status/[id]/route.ts:7:42)
-   5 | // Note: Avoid strict typing for the 2nd arg to satisfy Next.js route handler constraints
-   6 | export async function GET(_req: Request, context: any) {
->  7 |   const id: string | undefined = context?.params?.id;
-     |                                          ^
-   8 |   if (!id) return NextResponse.json({ ok: false, error: 'id required' }, { status: 400 });
-   9 |   // 메모리 캐시 우선 반환
-  10 |   const cached = getJobState(id);
- GET /api/seedance/status/mock-1755727189701 200 in 108ms
-Error: Route "/api/seedance/status/[id]" used `params.id`. `params` should be awaited before using its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
-    at GET (src/app/api/seedance/status/[id]/route.ts:7:42)
-   5 | // Note: Avoid strict typing for the 2nd arg to satisfy Next.js route handler constraints
-   6 | export async function GET(_req: Request, context: any) {
->  7 |   const id: string | undefined = context?.params?.id;
-     |                                          ^
-   8 |   if (!id) return NextResponse.json({ ok: false, error: 'id required' }, { status: 400 });
-   9 |   // 메모리 캐시 우선 반환
-  10 |   const cached = getJobState(id);
- GET /api/seedance/status/mock-1755727189701 200 in 105ms
 [?25h

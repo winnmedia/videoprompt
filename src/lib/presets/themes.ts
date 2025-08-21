@@ -1,4 +1,4 @@
-import type { KidChoice } from '../schema';
+import type { KidChoice } from '@/lib/schema';
 
 export const THEME_PRESETS: Record<
   KidChoice["theme"],

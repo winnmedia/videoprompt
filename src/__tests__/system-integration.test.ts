@@ -11,14 +11,11 @@ const mockGeminiService = {
   isAvailable: vi.fn()
 };
 
-const mockSupabaseService = {
-  auth: { getUser: vi.fn() },
-  from: vi.fn().mockReturnValue({
-    select: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    single: vi.fn()
-  })
+// Supabase 제거 정책에 맞춰 대체 스텁 제거/무력화
+const mockDBService = {
+  getUser: vi.fn(),
+  insertScene: vi.fn(),
+  queryProjects: vi.fn(),
 };
 
 const mockWebhookService = {
@@ -37,7 +34,7 @@ describe('VideoPlanet System Integration', () => {
     // Reset all service states
     mockOpenAIService.isAvailable.mockResolvedValue(true);
     mockGeminiService.isAvailable.mockResolvedValue(true);
-    mockSupabaseService.auth.getUser.mockResolvedValue({ data: { user: { id: 'user-123' } } });
+    mockDBService.getUser.mockResolvedValue({ id: 'user-123' });
   });
 
   afterEach(() => {
@@ -52,8 +49,8 @@ describe('VideoPlanet System Integration', () => {
       const projectId = 'proj-456';
 
       // When: 1단계 - 사용자 인증
-      const user = await mockSupabaseService.auth.getUser();
-      expect(user.data.user.id).toBe(userId);
+      const user = await mockDBService.getUser();
+      expect(user.id).toBe(userId);
 
       // When: 2단계 - AI 서비스 확인
       const openaiAvailable = await mockOpenAIService.isAvailable();
@@ -66,15 +63,7 @@ describe('VideoPlanet System Integration', () => {
       expect(scenePrompt).toBeDefined();
 
       // When: 4단계 - 데이터베이스에 저장
-      const savedScene = await mockSupabaseService
-        .from('scenes')
-        .insert({
-          user_id: userId,
-          project_id: projectId,
-          prompt: userInput,
-          generated_content: scenePrompt
-        })
-        .single();
+      const savedScene = await mockDBService.insertScene({ user_id: userId, project_id: projectId, prompt: userInput, generated_content: scenePrompt });
 
       // When: 5단계 - 웹훅 이벤트 전송
       await mockWebhookService.send('scene.generated', {
@@ -92,7 +81,7 @@ describe('VideoPlanet System Integration', () => {
 
       // Then: 전체 워크플로우가 성공적으로 완료
       expect(mockOpenAIService.generateScenePrompt).toHaveBeenCalledWith(userInput);
-      expect(mockSupabaseService.from).toHaveBeenCalledWith('scenes');
+      expect(mockDBService.insertScene).toHaveBeenCalled();
       expect(mockWebhookService.send).toHaveBeenCalled();
       expect(mockAnalyticsService.trackEvent).toHaveBeenCalled();
     });
@@ -124,20 +113,20 @@ describe('VideoPlanet System Integration', () => {
       const integrations = [
         { id: 'openai', name: 'OpenAI', status: 'connected' },
         { id: 'gemini', name: 'Gemini', status: 'connected' },
-        { id: 'supabase', name: 'Supabase', status: 'connected' }
+        { id: 'railway', name: 'Railway', status: 'connected' }
       ];
 
       // When: 서비스 상태 확인
       const serviceStatuses = await Promise.all([
         mockOpenAIService.isAvailable(),
         mockGeminiService.isAvailable(),
-        mockSupabaseService.auth.getUser()
+        mockDBService.getUser()
       ]);
 
       // Then: 모든 서비스가 정상 작동
       expect(serviceStatuses[0]).toBe(true); // OpenAI
       expect(serviceStatuses[1]).toBe(true); // Gemini
-      expect(serviceStatuses[2].data.user).toBeDefined(); // Supabase
+      expect(serviceStatuses[2].id).toBeDefined(); // Railway-backed auth stub
     });
 
     it('should handle service degradation gracefully', async () => {
@@ -174,13 +163,8 @@ describe('VideoPlanet System Integration', () => {
       const userId = 'user-123';
 
       // When: 프로젝트 데이터를 여러 서비스에서 조회
-      const projectFromDB = await mockSupabaseService
-        .from('projects')
-        .select('*')
-        .eq('id', projectId)
-        .single();
-
-      const userFromAuth = await mockSupabaseService.auth.getUser();
+      const projectFromDB = await mockDBService.queryProjects({ id: projectId });
+      const userFromAuth = await mockDBService.getUser();
 
       // Then: 데이터 일관성 유지
       expect(projectFromDB.user_id).toBe(userId);
@@ -242,7 +226,7 @@ describe('VideoPlanet System Integration', () => {
       // Given: 다양한 오류 상황
       const errorScenarios = [
         { service: 'openai', error: 'API rate limit exceeded' },
-        { service: 'supabase', error: 'Database connection timeout' },
+        { service: 'database', error: 'Database connection timeout' },
         { service: 'analytics', error: 'Tracking service unavailable' }
       ];
 
@@ -251,10 +235,10 @@ describe('VideoPlanet System Integration', () => {
         switch (scenario.service) {
           case 'openai':
             return 'AI 서비스 사용량이 초과되었습니다. 잠시 후 다시 시도해주세요.';
-          case 'supabase':
+          case 'database':
             return '데이터베이스 연결에 실패했습니다. 네트워크 상태를 확인해주세요.';
           case 'analytics':
-            return '분석 서비스에 일시적인 문제가 발생했습니다.';
+            return '분석 서비스에 일시적인 문제가 있습니다. 잠시 후 다시 시도해주세요.';
           default:
             return '알 수 없는 오류가 발생했습니다.';
         }
