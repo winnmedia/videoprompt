@@ -7,26 +7,19 @@ interface LogoProps {
   className?: string;
 }
 
-export function Logo({ variant = 'default', size = 'md', className }: LogoProps) {
-  const sizes = {
-    sm: 'text-lg',
-    md: 'text-xl',
-    lg: 'text-2xl',
-    xl: 'text-3xl',
-  } as const;
-
+export function Logo({ variant = 'icon', size = 'md', className }: LogoProps) {
   const iconSizes = {
-    sm: 'w-6 h-6',
-    md: 'w-8 h-8',
-    lg: 'w-10 h-10',
-    xl: 'w-12 h-12',
+    sm: 'w-8 h-8',
+    md: 'w-12 h-12',
+    lg: 'w-16 h-16',
+    xl: 'w-20 h-20',
   } as const;
 
   const imgSize = {
-    sm: 24,
-    md: 32,
-    lg: 40,
-    xl: 48,
+    sm: 32,
+    md: 48,
+    lg: 64,
+    xl: 80,
   } as const;
 
   const ver = process.env.NEXT_PUBLIC_ASSET_VERSION || '';
@@ -52,14 +45,7 @@ export function Logo({ variant = 'default', size = 'md', className }: LogoProps)
     />
   );
 
-  if (variant === 'icon') {
-    return (
-      <div className={cn(iconSizes[size], className)} aria-label="VideoPlanet">
-        {LogoMark}
-      </div>
-    );
-  }
-
+  // badge stays
   if (variant === 'badge') {
     return (
       <img
@@ -79,31 +65,10 @@ export function Logo({ variant = 'default', size = 'md', className }: LogoProps)
     );
   }
 
-  if (variant === 'compact') {
-    return (
-      <div className={cn('flex items-center space-x-2', className)}>
-        {LogoMark}
-        <span className={cn('font-bold text-gray-900', sizes[size])}>
-          VideoPlanet
-        </span>
-      </div>
-    );
-  }
-
+  // default/compact/icon → icon-only
   return (
-    <div className={cn('flex items-center space-x-3', className)}>
+    <div className={cn(iconSizes[size], className)} aria-label="VideoPlanet">
       {LogoMark}
-      <div className="flex flex-col">
-        <span className={cn('font-bold text-gray-900 leading-tight', sizes[size])}>
-          VideoPlanet
-        </span>
-        <span className={cn(
-          'text-primary-600 font-medium leading-tight',
-          size === 'sm' ? 'text-xs' : size === 'md' ? 'text-sm' : size === 'lg' ? 'text-base' : 'text-lg'
-        )}>
-          AI 영상 제작 플랫폼
-        </span>
-      </div>
     </div>
   );
 }

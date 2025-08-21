@@ -626,7 +626,7 @@ export default function SceneWizardPage() {
       try { rewritten = await rewritePromptForImage(imagePrompt); } catch {}
       let english = rewritten;
       try { english = await translateToEnglish(rewritten); } catch {}
-      const apiBase = process.env.NEXT_PUBLIC_API_BASE || '';
+      const apiBase = '';
       const res = await fetch(`${apiBase}/api/imagen/preview`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: english, size: '1280x720', n: 1 }) });
       const json = await res.json();
       if (!json.ok) throw new Error(json.error || 'PREVIEW_FAILED');
@@ -648,7 +648,7 @@ export default function SceneWizardPage() {
       let rewritten = finalText;
       try { rewritten = await rewritePromptForImage(finalText); } catch {}
       const english = await translateToEnglish(rewritten);
-      const apiBase = process.env.NEXT_PUBLIC_API_BASE || '';
+      const apiBase = '';
       const res = await fetch(`${apiBase}/api/imagen/preview`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: english, size: '1280x720', n: 1 }),

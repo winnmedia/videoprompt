@@ -8,18 +8,30 @@ export function formatSceneJson(scene: ScenePrompt): string {
 }
 
 export function composeFinalTextSingle(scene: ScenePrompt): string {
-  return `CINEMATIC MOVIE PROMPTS\nSCENE 1\n${formatSceneJson(scene)}`;
+  return [
+    'CINEMATIC MOVIE PROMPTS',
+    '',
+    'SCENE 1',
+    '',
+    formatSceneJson(scene),
+  ].join('\n\n');
 }
 
 export function composeFinalTextMulti(scenes: ScenePrompt[]): string {
   const parts: string[] = [];
   parts.push('CINEMATIC MOVIE PROMPTS');
+  parts.push('');
   scenes.forEach((scene, idx) => {
     parts.push(`SCENE ${idx + 1}`);
+    parts.push('');
     parts.push(formatSceneJson(scene));
-    if (idx < scenes.length - 1) parts.push(SEP);
+    if (idx < scenes.length - 1) {
+      parts.push('');
+      parts.push(SEP);
+      parts.push('');
+    }
   });
-  return parts.join(' ');
+  return parts.join('\n');
 }
 
 

@@ -14,16 +14,10 @@ export default function HomePage() {
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <Logo variant="compact" size="lg" />
+            <Logo size="lg" />
             <nav className="hidden md:flex items-center space-x-8">
               <Link href="/wizard" className="text-gray-700 hover:text-primary-600 font-medium">
-                씬 플래너
-              </Link>
-              <Link href="/projects" className="text-gray-700 hover:text-primary-600 font-medium">
-                프로젝트
-              </Link>
-              <Link href="/presets" className="text-gray-700 hover:text-primary-600 font-medium">
-                프리셋
+                AI 영상 생성
               </Link>
             </nav>
             <div className="flex items-center space-x-4">
@@ -172,21 +166,21 @@ export default function HomePage() {
 
               <div className="text-center">
                 <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Icon name="edit" size="xl" className="text-primary-600" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">타임라인 에디터</h3>
-                <p className="text-gray-600">
-                  2초 구슬 단위로 정밀한 타임라인을 편집하고 액션을 추가할 수 있습니다
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Icon name="presets" size="xl" className="text-primary-600" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-3">프리셋 라이브러리</h3>
                 <p className="text-gray-600">
                   다양한 테마와 스타일의 프리셋을 활용하여 빠르게 프로젝트를 시작하세요
+                </p>
+              </div>
+
+              <div className="text-center">
+                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Icon name="gear" size="xl" className="text-primary-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">Seedance 통합</h3>
+                <p className="text-gray-600">
+                  생성한 프롬프트로 바로 영상 생성 진행 및 상태/결과를 확인합니다
                 </p>
               </div>
             </div>
@@ -236,7 +230,7 @@ export default function HomePage() {
                 </p>
               </div>
             </div>
-          </div>
+        </div>
         </section>
       </main>
 
@@ -245,7 +239,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <Logo variant="compact" size="lg" className="mb-4" />
+              <Logo size="lg" className="mb-4" />
               <p className="text-gray-400">
                 AI 기술로 영상 제작을 혁신적으로 만들어가는 VideoPlanet입니다.
               </p>
@@ -253,9 +247,7 @@ export default function HomePage() {
             <div>
               <h3 className="text-lg font-semibold mb-4">제품</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><Link href="/wizard" className="hover:text-white">씬 플래너</Link></li>
-                <li><Link href="/editor" className="hover:text-white">타임라인 에디터</Link></li>
-                <li><Link href="/presets" className="hover:text-white">프리셋</Link></li>
+                <li><Link href="/wizard" className="hover:text-white">AI 영상 생성</Link></li>
               </ul>
             </div>
             <div>
