@@ -469,28 +469,7 @@ export default function SceneWizardPage() {
     }
   };
 
-  // Seedance 상태 폴링 (지수 백오프, 최대 10초)
-  useEffect(() => {
-    if (seedanceJobIds.length === 0) return;
-    let cancel = false;
-    let t: any;
-    const pollOne = async (id: string) => {
-      try {
-        const res = await fetch(`/api/seedance/status/${encodeURIComponent(id)}`);
-        const json = await res.json();
-        if (!cancel) setSeedanceStatuses(prev => ({ ...prev, [id]: { status: json.status, progress: json.progress, videoUrl: json.videoUrl } }));
-      } catch {}
-    };
-    const tick = async () => {
-      await Promise.all(seedanceJobIds.map(pollOne));
-      if (!cancel) {
-        t = setTimeout(tick, seedancePollMs);
-        setSeedancePollMs(ms => Math.min(10000, Math.floor(ms * 1.3)));
-      }
-    };
-    tick();
-    return () => { cancel = true; if (t) clearTimeout(t); };
-  }, [seedanceJobIds, seedancePollMs]);
+  // Seedance 폴링은 features 훅(useSeedancePolling)으로 대체됨
 
   const handleSave = async () => {
     if (!generatedPrompt) return;
