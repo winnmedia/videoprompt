@@ -1,0 +1,17 @@
+---
+globs: *.ts,*.tsx
+description: TypeScript/React 코드 표준 및 에러 처리 규칙
+---
+# TypeScript/React 코딩 규칙
+
+- 명시적 타입, Public API에 타입 노출. any 지양
+- 경계/에러 처리
+  - 외부 요청: AbortController 타임아웃(기본 8~10s)
+  - 실패 시 구체 메시지: 원인+URL 스니펫 포함
+  - API Route는 가능하면 항상 200 반환(표준 페이로드에 ok로 상태 전달)
+- 제어 흐름
+  - 조기 반환 사용, 깊은 중첩 피하기
+  - 불변 데이터 우선, setState 콜백 패턴 유지
+- 형식/스타일
+  - 경로 별칭 `@/*` 사용
+  - import 순서: node/외부 → 내부(lib/features/widgets/components)

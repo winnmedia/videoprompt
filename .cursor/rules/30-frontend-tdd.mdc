@@ -1,0 +1,18 @@
+---
+globs: *.test.ts,*.test.tsx,src/__tests__/**/*.ts,src/__tests__/**/*.tsx
+description: 프론트엔드 TDD 운영 규칙(테스트 피라미드/결정론성/의존성 절단)
+---
+# Frontend TDD 규칙(요약)
+
+- 원칙: Red → Green → Refactor. 테스트가 곧 명세
+- 결정론성: 시간/랜덤/네트워크/WS는 고정·모킹으로 플래키 금지
+- 의존성 절단: View-Model 우선, API는 테스트에서 모킹. 화면은 Public API만 import
+- 테스트 피라미드: 단위(최다) → 컴포넌트 → 통합 → E2E(스모크)
+- 선택자: 접근성 쿼리 우선 + data-test-id 보조(컴포넌트-의미-역할 네이밍)
+- 안티패턴: 전체 스냅샷/DOM 구조 의존/느린 E2E 남발 지양
+
+## 체크리스트
+- [ ] 실패 테스트 선작성(3~5) → 최소 구현 → 리팩터 유지
+- [ ] 의미 기반 쿼리 사용, data-test-id는 보조
+- [ ] Public API 배럴 import만 사용(내부 경로 금지)
+- [ ] 네트워크 호출은 테스트에서 모킹
