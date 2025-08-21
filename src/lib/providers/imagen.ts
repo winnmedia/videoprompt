@@ -34,34 +34,144 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
   const { prompt, size = '768x768', n = 1 } = options;
 
   const apiKey = process.env.GOOGLE_GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-  const tryGoogle = async (): Promise<string[] | null> => {
-    if (!apiKey) return null;
+  const providerPref = String(process.env.IMAGEN_PROVIDER || '').toLowerCase();
+  const preferLLM = providerPref === 'llm' || providerPref === 'google' || providerPref === 'google-llm';
+  const preferVertex = providerPref === 'vertex' || providerPref === 'google-vertex' || providerPref === 'vertex-ai';
+
+  // 0) Vertex AI(Imagen) — OAuth(Bearer)로 호출
+  const tryVertex = async (): Promise<string[] | null> => {
+    const projectId = process.env.VERTEX_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT || '';
+    const location = process.env.VERTEX_LOCATION || 'us-central1';
+    const model = process.env.VERTEX_IMAGEN_MODEL || 'imagegeneration@002';
+    const saJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+    if (!projectId || !saJson) return null;
     try {
-      // 참고: 실제 Imagen 2 엔드포인트/스키마는 Google AI 최신 문서를 따릅니다.
-      // 여기서는 보수적으로 v1beta 이미지 생성 엔드포인트를 시도하고,
-      // 실패 시 null을 반환하여 플레이스홀더로 폴백합니다.
-      const model = 'imagen-2.0';
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateImages?key=${encodeURIComponent(apiKey)}`;
-      const body = {
-        // 가벼운 프롬프트로 요약하여 이미지화
-        prompt: { text: prompt.slice(0, 1500) },
-        // 일부 구현은 safety/negative가 필요할 수 있음
-        // size는 구현별 다를 수 있어 메타로만 전달
-        // width/height가 필요하면 여기서 파싱하여 전달
-      } as any;
+      // 지연 의존 로딩(런타임에서만 필요)
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { GoogleAuth } = require('google-auth-library');
+      const auth = new GoogleAuth({
+        credentials: JSON.parse(saJson),
+        scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+      });
+      const client = await auth.getClient();
+      const token = await client.getAccessToken();
+      if (!token || !token.token) return null;
+
+      const [wStr, hStr] = String(size).split('x');
+      const width = parseInt(wStr, 10) || 768;
+      const height = parseInt(hStr, 10) || 768;
+
+      const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/locations/${encodeURIComponent(location)}/publishers/google/models/${encodeURIComponent(model)}:predict`;
+      const body: any = {
+        instances: [
+          {
+            prompt: { text: String(prompt || '').slice(0, 1500) },
+          },
+        ],
+        parameters: {
+          sampleCount: Math.max(1, Math.min(4, n)),
+          imageSize: { width, height },
+        },
+      };
+
       const controller = new AbortController();
       const t = setTimeout(() => controller.abort(), 8000);
-      const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: controller.signal as any });
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token.token}`,
+          'Content-Type': 'application/json; charset=utf-8',
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal as any,
+      });
       clearTimeout(t);
-      if (!res.ok) throw new Error(`google imagen http ${res.status}`);
+      if (!res.ok) return null;
       const json: any = await res.json();
-      // 응답 스키마는 서비스에 따라 상이. 일반적으로 base64 이미지 리스트를 포함.
-      const images: string[] = (json?.images || json?.candidates || [])
-        .map((it: any) => it?.imageBase64 || it?.content?.parts?.[0]?.inline_data?.data)
+      const preds: any[] = Array.isArray(json?.predictions) ? json.predictions : [];
+      const images = preds
+        .map((p: any) => p?.bytesBase64Encoded || p?.b64_json)
         .filter(Boolean)
         .slice(0, n)
         .map((b64: string) => `data:image/png;base64,${b64}`);
-      if (images.length > 0) return images;
+      return images.length ? images : null;
+    } catch {
+      return null;
+    }
+  };
+  const tryGoogle = async (): Promise<string[] | null> => {
+    if (!apiKey) return null;
+    try {
+      const [wStr, hStr] = String(size).split('x');
+      const width = parseInt(wStr, 10) || 768;
+      const height = parseInt(hStr, 10) || 768;
+
+      // 여러 변형 엔드포인트/바디를 순차 시도 (문서/버전 차이 대응)
+      const attempts: { url: string; body: any }[] = [
+        {
+          // Images API (Google AI Studio): imagegeneration:generate
+          url: `https://generativelanguage.googleapis.com/v1beta/models/imagegeneration:generate?key=${encodeURIComponent(apiKey)}`,
+          body: {
+            prompt: { text: String(prompt || '').slice(0, 1500) },
+            imageGenerationConfig: {
+              numberOfImages: Math.max(1, Math.min(4, n)),
+              imageSize: { width, height },
+            },
+          },
+        },
+        {
+          // Imagen v2 (과거 샘플): imagen-2.0:generateImages
+          url: `https://generativelanguage.googleapis.com/v1beta/models/imagen-2.0:generateImages?key=${encodeURIComponent(apiKey)}`,
+          body: {
+            prompt: { text: String(prompt || '').slice(0, 1500) },
+            imageSize: { width, height },
+            numberOfImages: Math.max(1, Math.min(4, n)),
+          },
+        },
+        {
+          // 통일된 generateContent 스타일(이미지 파트 반환형 대응)
+          url: `https://generativelanguage.googleapis.com/v1beta/models/imagegeneration:generate?key=${encodeURIComponent(apiKey)}`,
+          body: {
+            contents: [
+              { role: 'user', parts: [{ text: String(prompt || '').slice(0, 1500) }] },
+            ],
+            generationConfig: {
+              numberOfImages: Math.max(1, Math.min(4, n)),
+              image: { width, height },
+            },
+          },
+        },
+      ];
+
+      for (const attempt of attempts) {
+        const controller = new AbortController();
+        const t = setTimeout(() => controller.abort(), 8000);
+        const res = await fetch(attempt.url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(attempt.body),
+          signal: controller.signal as any,
+        }).catch(() => null);
+        clearTimeout(t);
+        if (!res || !res.ok) continue;
+        const json: any = await res.json().catch(() => ({}));
+        const images: string[] = (
+          json?.predictions ||
+          json?.images ||
+          json?.candidates ||
+          []
+        )
+          .map((it: any) =>
+            it?.bytesBase64Encoded ||
+            it?.b64_json ||
+            it?.imageBase64 ||
+            it?.content?.parts?.[0]?.inline_data?.data
+          )
+          .filter(Boolean)
+          .slice(0, n)
+          .map((b64: string) => `data:image/png;base64,${b64}`);
+        if (images.length > 0) return images;
+      }
       return null;
     } catch {
       return null;
@@ -97,7 +207,11 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
     }
   };
 
-  // 우선순위: Google → ModelArk → Placeholder
+  // 우선순위: (환경 지정) LLM 우선/Vertex 우선 → 기본은 Vertex → LLM
+  if (!preferLLM) {
+    const v = await tryVertex();
+    if (v && v.length) return { images: v };
+  }
   const g = await tryGoogle();
   if (g && g.length) return { images: g };
   const m = await tryModelArk();
