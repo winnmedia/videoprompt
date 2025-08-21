@@ -7,13 +7,14 @@ export const revalidate = 0;
 function resolveCreateUrl() {
   const explicit = process.env.SEEDANCE_API_URL_CREATE;
   if (explicit) return explicit;
-  const base = process.env.MODELARK_API_BASE || 'https://api.byteplusapi.com';
-  return `${base.replace(/\/$/, '')}/modelark/video_generation/tasks`;
+  const base = (process.env.SEEDANCE_API_BASE || process.env.MODELARK_API_BASE || 'https://ark.ap-southeast.bytepluses.com').replace(/\/$/, '');
+  return `${base}/api/v3/contents/generations/tasks`;
 }
 
 export async function GET() {
   const url = resolveCreateUrl();
   const apiKey = process.env.SEEDANCE_API_KEY || process.env.MODELARK_API_KEY || '';
+  const model = process.env.SEEDANCE_MODEL || process.env.MODELARK_MODEL || process.env.SEEDANCE_ENDPOINT_ID || process.env.MODELARK_ENDPOINT_ID || '';
 
   // Quick network probe by attempting a minimal POST (expecting 4xx but verifying reachability)
   const controller = new AbortController();
@@ -26,9 +27,8 @@ export async function GET() {
         ...(apiKey ? { 'Authorization': `Bearer ${apiKey}`, 'X-Api-Key': apiKey } : {}),
       },
       body: JSON.stringify({
-        model: 'seedance-1.0-pro',
-        input: { prompt: 'diagnose-ping' },
-        parameters: { duration: 1, aspect_ratio: '16:9' },
+        model: model || 'ep-missing',
+        content: [ { type: 'text', text: 'diagnose-ping --duration 1 --aspect 16:9' } ],
       }),
       signal: controller.signal as any,
     });
@@ -39,6 +39,7 @@ export async function GET() {
       headers: Object.fromEntries(res.headers),
       resolvedUrl: url,
       hasKey: Boolean(apiKey),
+      hasModel: Boolean(model),
       bodySnippet: (text || '').slice(0, 1000),
     }, { status: res.ok ? 200 : 200 });
   } catch (e: any) {
@@ -47,6 +48,7 @@ export async function GET() {
       error: e?.message || 'network error',
       resolvedUrl: url,
       hasKey: Boolean(apiKey),
+      hasModel: Boolean(model),
     }, { status: 200 });
   } finally {
     clearTimeout(timeout);

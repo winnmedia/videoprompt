@@ -1,0 +1,28 @@
+---
+alwaysApply: true
+---
+# Project Structure & FSD 규칙
+
+- Next.js(App Router) 기반 프로젝트. 주요 문서: [ARCHITECTURE_FSD.md](mdc:ARCHITECTURE_FSD.md), [DEVELOPMENT_RULES.md](mdc:DEVELOPMENT_RULES.md), [FRONTEND_TDD.md](mdc:FRONTEND_TDD.md), [CLAUDE.md](mdc:CLAUDE.md)
+- 디렉터리 개요
+  - `src/app/*`: 라우팅/페이지/API Route(Next.js App Router)
+  - `src/components/*`: 공용 UI
+  - `src/lib/*`: 서비스/도메인 유틸/프로바이더(Seedance/Imagen 등)
+  - `src/features/*`: 기능 레벨 훅/상호작용(예: `features/seedance/*`)
+  - `src/widgets/*`: 재사용 가능한 복합 UI 블록
+  - `src/__tests__`, `src/test`: 테스트 코드/셋업
+
+## FSD 경계
+- 상위→하위 단방향 의존(app → processes → widgets → features → entities → shared)
+- 외부 참조는 Public API(배럴) 경유. 내부 파일 직접 import 금지
+- `@/*` 경로 별칭 사용(루트=`src`)
+
+## 작업 원칙(요약)
+- TDD: 실패 테스트→최소 구현→리팩터
+- 결정론성: 네트워크/시간/랜덤은 모킹 또는 타임아웃/백오프 도입
+- 문서·히스토리: 변경 시 `MEMORY.md`에 기록(삭제/변경 금지, 추가만)
+
+## 중요 파일 레퍼런스
+- Seedance/Ark v3: `src/lib/providers/seedance.ts`, API: `src/app/api/seedance/*`
+- Imagen Preview: `src/lib/providers/imagen.ts`, API: `src/app/api/imagen/preview/route.ts`
+- 위저드 페이지: `src/app/wizard/page.tsx`

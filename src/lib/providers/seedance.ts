@@ -39,6 +39,13 @@ function extractJobId(json: any): string | undefined {
 const DEFAULT_MODELARK_BASE = process.env.SEEDANCE_API_BASE || process.env.MODELARK_API_BASE || 'https://ark.ap-southeast.bytepluses.com';
 const DEFAULT_CREATE_URL = `${DEFAULT_MODELARK_BASE.replace(/\/$/, '')}/api/v3/contents/generations/tasks`;
 const DEFAULT_STATUS_URL = `${DEFAULT_MODELARK_BASE.replace(/\/$/, '')}/api/v3/contents/generations/tasks/{id}`;
+// 기본 모델/엔드포인트 ID(ep-...)는 환경변수에서 주입
+const DEFAULT_MODEL_ID =
+  process.env.SEEDANCE_MODEL ||
+  process.env.MODELARK_MODEL ||
+  process.env.SEEDANCE_ENDPOINT_ID ||
+  process.env.MODELARK_ENDPOINT_ID ||
+  '';
 
 export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promise<SeedanceCreateResult> {
   const url = process.env.SEEDANCE_API_URL_CREATE || DEFAULT_CREATE_URL;
@@ -58,13 +65,17 @@ export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promi
   try {
     // Transform to ark v3 request schema (text-only by default)
     // duration/other hints는 프롬프트 suffix로 전달 (--duration X 등)
+    const modelId = payload.model || DEFAULT_MODEL_ID;
+    if (!modelId) {
+      return { ok: false, error: 'Seedance model/endpoint is not configured. Set SEEDANCE_MODEL (ep-...) or pass model in request.' };
+    }
     const suffix: string[] = [];
     if (payload.duration_seconds) suffix.push(`--duration ${payload.duration_seconds}`);
     if (payload.aspect_ratio) suffix.push(`--aspect ${payload.aspect_ratio}`);
     if (payload.seed != null) suffix.push(`--seed ${payload.seed}`);
     const promptWithFlags = `${payload.prompt}${suffix.length ? '  ' + suffix.join(' ') : ''}`;
     const body: any = {
-      model: payload.model || 'seedance-1-0-pro-250528',
+      model: modelId,
       content: [
         { type: 'text', text: promptWithFlags },
       ],
