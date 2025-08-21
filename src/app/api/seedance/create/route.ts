@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
     const result = await createSeedanceVideo({ prompt, aspect_ratio, duration_seconds, webhook_url, seed, quality, model: body?.model });
     if (!result.ok) {
-      return NextResponse.json({ ok: false, error: result.error, raw: result.raw }, { status: 500 });
+      return NextResponse.json({ ok: false, error: result.error, raw: result.raw }, { status: 502 });
     }
     return NextResponse.json(result, { status: 200 });
   } catch (e: any) {
