@@ -2,14 +2,15 @@ import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-import { getSeedanceStatus } from '@/lib/providers/seedance';
-import { getJobState, upsertJobState } from '@/lib/providers/seedanceStore';
 
 // Note: Avoid strict typing for the 2nd arg to satisfy Next.js route handler constraints
 export async function GET(_req: Request, context: any) {
   const id: string | undefined = context?.params?.id;
   if (!id) return NextResponse.json({ ok: false, error: 'id required' }, { status: 200 });
   try {
+    // 동적 import로 초기 로딩/ESM 환경 이슈 회피
+    const { getJobState, upsertJobState } = await import('@/lib/providers/seedanceStore');
+    const { getSeedanceStatus } = await import('@/lib/providers/seedance');
     const cached = getJobState(id);
     if (cached) {
       return NextResponse.json({ ok: true, jobId: id, status: cached.status, progress: cached.progress, videoUrl: cached.videoUrl }, { status: 200 });
