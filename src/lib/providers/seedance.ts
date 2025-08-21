@@ -1,3 +1,12 @@
+// DNS IPv4 우선(일부 런타임에서 IPv6 경로 문제 회피)
+try {
+  // Node 18+: setDefaultResultOrder
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const dns = require('dns');
+  if (typeof dns.setDefaultResultOrder === 'function') {
+    dns.setDefaultResultOrder('ipv4first');
+  }
+} catch {}
 export type SeedanceQuality = 'standard' | 'pro';
 
 export interface SeedanceCreatePayload {
@@ -8,6 +17,7 @@ export interface SeedanceCreatePayload {
   seed?: number;
   quality?: SeedanceQuality;
   model?: string; // e.g., 'seedance-1.0-pro' | 'seedance-1.0-lite'
+  image_url?: string; // optional: image-to-video
 }
 
 export interface SeedanceCreateResult {
@@ -24,10 +34,11 @@ function extractJobId(json: any): string | undefined {
   return json.jobId || json.job_id || json.id || json.data?.job_id || json.data?.id;
 }
 
-// BytePlus ModelArk Video Generation API (ref: https://docs.byteplus.com/en/docs/ModelArk/1520757)
-const DEFAULT_MODELARK_BASE = process.env.MODELARK_API_BASE || 'https://api.byteplusapi.com';
-const DEFAULT_CREATE_URL = `${DEFAULT_MODELARK_BASE}/modelark/video_generation/tasks`;
-const DEFAULT_STATUS_URL = `${DEFAULT_MODELARK_BASE}/modelark/video_generation/tasks/{id}`;
+// BytePlus ModelArk(ark) API (v3 contents/generations)
+// 예시: https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks
+const DEFAULT_MODELARK_BASE = process.env.SEEDANCE_API_BASE || process.env.MODELARK_API_BASE || 'https://ark.ap-southeast.bytepluses.com';
+const DEFAULT_CREATE_URL = `${DEFAULT_MODELARK_BASE.replace(/\/$/, '')}/api/v3/contents/generations/tasks`;
+const DEFAULT_STATUS_URL = `${DEFAULT_MODELARK_BASE.replace(/\/$/, '')}/api/v3/contents/generations/tasks/{id}`;
 
 export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promise<SeedanceCreateResult> {
   const url = process.env.SEEDANCE_API_URL_CREATE || DEFAULT_CREATE_URL;
@@ -45,20 +56,23 @@ export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promi
   }
 
   try {
-    // Transform to ModelArk request schema
-    const body = {
-      model: payload.model || (payload.quality === 'pro' ? 'seedance-1.0-pro' : 'seedance-1.0-lite'),
-      input: {
-        prompt: payload.prompt,
-      },
-      parameters: {
-        aspect_ratio: payload.aspect_ratio,
-        duration: payload.duration_seconds,
-        seed: payload.seed,
-        quality: payload.quality,
-      },
-      webhook_url: payload.webhook_url,
+    // Transform to ark v3 request schema (text-only by default)
+    // duration/other hints는 프롬프트 suffix로 전달 (--duration X 등)
+    const suffix: string[] = [];
+    if (payload.duration_seconds) suffix.push(`--duration ${payload.duration_seconds}`);
+    if (payload.aspect_ratio) suffix.push(`--aspect ${payload.aspect_ratio}`);
+    if (payload.seed != null) suffix.push(`--seed ${payload.seed}`);
+    const promptWithFlags = `${payload.prompt}${suffix.length ? '  ' + suffix.join(' ') : ''}`;
+    const body: any = {
+      model: payload.model || 'seedance-1-0-pro-250528',
+      content: [
+        { type: 'text', text: promptWithFlags },
+      ],
     };
+    if (payload.image_url) {
+      body.content.push({ type: 'image_url', image_url: { url: payload.image_url } });
+    }
+    if (payload.webhook_url) body.webhook_url = payload.webhook_url;
 
     // 10s 타임아웃 및 상세 에러 메시지 수집
     const controller = new AbortController();
@@ -84,10 +98,10 @@ export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promi
       return { ok: false, error: `Seedance API error: ${res.status}`, raw: json };
     }
 
-    // ModelArk response example: { data: { task_id, status, ... } }
-    const jobId = json?.data?.task_id || extractJobId(json);
-    const status = json?.data?.status || json.status || 'queued';
-    const dashboardUrl = json?.data?.dashboard_url || json.dashboard_url;
+    // ark v3: id/ task_id
+    const jobId = json?.data?.task_id || json?.id || extractJobId(json);
+    const status = json?.data?.status || json?.status || 'queued';
+    const dashboardUrl = json?.data?.dashboard_url || json?.dashboard_url;
     return { ok: true, jobId, status, dashboardUrl, raw: json };
   } catch (error: any) {
     const msg = error?.message || 'Seedance request failed';
@@ -151,11 +165,11 @@ export async function getSeedanceStatus(jobId: string): Promise<SeedanceStatusRe
     if (!res.ok) {
       return { ok: false, jobId, status: 'error', error: `Seedance status error: ${res.status}`, raw: json };
     }
-    // ModelArk status: { data: { status, progress, result: { video_url } } }
-    const status = json?.data?.status || json.status || json.task_status || json.state || 'processing';
-    const progress = json?.data?.progress ?? json.progress ?? json.percent;
-    const videoUrl = json?.data?.result?.video_url || json.video_url || json.result?.video_url || json.output?.video?.url;
-    const dashboardUrl = json?.data?.dashboard_url || json.dashboard_url || json.links?.dashboard;
+    // ark v3 status
+    const status = json?.data?.status || json?.status || json?.task_status || json?.state || 'processing';
+    const progress = json?.data?.progress ?? json?.progress ?? json?.percent;
+    const videoUrl = json?.data?.video_url || json?.data?.result?.video_url || json?.video_url || json?.result?.video_url || json?.output?.video?.url;
+    const dashboardUrl = json?.data?.dashboard_url || json?.dashboard_url || json?.links?.dashboard;
     return {
       ok: true,
       jobId,
