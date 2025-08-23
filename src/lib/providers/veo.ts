@@ -51,6 +51,15 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
     
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
     
+    console.log('DEBUG: Veo3 API 호출 시작:', {
+      model,
+      prompt: prompt.slice(0, 100),
+      aspectRatio,
+      duration: actualDuration,
+      apiKey: apiKey ? `${apiKey.substring(0, 10)}...` : 'none',
+      url: url.replace(apiKey, '***')
+    });
+
     // Google Veo API 정확한 스펙에 맞춘 요청 바디
     const body = {
       contents: [{
@@ -68,19 +77,13 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
 
     // Veo 3 API는 별도의 videoGenerationConfig 없이 모델 자체에서 처리
     // 모델명으로 동영상 생성 여부가 결정됨
-
-    console.log('DEBUG: Veo API request:', { 
-      model: veoModel, 
-      prompt: prompt.slice(0, 100), 
-      aspectRatio, 
-      duration: actualDuration,
-      provider: veoProvider,
-      url: url
-    });
+    console.log('DEBUG: Veo3 요청 바디:', JSON.stringify(body, null, 2));
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000); // 30초 타임아웃
 
+    console.log('DEBUG: Veo3 API 요청 전송 중...');
+    
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -92,9 +95,11 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
 
     clearTimeout(timeout);
 
+    console.log('DEBUG: Veo3 API 응답 상태:', response.status, response.statusText);
+
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'unknown error');
-      console.error('DEBUG: Veo API error response:', response.status, errorText);
+      console.error('DEBUG: Veo3 API 오류 응답:', response.status, errorText);
       return {
         ok: false,
         error: `Veo API error: ${response.status} - ${errorText}`
@@ -102,39 +107,52 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
     }
 
     const data = await response.json();
-    console.log('DEBUG: Veo API response keys:', Object.keys(data));
+    console.log('DEBUG: Veo3 API 응답 키:', Object.keys(data));
+    console.log('DEBUG: Veo3 API 응답 구조:', JSON.stringify(data, null, 2));
 
     // Veo 3는 즉시 동영상 반환, Veo 2는 operation 반환
     if (model.startsWith('veo-3')) {
+      console.log('DEBUG: Veo3 모델 - 즉시 동영상 반환 시도');
       const video = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
       if (video) {
+        console.log('DEBUG: Veo3 동영상 생성 성공:', {
+          mimeType: video.mimeType,
+          dataLength: video.data ? video.data.length : 0
+        });
         return {
           ok: true,
           videoUrl: `data:${video.mimeType};base64,${video.data}`,
           status: 'succeeded',
           progress: 100
         };
+      } else {
+        console.log('DEBUG: Veo3 응답에서 동영상 데이터를 찾을 수 없음');
       }
     } else {
       // Veo 2: operation ID 반환
+      console.log('DEBUG: Veo2 모델 - operation ID 반환 시도');
       const operation = data.operation;
       if (operation?.name) {
+        console.log('DEBUG: Veo2 operation 시작:', operation.name);
         return {
           ok: true,
           operationId: operation.name,
           status: 'pending',
           progress: 0
         };
+      } else {
+        console.log('DEBUG: Veo2 응답에서 operation을 찾을 수 없음');
       }
     }
 
+    console.log('DEBUG: Veo3 API 응답에서 유효한 데이터를 찾을 수 없음');
     return {
       ok: false,
       error: 'No video data or operation ID received'
     };
 
   } catch (error) {
-    console.error('DEBUG: Veo API exception:', error);
+    console.error('DEBUG: Veo3 API 예외 발생:', error);
     return {
       ok: false,
       error: `Veo API exception: ${error instanceof Error ? error.message : 'unknown error'}`

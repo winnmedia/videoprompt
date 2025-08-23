@@ -54,8 +54,19 @@ export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promi
   const url = process.env.SEEDANCE_API_URL_CREATE || DEFAULT_CREATE_URL;
   const apiKey = process.env.SEEDANCE_API_KEY || process.env.MODELARK_API_KEY || '';
 
+  console.log('DEBUG: Seedance 영상 생성 시작:', {
+    url,
+    hasApiKey: !!apiKey,
+    model: payload.model || '기본값 사용',
+    prompt: payload.prompt.slice(0, 100),
+    aspectRatio: payload.aspect_ratio,
+    duration: payload.duration_seconds,
+    webhookUrl: !!payload.webhook_url
+  });
+
   // Mock 모드 또는 환경변수 미설정 시 안전한 모의 응답
   if (!apiKey) {
+    console.log('DEBUG: API 키가 설정되지 않음 - Mock 모드로 실행');
     return {
       ok: true,
       jobId: `mock-${Date.now()}`,
@@ -72,9 +83,15 @@ export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promi
     const requestedModel = (payload.model || '').trim();
     const envModel = (DEFAULT_MODEL_ID || '').trim();
     const modelId = (requestedModel && /^ep-[a-zA-Z0-9-]+$/.test(requestedModel)) ? requestedModel : envModel;
+    
+    console.log('DEBUG: 모델 ID 결정:', { requestedModel, envModel, finalModelId: modelId });
+    
     if (!modelId) {
-      return { ok: false, error: 'Seedance model/endpoint is not configured. Set SEEDANCE_MODEL (ep-...) or pass model in request.' };
+      const error = 'Seedance model/endpoint is not configured. Set SEEDANCE_MODEL (ep-...) or pass model in request.';
+      console.error('DEBUG: Seedance 모델 설정 오류:', error);
+      return { ok: false, error };
     }
+    
     const body: any = {
       model: modelId,
       content: [
@@ -92,9 +109,14 @@ export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promi
     if (Object.keys(parameters).length > 0) body.parameters = parameters;
     if (payload.webhook_url) body.webhook_url = payload.webhook_url;
 
-    // 10s 타임아웃 및 상세 에러 메시지 수집
+    console.log('DEBUG: Seedance 요청 바디:', JSON.stringify(body, null, 2));
+
+    // 15s 타임아웃 및 상세 에러 메시지 수집
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10_000);
+    const timeout = setTimeout(() => controller.abort(), 15_000);
+    
+    console.log('DEBUG: Seedance API 호출 시작:', url);
+    
     const res = await fetch(url, {
       method: 'POST',
       headers: {
