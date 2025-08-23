@@ -51,6 +51,7 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
     
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
     
+    // Google Veo API 정확한 스펙에 맞춘 요청 바디
     const body = {
       contents: [{
         parts: [{
@@ -62,20 +63,19 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
         topK: 40,
         topP: 0.95,
         maxOutputTokens: 1024,
-      },
-      videoGenerationConfig: {
-        aspectRatio: aspectRatio,
-        duration: `${actualDuration}s`,
-        personGeneration: personGeneration,
       }
     };
+
+    // Veo 3 API는 별도의 videoGenerationConfig 없이 모델 자체에서 처리
+    // 모델명으로 동영상 생성 여부가 결정됨
 
     console.log('DEBUG: Veo API request:', { 
       model: veoModel, 
       prompt: prompt.slice(0, 100), 
       aspectRatio, 
       duration: actualDuration,
-      provider: veoProvider
+      provider: veoProvider,
+      url: url
     });
 
     const controller = new AbortController();
