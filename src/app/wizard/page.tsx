@@ -505,9 +505,15 @@ export default function SceneWizardPage() {
       }
     } catch (e) {
       console.error('Seedance create failed', e);
-      setError(e instanceof Error ? e.message : 'Seedance 영상 생성 실패');
+      const errorMessage = e instanceof Error ? e.message : 'Seedance 영상 생성 실패';
+      setError(errorMessage);
       setStatusKind('error');
-      setStatusMsg('Seedance 영상 생성 실패');
+      setStatusMsg(errorMessage);
+      
+      // 사용자에게 환경변수 설정 안내
+      if (errorMessage.includes('model/endpoint') || errorMessage.includes('SEEDANCE_MODEL')) {
+        setError(`${errorMessage}\n\n💡 해결 방법:\n1. Railway 대시보드에서 환경변수 설정\n2. SEEDANCE_API_KEY 설정\n3. SEEDANCE_MODEL 설정 (ep-... 형식)`);
+      }
     }
   };
 
@@ -540,7 +546,7 @@ export default function SceneWizardPage() {
       try { await navigator.clipboard.writeText(english); } catch {}
 
       // Veo API 호출
-      const apiBase = '';
+      const apiBase = 'https://videoprompt-production.up.railway.app';
       const res = await fetch(`${apiBase}/api/veo/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -553,7 +559,16 @@ export default function SceneWizardPage() {
       });
 
       const json = await res.json();
-      if (!json.ok) throw new Error(json.error || 'VEO_CREATION_FAILED');
+      if (!json.ok) {
+        // 구체적인 오류 메시지 처리
+        if (json.error?.includes('GOOGLE_GEMINI_API_KEY')) {
+          throw new Error('Google Gemini API 키가 설정되지 않았습니다. Railway 환경변수를 확인해주세요.');
+        } else if (json.error?.includes('VEO_PROVIDER')) {
+          throw new Error('Veo 제공자가 비활성화되었습니다. VEO_PROVIDER 환경변수를 확인해주세요.');
+        } else {
+          throw new Error(json.error || 'VEO_CREATION_FAILED');
+        }
+      }
 
       setStatusKind('success');
       setStatusMsg('Google Veo 동영상 생성이 시작되었습니다!');
@@ -568,9 +583,15 @@ export default function SceneWizardPage() {
 
     } catch (e) {
       console.error('Veo create failed', e);
-      setError(e instanceof Error ? e.message : 'Google Veo 동영상 생성 실패');
+      const errorMessage = e instanceof Error ? e.message : 'Google Veo 동영상 생성 실패';
+      setError(errorMessage);
       setStatusKind('error');
-      setStatusMsg('Google Veo 동영상 생성 실패');
+      setStatusMsg(errorMessage);
+      
+      // 사용자에게 환경변수 설정 안내
+      if (errorMessage.includes('API 키') || errorMessage.includes('환경변수')) {
+        setError(`${errorMessage}\n\n💡 해결 방법:\n1. Railway 대시보드에서 환경변수 설정\n2. GOOGLE_GEMINI_API_KEY 설정\n3. VEO_PROVIDER=google 설정`);
+      }
     }
   };
 
@@ -697,7 +718,7 @@ export default function SceneWizardPage() {
       }
       
       // 이미지 생성 API 호출
-      const apiBase = '';
+      const apiBase = 'https://videoprompt-production.up.railway.app';
       const res = await fetch(`${apiBase}/api/imagen/preview`, { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
@@ -744,7 +765,7 @@ export default function SceneWizardPage() {
       }
       
       const english = await translateToEnglish(optimizedPrompt);
-      const apiBase = '';
+      const apiBase = 'https://videoprompt-production.up.railway.app';
       const res = await fetch(`${apiBase}/api/imagen/preview`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
