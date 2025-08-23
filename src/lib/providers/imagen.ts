@@ -111,85 +111,148 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
       const width = parseInt(wStr, 10) || 768;
       const height = parseInt(hStr, 10) || 768;
 
-      // 여러 변형 엔드포인트/바디를 순차 시도 (문서/버전 차이 대응)
-      const attempts: { url: string; body: any }[] = [
+      console.log('DEBUG: Google Gemini API 호출 시도:', { 
+        apiKey: apiKey ? `${apiKey.substring(0, 10)}...` : 'none',
+        llmModel,
+        prompt: prompt.slice(0, 100),
+        size: `${width}x${height}`,
+        n
+      });
+
+      // Google Gemini API Imagen 모델 호출
+      const attempts: { url: string; body: any; description: string }[] = [
         {
-          // Imagen 4 (LLM via Generative Language API)
-          url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(llmModel)}:generate?key=${encodeURIComponent(apiKey)}`,
+          description: 'Imagen 4.0 Fast (최신)',
+          url: `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-fast-generate-preview-06-06:generateContent?key=${encodeURIComponent(apiKey)}`,
           body: {
-            prompt: { text: String(prompt || '').slice(0, 1500) },
+            contents: [
+              {
+                role: 'user',
+                parts: [{ text: String(prompt || '').slice(0, 1500) }]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.7,
+              topK: 40,
+              topP: 0.95,
+              maxOutputTokens: 1024,
+            },
             imageGenerationConfig: {
               numberOfImages: Math.max(1, Math.min(4, n)),
-              imageSize: { width, height },
-            },
+              aspectRatio: width > height ? 'LANDSCAPE' : width < height ? 'PORTRAIT' : 'SQUARE',
+              imageSize: `${width}x${height}`,
+            }
           },
         },
         {
-          // Images API (Google AI Studio): imagegeneration:generate
-          url: `https://generativelanguage.googleapis.com/v1beta/models/imagegeneration:generate?key=${encodeURIComponent(apiKey)}`,
+          description: 'Imagen 4.0 (고품질)',
+          url: `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-preview-06-06:generateContent?key=${encodeURIComponent(apiKey)}`,
           body: {
-            prompt: { text: String(prompt || '').slice(0, 1500) },
+            contents: [
+              {
+                role: 'user',
+                parts: [{ text: String(prompt || '').slice(0, 1500) }]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.7,
+              topK: 40,
+              topP: 0.95,
+              maxOutputTokens: 1024,
+            },
             imageGenerationConfig: {
               numberOfImages: Math.max(1, Math.min(4, n)),
-              imageSize: { width, height },
-            },
+              aspectRatio: width > height ? 'LANDSCAPE' : width < height ? 'PORTRAIT' : 'SQUARE',
+              imageSize: `${width}x${height}`,
+            }
           },
         },
         {
-          // Imagen v2 (과거 샘플): imagen-2.0:generateImages
+          description: 'Legacy Imagen 2.0',
           url: `https://generativelanguage.googleapis.com/v1beta/models/imagen-2.0:generateImages?key=${encodeURIComponent(apiKey)}`,
           body: {
             prompt: { text: String(prompt || '').slice(0, 1500) },
             imageSize: { width, height },
             numberOfImages: Math.max(1, Math.min(4, n)),
           },
-        },
-        {
-          // 통일된 generateContent 스타일(이미지 파트 반환형 대응)
-          url: `https://generativelanguage.googleapis.com/v1beta/models/imagegeneration:generate?key=${encodeURIComponent(apiKey)}`,
-          body: {
-            contents: [
-              { role: 'user', parts: [{ text: String(prompt || '').slice(0, 1500) }] },
-            ],
-            generationConfig: {
-              numberOfImages: Math.max(1, Math.min(4, n)),
-              image: { width, height },
-            },
-          },
-        },
+        }
       ];
 
       for (const attempt of attempts) {
+        console.log(`DEBUG: ${attempt.description} 시도 중...`);
         const controller = new AbortController();
-        const t = setTimeout(() => controller.abort(), 8000);
-        const res = await fetch(attempt.url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(attempt.body),
-          signal: controller.signal as any,
-        }).catch(() => null);
-        clearTimeout(t);
-        if (!res || !res.ok) continue;
-        const json: any = await res.json().catch(() => ({}));
-        const images: string[] = (
-          json?.predictions ||
-          json?.images ||
-          json?.candidates ||
-          []
-        )
-          .map((it: any) =>
-            it?.bytesBase64Encoded ||
-            it?.b64_json ||
-            it?.imageBase64 ||
-            it?.content?.parts?.[0]?.inline_data?.data
-          )
-          .filter(Boolean)
-          .slice(0, n)
-          .map((b64: string) => `data:image/png;base64,${b64}`);
-        if (images.length > 0) return images;
+        const t = setTimeout(() => controller.abort(), 15000); // 15초 타임아웃
+        
+        try {
+          const res = await fetch(attempt.url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(attempt.body),
+            signal: controller.signal as any,
+          });
+          
+          clearTimeout(t);
+          
+          console.log(`DEBUG: ${attempt.description} 응답 상태:`, res.status, res.statusText);
+          
+          if (!res.ok) {
+            const errorText = await res.text().catch(() => 'unknown error');
+            console.log(`DEBUG: ${attempt.description} 오류 응답:`, errorText);
+            continue;
+          }
+          
+          const json: any = await res.json().catch(() => ({}));
+          console.log(`DEBUG: ${attempt.description} 응답 키:`, Object.keys(json));
+          
+          // 응답 데이터에서 이미지 추출
+          const images: string[] = [];
+          
+          // 다양한 응답 구조 대응
+          if (json.candidates && Array.isArray(json.candidates)) {
+            for (const candidate of json.candidates) {
+              if (candidate.content && candidate.content.parts) {
+                for (const part of candidate.content.parts) {
+                  if (part.inlineData && part.inlineData.mimeType && part.inlineData.data) {
+                    images.push(`data:${part.inlineData.mimeType};base64,${part.inlineData.data}`);
+                  }
+                }
+              }
+            }
+          } else if (json.predictions && Array.isArray(json.predictions)) {
+            for (const prediction of json.predictions) {
+              if (prediction.bytesBase64Encoded) {
+                images.push(`data:image/png;base64,${prediction.bytesBase64Encoded}`);
+              }
+            }
+          } else if (json.images && Array.isArray(json.images)) {
+            for (const image of json.images) {
+              if (image.b64_json) {
+                images.push(`data:image/png;base64,${image.b64_json}`);
+              }
+            }
+          }
+          
+          console.log(`DEBUG: ${attempt.description}에서 ${images.length}개 이미지 추출`);
+          
+          if (images.length > 0) {
+            const result = images.slice(0, n).map((img, index) => {
+              console.log(`DEBUG: 이미지 ${index + 1} 생성 완료`);
+              return img;
+            });
+            return result;
+          }
+          
+        } catch (error) {
+          console.log(`DEBUG: ${attempt.description} 시도 중 오류:`, error);
+          clearTimeout(t);
+          continue;
+        }
       }
+      
+      console.log('DEBUG: 모든 Google API 시도 실패');
       return null;
-    } catch {
+    } catch (error) {
+      console.error('DEBUG: Google API 전체 오류:', error);
       return null;
     }
   };

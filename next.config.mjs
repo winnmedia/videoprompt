@@ -16,8 +16,7 @@ const nextConfig = {
   experimental: {
     // Link Preload 경고 해결
     optimizePackageImports: ['@/components', '@/lib'],
-    // 번들 크기 최적화
-    optimizeCss: true,
+    // optimizeCss 제거 - critters 모듈 오류 해결
   },
   
   // 웹팩 최적화
