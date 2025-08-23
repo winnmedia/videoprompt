@@ -1,41 +1,74 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createSeedanceVideo } from '@/lib/providers/seedance';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
-export async function POST(request: Request) {
+// CORS 헤더 설정
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { headers: corsHeaders });
+}
+
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json();
-    const { prompt, aspect_ratio, duration_seconds, webhook_url, seed, quality } = body || {};
+    const body = await req.json();
+    const { prompt, aspect_ratio = '16:9', duration_seconds = 8, model } = body;
 
     if (!prompt || typeof prompt !== 'string') {
-      return NextResponse.json({ ok: false, error: 'prompt is required' }, { status: 400 });
+      return NextResponse.json({ 
+        ok: false, 
+        error: 'INVALID_PROMPT' 
+      }, { 
+        status: 400,
+        headers: corsHeaders
+      });
     }
 
-    // 기본 웹훅 URL 주입: 환경변수 우선, 없으면 요청 Host 기반 구성
-    let webhookUrl = webhook_url;
-    if (!webhookUrl) {
-      const envWebhook = process.env.SEEDANCE_WEBHOOK_URL;
-      if (envWebhook) {
-        webhookUrl = envWebhook;
-      } else {
-        try {
-          const proto = (request.headers.get('x-forwarded-proto') || 'https').split(',')[0].trim();
-          const host = (request.headers.get('x-forwarded-host') || request.headers.get('host') || '').split(',')[0].trim();
-          if (host) webhookUrl = `${proto}://${host}/api/seedance/webhook`;
-        } catch {}
-      }
+    console.log('DEBUG: Seedance create request:', { 
+      prompt: prompt.slice(0, 100), 
+      aspect_ratio, 
+      duration_seconds, 
+      model 
+    });
+
+    const result = await createSeedanceVideo({
+      prompt,
+      aspect_ratio,
+      duration_seconds,
+      model
+    });
+
+    if (result.ok) {
+      return NextResponse.json({
+        ok: true,
+        jobId: result.jobId,
+        status: result.status
+      }, { headers: corsHeaders });
+    } else {
+      return NextResponse.json({
+        ok: false,
+        error: result.error || 'VIDEO_GENERATION_FAILED'
+      }, { 
+        status: 502,
+        headers: corsHeaders
+      });
     }
 
-    const result = await createSeedanceVideo({ prompt, aspect_ratio, duration_seconds, webhook_url: webhookUrl, seed, quality, model: body?.model });
-    if (!result.ok) {
-      return NextResponse.json({ ok: false, error: result.error, raw: result.raw }, { status: 502 });
-    }
-    return NextResponse.json(result, { status: 200 });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message || 'unknown error' }, { status: 500 });
+  } catch (error) {
+    console.error('Seedance create error:', error);
+    return NextResponse.json({ 
+      ok: false, 
+      error: (error as Error).message 
+    }, { 
+      status: 500,
+      headers: corsHeaders
+    });
   }
 }
 
