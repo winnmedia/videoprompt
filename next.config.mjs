@@ -14,8 +14,8 @@ const nextConfig = {
   
   // 성능 최적화 설정
   experimental: {
-    // Link Preload 경고 해결
-    optimizePackageImports: ['@/components', '@/lib'],
+    // Link Preload 경고 해결 - 더 구체적인 경로 지정
+    optimizePackageImports: ['@/components/ui', '@/lib/providers'],
     // optimizeCss 제거 - critters 모듈 오류 해결
   },
   

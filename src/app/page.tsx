@@ -288,17 +288,17 @@ export default function HomePage() {
             <div>
               <h3 className="text-lg font-semibold mb-4">지원</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><Link href="/docs" className="hover:text-white">문서</Link></li>
-                <li><Link href="/tutorials" className="hover:text-white">튜토리얼</Link></li>
-                <li><Link href="/contact" className="hover:text-white">문의</Link></li>
+                <li><Link href="/wizard" className="hover:text-white">AI 위저드</Link></li>
+                <li><span className="text-gray-500 cursor-not-allowed">문서 (준비 중)</span></li>
+                <li><span className="text-gray-500 cursor-not-allowed">튜토리얼 (준비 중)</span></li>
               </ul>
             </div>
             <div>
               <h3 className="text-lg font-semibold mb-4">회사</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><Link href="/about" className="hover:text-white">소개</Link></li>
-                <li><Link href="/blog" className="hover:text-white">블로그</Link></li>
-                <li><Link href="/careers" className="hover:text-white">채용</Link></li>
+                <li><span className="text-gray-500 cursor-not-allowed">소개 (준비 중)</span></li>
+                <li><span className="text-gray-500 cursor-not-allowed">블로그 (준비 중)</span></li>
+                <li><span className="text-gray-500 cursor-not-allowed">채용 (준비 중)</span></li>
               </ul>
             </div>
           </div>

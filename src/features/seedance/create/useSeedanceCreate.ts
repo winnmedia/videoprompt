@@ -21,7 +21,8 @@ export function useSeedanceCreate() {
 
   const createOne = useCallback(async (payload: SeedanceCreatePayload): Promise<string> => {
     setError(null);
-    const res = await fetch('/api/seedance/create', {
+    const apiBase = 'https://videoprompt-production.up.railway.app';
+    const res = await fetch(`${apiBase}/api/seedance/create`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
