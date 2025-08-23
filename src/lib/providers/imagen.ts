@@ -40,6 +40,17 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
   const preferVertex = providerPref === 'vertex' || providerPref === 'google-vertex' || providerPref === 'vertex-ai';
   const preferOpenAI = providerPref === 'openai' || providerPref === 'openai-only' || providerPref === 'openai-images';
 
+  console.log('DEBUG: Imagen preview 시작:', {
+    prompt: prompt.slice(0, 100),
+    size,
+    n,
+    providerPref,
+    hasApiKey: !!apiKey,
+    preferLLM,
+    preferVertex,
+    preferOpenAI
+  });
+
   // 0) Vertex AI(Imagen) — OAuth(Bearer)로 호출
   const tryVertex = async (): Promise<string[] | null> => {
     // 서버 사이드에서만 실행
@@ -49,7 +60,14 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
     const location = process.env.VERTEX_LOCATION || 'us-central1';
     const model = process.env.VERTEX_IMAGEN_MODEL || 'imagegeneration@002';
     const saJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-    if (!projectId || !saJson) return null;
+    
+    console.log('DEBUG: Vertex AI 시도:', { projectId: !!projectId, location, model, hasSaJson: !!saJson });
+    
+    if (!projectId || !saJson) {
+      console.log('DEBUG: Vertex AI 설정 부족');
+      return null;
+    }
+    
     try {
       // 지연 의존 로딩(런타임에서만 필요)
       // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -60,7 +78,10 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
       });
       const client = await auth.getClient();
       const token = await client.getAccessToken();
-      if (!token || !token.token) return null;
+      if (!token || !token.token) {
+        console.log('DEBUG: Vertex AI 토큰 획득 실패');
+        return null;
+      }
 
       const [wStr, hStr] = String(size).split('x');
       const width = parseInt(wStr, 10) || 768;
@@ -76,8 +97,15 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
         parameters: {
           sampleCount: Math.max(1, Math.min(4, n)),
           imageSize: { width, height },
+          // Vertex AI Imagen 공식 스펙에 맞춘 추가 파라미터
+          guidanceScale: 7.5,
+          seed: Math.floor(Math.random() * 1000000),
+          // 안전 필터 설정
+          safetyFilterLevel: "BLOCK_MEDIUM_AND_ABOVE"
         },
       };
+
+      console.log('DEBUG: Vertex AI 요청:', { url, width, height, sampleCount: body.parameters.sampleCount });
 
       const controller = new AbortController();
       const t = setTimeout(() => controller.abort(), 8000);
@@ -91,16 +119,25 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
         signal: controller.signal as any,
       });
       clearTimeout(t);
-      if (!res.ok) return null;
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('DEBUG: Vertex AI 응답 오류:', { status: res.status, statusText: res.statusText, error: errorText.slice(0, 200) });
+        return null;
+      }
+      
       const json: any = await res.json();
       const preds: any[] = Array.isArray(json?.predictions) ? json.predictions : [];
       const images = preds
         .map((p: any) => p?.bytesBase64Encoded || p?.b64_json)
         .filter(Boolean)
-        .slice(0, n)
-        .map((b64: string) => `data:image/png;base64,${b64}`);
-      return images.length ? images : null;
-    } catch {
+        .slice(0, n);
+      
+      console.log('DEBUG: Vertex AI 성공:', { predictionsCount: preds.length, imagesCount: images.length });
+      return images.length > 0 ? images : null;
+      
+    } catch (error) {
+      console.error('DEBUG: Vertex AI 에러:', error);
       return null;
     }
   };
