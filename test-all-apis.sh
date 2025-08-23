@@ -57,7 +57,7 @@ run_test "통합 Veo 동영상 생성" "curl -sS -X POST '$BASE_URL/api/video/cr
 run_test "통합 Seedance 동영상 생성" "curl -sS -X POST '$BASE_URL/api/video/create' -H 'Content-Type: application/json' --data-binary '{\"prompt\":\"A space adventure\",\"provider\":\"seedance\",\"aspectRatio\":\"16:9\",\"duration\":8}' | jq -r '.ok'" "true"
 
 echo -e "\n${YELLOW}5. CORS 정책 테스트${NC}"
-run_test "CORS 헤더 확인" "curl -sS -H 'Origin: https://www.vridge.kr' '$BASE_URL/api/imagen/preview' -X OPTIONS | grep -q 'Access-Control-Allow-Origin'" "Access-Control-Allow-Origin"
+run_test "CORS 헤더 확인" "curl -sS -H 'Origin: https://example.com' '$BASE_URL/api/imagen/preview' -X OPTIONS | grep -q 'Access-Control-Allow-Origin'" "Access-Control-Allow-Origin"
 
 echo -e "\n${YELLOW}6. 위저드 페이지 접근성 테스트${NC}"
 run_test "위저드 페이지 접근" "curl -sS '$BASE_URL/wizard' | grep -q 'AI 모델 선택'" "AI 모델 선택"

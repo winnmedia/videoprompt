@@ -112,3 +112,109 @@
     4. 이미지 미리보기 생성
     5. 영상 생성 및 상태 추적
 
+## 2025-08-24
+
+- **Google Gemini API Imagen 모델 호출 수정 및 최적화**
+  - **API 엔드포인트 수정**: `src/lib/providers/imagen.ts`의 `tryGoogle` 함수 완전 재작성
+    - 올바른 Imagen 4.0 모델명 사용: `imagen-4.0-fast-generate-preview-06-06:generateContent`
+    - 정확한 요청 구조: `contents`, `generationConfig`, `imageGenerationConfig` 적용
+    - aspectRatio 자동 감지: LANDSCAPE/PORTRAIT/SQUARE 자동 설정
+  - **디버깅 로그 강화**: API 호출 과정의 모든 단계에 상세한 로그 추가
+    - 요청 파라미터 로깅: API 키, 모델명, 프롬프트, 크기 등
+    - 응답 상태 및 구조 분석: HTTP 상태, 응답 키, 데이터 구조
+    - 이미지 추출 과정 추적: candidates, predictions, images 등 다양한 응답 구조 대응
+  - **오류 처리 개선**: 15초 타임아웃, 상세한 오류 메시지, 폴백 로직
+
+- **Seedance 영상 생성 API 개선**
+  - **디버깅 로그 추가**: `src/lib/providers/seedance.ts`의 `createSeedanceVideo` 함수 강화
+    - API 호출 시작부터 응답까지 모든 과정 로깅
+    - 모델 ID 결정 과정: 요청된 모델과 환경변수 모델의 우선순위 명확화
+    - 요청 바디 구조 로깅: 실제 전송되는 데이터 구조 확인
+    - 타임아웃 증가: 10초 → 15초로 증가하여 안정성 향상
+  - **환경변수 검증**: API 키, 모델, 엔드포인트 설정 상태 상세 로깅
+
+- **Veo3 영상 생성 API 개선**
+  - **디버깅 로그 강화**: `src/lib/providers/veo.ts`의 `generateVeoVideo` 함수 개선
+    - API 호출 과정의 모든 단계에 상세한 로그 추가
+    - 요청/응답 구조 로깅: 전송되는 데이터와 받는 데이터 구조 확인
+    - 모델별 처리 로직: Veo3와 Veo2의 차이점 명확화 및 로깅
+    - 오류 처리 개선: 구체적인 오류 메시지와 원인 분석
+  - **응답 데이터 파싱**: 다양한 응답 구조에 대한 안전한 이미지/동영상 데이터 추출
+
+- **빌드 오류 해결 및 성능 최적화**
+  - **Next.js 설정 최적화**: `next.config.mjs`에서 `optimizeCss: true` 설정 제거
+    - `critters` 모듈 의존성 문제 해결로 빌드 안정성 향상
+    - `optimizePackageImports` 유지: Link Preload 경고 해결
+    - Webpack 최적화 유지: 청크 분할 및 벤더 번들 최적화
+  - **빌드 성공 확인**: Railway 배포에서 빌드 오류 없이 성공
+
+- **CORS 정책 문제 해결**
+  - **API Route CORS 헤더 추가**: 모든 관련 API에 CORS 설정 적용
+    - `/api/imagen/preview`: `Access-Control-Allow-Origin: *` 등 CORS 헤더 추가
+    - `/api/veo/create`: OPTIONS 핸들러와 CORS 헤더 설정
+    - `/api/video/create`: 통합 동영상 API에 CORS 설정
+    - `/api/seedance/create`: Seedance API에 CORS 설정
+  - **크로스 오리진 요청 지원**: `https://www.vridge.kr`에서 API 호출 가능
+
+- **프론트엔드 UI/UX 개선**
+  - **메인 페이지 개선**: 
+    - AI 생성 버튼 텍스트 업데이트: "AI 생성 시작" → "AI 생성 시작"
+    - 퀵 액션 버튼 추가: "AI 이미지 생성", "AI 동영상 생성", "AI 시나리오 생성"
+    - 핵심 기능 및 사용법 섹션 업데이트: 새로운 AI 모델 기능 반영
+  - **위저드 페이지 단순화**:
+    - AI 모델 선택 섹션 제거: 사용자 워크플로우 단순화
+    - "생성" 버튼 텍스트 변경: "GPT-4로 생성" → "생성"
+    - "이미지 미리보기" 버튼 추가: 시나리오 입력 섹션에 전용 버튼 배치
+    - 최종 프롬프트 섹션 버튼 재배치: "Veo3 생성", "Seedance 영상 생성", "프롬프트 복사"
+    - 불필요한 상태 변수 제거: `selectedImageModel`, `selectedVideoModel`, `selectedScenarioModel`
+
+- **통합 테스트 및 검증**
+  - **테스트 스크립트 생성**: `test-all-apis.sh`로 모든 API 엔드포인트 통합 테스트
+    - 메인 페이지 접근성, 이미지 생성 API, 동영상 생성 API, CORS 정책, 위저드 페이지 테스트
+    - 색상별 결과 표시: 성공(초록), 실패(빨강), 진행(파랑), 정보(노랑)
+    - 테스트 결과 요약: 총 테스트 수, 성공/실패 개수, 전체 통과 여부
+  - **API 응답 구조 검증**: 각 API의 요청/응답 구조 및 오류 처리 확인
+
+- **환경변수 및 설정 관리**
+  - **이미지 생성 환경변수**: `GOOGLE_GEMINI_API_KEY`, `IMAGEN_PROVIDER`, `IMAGEN_LLM_MODEL`
+  - **동영상 생성 환경변수**: `VEO_PROVIDER`, `VEO_MODEL`, `SEEDANCE_API_KEY`, `SEEDANCE_MODEL`
+  - **API 베이스 URL**: `NEXT_PUBLIC_SITE_URL` 설정으로 크로스 오리진 요청 지원
+
+- **Git 워크플로우 및 배포**
+  - **커밋 및 푸시**: 모든 개선사항을 커밋하고 GitHub로 푸시
+  - **Railway 자동 배포**: 빌드 오류 해결 후 성공적인 배포 완료
+  - **변경사항 요약**: 4개 파일, 173줄 추가, 71줄 삭제
+
+## 2025-08-23
+
+- **시나리오 개발 시스템 구현**: 사용자 한 줄 입력 → LLM 개발 → 이미지/영상 생성 워크플로우
+  - **새로운 컴포넌트 생성**:
+    - `ScenarioDeveloper`: 시나리오 입력 및 LLM 개발 처리
+    - `ScenarioWorkflow`: 전체 워크플로우 관리 (개발 → 이미지 → 영상)
+    - `/api/scenario/develop`: LLM을 통한 시나리오 개발 및 프롬프트 변환 API
+  - **위저드 페이지 통합**: 
+    - 모드 선택 탭 추가 (고급 위저드 모드 ↔ 시나리오 개발 모드)
+    - 시나리오 개발 모드에서 단계별 진행 상황 표시
+    - 기존 기능과의 호환성 유지
+  - **AI 클라이언트 확장**:
+    - `AIServiceManager`에 `rewritePromptForImage`, `rewritePromptForSeedance` 메서드 추가
+    - Mock 모드 지원으로 개발/테스트 환경에서도 동작
+  - **아키텍처 개선**:
+    - 클라이언트/서버 코드 분리로 번들 크기 최적화
+    - API Route를 통한 안전한 외부 API 호출
+    - 에러 처리 및 사용자 피드백 강화
+  - **UI/UX 개선**:
+    - 단계별 진행 상황 시각화
+    - 에러 상태 및 성공 상태 명확한 표시
+    - 반응형 디자인으로 모바일/데스크톱 지원
+  - **문제 해결**:
+    - `net::ERR_EMPTY_RESPONSE` 오류 해결 (클라이언트에서 서버 모듈 import 방지)
+    - `Failed to fetch` 오류 해결 (API Route를 통한 안전한 호출)
+    - 모듈 의존성 문제 해결 (`dns`, `google-auth-library` 서버 전용으로 제한)
+  - **워크플로우**:
+    1. 시나리오 입력 (한 줄)
+    2. LLM 개발 (상세 프롬프트 생성)
+    3. 프롬프트 변환 (이미지용/영상용)
+    4. 이미지 미리보기 생성
+    5. 영상 생성 및 상태 추적
+
