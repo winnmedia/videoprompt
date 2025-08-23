@@ -383,6 +383,24 @@ export class AIServiceManager {
     if (this.geminiClient) services.push('gemini');
     return services;
   }
+
+  async rewritePromptForImage(prompt: string, style?: string): Promise<string> {
+    return await rewritePromptForImage(prompt);
+  }
+
+  async rewritePromptForSeedance(prompt: string, options?: string): Promise<string> {
+    return await rewritePromptForSeedance(prompt, { 
+      aspectRatio: '16:9', 
+      duration: 5, 
+      style: 'cinematic' 
+    });
+  }
+
+  getCurrentModel(): string {
+    if (this.openaiClient) return 'gpt-4';
+    if (this.geminiClient) return 'gemini-pro';
+    return 'mock';
+  }
 }
 
 // 기본 설정으로 AI 서비스 매니저 생성
@@ -423,8 +441,15 @@ export const createAIServiceManager = (): AIServiceManager => {
           data: { prompt: existingPrompt, enhancedPrompt: `${existingPrompt} + ${feedback}`, suggestions: [], metadata: { mock: true } },
         };
       }
+      async rewritePromptForImage(prompt: string, style?: string): Promise<string> {
+        return `Enhanced image prompt: ${prompt} --style ${style || 'cinematic'} --quality high`;
+      }
+      async rewritePromptForSeedance(prompt: string, options?: string): Promise<string> {
+        return `${prompt} --format video --duration 5 --aspect 16:9 --style cinematic`;
+      }
       isServiceAvailable() { return true; }
       getAvailableServices() { return ['openai'] as ('openai'|'gemini')[]; }
+      getCurrentModel() { return 'mock'; }
     }
     // @ts-expect-error: 런타임 호환 Mock 매니저 반환
     return new MockManager();
@@ -521,6 +546,97 @@ export async function rewritePromptForImage(imagePrompt: string): Promise<string
     }
   } catch (_) {}
   return fallback;
+}
+
+// --- Seedance video prompt rewriter (LLM-assisted video optimization) ---
+export async function rewritePromptForSeedance(videoPrompt: string, options?: {
+  aspectRatio?: string;
+  duration?: number;
+  style?: string;
+}): Promise<string> {
+  const src = (videoPrompt || '').trim();
+  if (!src) return '';
+  
+  const openaiKey = process.env.OPENAI_API_KEY || '';
+  const geminiKey = process.env.GOOGLE_GEMINI_API_KEY || '';
+  const fallback = src;
+  
+  const aspectRatio = options?.aspectRatio || '16:9';
+  const duration = options?.duration || 3;
+  const style = options?.style || 'cinematic';
+  
+  try {
+    if (openaiKey) {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${openaiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          temperature: 0.3,
+          messages: [
+            { 
+              role: 'system', 
+              content: `You are an expert video prompt architect for Seedance/ModelArk video generation. Optimize the user prompt for video creation with these requirements:
+- Aspect ratio: ${aspectRatio}
+- Duration: ${duration} seconds
+- Style: ${style}
+- Focus on: dynamic movement, camera motion, temporal flow, visual continuity
+- Include: scene transitions, motion cues, timing beats
+- Avoid: static composition terms, single-frame descriptions
+- Output: concise, vivid English video prompt
+- No commentary, just the optimized prompt` 
+            },
+            { role: 'user', content: src },
+          ],
+        }),
+      });
+      const data = await res.json();
+      const content = data.choices?.[0]?.message?.content;
+      return (content || fallback).trim();
+    }
+    if (geminiKey) {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({
+          contents: [{ 
+            parts: [{ 
+              text: `Optimize this prompt for ${duration}s video generation (${aspectRatio}, ${style} style). Focus on motion, camera movement, and temporal flow. English only.\n\n${src}` 
+            }]
+          }],
+          generationConfig: { temperature: 0.3 },
+        })
+      });
+      const data = await res.json();
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      return (content || fallback).trim();
+    }
+  } catch (_) {}
+  return fallback;
+}
+
+// --- Unified prompt transformation service ---
+export interface PromptTransformationOptions {
+  target: 'image' | 'video';
+  aspectRatio?: string;
+  duration?: number;
+  style?: string;
+  quality?: 'standard' | 'high' | 'ultra';
+}
+
+export async function transformPromptForTarget(
+  originalPrompt: string, 
+  options: PromptTransformationOptions
+): Promise<string> {
+  const { target, aspectRatio, duration, style, quality } = options;
+  
+  if (target === 'image') {
+    return await rewritePromptForImage(originalPrompt);
+  } else if (target === 'video') {
+    return await rewritePromptForSeedance(originalPrompt, { aspectRatio, duration, style });
+  }
+  
+  return originalPrompt;
 }
 
 // Extract rich scene components to fill JSON fields precisely

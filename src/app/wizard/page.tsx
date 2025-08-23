@@ -7,7 +7,7 @@ import { useSeedancePolling } from '@/features/seedance/status';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { ScenePrompt } from '@/types/api';
-import { createAIServiceManager, translateToEnglish, extractSceneComponents, rewritePromptForImage } from '@/lib/ai-client';
+import { createAIServiceManager, translateToEnglish, extractSceneComponents, rewritePromptForImage, rewritePromptForSeedance, transformPromptForTarget } from '@/lib/ai-client';
 import { buildVeo3PromptFromScene } from '@/lib/veo3';
 import { buildVeo3PromptFromWizard } from '@/lib/veo3';
 import { buildImagenPrompt } from '@/lib/imagenPrompt';
@@ -19,6 +19,7 @@ import { composeFourScenePack } from '@/lib/composer/scenePack';
 import { composeFinalTextMulti, composeFinalTextSingle } from '@/lib/composer/finalText';
 import { useRouter } from 'next/navigation';
 import { SeedanceProgressPanel } from '@/widgets/seedance/SeedanceProgressPanel';
+import { ScenarioWorkflow } from '@/components/ScenarioWorkflow';
 
 export default function SceneWizardPage() {
   const router = useRouter();
@@ -97,6 +98,9 @@ export default function SceneWizardPage() {
   const [randomness, setRandomness] = useState('medium');
   const [seedValue, setSeedValue] = useState('');
   const [helpExpanded, setHelpExpanded] = useState(false);
+  
+  // 시나리오 워크플로우 모드
+  const [workflowMode, setWorkflowMode] = useState<'wizard' | 'scenario'>('wizard');
 
   const themes = [
     '일반',
@@ -407,7 +411,21 @@ export default function SceneWizardPage() {
         const pack = composeFourScenePack();
         const jobs = await Promise.all(pack.map(async (scene) => {
           const prompt = buildVeo3PromptFromScene(scene);
-          const english = await translateToEnglish(prompt);
+          
+          // LLM을 통한 Seedance용 프롬프트 변환
+          let optimizedPrompt = prompt;
+          try {
+            optimizedPrompt = await transformPromptForTarget(prompt, {
+              target: 'video',
+              aspectRatio: scene.metadata?.aspect_ratio || selectedAspectRatio,
+              duration: selectedDuration,
+              style: selectedStyle
+            });
+          } catch (e) {
+            console.warn('LLM 비디오 프롬프트 변환 실패, 원본 사용:', e);
+          }
+          
+          const english = await translateToEnglish(optimizedPrompt);
           try { await navigator.clipboard.writeText(english); } catch {}
           const payload: any = { prompt: english, aspect_ratio: scene.metadata?.aspect_ratio || selectedAspectRatio, duration_seconds: selectedDuration, webhook_url: webhookBase ? `${webhookBase}/api/seedance/webhook` : undefined };
           return await createOne(payload);
@@ -457,11 +475,28 @@ export default function SceneWizardPage() {
               seed: seedValue ? Number(seedValue) : undefined,
             } as any ),
           });
-      const english = await translateToEnglish(finalText);
+      
+      // LLM을 통한 Seedance용 프롬프트 변환
+      let optimizedPrompt = finalText;
+      try {
+        optimizedPrompt = await transformPromptForTarget(finalText, {
+          target: 'video',
+          aspectRatio: selectedAspectRatio,
+          duration: selectedDuration,
+          style: selectedStyle
+        });
+      } catch (e) {
+        console.warn('LLM 비디오 프롬프트 변환 실패, 원본 사용:', e);
+      }
+      
+      const english = await translateToEnglish(optimizedPrompt);
       try { await navigator.clipboard.writeText(english); } catch {}
       const payload: any = { prompt: english, aspect_ratio: selectedAspectRatio, duration_seconds: selectedDuration, webhook_url: webhookBase ? `${webhookBase}/api/seedance/webhook` : undefined };
       const jobId = await createOne(payload);
       setSeedanceJobIds([jobId]);
+      
+      setStatusKind('success');
+      setStatusMsg('Seedance 영상 생성이 시작되었습니다.');
       // 훅 사용으로 상태 초기화는 훅 재호출로 대체
     } catch (e) {
       console.error('seedance create failed', e);
@@ -571,39 +606,46 @@ export default function SceneWizardPage() {
         setStatusMsg('최종 프롬프트 생성 후 미리보기를 사용할 수 있습니다.');
         return;
       }
-      // 이미지 전용 프롬프트(정적인 구도)로 변환
-      const imagePrompt = buildImagenPrompt({
-        title: generatedPrompt?.metadata?.prompt_name || undefined,
-        description: lastEnhancedPrompt || scenario,
-        theme: generatedPrompt?.metadata?.room_description || selectedTheme,
-        style: generatedPrompt?.metadata?.base_style || selectedStyle,
-        mood,
-        camera,
-        shotType,
-        cameraMovement,
-        lighting,
-        colorPalette,
-        weather,
-        visualTone,
-        genre,
-        characters,
-        actions,
-        aspectRatio: '16:9',
-        negativePrompts: negativePromptsText ? negativePromptsText.split(/\n|,/) : [],
-        keywords: (generatedPrompt?.keywords as any) || [],
-      });
-      let rewritten = imagePrompt;
-      try { rewritten = await rewritePromptForImage(imagePrompt); } catch {}
-      let english = rewritten;
-      try { english = await translateToEnglish(rewritten); } catch {}
+      
+      // LLM을 통한 이미지용 프롬프트 변환
+      let optimizedPrompt = veo3Preview;
+      try {
+        optimizedPrompt = await transformPromptForTarget(veo3Preview, {
+          target: 'image',
+          aspectRatio: '16:9',
+          style: selectedStyle,
+          quality: 'high'
+        });
+      } catch (e) {
+        console.warn('LLM 이미지 프롬프트 변환 실패, 원본 사용:', e);
+      }
+      
+      // 영어 변환
+      let english = optimizedPrompt;
+      try { 
+        english = await translateToEnglish(optimizedPrompt); 
+      } catch (e) {
+        console.warn('영어 변환 실패, 원본 사용:', e);
+      }
+      
+      // 이미지 생성 API 호출
       const apiBase = '';
-      const res = await fetch(`${apiBase}/api/imagen/preview`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: english, size: '1280x720', n: 1 }) });
+      const res = await fetch(`${apiBase}/api/imagen/preview`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ prompt: english, size: '1280x720', n: 1 }) 
+      });
       const json = await res.json();
       if (!json.ok) throw new Error(json.error || 'PREVIEW_FAILED');
       setImagePreviews(json.images || []);
+      
+      setStatusKind('success');
+      setStatusMsg('이미지 미리보기가 생성되었습니다.');
     } catch (e) {
       console.error('imagen preview failed', e);
       setError(e instanceof Error ? e.message : '이미지 프리뷰 생성 실패');
+      setStatusKind('error');
+      setStatusMsg('이미지 미리보기 생성 실패');
     } finally {
       setIsImageLoading(false);
     }
@@ -614,10 +656,21 @@ export default function SceneWizardPage() {
     try {
       setIsImageLoading(true);
       setError(null);
-      // Convert finalText (video-oriented) into image-oriented via LLM
-      let rewritten = finalText;
-      try { rewritten = await rewritePromptForImage(finalText); } catch {}
-      const english = await translateToEnglish(rewritten);
+      
+      // LLM을 통한 이미지용 프롬프트 변환
+      let optimizedPrompt = finalText;
+      try {
+        optimizedPrompt = await transformPromptForTarget(finalText, {
+          target: 'image',
+          aspectRatio: '16:9',
+          style: selectedStyle,
+          quality: 'high'
+        });
+      } catch (e) {
+        console.warn('LLM 이미지 프롬프트 변환 실패, 원본 사용:', e);
+      }
+      
+      const english = await translateToEnglish(optimizedPrompt);
       const apiBase = '';
       const res = await fetch(`${apiBase}/api/imagen/preview`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -626,6 +679,9 @@ export default function SceneWizardPage() {
       const json = await res.json();
       if (!json.ok) throw new Error(json.error || 'PREVIEW_FAILED');
       setImagePreviews(Array.isArray(json.images) ? json.images : []);
+      
+      setStatusKind('success');
+      setStatusMsg('자동 이미지 미리보기가 생성되었습니다.');
     } catch (e) {
       console.error('auto imagen preview failed', e);
       setStatusKind('error');
@@ -721,7 +777,42 @@ export default function SceneWizardPage() {
             </div>
           </div>
         )}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        {/* 모드 선택 탭 */}
+        <div className="mb-6">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                onClick={() => setWorkflowMode('wizard')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  workflowMode === 'wizard'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Icon name="gear" className="mr-2" />
+                고급 위저드 모드
+              </button>
+              <button
+                onClick={() => setWorkflowMode('scenario')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  workflowMode === 'scenario'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Icon name="lightning" className="mr-2" />
+                시나리오 개발 모드
+              </button>
+            </nav>
+          </div>
+        </div>
+
+        {/* 모드별 콘텐츠 */}
+        {workflowMode === 'scenario' ? (
+          <ScenarioWorkflow onVideoCreated={(jobId) => setSeedanceJobIds([jobId])} />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* 입력 섹션 */}
           <div className="space-y-6">
             <div className="bg-white rounded-lg shadow-sm border p-6">
@@ -1155,16 +1246,25 @@ export default function SceneWizardPage() {
 
               {generatedPrompt ? (
                 <div className="space-y-4">
-                  {imagePreviews.length > 0 && (
-                    <div>
-                      <div className="text-sm font-medium text-gray-700 mb-2">이미지 미리보기 (16:9)</div>
-                      <div className="grid grid-cols-1 gap-3">
-                        {imagePreviews.slice(0,1).map((src, idx)=>(
-                          <img key={idx} src={src} alt={`preview-${idx}`} className="w-full h-auto rounded border" />
-                        ))}
+                  <div>
+                    <div className="text-sm font-medium text-gray-700 mb-2">이미지 미리보기 (16:9)</div>
+                    <div className="grid grid-cols-1 gap-3">
+                      <div className="relative w-full max-w-xl aspect-video bg-gray-100 rounded border overflow-hidden">
+                        {imagePreviews.length > 0 && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={imagePreviews[0]} alt="preview-0" className="absolute inset-0 w-full h-full object-contain" />
+                        )}
+                        {isImageLoading && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-white/70">
+                            <div className="flex flex-col items-center gap-2">
+                              <Icon name="spinner" className="text-blue-600" />
+                              <span className="text-blue-700 text-sm">작가가 글을 쓰는 중...</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  )}
+                  </div>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div><span className="font-medium text-gray-700">테마:</span><span className="ml-2 text-gray-900">{generatedPrompt.metadata.room_description}</span></div>
                     <div><span className="font-medium text-gray-700">스타일:</span><span className="ml-2 text-gray-900">{generatedPrompt.metadata.base_style}</span></div>
@@ -1183,6 +1283,24 @@ export default function SceneWizardPage() {
                         <pre className="text-xs bg-gray-50 rounded p-3 overflow-auto max-h-64 whitespace-pre-wrap">{veo3Preview}</pre>
                       </div>
                     )}
+                    {/* 상태 메시지 표시 */}
+                    {(statusMsg || statusKind !== 'info') && (
+                      <div className={`mt-3 p-3 rounded-lg text-sm ${
+                        statusKind === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
+                        statusKind === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
+                        'bg-blue-50 text-blue-800 border border-blue-200'
+                      }`}>
+                        <div className="flex items-center gap-2">
+                          <Icon 
+                            name={statusKind === 'success' ? 'check' : statusKind === 'error' ? 'error' : 'info'} 
+                            size="sm" 
+                            className={statusKind === 'success' ? 'text-green-600' : statusKind === 'error' ? 'text-red-600' : 'text-blue-600'} 
+                          />
+                          {statusMsg}
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="flex gap-3 pt-2 flex-wrap">
                       <Button onClick={handleCopyVeo3} className="flex-1" data-testid="copy-veo3-btn">
                         <Icon name="copy" size="sm" className="mr-2" />
@@ -1313,6 +1431,7 @@ export default function SceneWizardPage() {
             </div>
           </div>
         </div>
+        )}
       </div>
 
       {/* 하단 고정 액션바 */}

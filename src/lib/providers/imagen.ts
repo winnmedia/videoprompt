@@ -42,6 +42,9 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
 
   // 0) Vertex AI(Imagen) — OAuth(Bearer)로 호출
   const tryVertex = async (): Promise<string[] | null> => {
+    // 서버 사이드에서만 실행
+    if (typeof window !== 'undefined') return null;
+    
     const projectId = process.env.VERTEX_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT || '';
     const location = process.env.VERTEX_LOCATION || 'us-central1';
     const model = process.env.VERTEX_IMAGEN_MODEL || 'imagegeneration@002';
@@ -223,6 +226,7 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
   // OpenAI Images API (gpt-image-1)
   const tryOpenAI = async (): Promise<string[] | null> => {
     const openaiKey = process.env.OPENAI_API_KEY || process.env.OPENAI_API_TOKEN;
+    console.log('DEBUG: OpenAI API Key present:', !!openaiKey, openaiKey ? `${openaiKey.substring(0, 10)}...` : 'none');
     if (!openaiKey) return null;
     try {
       const [wStr, hStr] = String(size).split('x');
@@ -231,12 +235,14 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
       const sz = `${width}x${height}`;
       const url = 'https://api.openai.com/v1/images/generations';
       const body = {
-        model: 'gpt-image-1',
-        prompt: String(prompt || '').slice(0, 1500),
-        size: sz,
-        n: Math.max(1, Math.min(4, n)),
+        model: 'dall-e-3',
+        prompt: String(prompt || '').slice(0, 1000),
+        size: sz === '768x768' ? '1024x1024' : sz, // DALL-E-3는 1024x1024, 1792x1024, 1024x1792만 지원
+        n: 1, // DALL-E-3는 한 번에 1장만 생성 가능
         response_format: 'b64_json',
+        quality: 'standard',
       } as any;
+      console.log('DEBUG: OpenAI request body:', JSON.stringify(body, null, 2));
       const controller = new AbortController();
       const t = setTimeout(() => controller.abort(), 8000);
       const res = await fetch(url, {
@@ -247,25 +253,43 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
         },
         body: JSON.stringify(body),
         signal: controller.signal as any,
-      }).catch(() => null);
+      }).catch((err) => {
+        console.log('DEBUG: OpenAI fetch error:', err);
+        return null;
+      });
       clearTimeout(t);
-      if (!res || !res.ok) return null;
+      console.log('DEBUG: OpenAI response status:', res?.status, res?.statusText);
+      if (!res || !res.ok) {
+        if (res) {
+          const errorText = await res.text().catch(() => 'unknown error');
+          console.log('DEBUG: OpenAI error response:', errorText);
+        }
+        return null;
+      }
       const json: any = await res.json().catch(() => ({}));
+      console.log('DEBUG: OpenAI response JSON keys:', Object.keys(json));
       const images: string[] = Array.isArray(json?.data) ? json.data
         .map((d: any) => d?.b64_json)
         .filter(Boolean)
         .slice(0, n)
         .map((b64: string) => `data:image/png;base64,${b64}`) : [];
+      console.log('DEBUG: OpenAI images count:', images.length);
       return images.length ? images : null;
-    } catch {
+    } catch (err) {
+      console.log('DEBUG: OpenAI try-catch error:', err);
       return null;
     }
   };
 
   // 우선순위: (환경 지정) OpenAI/LLM/Vertex → 기본은 Vertex → LLM → OpenAI
   if (preferOpenAI) {
+    console.log('DEBUG: Trying OpenAI API...');
     const o = await tryOpenAI();
-    if (o && o.length) return { images: o };
+    if (o && o.length) {
+      console.log('DEBUG: OpenAI API success, returning images');
+      return { images: o };
+    }
+    console.log('DEBUG: OpenAI API failed or returned no images');
   }
   if (!preferLLM && !preferOpenAI) {
     const v = await tryVertex();
@@ -283,9 +307,11 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
     const images = Array.from({ length: Math.max(1, Math.min(4, n)) }, () => buildPlaceholderSvg(prompt, size));
     return { images };
   }
-  // 강제 OpenAI 모드인데 이미지가 나오지 않으면 에러 발생
+  // 강제 OpenAI 모드인데 이미지가 나오지 않으면 에러 메시지와 함께 플레이스홀더 생성
   if (preferOpenAI) {
-    throw new Error('OpenAI image generation failed: no images returned. Check OPENAI_API_KEY validity and Images API access.');
+    try { console.error('OpenAI image generation failed: no images returned. Check OPENAI_API_KEY validity and Images API access.'); } catch {}
+    const images = Array.from({ length: Math.max(1, Math.min(4, n)) }, () => buildPlaceholderSvg(`OpenAI 실패: ${prompt}`, size));
+    return { images };
   }
   const m = await tryModelArk();
   if (m && m.length) return { images: m };

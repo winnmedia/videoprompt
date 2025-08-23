@@ -14,7 +14,7 @@ echo "   HTTP Status: $STATUS"
 echo
 
 # 2. Image Preview Test
-echo "2. Image Preview Test (Google LLM/Imagen)"
+echo "2. Image Preview Test (OpenAI LLM / DALL·E)"
 PREVIEW=$(curl -sS -X POST "$BASE/api/imagen/preview" \
   -H 'Content-Type: application/json' \
   --data-binary '{"prompt":"A cinematic sunset scene at the beach with golden hour lighting","size":"1280x720","n":1}')
@@ -47,6 +47,7 @@ if [ -n "${JOB:-}" ]; then
     else
       echo "   Non-JSON status response:" 
       echo "$STATUS" | sed -n '1,5p'
+    
       break
     fi
     sleep 3
