@@ -1,8 +1,19 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { generateVideo } from '@/lib/providers/video-generator';
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-import { NextRequest, NextResponse } from 'next/server';
-import { generateVideo } from '@/lib/providers/video-generator';
+// CORS 헤더 설정
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { headers: corsHeaders });
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,7 +22,7 @@ export async function POST(req: NextRequest) {
       prompt, 
       aspectRatio = '16:9', 
       duration = 8, 
-      provider = 'auto',
+      provider,
       veoModel = 'veo-3.0-generate-preview',
       personGeneration = 'dont_allow',
       seedanceModel
@@ -21,7 +32,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ 
         ok: false, 
         error: 'INVALID_PROMPT' 
-      }, { status: 400 });
+      }, { 
+        status: 400,
+        headers: corsHeaders
+      });
+    }
+
+    if (!provider || (provider !== 'veo' && provider !== 'seedance')) {
+      return NextResponse.json({ 
+        ok: false, 
+        error: 'INVALID_PROVIDER: Must specify either "veo" or "seedance"' 
+      }, { 
+        status: 400,
+        headers: corsHeaders
+      });
     }
 
     console.log('DEBUG: Unified video creation request:', { 
@@ -52,13 +76,16 @@ export async function POST(req: NextRequest) {
         status: result.status,
         progress: result.progress,
         estimatedTime: result.estimatedTime
-      });
+      }, { headers: corsHeaders });
     } else {
       return NextResponse.json({
         ok: false,
         provider: result.provider,
         error: result.error || 'VIDEO_GENERATION_FAILED'
-      }, { status: 502 });
+      }, { 
+        status: 502,
+        headers: corsHeaders
+      });
     }
 
   } catch (error) {
@@ -66,6 +93,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ 
       ok: false, 
       error: (error as Error).message 
-    }, { status: 500 });
+    }, { 
+      status: 500,
+      headers: corsHeaders
+    });
   }
 }
