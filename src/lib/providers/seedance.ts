@@ -1,12 +1,15 @@
 // DNS IPv4 우선(일부 런타임에서 IPv6 경로 문제 회피)
-try {
-  // Node 18+: setDefaultResultOrder
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const dns = require('dns');
-  if (typeof dns.setDefaultResultOrder === 'function') {
-    dns.setDefaultResultOrder('ipv4first');
-  }
-} catch {}
+// 서버 사이드에서만 실행
+if (typeof window === 'undefined') {
+  try {
+    // Node 18+: setDefaultResultOrder
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const dns = require('dns');
+    if (typeof dns.setDefaultResultOrder === 'function') {
+      dns.setDefaultResultOrder('ipv4first');
+    }
+  } catch {}
+}
 export type SeedanceQuality = 'standard' | 'pro';
 
 export interface SeedanceCreatePayload {

@@ -59,3 +59,56 @@
   - Supabase 코드/테스트 제거 완료
   - 린트 통과 확인(변경 파일 기준)
 
+## 2025-08-22
+
+- **사용자 여정 완벽 구현**: 시나리오 입력 → LLM 개발 → 최종 프롬프트 → 이미지/영상 생성
+  - **LLM 프롬프트 변환 강화**: `transformPromptForTarget()` 함수로 이미지/비디오용 최적화
+    - 이미지용: 정적 구도, 명확한 주체, 프레이밍, 조명, 색상 등에 최적화
+    - 비디오용: 동적 움직임, 카메라 모션, 시간적 흐름, 시각적 연속성에 최적화
+  - **위저드 페이지 통합**: 
+    - 이미지 미리보기: `handleImagenPreview()`에서 LLM 변환 후 Google Imagen API 호출
+    - Seedance 영상 생성: `handleSeedanceCreate()`에서 LLM 변환 후 Ark v3 API 호출
+    - 영화팩 모드: 4씬 각각에 대해 개별 LLM 변환 적용
+  - **상태 UI 개선**: 성공/에러/정보 메시지를 아이콘과 함께 표시
+  - **에러 처리 강화**: LLM 변환 실패 시 원본 프롬프트로 폴백, 상세한 사용자 피드백
+- **FSD/TDD 방식 적용**:
+  - 테스트 우선: `wizard-user-journey.test.ts`로 LLM 변환 기능 검증
+  - 최소 구현: `transformPromptForTarget()`, `rewritePromptForSeedance()` 함수 추가
+  - 리팩터링: 기존 코드와 통합하여 일관성 유지
+- **통합 검증**: `test-integration.sh`로 프로덕션 환경에서 이미지/영상 생성 확인
+  - 이미지 미리보기: ✅ 성공
+  - Seedance 영상 생성: ✅ 작업 ID 생성 성공
+
+## 2025-08-23
+
+- **시나리오 개발 시스템 구현**: 사용자 한 줄 입력 → LLM 개발 → 이미지/영상 생성 워크플로우
+  - **새로운 컴포넌트 생성**:
+    - `ScenarioDeveloper`: 시나리오 입력 및 LLM 개발 처리
+    - `ScenarioWorkflow`: 전체 워크플로우 관리 (개발 → 이미지 → 영상)
+    - `/api/scenario/develop`: LLM을 통한 시나리오 개발 및 프롬프트 변환 API
+  - **위저드 페이지 통합**: 
+    - 모드 선택 탭 추가 (고급 위저드 모드 ↔ 시나리오 개발 모드)
+    - 시나리오 개발 모드에서 단계별 진행 상황 표시
+    - 기존 기능과의 호환성 유지
+  - **AI 클라이언트 확장**:
+    - `AIServiceManager`에 `rewritePromptForImage`, `rewritePromptForSeedance` 메서드 추가
+    - Mock 모드 지원으로 개발/테스트 환경에서도 동작
+  - **아키텍처 개선**:
+    - 클라이언트/서버 코드 분리로 번들 크기 최적화
+    - API Route를 통한 안전한 외부 API 호출
+    - 에러 처리 및 사용자 피드백 강화
+  - **UI/UX 개선**:
+    - 단계별 진행 상황 시각화
+    - 에러 상태 및 성공 상태 명확한 표시
+    - 반응형 디자인으로 모바일/데스크톱 지원
+  - **문제 해결**:
+    - `net::ERR_EMPTY_RESPONSE` 오류 해결 (클라이언트에서 서버 모듈 import 방지)
+    - `Failed to fetch` 오류 해결 (API Route를 통한 안전한 호출)
+    - 모듈 의존성 문제 해결 (`dns`, `google-auth-library` 서버 전용으로 제한)
+  - **워크플로우**:
+    1. 시나리오 입력 (한 줄)
+    2. LLM 개발 (상세 프롬프트 생성)
+    3. 프롬프트 변환 (이미지용/영상용)
+    4. 이미지 미리보기 생성
+    5. 영상 생성 및 상태 추적
+
