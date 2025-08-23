@@ -6,10 +6,10 @@ import { checkVideoStatus } from '@/lib/providers/video-generator';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const operationId = params.id;
+    const { id: operationId } = await params;
     const provider = req.nextUrl.searchParams.get('provider') as any;
     
     if (!operationId) {
