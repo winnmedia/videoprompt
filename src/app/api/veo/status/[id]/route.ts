@@ -6,10 +6,10 @@ import { checkVeoVideoStatus } from '@/lib/providers/veo';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const operationId = params.id;
+    const { id: operationId } = await params;
     
     if (!operationId) {
       return NextResponse.json({ 
