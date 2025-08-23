@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateImage } from '@/lib/providers/imagen';
+import { generateImagenPreview } from '@/lib/providers/imagen';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -37,14 +37,20 @@ export async function POST(req: NextRequest) {
       provider 
     });
 
-    const result = await generateImage({
+    // provider에 따라 환경변수 설정
+    if (provider === 'dalle') {
+      process.env.IMAGEN_PROVIDER = 'openai';
+    } else if (provider === 'imagen') {
+      process.env.IMAGEN_PROVIDER = 'google';
+    }
+
+    const result = await generateImagenPreview({
       prompt,
       size,
-      n,
-      provider
+      n
     });
 
-    if (result.ok) {
+    if (result.images && result.images.length > 0) {
       return NextResponse.json({
         ok: true,
         images: result.images
@@ -52,7 +58,7 @@ export async function POST(req: NextRequest) {
     } else {
       return NextResponse.json({
         ok: false,
-        error: result.error || 'IMAGE_GENERATION_FAILED'
+        error: 'IMAGE_GENERATION_FAILED'
       }, { 
         status: 502,
         headers: corsHeaders
