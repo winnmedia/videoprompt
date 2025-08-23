@@ -218,3 +218,52 @@
     4. 이미지 미리보기 생성
     5. 영상 생성 및 상태 추적
 
+## 2025-01-23
+
+- **이미지 미리보기, VEO3 모델, Seedance 영상 생성 문제 해결**
+  - **문제 진단**: 세 가지 주요 기능이 작동하지 않는 상황 파악
+    1. 이미지 미리보기 생성 안됨
+    2. VEO3 모델 작동 안됨
+    3. Seedance 영상 생성 안됨 (JSON 파싱 에러: "Internal S...")
+  
+  - **이미지 미리보기 문제 해결**:
+    - `src/lib/providers/imagen.ts`의 에러 처리 및 로깅 개선
+    - Vertex AI API 호출 과정의 상세한 디버깅 로그 추가
+    - 환경변수 설정 가이드 개선 (`GOOGLE_APPLICATION_CREDENTIALS_JSON` 등)
+  
+  - **VEO3 모델 문제 해결**:
+    - `src/lib/providers/veo.ts`의 환경변수 처리 개선
+    - `GOOGLE_AI_STUDIO_API_KEY` 환경변수 추가 및 검증
+    - Google AI Studio VEO API 연동 강화
+    - 타입 에러 수정 (`VeoVideoResponse`에 `raw` 속성 추가)
+  
+  - **Seedance 영상 생성 문제 해결**:
+    - `src/lib/providers/seedance.ts`의 JSON 파싱 에러 방지
+    - 응답 텍스트를 먼저 가져와서 JSON 파싱 전 유효성 검사
+    - 상세한 에러 로깅 및 사용자 친화적 에러 메시지
+    - 타임아웃을 30초로 증가하여 안정성 향상
+  
+  - **환경변수 설정 가이드 개선**:
+    - `env.example`에 필요한 모든 API 키 및 설정 추가
+    - Google Cloud Platform, Google AI Studio, ModelArk 설정 가이드
+    - 각 서비스별 필수 환경변수 명시
+  
+  - **트러블슈팅 가이드 생성**:
+    - `TROUBLESHOOTING.md` 파일 생성으로 문제 해결 과정 문서화
+    - 각 문제별 상세한 해결 방법 및 체크리스트 제공
+    - API 테스트 방법 및 디버깅 가이드 포함
+  
+  - **코드 품질 개선**:
+    - DEVELOPMENT_RULES.md의 코딩 표준 준수
+    - 에러 처리, 로깅, 타입 안전성 강화
+    - API 응답 처리의 안정성 향상
+  
+  - **결과**: 세 가지 주요 기능의 안정성 및 디버깅 용이성 대폭 개선
+
+  - **공식 문서 기반 해결 방안 적용**:
+    - **Google AI Studio VEO3**: 공식 API 스펙에 맞춘 `videoGenerationConfig` 구조 적용
+    - **Vertex AI Imagen**: 공식 파라미터(`guidanceScale`, `seed`, `safetyFilterLevel`) 추가
+    - **ModelArk Ark v3**: 공식 v3 API 스펙에 맞춘 요청 본문 구조 개선
+    - **트러블슈팅 가이드**: 각 서비스의 공식 문서 기반 설정 방법 및 API 스펙 문서화
+    - **지원 채널**: Google Cloud, Google AI Studio, ModelArk의 공식 지원 링크 추가
+

@@ -97,55 +97,108 @@ export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promi
       content: [
         { type: 'text', text: payload.prompt },
       ],
+      // Ark v3 공식 스펙에 맞춘 파라미터
+      parameters: {
+        // 기본 파라미터
+        aspect_ratio: payload.aspect_ratio || '16:9',
+        duration: payload.duration_seconds || 8,
+        // 추가 파라미터 (모델에서 지원하는 경우)
+        seed: payload.seed || Math.floor(Math.random() * 1000000),
+        quality: payload.quality || 'standard'
+      }
     };
+
+    // 이미지 URL이 있는 경우 추가
     if (payload.image_url) {
-      body.content.push({ type: 'image_url', image_url: { url: payload.image_url } });
+      body.content.push({ 
+        type: 'image_url', 
+        image_url: { url: payload.image_url } 
+      });
     }
-    // Ark v3 parameters: duration(Seconds)→duration, aspect_ratio
-    const parameters: Record<string, any> = {};
-    if (typeof payload.duration_seconds === 'number') parameters.duration = payload.duration_seconds;
-    if (typeof payload.aspect_ratio === 'string' && payload.aspect_ratio.trim()) parameters.aspect_ratio = payload.aspect_ratio.trim();
-    if (typeof payload.seed === 'number') parameters.seed = payload.seed;
-    if (Object.keys(parameters).length > 0) body.parameters = parameters;
-    if (payload.webhook_url) body.webhook_url = payload.webhook_url;
 
-    console.log('DEBUG: Seedance 요청 바디:', JSON.stringify(body, null, 2));
+    console.log('DEBUG: Seedance 요청 본문:', JSON.stringify(body, null, 2));
 
-    // 15s 타임아웃 및 상세 에러 메시지 수집
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15_000);
-    
-    console.log('DEBUG: Seedance API 호출 시작:', url);
-    
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // 일부 API는 둘 중 하나만 요구하므로 병행 전송
-        'Authorization': `Bearer ${apiKey}`,
-        'X-Api-Key': apiKey,
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify(body),
-      signal: controller.signal as any,
-    }).catch((e: any) => {
-      throw new Error(`network error: ${e?.message || 'fetch failed'}`);
-    });
-    clearTimeout(timeout);
+    const timeout = setTimeout(() => controller.abort(), 30000); // 30초 타임아웃
 
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      return { ok: false, error: `Seedance API error: ${res.status} (model=${modelId})`, raw: json };
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'User-Agent': 'VideoPlanet/1.0',
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal as any,
+      });
+
+      clearTimeout(timeout);
+
+      console.log('DEBUG: Seedance 응답 상태:', { status: response.status, statusText: response.statusText });
+
+      // 응답 텍스트를 먼저 가져와서 JSON 파싱 에러 방지
+      const responseText = await response.text();
+      console.log('DEBUG: Seedance 응답 텍스트 (처음 500자):', responseText.slice(0, 500));
+
+      if (!response.ok) {
+        console.error('DEBUG: Seedance HTTP 에러:', { status: response.status, statusText: response.statusText });
+        return {
+          ok: false,
+          error: `HTTP ${response.status}: ${response.statusText}`,
+          raw: { responseText: responseText.slice(0, 1000) }
+        };
+      }
+
+      // JSON 파싱 시도
+      let jsonResponse: any;
+      try {
+        jsonResponse = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('DEBUG: Seedance JSON 파싱 에러:', parseError);
+        return {
+          ok: false,
+          error: `Invalid JSON response: ${parseError instanceof Error ? parseError.message : 'Unknown parse error'}`,
+          raw: { responseText: responseText.slice(0, 1000) }
+        };
+      }
+
+      console.log('DEBUG: Seedance 파싱된 응답:', JSON.stringify(jsonResponse, null, 2));
+
+      const jobId = extractJobId(jsonResponse);
+      if (!jobId) {
+        console.error('DEBUG: Seedance jobId 추출 실패:', jsonResponse);
+        return {
+          ok: false,
+          error: 'No job ID found in response',
+          raw: jsonResponse
+        };
+      }
+
+      return {
+        ok: true,
+        jobId,
+        status: 'queued',
+        dashboardUrl: jsonResponse.dashboardUrl || jsonResponse.dashboard_url,
+        raw: jsonResponse
+      };
+
+    } catch (fetchError) {
+      clearTimeout(timeout);
+      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+        console.error('DEBUG: Seedance 요청 타임아웃');
+        return { ok: false, error: 'Request timeout after 30 seconds' };
+      }
+      throw fetchError;
     }
 
-    // ark v3: id/ task_id
-    const jobId = json?.data?.task_id || json?.id || extractJobId(json);
-    const status = json?.data?.status || json?.status || 'queued';
-    const dashboardUrl = json?.data?.dashboard_url || json?.dashboard_url;
-    return { ok: true, jobId, status, dashboardUrl, raw: json };
-  } catch (error: any) {
-    const msg = error?.message || 'Seedance request failed';
-    return { ok: false, error: `${msg} @create ${url}` };
+  } catch (error) {
+    console.error('DEBUG: Seedance 예상치 못한 에러:', error);
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      raw: { error: String(error) }
+    };
   }
 }
 
