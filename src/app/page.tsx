@@ -50,6 +50,41 @@ export default function HomePage() {
         <section className="py-16 bg-gray-50">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             
+            {/* 빠른 액션 버튼들 */}
+            <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="h-16 flex flex-col items-center justify-center space-y-2"
+                onClick={() => window.location.href = '/wizard?mode=image'}
+              >
+                <Icon name="image" size="lg" className="text-blue-600" />
+                <span className="font-medium">AI 이미지 생성</span>
+                <span className="text-xs text-gray-500">Google Imagen / DALL-E</span>
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="h-16 flex flex-col items-center justify-center space-y-2"
+                onClick={() => window.location.href = '/wizard?mode=video'}
+              >
+                <Icon name="video" size="lg" className="text-green-600" />
+                <span className="font-medium">AI 동영상 생성</span>
+                <span className="text-xs text-gray-500">Google Veo / Seedance</span>
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="h-16 flex flex-col items-center justify-center space-y-2"
+                onClick={() => window.location.href = '/wizard?mode=scenario'}
+              >
+                <Icon name="wizard" size="lg" className="text-purple-600" />
+                <span className="font-medium">AI 시나리오 생성</span>
+                <span className="text-xs text-gray-500">GPT-4 / Gemini</span>
+              </Button>
+            </div>
 
             <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
               {/* 채팅 헤더 */}
@@ -127,7 +162,7 @@ export default function HomePage() {
                     </div>
                     <Button size="lg" className="rounded-full px-6" type="submit" data-testid="landing-generate-btn">
                       <Icon name="wizard" size="sm" className="mr-2" />
-                      생성
+                      AI 생성 시작
                     </Button>
                   </div>
                 </form>
@@ -156,31 +191,31 @@ export default function HomePage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="text-center">
                 <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Icon name="image" size="xl" className="text-primary-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">AI 이미지 생성</h3>
+                <p className="text-gray-600">
+                  Google Imagen 4.0과 OpenAI DALL-E 3를 활용하여 고품질 이미지를 생성합니다
+                </p>
+              </div>
+
+              <div className="text-center">
+                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Icon name="video" size="xl" className="text-primary-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">AI 동영상 생성</h3>
+                <p className="text-gray-600">
+                  Google Veo 3와 Seedance ModelArk를 통해 창의적인 동영상을 제작합니다
+                </p>
+              </div>
+
+              <div className="text-center">
+                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Icon name="wizard" size="xl" className="text-primary-600" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">AI 장면 생성</h3>
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">AI 시나리오 생성</h3>
                 <p className="text-gray-600">
-                  자연어로 설명하면 AI가 전문적인 영상 시나리오를 자동으로 생성합니다
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Icon name="presets" size="xl" className="text-primary-600" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">프리셋 라이브러리</h3>
-                <p className="text-gray-600">
-                  다양한 테마와 스타일의 프리셋을 활용하여 빠르게 프로젝트를 시작하세요
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Icon name="gear" size="xl" className="text-primary-600" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">Seedance 통합</h3>
-                <p className="text-gray-600">
-                  생성한 프롬프트로 바로 영상 생성 진행 및 상태/결과를 확인합니다
+                  GPT-4와 Gemini AI가 협력하여 전문적인 영상 시나리오를 자동 생성합니다
                 </p>
               </div>
             </div>
@@ -204,9 +239,9 @@ export default function HomePage() {
                 <div className="w-12 h-12 bg-primary-600 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">
                   1
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">시나리오 입력</h3>
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">AI 모델 선택</h3>
                 <p className="text-gray-600">
-                  원하는 장면을 자연어로 설명하세요. AI가 이해하고 최적화합니다
+                  이미지, 동영상, 시나리오 중 원하는 AI 생성 모드를 선택하세요
                 </p>
               </div>
 
@@ -214,9 +249,9 @@ export default function HomePage() {
                 <div className="w-12 h-12 bg-primary-600 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">
                   2
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">AI 생성</h3>
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">프롬프트 입력</h3>
                 <p className="text-gray-600">
-                  OpenAI와 Gemini AI가 협력하여 창의적이고 상세한 장면을 생성합니다
+                  원하는 결과물을 자연어로 설명하세요. AI가 최적의 설정을 자동으로 구성합니다
                 </p>
               </div>
 
@@ -224,9 +259,9 @@ export default function HomePage() {
                 <div className="w-12 h-12 bg-primary-600 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">
                   3
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">편집 및 완성</h3>
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">AI 생성 및 완성</h3>
                 <p className="text-gray-600">
-                  타임라인 에디터로 세밀하게 조정하고 최종 영상을 완성하세요
+                  선택한 AI 모델이 창의적인 콘텐츠를 생성하고, 필요시 세밀하게 조정할 수 있습니다
                 </p>
               </div>
             </div>

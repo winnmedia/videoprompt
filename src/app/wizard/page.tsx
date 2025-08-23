@@ -101,6 +101,11 @@ export default function SceneWizardPage() {
   
   // 시나리오 워크플로우 모드
   const [workflowMode, setWorkflowMode] = useState<'wizard' | 'scenario'>('wizard');
+  
+  // AI 모델 선택 상태
+  const [selectedImageModel, setSelectedImageModel] = useState<'imagen' | 'dalle'>('imagen');
+  const [selectedVideoModel, setSelectedVideoModel] = useState<'veo' | 'seedance'>('veo');
+  const [selectedScenarioModel, setSelectedScenarioModel] = useState<'gpt4' | 'gemini'>('gpt4');
 
   const themes = [
     '일반',
@@ -493,18 +498,81 @@ export default function SceneWizardPage() {
       try { await navigator.clipboard.writeText(english); } catch {}
       const payload: any = { prompt: english, aspect_ratio: selectedAspectRatio, duration_seconds: selectedDuration, webhook_url: webhookBase ? `${webhookBase}/api/seedance/webhook` : undefined };
       const jobId = await createOne(payload);
-      setSeedanceJobIds([jobId]);
-      
-      setStatusKind('success');
-      setStatusMsg('Seedance 영상 생성이 시작되었습니다.');
-      // 훅 사용으로 상태 초기화는 훅 재호출로 대체
+      if (jobId) {
+        setSeedanceJobIds([jobId]);
+        setStatusKind('success');
+        setStatusMsg('Seedance 영상 생성이 시작되었습니다.');
+      }
     } catch (e) {
-      console.error('seedance create failed', e);
-      // 훅 외부 에러(생성 실패)는 로컬 알림으로만 처리 가능
+      console.error('Seedance create failed', e);
+      setError(e instanceof Error ? e.message : 'Seedance 영상 생성 실패');
+      setStatusKind('error');
+      setStatusMsg('Seedance 영상 생성 실패');
     }
   };
 
-  // Seedance 폴링은 features 훅(useSeedancePolling)으로 대체됨
+  // Google Veo 동영상 생성
+  const handleVeoCreate = async () => {
+    try {
+      if (!veo3Preview || !veo3Preview.trim()) {
+        setStatusKind('error');
+        setStatusMsg('최종 프롬프트 생성 후 동영상을 생성할 수 있습니다.');
+        return;
+      }
+
+      setStatusKind('info');
+      setStatusMsg('Google Veo로 동영상을 생성하고 있습니다...');
+
+      // LLM을 통한 Veo용 프롬프트 변환
+      let optimizedPrompt = veo3Preview;
+      try {
+        optimizedPrompt = await transformPromptForTarget(veo3Preview, {
+          target: 'video',
+          aspectRatio: selectedAspectRatio,
+          duration: selectedDuration,
+          style: selectedStyle
+        });
+      } catch (e) {
+        console.warn('LLM Veo 프롬프트 변환 실패, 원본 사용:', e);
+      }
+
+      const english = await translateToEnglish(optimizedPrompt);
+      try { await navigator.clipboard.writeText(english); } catch {}
+
+      // Veo API 호출
+      const apiBase = '';
+      const res = await fetch(`${apiBase}/api/veo/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: english,
+          aspectRatio: selectedAspectRatio,
+          duration: selectedDuration,
+          model: 'veo-3.0-generate-preview'
+        })
+      });
+
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || 'VEO_CREATION_FAILED');
+
+      setStatusKind('success');
+      setStatusMsg('Google Veo 동영상 생성이 시작되었습니다!');
+      
+      // Veo는 즉시 동영상을 반환하거나 operation ID를 반환
+      if (json.videoUrl) {
+        setVeo3Preview(json.videoUrl);
+      } else if (json.operationId) {
+        // 상태 확인을 위한 폴링 시작
+        console.log('Veo operation started:', json.operationId);
+      }
+
+    } catch (e) {
+      console.error('Veo create failed', e);
+      setError(e instanceof Error ? e.message : 'Google Veo 동영상 생성 실패');
+      setStatusKind('error');
+      setStatusMsg('Google Veo 동영상 생성 실패');
+    }
+  };
 
   const handleSave = async () => {
     if (!generatedPrompt) return;
@@ -633,7 +701,12 @@ export default function SceneWizardPage() {
       const res = await fetch(`${apiBase}/api/imagen/preview`, { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ prompt: english, size: '1280x720', n: 1 }) 
+        body: JSON.stringify({ 
+          prompt: english, 
+          size: '1280x720', 
+          n: 1,
+          provider: selectedImageModel // 선택된 모델 전달
+        }) 
       });
       const json = await res.json();
       if (!json.ok) throw new Error(json.error || 'PREVIEW_FAILED');
@@ -674,7 +747,12 @@ export default function SceneWizardPage() {
       const apiBase = '';
       const res = await fetch(`${apiBase}/api/imagen/preview`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: english, size: '1280x720', n: 1 }),
+        body: JSON.stringify({ 
+          prompt: english, 
+          size: '1280x720', 
+          n: 1,
+          provider: selectedImageModel // 선택된 모델 전달
+        }),
       });
       const json = await res.json();
       if (!json.ok) throw new Error(json.error || 'PREVIEW_FAILED');
@@ -813,6 +891,103 @@ export default function SceneWizardPage() {
           <ScenarioWorkflow onVideoCreated={(jobId) => setSeedanceJobIds([jobId])} />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          
+          {/* AI 모델 선택 섹션 */}
+          <div className="lg:col-span-2 mb-6">
+            <div className="bg-white rounded-lg shadow-sm border p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">🤖 AI 모델 선택</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* 이미지 생성 모델 선택 */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium text-gray-700">이미지 생성</h3>
+                  <div className="flex space-x-2">
+                    <Button
+                      variant={selectedImageModel === 'imagen' ? 'primary' : 'outline'}
+                      size="sm"
+                      onClick={() => setSelectedImageModel('imagen')}
+                      className="flex-1"
+                    >
+                      <Icon name="image" size="sm" className="mr-2" />
+                      Google Imagen
+                    </Button>
+                    <Button
+                      variant={selectedImageModel === 'dalle' ? 'primary' : 'outline'}
+                      size="sm"
+                      onClick={() => setSelectedImageModel('dalle')}
+                      className="flex-1"
+                    >
+                      <Icon name="image" size="sm" className="mr-2" />
+                      OpenAI DALL-E
+                    </Button>
+                  </div>
+                </div>
+
+                {/* 동영상 생성 모델 선택 */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium text-gray-700">동영상 생성</h3>
+                  <div className="flex space-x-2">
+                    <Button
+                      variant={selectedVideoModel === 'veo' ? 'primary' : 'outline'}
+                      size="sm"
+                      onClick={() => setSelectedVideoModel('veo')}
+                      className="flex-1"
+                    >
+                      <Icon name="video" size="sm" className="mr-2" />
+                      Google Veo 3
+                    </Button>
+                    <Button
+                      variant={selectedVideoModel === 'seedance' ? 'primary' : 'outline'}
+                      size="sm"
+                      onClick={() => setSelectedVideoModel('seedance')}
+                      className="flex-1"
+                    >
+                      <Icon name="video" size="sm" className="mr-2" />
+                      Seedance
+                    </Button>
+                  </div>
+                </div>
+
+                {/* 시나리오 생성 모델 선택 */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium text-gray-700">시나리오 생성</h3>
+                  <div className="flex space-x-2">
+                    <Button
+                      variant={selectedScenarioModel === 'gpt4' ? 'primary' : 'outline'}
+                      size="sm"
+                      onClick={() => setSelectedScenarioModel('gpt4')}
+                      className="flex-1"
+                    >
+                      <Icon name="wizard" size="sm" className="mr-2" />
+                      GPT-4
+                    </Button>
+                    <Button
+                      variant={selectedScenarioModel === 'gemini' ? 'primary' : 'outline'}
+                      size="sm"
+                      onClick={() => setSelectedScenarioModel('gemini')}
+                      className="flex-1"
+                    >
+                      <Icon name="wizard" size="sm" className="mr-2" />
+                      Gemini
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 모델별 특징 설명 */}
+              <div className="mt-4 p-3 bg-gray-50 rounded-md">
+                <div className="text-xs text-gray-600 space-y-1">
+                  <div><strong>Google Imagen:</strong> 고품질 이미지, 빠른 생성</div>
+                  <div><strong>OpenAI DALL-E:</strong> 창의적 이미지, 다양한 스타일</div>
+                  <div><strong>Google Veo 3:</strong> 고품질 동영상, 8초 고정</div>
+                  <div><strong>Seedance:</strong> 긴 동영상, 안정적 API</div>
+                  <div><strong>GPT-4:</strong> 정확한 시나리오, 상세한 설명</div>
+                  <div><strong>Gemini:</strong> 빠른 생성, 한국어 지원</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* 입력 섹션 */}
           <div className="space-y-6">
             <div className="bg-white rounded-lg shadow-sm border p-6">
@@ -861,8 +1036,8 @@ export default function SceneWizardPage() {
                   <Button variant="ghost" size="sm" onClick={handlePresetGarage} title="Garage Minimal (8s, 21:9)">Garage</Button>
                   <Button variant="ghost" size="sm" onClick={handlePresetTunnel} title="Tunnel POV (8s, 21:9)">Tunnel</Button>
                   <div className="ml-auto flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={handleImagenPreview} disabled={isImageLoading || !generatedPrompt} title="최종 프롬프트 기반 16:9 이미지 미리보기 1장 생성">
-                      {isImageLoading ? (<><Icon name="loading" size="sm" className="mr-1"/> 생성 중…</>) : '이미지 미리보기'}
+                    <Button variant="outline" size="sm" onClick={handleImagenPreview} disabled={isImageLoading || !generatedPrompt} title={`최종 프롬프트 기반 16:9 이미지 미리보기 1장 생성 (${selectedImageModel === 'imagen' ? 'Google Imagen' : 'OpenAI DALL-E'})`}>
+                      {isImageLoading ? (<><Icon name="loading" size="sm" className="mr-1"/> 생성 중…</>) : `이미지 미리보기 (${selectedImageModel === 'imagen' ? 'Imagen' : 'DALL-E'})`}
                     </Button>
                   </div>
                 </div>
@@ -885,7 +1060,10 @@ export default function SceneWizardPage() {
                         <Icon name="loading" size="sm" className="mr-2 animate-spin" /> 생성 중…
                       </>
                     ) : (
-                      <>생성</>
+                      <>
+                        <Icon name="wizard" size="sm" className="mr-2" />
+                        {selectedScenarioModel === 'gpt4' ? 'GPT-4' : 'Gemini'}로 생성
+                      </>
                     )}
                   </Button>
                 </div>
@@ -1306,12 +1484,22 @@ export default function SceneWizardPage() {
                         <Icon name="copy" size="sm" className="mr-2" />
                         프롬프트 복사
                       </Button>
-                      <Button variant="outline" onClick={handleSeedanceCreate} className="flex-1" title="Seedance로 영상 생성">
-                        <Icon name="play" size="sm" className="mr-2" />
-                        SEEDANCE로 생성
-                      </Button>
-                      <Button variant="outline" onClick={handleImagenPreview} className="flex-1" disabled={isImageLoading || !generatedPrompt} title="최종 프롬프트 기반 16:9 이미지 미리보기 1장 생성">
-                        {isImageLoading ? (<><Icon name="loading" size="sm" className="mr-2" /> 미리보기 생성 중…</>) : '이미지 미리보기'}
+                      
+                      {/* 선택된 동영상 모델에 따른 생성 버튼 */}
+                      {selectedVideoModel === 'veo' ? (
+                        <Button variant="outline" onClick={() => handleVeoCreate()} className="flex-1" title="Google Veo 3로 동영상 생성">
+                          <Icon name="play" size="sm" className="mr-2" />
+                          GOOGLE VEO로 생성
+                        </Button>
+                      ) : (
+                        <Button variant="outline" onClick={handleSeedanceCreate} className="flex-1" title="Seedance로 영상 생성">
+                          <Icon name="play" size="sm" className="mr-2" />
+                          SEEDANCE로 생성
+                        </Button>
+                      )}
+                      
+                      <Button variant="outline" onClick={handleImagenPreview} className="flex-1" disabled={isImageLoading || !generatedPrompt} title={`최종 프롬프트 기반 16:9 이미지 미리보기 1장 생성 (${selectedImageModel === 'imagen' ? 'Google Imagen' : 'OpenAI DALL-E'})`}>
+                        {isImageLoading ? (<><Icon name="loading" size="sm" className="mr-2" /> 미리보기 생성 중…</>) : `이미지 미리보기 (${selectedImageModel === 'imagen' ? 'Imagen' : 'DALL-E'})`}
                       </Button>
                     </div>
 
