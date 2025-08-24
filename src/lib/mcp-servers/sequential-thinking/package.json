@@ -1,0 +1,10 @@
+{
+  "name": "@modelcontextprotocol/server-sequential-thinking",
+  "version": "0.6.2",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "mcp-server-sequential-thinking": "index.js"
+  }
+}
+

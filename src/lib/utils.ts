@@ -38,3 +38,46 @@ export function safeJsonParse<T = any>(text: string): T | null {
     return null;
   }
 }
+
+/**
+ * Header overflow 에러 방지를 위한 응답 크기 검증
+ * @param data 검증할 데이터
+ * @param maxSize 최대 허용 크기 (기본값: 5000)
+ * @returns 안전한 데이터 또는 에러 응답
+ */
+export function validateResponseSize(data: any, maxSize: number = 5000): { safe: boolean; data?: any; error?: string } {
+  try {
+    const jsonString = JSON.stringify(data);
+    if (jsonString.length > maxSize) {
+      console.warn(`Response size ${jsonString.length} exceeds limit ${maxSize}`);
+      return {
+        safe: false,
+        error: `Response too large (${jsonString.length} > ${maxSize}) - potential header overflow prevented`
+      };
+    }
+    return { safe: true, data };
+  } catch (error) {
+    return {
+      safe: false,
+      error: `Failed to validate response size: ${error instanceof Error ? error.message : 'Unknown error'}`
+    };
+  }
+}
+
+/**
+ * 안전한 응답 생성 - Header overflow 방지
+ * @param data 원본 데이터
+ * @param maxSize 최대 허용 크기
+ * @returns 안전한 응답 데이터
+ */
+export function createSafeResponse(data: any, maxSize: number = 5000): any {
+  const validation = validateResponseSize(data, maxSize);
+  if (!validation.safe) {
+    return {
+      ok: false,
+      error: validation.error,
+      timestamp: new Date().toISOString()
+    };
+  }
+  return validation.data;
+}

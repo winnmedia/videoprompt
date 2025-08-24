@@ -14,4 +14,10 @@ export default defineConfig({
     reuseExistingServer: true,
     timeout: 120_000,
   },
+  // 개발 서버와의 충돌 방지
+  workers: 1,
+  retries: 0,
+  // 테스트 실행 시에만 활성화
+  globalSetup: undefined,
+  globalTeardown: undefined,
 });

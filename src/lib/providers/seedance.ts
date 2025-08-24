@@ -139,6 +139,21 @@ export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promi
 
       // 응답 텍스트를 먼저 가져와서 JSON 파싱 에러 방지
       const responseText = await response.text();
+      
+      // Header overflow 방지: 응답 텍스트 길이 제한 및 검증
+      if (responseText.length > 10000) {
+        console.warn('DEBUG: Seedance 응답이 너무 큽니다. 처음 1000자만 처리:', responseText.length);
+        const truncatedText = responseText.slice(0, 1000);
+        console.log('DEBUG: Seedance 응답 텍스트 (처음 1000자):', truncatedText);
+        
+        // 응답이 너무 큰 경우 안전한 에러 응답 반환
+        return {
+          ok: false,
+          error: 'Response too large - potential header overflow prevented',
+          raw: { responseSize: responseText.length, truncatedText }
+        };
+      }
+      
       console.log('DEBUG: Seedance 응답 텍스트 (처음 500자):', responseText.slice(0, 500));
 
       if (!response.ok) {
@@ -254,7 +269,41 @@ export async function getSeedanceStatus(jobId: string): Promise<SeedanceStatusRe
       throw new Error(`network error: ${e?.message || 'fetch failed'}`);
     });
     clearTimeout(timeout);
-    const json = await res.json().catch(() => ({}));
+    
+    // Header overflow 방지: 응답을 텍스트로 먼저 가져와서 검증
+    let responseText: string;
+    try {
+      responseText = await res.text();
+    } catch (textError) {
+      console.error('DEBUG: Seedance status 응답 텍스트 읽기 실패:', textError);
+      return { ok: false, jobId, status: 'error', error: 'Failed to read response text' };
+    }
+    
+    // 응답 크기 검증
+    if (responseText.length > 10000) {
+      console.warn('DEBUG: Seedance status 응답이 너무 큽니다:', responseText.length);
+      return { 
+        ok: false, 
+        jobId, 
+        status: 'error', 
+        error: 'Response too large - potential header overflow prevented' 
+      };
+    }
+    
+    // JSON 파싱 시도
+    let json: any;
+    try {
+      json = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('DEBUG: Seedance status JSON 파싱 실패:', parseError);
+      return { 
+        ok: false, 
+        jobId, 
+        status: 'error', 
+        error: 'Invalid JSON response from Seedance API' 
+      };
+    }
+
     if (!res.ok) {
       // ark v3는 작업 생성 직후 404/400을 줄 수 있음: 약간의 지연 후 재시도 권장
       return { ok: false, jobId, status: 'error', error: `Seedance status error: ${res.status}`, raw: json };

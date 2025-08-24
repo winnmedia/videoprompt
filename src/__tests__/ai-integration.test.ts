@@ -80,6 +80,7 @@ describe('AI Integration Tests', () => {
     it('should generate scene prompt using Gemini', async () => {
       // Given: Gemini API가 정상 응답
       const mockResponse = {
+        ok: true,
         candidates: [{
           content: {
             parts: [{
@@ -98,7 +99,10 @@ describe('AI Integration Tests', () => {
       // When: Gemini로 장면 생성 요청
       const result = await aiManager.generateScenePrompt({
         prompt: '바다에서 수영하는 아이',
-        preferredService: 'gemini'
+        theme: '자연',
+        style: '밝은',
+        aspectRatio: '16:9',
+        duration: 45
       });
 
       // Then: 성공적인 응답
