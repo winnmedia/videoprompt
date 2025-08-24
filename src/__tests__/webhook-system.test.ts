@@ -1,23 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { MockServiceFactory, resetAllMocks } from '@/test/mocks';
 
-// Mock webhook handlers
-const mockWebhookHandlers = {
-  'integration.connected': vi.fn(),
-  'integration.disconnected': vi.fn(),
-  'project.created': vi.fn(),
-  'scene.generated': vi.fn()
-};
-
-// Mock notification service
-const mockNotificationService = {
-  send: vi.fn(),
-  sendToUser: vi.fn(),
-  sendToChannel: vi.fn()
-};
+// 공통 Mock 서비스 사용
+const mockNotificationService = MockServiceFactory.createNotificationServiceMock();
+const mockWebhookHandlers = MockServiceFactory.createWebhookHandlersMock(mockNotificationService);
 
 describe('Webhook System', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    resetAllMocks();
   });
 
   describe('Integration Webhooks', () => {

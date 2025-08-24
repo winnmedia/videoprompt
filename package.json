@@ -20,9 +20,21 @@
     "prisma:migrate": "prisma migrate deploy",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:mcp": "node scripts/test-mcp-servers.js",
+    "test:mcp:enhanced": "npm test -- src/__tests__/mcp-enhanced-testing.test.ts",
+    "test:mcp:integration": "npm test -- src/__tests__/mcp-real-integration.test.ts",
+    "test:mcp:website": "npm test -- src/__tests__/mcp-real-website.test.ts",
+    "test:mcp:performance": "npm test -- src/__tests__/mcp-performance.test.ts",
+    "test:mcp:all": "./scripts/run-mcp-tests.sh",
+    "test:mcp:ci": "npm run test:mcp:enhanced && npm run test:mcp:integration && npm run test:mcp:website && npm run test:mcp:performance",
+    "monitor:mcp": "node scripts/mcp-performance-monitor.js monitor",
+    "report:mcp": "node scripts/mcp-performance-monitor.js report",
+    "notify:mcp:test": "node scripts/mcp-notification-service.js test",
+    "setup:mcp:notifications": "node scripts/mcp-notification-service.js config"
   },
   "dependencies": {
+    "@playwright/mcp": "^0.0.34",
     "@prisma/client": "^5.18.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

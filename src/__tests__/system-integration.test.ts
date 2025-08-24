@@ -1,40 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { MockServiceFactory, resetAllMocks, resetMockReturnValues } from '@/test/mocks';
 
-// Mock all services
-const mockOpenAIService = {
-  generateScenePrompt: vi.fn(),
-  isAvailable: vi.fn()
-};
-
-const mockGeminiService = {
-  generateScenePrompt: vi.fn(),
-  isAvailable: vi.fn()
-};
-
-// Supabase 제거 정책에 맞춰 대체 스텁 제거/무력화
-const mockDBService = {
-  getUser: vi.fn(),
-  insertScene: vi.fn(),
-  queryProjects: vi.fn(),
-};
-
-const mockWebhookService = {
-  send: vi.fn(),
-  handleEvent: vi.fn()
-};
-
-const mockAnalyticsService = {
-  trackEvent: vi.fn(),
-  getUsageStats: vi.fn()
-};
+// 공통 Mock 서비스 사용
+const mockOpenAIService = MockServiceFactory.createAIServiceMock();
+const mockGeminiService = MockServiceFactory.createAIServiceMock();
+const mockDBService = MockServiceFactory.createDBServiceMock();
+const mockWebhookService = MockServiceFactory.createWebhookServiceMock();
+const mockAnalyticsService = MockServiceFactory.createAnalyticsServiceMock();
 
 describe('VideoPlanet System Integration', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    // Reset all service states
-    mockOpenAIService.isAvailable.mockResolvedValue(true);
-    mockGeminiService.isAvailable.mockResolvedValue(true);
-    mockDBService.getUser.mockResolvedValue({ id: 'user-123' });
+    resetAllMocks();
+    // Mock 반환값 재설정
+    resetMockReturnValues(mockOpenAIService);
+    resetMockReturnValues(mockGeminiService);
   });
 
   afterEach(() => {
@@ -178,50 +157,50 @@ describe('VideoPlanet System Integration', () => {
 
       // When: 동시에 여러 작업 실행
       const concurrentOperations = [
-        mockSupabaseService.from('scenes').insert({ project_id: projectId, user_id: userId }),
-        mockSupabaseService.from('timelines').insert({ project_id: projectId, user_id: userId }),
+        mockDBService.insertScene({ project_id: projectId, user_id: userId }),
+        mockDBService.insertScene({ project_id: projectId, user_id: userId }),
         mockAnalyticsService.trackEvent('project_accessed', { project_id: projectId, user_id: userId })
       ];
 
       // Then: 모든 작업이 성공적으로 완료
       const results = await Promise.all(concurrentOperations);
-      results.forEach(result => {
-        expect(result).toBeDefined();
+      expect(results).toHaveLength(3);
+      expect(results.every((result: any) => result !== undefined)).toBe(true);
+    });
+
+    it('should recover from partial system failures', async () => {
+      // Given: 일부 서비스 실패
+      mockOpenAIService.isAvailable.mockResolvedValue(false);
+      mockDBService.insertScene.mockImplementation(() => {
+        throw new Error('Database connection failed');
       });
+
+      try {
+        // When: 실패한 서비스로 작업 시도
+        await mockDBService.insertScene({ content: 'test' });
+      } catch (error) {
+        // Then: 적절한 오류 처리
+        expect(error).toBeInstanceOf(Error);
+        expect((error as Error).message).toBe('Database connection failed');
+
+        // 복구 시도
+        // 1. 대체 서비스 사용
+        const fallbackResult = await mockGeminiService.generateScenePrompt('테스트');
+        expect(fallbackResult).toBeDefined();
+
+        // 2. 데이터베이스 재연결 시도
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        mockDBService.insertScene.mockRestore(); // 복구
+
+        // 3. 정상 작업 재개
+        const result = await mockDBService
+          .insertScene({ content: 'test' });
+        expect(result).toBeDefined();
+      }
     });
   });
 
   describe('Error Handling and Recovery', () => {
-    it('should recover from partial system failures', async () => {
-      // Given: 일부 서비스 실패
-      mockOpenAIService.isAvailable.mockResolvedValue(false);
-      mockSupabaseService.from.mockImplementation(() => {
-        throw new Error('Database connection failed');
-      });
-
-      // When: 실패 상황에서 복구 시도
-      try {
-        // 1. OpenAI 대신 Gemini 사용
-        const scenePrompt = await mockGeminiService.generateScenePrompt('테스트 장면');
-        expect(scenePrompt).toBeDefined();
-
-        // 2. 데이터베이스 재연결 시도
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        mockSupabaseService.from.mockRestore(); // 복구
-
-        // 3. 정상 작업 재개
-        const result = await mockSupabaseService
-          .from('scenes')
-          .insert({ content: scenePrompt })
-          .single();
-
-        expect(result).toBeDefined();
-      } catch (error) {
-        // 복구 실패 시 적절한 오류 처리
-        expect(error).toBeDefined();
-      }
-    });
-
     it('should provide meaningful error messages to users', async () => {
       // Given: 다양한 오류 상황
       const errorScenarios = [
@@ -266,7 +245,7 @@ describe('VideoPlanet System Integration', () => {
 
       // Then: 모든 요청이 성공적으로 처리되고 적절한 응답 시간
       expect(results).toHaveLength(100);
-      expect(results.every(result => result !== undefined)).toBe(true);
+      expect(results.every((result: any) => result !== undefined)).toBe(true);
       expect(endTime - startTime).toBeLessThan(30000); // 30초 이내
     });
 

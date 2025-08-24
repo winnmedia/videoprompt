@@ -1,25 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { MockServiceFactory, resetAllMocks, resetMockReturnValues } from '@/test/mocks';
 
-// Mock analytics service
-const mockAnalyticsService = {
-  trackEvent: vi.fn(),
-  trackUserAction: vi.fn(),
-  getUsageStats: vi.fn(),
-  getCostAnalysis: vi.fn(),
-  generateReport: vi.fn()
-};
-
-// Mock cost calculation service
-const mockCostService = {
-  calculateOpenAICost: vi.fn(),
-  calculateGeminiCost: vi.fn(),
-  calculateStorageCost: vi.fn(),
-  getTotalCost: vi.fn()
-};
+// 공통 Mock 서비스 사용
+const mockAnalyticsService = MockServiceFactory.createAnalyticsServiceMock();
+const mockCostService = MockServiceFactory.createCostServiceMock();
 
 describe('Analytics System', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    resetAllMocks();
+    // Mock 반환값 재설정
+    resetMockReturnValues(mockCostService);
   });
 
   describe('Usage Tracking', () => {

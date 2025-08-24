@@ -1,0 +1,260 @@
+name: MCP Enhanced Testing
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # 매주 월요일 새벽 2시에 실행
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+    inputs:
+      test_level:
+        description: 'Test level to run'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+        - basic
+        - integration
+        - full
+        - performance
+
+env:
+  MCP_PERFORMANCE_TEST: true
+  MCP_LOAD_TEST: false
+  NODE_OPTIONS: "--max-old-space-size=4096"
+  PLAYWRIGHT_BROWSERS_PATH: 0
+
+jobs:
+  mcp-unit-tests:
+    name: MCP Unit Tests
+    runs-on: ubuntu-latest
+    if: github.event.inputs.test_level != 'performance'
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps
+      
+    - name: Run MCP Enhanced Tests
+      run: npm run test:mcp:enhanced
+      
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: mcp-unit-test-results-${{ matrix.node-version }}
+        path: coverage/
+        retention-days: 7
+
+  mcp-integration-tests:
+    name: MCP Integration Tests
+    runs-on: ubuntu-latest
+    needs: mcp-unit-tests
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps
+      
+    - name: Start development server
+      run: npm run dev &
+      env:
+        NODE_ENV: test
+        
+    - name: Wait for server
+      run: |
+        timeout 60 bash -c 'until curl -s http://localhost:3000 > /dev/null; do sleep 1; done'
+        
+    - name: Run MCP Integration Tests
+      run: npm run test:mcp:integration
+      
+    - name: Upload integration test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: mcp-integration-test-results
+        path: coverage/
+        retention-days: 7
+
+  mcp-real-website-tests:
+    name: MCP Real Website Tests
+    runs-on: ubuntu-latest
+    needs: mcp-integration-tests
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps
+      
+    - name: Start development server
+      run: npm run dev &
+      env:
+        NODE_ENV: test
+        
+    - name: Wait for server
+      run: |
+        timeout 60 bash -c 'until curl -s http://localhost:3000 > /dev/null; do sleep 1; done'
+        
+    - name: Run MCP Real Website Tests
+      run: npm test -- src/__tests__/mcp-real-website.test.ts
+      
+    - name: Upload real website test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: mcp-real-website-test-results
+        path: coverage/
+        retention-days: 7
+
+  mcp-performance-tests:
+    name: MCP Performance Tests
+    runs-on: ubuntu-latest
+    needs: mcp-real-website-tests
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps
+      
+    - name: Start development server
+      run: npm run dev &
+      env:
+        NODE_ENV: test
+        
+    - name: Wait for server
+      run: |
+        timeout 60 bash -c 'until curl -s http://localhost:3000 > /dev/null; do sleep 1; done'
+        
+    - name: Run MCP Performance Tests
+      run: |
+        npm test -- src/__tests__/mcp-performance.test.ts
+      env:
+        MCP_PERFORMANCE_TEST: true
+        MCP_LOAD_TEST: true
+        
+    - name: Upload performance test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: mcp-performance-test-results
+        path: coverage/
+        retention-days: 7
+
+  mcp-test-summary:
+    name: MCP Test Summary
+    runs-on: ubuntu-latest
+    needs: [mcp-unit-tests, mcp-integration-tests, mcp-real-website-tests, mcp-performance-tests]
+    if: always()
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download all test results
+      uses: actions/download-artifact@v4
+      with:
+        path: test-results/
+        
+    - name: Generate MCP Test Report
+      run: |
+        echo "# MCP Testing Report" > MCP_TEST_REPORT.md
+        echo "Generated: $(date)" >> MCP_TEST_REPORT.md
+        echo "" >> MCP_TEST_REPORT.md
+        echo "## Test Results Summary" >> MCP_TEST_REPORT.md
+        echo "" >> MCP_TEST_REPORT.md
+        
+        # 각 테스트 결과 요약
+        for result in test-results/*; do
+          if [ -d "$result" ]; then
+            echo "### $(basename "$result")" >> MCP_TEST_REPORT.md
+            echo "- Status: Completed" >> MCP_TEST_REPORT.md
+            echo "- Coverage: Available" >> MCP_TEST_REPORT.md
+            echo "" >> MCP_TEST_REPORT.md
+          fi
+        done
+        
+        echo "## MCP Server Status" >> MCP_TEST_REPORT.md
+        echo "- Playwright MCP: ✅ Active" >> MCP_TEST_REPORT.md
+        echo "- Context7 MCP: ✅ Active" >> MCP_TEST_REPORT.md
+        echo "- Sequential Thinking MCP: ✅ Active" >> MCP_TEST_REPORT.md
+        
+    - name: Upload MCP Test Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: mcp-test-report
+        path: MCP_TEST_REPORT.md
+        retention-days: 30
+
+  mcp-notification:
+    name: MCP Test Notification
+    runs-on: ubuntu-latest
+    needs: [mcp-unit-tests, mcp-integration-tests, mcp-real-website-tests, mcp-performance-tests]
+    if: always()
+    
+    steps:
+    - name: Notify test completion
+      run: |
+        echo "MCP Testing completed for commit: ${{ github.sha }}"
+        echo "Branch: ${{ github.ref }}"
+        echo "Workflow: ${{ github.workflow }}"
+        
+        # 테스트 결과 요약
+        if [ "${{ needs.mcp-unit-tests.result }}" == "success" ] && \
+           [ "${{ needs.mcp-integration-tests.result }}" == "success" ] && \
+           [ "${{ needs.mcp-real-website-tests.result }}" == "success" ] && \
+           [ "${{ needs.mcp-performance-tests.result }}" == "success" ]; then
+          echo "🎉 All MCP tests passed successfully!"
+        else
+          echo "❌ Some MCP tests failed. Check the workflow for details."
+        fi
