@@ -262,7 +262,7 @@ export class BrowserTestManager {
       } catch (error) {
         results.push({
           viewport,
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
           timestamp: Date.now()
         });
       }
@@ -354,7 +354,7 @@ export class SequentialTestManager {
       
       try {
         // 의존성 확인
-        if (step.dependencies.length > 0) {
+        if (step.dependencies && step.dependencies.length > 0) {
           const dependencyResults = step.dependencies.map(dep => {
             const depStep = context.steps.find(s => s.name === dep);
             return depStep?.status === 'completed';
@@ -374,11 +374,11 @@ export class SequentialTestManager {
           dependencies: step.dependencies
         });
 
-      } catch (error) {
-        contextManager.failStep(step.name, error.message);
-        allStepsPassed = false;
-        break;
-      }
+              } catch (error) {
+          contextManager.failStep(step.name, error instanceof Error ? error.message : String(error));
+          allStepsPassed = false;
+          break;
+        }
     }
 
     return allStepsPassed;
@@ -483,12 +483,12 @@ export class IntegratedTestManager {
           
         } catch (stepError) {
           // 개별 단계 실패 시 해당 단계를 실패로 표시
-          this.contextManager.failStep(step.name, stepError.message);
+          this.contextManager.failStep(step.name, stepError instanceof Error ? stepError.message : String(stepError));
           results.push({ 
             type: step.type, 
             name: step.name, 
             status: 'failed', 
-            error: stepError.message 
+            error: stepError instanceof Error ? stepError.message : String(stepError)
           });
           
           // 전체 테스트 실패로 처리
