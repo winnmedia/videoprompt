@@ -1,4 +1,4 @@
-name: Deploy to Vercel
+name: Build and Test
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ main, master ]
 
 jobs:
-  deploy:
+  build-test:
     runs-on: ubuntu-latest
     
     steps:
@@ -31,25 +31,10 @@ jobs:
       env:
         NODE_ENV: production
         
-    - name: Deploy to Vercel
-      uses: amondnet/vercel-action@v25
-      with:
-        vercel-token: ${{ secrets.VERCEL_TOKEN }}
-        vercel-org-id: ${{ secrets.ORG_ID }}
-        vercel-project-id: ${{ secrets.PROJECT_ID }}
-        vercel-args: '--prod'
-        
-    - name: Comment PR
-      if: github.event_name == 'pull_request'
-      uses: actions/github-script@v7
-      with:
-        script: |
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: '🚀 **Vercel 배포가 완료되었습니다!**\n\n- **Preview URL**: https://videoprompt-git-${{ github.head_ref }}-your-username.vercel.app\n- **Production URL**: https://your-domain.vercel.app\n\n배포 상태를 확인하려면 [Vercel 대시보드](https://vercel.com/dashboard)를 방문하세요.'
-          })
+    - name: Build Success
+      run: |
+        echo "✅ 빌드 성공!"
+        echo "🚀 이제 Vercel에서 수동 배포하거나 자동 배포를 설정할 수 있습니다."
 
 
 
