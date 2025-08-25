@@ -160,7 +160,8 @@ export default function ScenarioPage() {
         }, 1000);
       }
     } catch (error) {
-      console.error('AI API 호출 실패:', error);
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다';
+      console.error('AI API 호출 실패:', errorMessage);
       setError('AI 서비스 연결에 실패했습니다. 기본 템플릿을 사용합니다.');
       // 에러 시 기본 템플릿 사용
       setTimeout(() => {
