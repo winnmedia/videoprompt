@@ -32,7 +32,8 @@ export default function TestVideoPage() {
       const data = await response.json();
       setResult(data);
     } catch (error) {
-      setResult({ error: error.message });
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다';
+      setResult({ error: errorMessage });
     } finally {
       setLoading(false);
     }
