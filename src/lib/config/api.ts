@@ -53,6 +53,26 @@ export const buildApiUrl = (endpoint: string) => {
   return `${baseUrl}/${apiPrefix}/${cleanEndpoint}`;
 };
 
+// 기존 코드와의 호환성을 위한 함수들
+export const getApiUrl = (endpoint: string): string => {
+  return buildApiUrl(endpoint);
+};
+
+export const getApiBase = (): string => {
+  const config = getApiConfig();
+  return `${config.baseUrl}${config.apiPrefix}`;
+};
+
+// API 엔드포인트들 (기존 코드와의 호환성)
+export const API_ENDPOINTS = {
+  IMAGEN_PREVIEW: '/imagen/preview',
+  VEO_CREATE: '/veo/create',
+  SEEDANCE_CREATE: '/seedance/create',
+  SEEDANCE_STATUS: '/seedance/status',
+  AI_GENERATE_STORY: '/ai/generate-story',
+  FILES_SAVE: '/files/save',
+} as const;
+
 // Mock 모드 비활성화 (배포 환경 전용)
 export const isMockModeEnabled = () => {
   return false; // Mock 모드 완전 비활성화
