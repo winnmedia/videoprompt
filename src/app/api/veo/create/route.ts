@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateVeoVideo } from '@/lib/providers/veo';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -32,40 +31,32 @@ export async function POST(req: NextRequest) {
 
     console.log('DEBUG: Veo create request:', { prompt: prompt.slice(0, 100), aspectRatio, duration, model });
 
-    const result = await generateVeoVideo({
-      prompt,
-      aspectRatio,
-      duration,
-      model,
-      personGeneration: 'dont_allow' // 기본값: 성인 콘텐츠 금지
+    // Railway 백엔드로 프록시
+    const railwayBackend = 'https://videoprompt-production.up.railway.app';
+    
+    const res = await fetch(`${railwayBackend}/api/veo/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    
+    const data = await res.json();
+    return NextResponse.json(data, { 
+      status: res.status,
+      headers: corsHeaders 
     });
 
-    if (result.ok) {
-      return NextResponse.json({
-        ok: true,
-        operationId: result.operationId,
-        videoUrl: result.videoUrl,
-        status: result.status,
-        progress: result.progress
-      }, { headers: corsHeaders });
-    } else {
-      return NextResponse.json({
-        ok: false,
-        error: result.error || 'VIDEO_GENERATION_FAILED'
-      }, { 
-        status: 502,
-        headers: corsHeaders
-      });
-    }
-
   } catch (error) {
-    console.error('Veo create error:', error);
+    console.error('Veo create proxy error:', error);
     return NextResponse.json({ 
       ok: false, 
-      error: (error as Error).message 
+      error: (error as Error).message,
+      message: '로컬 Veo3 Create API Route가 Railway 백엔드로 프록시되었습니다.',
     }, { 
       status: 500,
-      headers: corsHeaders
+      headers: corsHeaders 
     });
   }
 }

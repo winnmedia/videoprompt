@@ -1,31 +1,14 @@
-name: Deploy to Production
+name: Deploy to Vercel
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Deployment environment'
-        required: true
-        default: 'production'
-        type: choice
-        options:
-        - staging
-        - production
-
-env:
-  NODE_VERSION: '20.x'
-  MCP_PERFORMANCE_TEST: true
-  MCP_LOAD_TEST: false
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
 
 jobs:
-  # MCP 테스트가 모두 통과해야 배포 진행
-  verify-mcp-tests:
-    name: Verify MCP Tests
+  deploy:
     runs-on: ubuntu-latest
-    outputs:
-      mcp-tests-passed: ${{ steps.check-tests.outputs.passed }}
     
     steps:
     - name: Checkout code
@@ -34,214 +17,39 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ env.NODE_VERSION }}
+        node-version: '20'
         cache: 'npm'
         
     - name: Install dependencies
       run: npm ci
       
-    - name: Install Playwright browsers
-      run: npx playwright install --with-deps
-      
-    - name: Run MCP Tests
-      id: mcp-tests
-      run: |
-        echo "🧪 MCP 테스트 실행 중..."
-        npm run test:mcp:ci
-        echo "tests_result=$?" >> $GITHUB_OUTPUT
-        
-    - name: Check MCP Tests Result
-      id: check-tests
-      run: |
-        if [ "${{ steps.mcp-tests.outputs.tests_result }}" = "0" ]; then
-          echo "✅ 모든 MCP 테스트 통과"
-          echo "passed=true" >> $GITHUB_OUTPUT
-        else
-          echo "❌ MCP 테스트 실패"
-          echo "passed=false" >> $GITHUB_OUTPUT
-          exit 1
-        fi
-
-  # 빌드 및 테스트
-  build:
-    name: Build Application
-    runs-on: ubuntu-latest
-    needs: verify-mcp-tests
-    if: needs.verify-mcp-tests.outputs.mcp-tests-passed == 'true'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm ci
+    - name: Run tests
+      run: npm run test:run
       
     - name: Build application
       run: npm run build
-      
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-files
-        path: .next/
-        retention-days: 1
-
-  # 스테이징 배포
-  deploy-staging:
-    name: Deploy to Staging
-    runs-on: ubuntu-latest
-    needs: [verify-mcp-tests, build]
-    if: |
-      needs.verify-mcp-tests.outputs.mcp-tests-passed == 'true' &&
-      (github.event.inputs.environment == 'staging' || github.ref != 'refs/heads/main')
-    environment:
-      name: staging
-      url: https://staging.yourapp.com
-      
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Download build artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: build-files
-        path: .next/
-        
-    - name: Deploy to Staging
-      run: |
-        echo "🚀 스테이징 환경에 배포 중..."
-        # 실제 배포 명령어 (예: Vercel, Railway, AWS 등)
-        # npm run deploy:staging
-        echo "✅ 스테이징 배포 완료"
-        
-    - name: Run Staging MCP Tests
-      run: |
-        echo "🧪 스테이징 환경에서 MCP 테스트 실행..."
-        # 스테이징 URL로 MCP 테스트 실행
-        # MCP_TEST_URL=https://staging.yourapp.com npm run test:mcp:website
-        echo "✅ 스테이징 MCP 테스트 완료"
-
-  # 프로덕션 배포
-  deploy-production:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: [verify-mcp-tests, build, deploy-staging]
-    if: |
-      needs.verify-mcp-tests.outputs.mcp-tests-passed == 'true' &&
-      github.ref == 'refs/heads/main' &&
-      (github.event.inputs.environment == 'production' || github.event.inputs.environment == '')
-    environment:
-      name: production
-      url: https://yourapp.com
-      
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Download build artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: build-files
-        path: .next/
-        
-    - name: Deploy to Production
-      run: |
-        echo "🚀 프로덕션 환경에 배포 중..."
-        # 실제 배포 명령어
-        # npm run deploy:production
-        echo "✅ 프로덕션 배포 완료"
-        
-    - name: Run Production Health Check
-      run: |
-        echo "🏥 프로덕션 헬스 체크 실행..."
-        # 프로덕션 헬스 체크
-        # curl -f https://yourapp.com/api/health
-        echo "✅ 프로덕션 헬스 체크 완료"
-
-  # 배포 후 검증
-  post-deploy-verification:
-    name: Post-Deploy Verification
-    runs-on: ubuntu-latest
-    needs: [deploy-production]
-    if: always() && needs.deploy-production.result == 'success'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Install Playwright browsers
-      run: npx playwright install --with-deps
-      
-    - name: Run Production MCP Tests
       env:
-        MCP_TEST_URL: https://yourapp.com
-      run: |
-        echo "🧪 프로덕션 환경에서 MCP 테스트 실행..."
-        # 프로덕션 URL로 MCP 테스트 실행
-        # npm run test:mcp:website
-        echo "✅ 프로덕션 MCP 테스트 완료"
+        NODE_ENV: production
         
-    - name: Performance Monitoring
-      run: |
-        echo "📊 성능 모니터링 시작..."
-        # 성능 메트릭 수집 및 알림
-        # npm run monitor:performance
-        echo "✅ 성능 모니터링 설정 완료"
-
-  # 배포 실패 시 롤백
-  rollback:
-    name: Rollback on Failure
-    runs-on: ubuntu-latest
-    needs: [deploy-production, post-deploy-verification]
-    if: always() && (needs.deploy-production.result == 'failure' || needs.post-deploy-verification.result == 'failure')
-    
-    steps:
-    - name: Rollback Deployment
-      run: |
-        echo "🔄 배포 롤백 실행 중..."
-        # 롤백 명령어
-        # npm run rollback:production
-        echo "✅ 롤백 완료"
+    - name: Deploy to Vercel
+      uses: amondnet/vercel-action@v25
+      with:
+        vercel-token: ${{ secrets.VERCEL_TOKEN }}
+        vercel-org-id: ${{ secrets.ORG_ID }}
+        vercel-project-id: ${{ secrets.PROJECT_ID }}
+        vercel-args: '--prod'
         
-    - name: Notify Team
-      run: |
-        echo "📢 팀에 롤백 알림 전송..."
-        # Slack, Discord 등으로 알림
-        # curl -X POST -H 'Content-type: application/json' \
-        #   --data '{"text":"🚨 프로덕션 배포 실패로 인한 롤백 실행"}' \
-        #   $SLACK_WEBHOOK_URL
-        echo "✅ 알림 전송 완료"
+    - name: Comment PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '🚀 **Vercel 배포가 완료되었습니다!**\n\n- **Preview URL**: https://videoprompt-git-${{ github.head_ref }}-your-username.vercel.app\n- **Production URL**: https://your-domain.vercel.app\n\n배포 상태를 확인하려면 [Vercel 대시보드](https://vercel.com/dashboard)를 방문하세요.'
+          })
 
-  # 배포 성공 알림
-  notify-success:
-    name: Notify Deployment Success
-    runs-on: ubuntu-latest
-    needs: [post-deploy-verification]
-    if: needs.post-deploy-verification.result == 'success'
-    
-    steps:
-    - name: Notify Success
-      run: |
-        echo "🎉 배포 성공 알림 전송..."
-        # 성공 알림
-        # curl -X POST -H 'Content-type: application/json' \
-        #   --data '{"text":"🚀 프로덕션 배포 성공! 모든 MCP 테스트 통과 ✅"}' \
-        #   $SLACK_WEBHOOK_URL
-        echo "✅ 성공 알림 전송 완료"
+
 

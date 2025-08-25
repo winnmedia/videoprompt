@@ -1,0 +1,48 @@
+# 개발 관련 파일들
+.env.local
+.env.development
+.env.test
+*.log
+dev.log
+dev-local.log
+
+# 테스트 관련
+tests/
+test-results/
+playwright-report/
+__tests__/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# 개발 도구
+.husky/
+.cursor/
+.vscode/
+.idea/
+
+# 빌드 아티팩트
+.next/
+out/
+dist/
+build/
+
+# 의존성
+node_modules/
+
+# 문서 및 스크립트
+*.md
+scripts/
+integrations-page/
+
+# 데이터베이스
+prisma/
+*.db
+*.sqlite
+
+# 임시 파일들
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
