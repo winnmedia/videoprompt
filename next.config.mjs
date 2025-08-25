@@ -1,11 +1,23 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Playwright 404 오류 방지를 위한 설정
+  // API 라우팅 설정 - 강제로 Railway 백엔드 사용
   async rewrites() {
-    const apiBase = process.env.NEXT_PUBLIC_API_PROXY_BASE || 'https://videoprompt-production.up.railway.app';
+    const apiBase = 'https://videoprompt-production.up.railway.app';
+    console.log('🚀 Using Railway backend API proxy for all API calls');
+    
     return [
-      { source: '/api/imagen/:path*', destination: `${apiBase}/api/imagen/:path*` },
+      // Seedance API
       { source: '/api/seedance/:path*', destination: `${apiBase}/api/seedance/:path*` },
+      // Imagen API
+      { source: '/api/imagen/:path*', destination: `${apiBase}/api/imagen/:path*` },
+      // Veo API
+      { source: '/api/veo/:path*', destination: `${apiBase}/api/veo/:path*` },
+      // Scenario API
+      { source: '/api/scenario/:path*', destination: `${apiBase}/api/scenario/:path*` },
+      // Video API
+      { source: '/api/video/:path*', destination: `${apiBase}/api/video/:path*` },
+      // Net API
+      { source: '/api/net/:path*', destination: `${apiBase}/api/net/:path*` },
     ];
   },
 

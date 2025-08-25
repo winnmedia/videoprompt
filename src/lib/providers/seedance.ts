@@ -204,7 +204,20 @@ export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promi
         console.error('DEBUG: Seedance 요청 타임아웃');
         return { ok: false, error: 'Request timeout after 30 seconds' };
       }
-      throw fetchError;
+      
+      // fetch 실패 원인을 더 구체적으로 파악
+      console.error('DEBUG: Seedance fetch 실패 상세:', {
+        name: fetchError instanceof Error ? fetchError.name : 'Unknown',
+        message: fetchError instanceof Error ? fetchError.message : String(fetchError),
+        cause: fetchError instanceof Error ? fetchError.cause : undefined,
+        stack: fetchError instanceof Error ? fetchError.stack : undefined
+      });
+      
+      return { 
+        ok: false, 
+        error: `Fetch failed: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`,
+        raw: { fetchError: String(fetchError) }
+      };
     }
 
   } catch (error) {

@@ -19,6 +19,9 @@ export default function HomePage() {
               <Link href="/wizard" className="text-gray-700 hover:text-primary-600 font-medium">
                 AI 영상 생성
               </Link>
+              <Link href="/planning" className="text-gray-700 hover:text-primary-600 font-medium">
+                기획안 관리
+              </Link>
             </nav>
             <div className="flex items-center space-x-4">
               <Button variant="outline" size="sm">
@@ -34,238 +37,163 @@ export default function HomePage() {
 
       {/* 메인 콘텐츠 */}
       <main>
-        {/* 히어로 섹션: 문구만 남김 */}
-        <section className="relative bg-gradient-to-br from-primary-50 to-blue-50 py-16">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">
-              AI로 만드는 <span className="text-primary-600">영상 시나리오</span>
+        {/* 히어로 섹션 */}
+        <section className="py-20 bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+              AI로 만드는
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-primary-600">
+                전문적인 영상 콘텐츠
+              </span>
             </h1>
-            <p className="mt-4 text-lg text-gray-600">
-              VideoPlanet으로 상상력을 현실로 만들어보세요. AI가 당신의 아이디어를 전문적인 영상 시나리오로 변환합니다.
+            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+              시나리오부터 영상 제작까지, AI가 도와주는 체계적인 콘텐츠 제작 플랫폼입니다.
+              전문가 수준의 영상을 누구나 쉽게 만들 수 있습니다.
             </p>
+            
+            {/* CTA 버튼 */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button 
+                size="lg" 
+                className="px-8 py-4 text-lg btn-primary"
+                onClick={() => window.location.href = '/scenario'}
+              >
+                시나리오 시작하기
+              </Button>
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="px-8 py-4 text-lg btn-secondary"
+                onClick={() => window.location.href = '/wizard'}
+              >
+                영상 생성하기
+              </Button>
+            </div>
           </div>
         </section>
 
-        {/* 채팅 UI 섹션: 히어로 바로 아래 배치 */}
         <section className="py-16 bg-gray-50">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             
             {/* 빠른 액션 버튼들 */}
-            <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Button 
+            <div className="mb-12">
+              <h2 className="text-3xl font-bold text-gray-900 text-center mb-8">빠른 시작</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                              <Button 
                 variant="outline" 
                 size="lg" 
-                className="h-16 flex flex-col items-center justify-center space-y-2"
+                className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:text-blue-800 font-semibold px-4 py-2 rounded-2xl transition-all duration-300 hover:shadow-xl hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-200 focus:ring-offset-2 cursor-pointer inline-flex items-center justify-center group"
                 onClick={() => window.location.href = '/wizard?mode=image'}
               >
-                <Icon name="image" size="lg" className="text-blue-600" />
-                <span className="font-medium">AI 이미지 생성</span>
-                <span className="text-xs text-gray-500">Google Imagen / DALL-E</span>
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                size="lg" 
-                className="h-16 flex flex-col items-center justify-center space-y-2"
-                onClick={() => window.location.href = '/wizard?mode=video'}
-              >
-                <Icon name="video" size="lg" className="text-green-600" />
-                <span className="font-medium">AI 동영상 생성</span>
-                <span className="text-xs text-gray-500">Google Veo / Seedance</span>
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                size="lg" 
-                className="h-16 flex flex-col items-center justify-center space-y-2"
-                onClick={() => window.location.href = '/wizard?mode=scenario'}
-              >
-                <Icon name="wizard" size="lg" className="text-purple-600" />
-                <span className="font-medium">AI 시나리오 생성</span>
-                <span className="text-xs text-gray-500">GPT-4 / Gemini</span>
-              </Button>
-            </div>
-
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-              {/* 채팅 헤더 */}
-              <div className="bg-primary-600 px-6 py-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-3 h-3 bg-red-400 rounded-full"></div>
-                  <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
-                  <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                  <span className="text-white font-medium ml-4">VideoPlanet AI 어시스턴트</span>
-                </div>
-              </div>
-
-              {/* 채팅 메시지 */}
-              <div className="p-6 space-y-4">
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                    <Icon name="wizard" size="sm" className="text-primary-600" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-3 max-w-sm">
-                      <p className="text-gray-800">
-                        안녕하세요! 영상 시나리오를 만들어드릴게요. 
-                        어떤 장면을 상상하고 계신가요?
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3 justify-end">
-                  <div className="flex-1 flex justify-end">
-                    <div className="bg-primary-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 max-w-sm">
-                      <p>
-                        아이가 부엌에서 쿠키를 만드는 장면을 만들어주세요!
-                      </p>
-                    </div>
-                  </div>
-                  <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                    <Icon name="user" size="sm" className="text-gray-600" />
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                    <Icon name="wizard" size="sm" className="text-primary-600" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-3 max-w-sm">
-                      <p className="text-gray-800">
-                        멋진 아이디어네요! 부엌에서 쿠키를 만드는 따뜻한 장면을 만들어드릴게요. 
-                        어떤 분위기로 만들까요?
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 입력 필드 */}
-              <div className="border-t border-gray-200 p-4">
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const q = encodeURIComponent(heroInput.trim());
-                    window.location.href = q ? `/wizard?q=${q}` : '/wizard';
-                  }}
+                  <Icon name="image" size="md" className="text-blue-600 group-hover:text-blue-700 transition-colors duration-300" />
+                  <span className="font-semibold text-blue-800 group-hover:text-blue-900">AI 이미지 생성</span>
+                  <span className="text-xs text-blue-600 group-hover:text-blue-700">Google Imagen / DALL-E</span>
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-br from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 border-2 border-purple-200 hover:border-purple-300 text-purple-700 hover:text-purple-800 font-semibold px-4 py-2 rounded-2xl transition-all duration-300 hover:shadow-xl hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-200 focus:ring-offset-2 cursor-pointer inline-flex items-center justify-center group"
+                  onClick={() => window.location.href = '/wizard?mode=video'}
                 >
-                  <div className="flex items-center space-x-3">
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={heroInput}
-                        onChange={(e) => setHeroInput(e.target.value)}
-                        placeholder="이 곳에 시나리오를 넣어주세요!"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      />
-                    </div>
-                    <Button size="lg" className="rounded-full px-6" type="submit" data-testid="landing-generate-btn">
-                      <Icon name="wizard" size="sm" className="mr-2" />
-                      AI 생성 시작
-                    </Button>
-                  </div>
-                </form>
-                <div className="mt-3 text-center">
-                  <Link href="/wizard" className="text-primary-600 hover:text-primary-700 text-sm font-medium">
-                    AI 영상 생성에서 더 자세한 설정하기 →
-                  </Link>
+                  <Icon name="video" size="md" className="text-purple-600 group-hover:text-purple-700 transition-colors duration-300" />
+                  <span className="font-semibold text-purple-800 group-hover:text-purple-900">AI 동영상 생성</span>
+                  <span className="text-xs text-purple-600 group-hover:text-purple-700">Google Veo / Seedance</span>
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-br from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border-2 border-emerald-200 hover:border-emerald-300 text-emerald-700 hover:text-emerald-800 font-semibold px-4 py-2 rounded-2xl transition-all duration-300 hover:shadow-xl hover:scale-105 focus:outline-none focus:ring-4 focus:ring-emerald-200 focus:ring-offset-2 cursor-pointer inline-flex items-center justify-center group"
+                  onClick={() => window.location.href = '/scenario'}
+                >
+                  <Icon name="wizard" size="md" className="text-emerald-600 group-hover:text-emerald-700 transition-colors duration-300" />
+                  <span className="font-semibold text-emerald-800 group-hover:text-emerald-900">AI 시나리오 생성</span>
+                  <span className="text-xs text-emerald-600 group-hover:text-emerald-700">GPT-4 / Gemini</span>
+                </Button>
+
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-br from-orange-50 to-amber-50 hover:from-orange-100 hover:to-amber-100 border-2 border-orange-200 hover:border-orange-300 text-orange-700 hover:text-orange-800 font-semibold px-4 py-2 rounded-2xl transition-all duration-300 hover:shadow-xl hover:scale-105 focus:outline-none focus:ring-4 focus:ring-orange-200 focus:ring-offset-2 cursor-pointer inline-flex items-center justify-center group"
+                  onClick={() => window.location.href = '/planning'}
+                >
+                  <Icon name="projects" size="md" className="text-orange-600 group-hover:text-orange-700 transition-colors duration-300" />
+                  <span className="font-semibold text-orange-800 group-hover:text-orange-900">기획안 관리</span>
+                  <span className="text-xs text-orange-600 group-hover:text-orange-700">생성된 콘텐츠 관리</span>
+                </Button>
+              </div>
+            </div>
+            
+            {/* 핵심 기능 소개 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Icon name="wizard" size="lg" className="text-blue-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">AI 시나리오 개발</h3>
+                <p className="text-gray-600">한 줄 스토리로 시작하여 체계적인 4단계 구성과 12개 숏트까지 자동 생성</p>
+              </div>
+              
+              <div className="text-center">
+                <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Icon name="video" size="lg" className="text-blue-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">AI 영상 생성</h3>
+                <p className="text-gray-600">Seedance, Google Veo3 등 최신 AI 모델로 고품질 영상 자동 생성</p>
+              </div>
+              
+              <div className="text-center">
+                <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Icon name="projects" size="lg" className="text-blue-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">통합 관리</h3>
+                <p className="text-gray-600">시나리오부터 최종 영상까지 전체 워크플로우를 한 곳에서 관리</p>
+              </div>
+            </div>
+            
+            {/* 사용법 가이드 */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 transition-all duration-200 overflow-hidden p-8">
+              <h2 className="text-2xl font-bold text-gray-900 text-center mb-6">사용법 가이드</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                                      <h3 className="text-lg font-semibold text-gray-900 mb-3">1단계: 시나리오 작성</h3>
+                    <ul className="space-y-2 text-gray-600">
+                    <li className="flex items-start space-x-2">
+                      <span className="w-5 h-5 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium mt-0.5">1</span>
+                      <span>간단한 스토리 아이디어 입력</span>
+                    </li>
+                    <li className="flex items-start space-x-2">
+                      <span className="w-5 h-5 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium mt-0.5">2</span>
+                      <span>장르, 톤앤매너, 타겟 설정</span>
+                    </li>
+                    <li className="flex items-start space-x-2">
+                      <span className="w-5 h-5 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium mt-0.5">3</span>
+                      <span>AI가 4단계 스토리 구조 생성</span>
+                    </li>
+                  </ul>
+                </div>
+                
+                <div>
+                                      <h3 className="text-lg font-semibold text-gray-900 mb-3">2단계: 영상 제작</h3>
+                    <ul className="text-gray-600">
+                    <li className="flex items-start space-x-2">
+                      <span className="w-5 h-5 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium mt-0.5">4</span>
+                      <span>12개 숏트로 자동 분해</span>
+                    </li>
+                    <li className="flex items-start space-x-2">
+                      <span className="w-5 h-5 bg-primary-50 text-primary-500 rounded-full flex items-center justify-center text-xs font-medium mt-0.5">5</span>
+                      <span>각 숏트별 콘티 이미지 생성</span>
+                    </li>
+                    <li className="flex items-start space-x-2">
+                      <span className="w-5 h-5 bg-primary-50 text-primary-500 rounded-full flex items-center justify-center text-xs font-medium mt-0.5">6</span>
+                      <span>AI 영상 생성 및 최종 편집</span>
+                    </li>
+                  </ul>
                 </div>
               </div>
             </div>
           </div>
-        </section>
-
-        {/* 기능 소개 */}
-        <section className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                VideoPlanet의 핵심 기능
-              </h2>
-              <p className="text-lg text-gray-600">
-                AI 기술로 영상 제작을 혁신적으로 만들어보세요
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Icon name="image" size="xl" className="text-primary-600" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">AI 이미지 생성</h3>
-                <p className="text-gray-600">
-                  Google Imagen 4.0과 OpenAI DALL-E 3를 활용하여 고품질 이미지를 생성합니다
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Icon name="video" size="xl" className="text-primary-600" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">AI 동영상 생성</h3>
-                <p className="text-gray-600">
-                  Google Veo 3와 Seedance ModelArk를 통해 창의적인 동영상을 제작합니다
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Icon name="wizard" size="xl" className="text-primary-600" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">AI 시나리오 생성</h3>
-                <p className="text-gray-600">
-                  GPT-4와 Gemini AI가 협력하여 전문적인 영상 시나리오를 자동 생성합니다
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 사용법 */}
-        <section className="py-20 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                간단한 3단계로 시작하기
-              </h2>
-              <p className="text-lg text-gray-600">
-                복잡한 도구 없이도 전문적인 영상을 만들 수 있습니다
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="text-center">
-                <div className="w-12 h-12 bg-primary-600 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">
-                  1
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">AI 모델 선택</h3>
-                <p className="text-gray-600">
-                  이미지, 동영상, 시나리오 중 원하는 AI 생성 모드를 선택하세요
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="w-12 h-12 bg-primary-600 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">
-                  2
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">프롬프트 입력</h3>
-                <p className="text-gray-600">
-                  원하는 결과물을 자연어로 설명하세요. AI가 최적의 설정을 자동으로 구성합니다
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="w-12 h-12 bg-primary-600 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">
-                  3
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">AI 생성 및 완성</h3>
-                <p className="text-gray-600">
-                  선택한 AI 모델이 창의적인 콘텐츠를 생성하고, 필요시 세밀하게 조정할 수 있습니다
-                </p>
-              </div>
-            </div>
-        </div>
         </section>
       </main>
 

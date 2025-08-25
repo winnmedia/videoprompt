@@ -6,6 +6,7 @@ import { useSeedanceCreate } from '@/features/seedance/create';
 import { useSeedancePolling } from '@/features/seedance/status';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
+import { getApiUrl, API_ENDPOINTS } from '@/lib/config/api';
 import { ScenePrompt } from '@/types/api';
 import { createAIServiceManager, translateToEnglish, extractSceneComponents, rewritePromptForImage, rewritePromptForSeedance, transformPromptForTarget } from '@/lib/ai-client';
 import { buildVeo3PromptFromScene } from '@/lib/veo3';
@@ -183,6 +184,7 @@ export default function SceneWizardPage() {
 
     setIsGenerating(true);
     setError(null);
+    clearImagePreviews(); // 이미지 미리보기 초기화
 
     try {
       const aiManager = createAIServiceManager();
@@ -507,7 +509,7 @@ export default function SceneWizardPage() {
       
       // 사용자에게 환경변수 설정 안내
       if (errorMessage.includes('model/endpoint') || errorMessage.includes('SEEDANCE_MODEL')) {
-        setError(`${errorMessage}\n\n💡 해결 방법:\n1. Railway 대시보드에서 환경변수 설정\n2. SEEDANCE_API_KEY 설정\n3. SEEDANCE_MODEL 설정 (ep-... 형식)`);
+        setError(`${errorMessage}\n\n해결 방법:\n1. Railway 대시보드에서 환경변수 설정\n2. SEEDANCE_API_KEY 설정\n3. SEEDANCE_MODEL 설정 (ep-... 형식)`);
       }
     }
   };
@@ -540,9 +542,9 @@ export default function SceneWizardPage() {
       const english = await translateToEnglish(optimizedPrompt);
       try { await navigator.clipboard.writeText(english); } catch {}
 
-      // Veo API 호출
-      const apiBase = 'https://videoprompt-production.up.railway.app';
-      const res = await fetch(`${apiBase}/api/veo/create`, {
+      // Veo API 호출 (환경별 분기)
+      const apiUrl = getApiUrl(API_ENDPOINTS.VEO_CREATE);
+      const res = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -585,7 +587,7 @@ export default function SceneWizardPage() {
       
       // 사용자에게 환경변수 설정 안내
       if (errorMessage.includes('API 키') || errorMessage.includes('환경변수')) {
-        setError(`${errorMessage}\n\n💡 해결 방법:\n1. Railway 대시보드에서 환경변수 설정\n2. GOOGLE_GEMINI_API_KEY 설정\n3. VEO_PROVIDER=google 설정`);
+        setError(`${errorMessage}\n\n해결 방법:\n1. Railway 대시보드에서 환경변수 설정\n2. GOOGLE_GEMINI_API_KEY 설정\n3. VEO_PROVIDER=google 설정`);
       }
     }
   };
@@ -685,11 +687,18 @@ export default function SceneWizardPage() {
     try {
       setIsImageLoading(true);
       setError(null);
+      setImagePreviews([]); // 기존 이미지 초기화
+      
       if (!veo3Preview || !veo3Preview.trim()) {
         setStatusKind('error');
         setStatusMsg('최종 프롬프트 생성 후 미리보기를 사용할 수 있습니다.');
         return;
       }
+      
+      console.log('DEBUG: 이미지 미리보기 시작:', { 
+        prompt: veo3Preview.slice(0, 100),
+        hasPrompt: !!veo3Preview.trim()
+      });
       
       // LLM을 통한 이미지용 프롬프트 변환
       let optimizedPrompt = veo3Preview;
@@ -700,6 +709,7 @@ export default function SceneWizardPage() {
           style: selectedStyle,
           quality: 'high'
         });
+        console.log('DEBUG: LLM 프롬프트 변환 성공:', optimizedPrompt.slice(0, 100));
       } catch (e) {
         console.warn('LLM 이미지 프롬프트 변환 실패, 원본 사용:', e);
       }
@@ -708,13 +718,16 @@ export default function SceneWizardPage() {
       let english = optimizedPrompt;
       try { 
         english = await translateToEnglish(optimizedPrompt); 
+        console.log('DEBUG: 영어 변환 성공:', english.slice(0, 100));
       } catch (e) {
         console.warn('영어 변환 실패, 원본 사용:', e);
       }
       
-      // 이미지 생성 API 호출
-      const apiBase = 'https://videoprompt-production.up.railway.app';
-      const res = await fetch(`${apiBase}/api/imagen/preview`, { 
+      // 이미지 생성 API 호출 (환경별 분기)
+      const apiUrl = getApiUrl(API_ENDPOINTS.IMAGEN_PREVIEW);
+      console.log('DEBUG: API 호출 시작:', { apiUrl, prompt: english.slice(0, 100) });
+      
+      const res = await fetch(apiUrl, { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify({ 
@@ -724,17 +737,51 @@ export default function SceneWizardPage() {
           provider: 'imagen' // 기본값으로 Google Imagen 사용
         }) 
       });
+      
+      console.log('DEBUG: API 응답 상태:', res.status, res.statusText);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('DEBUG: API 에러 응답:', errorText);
+        throw new Error(`API 호출 실패: ${res.status} ${res.statusText}`);
+      }
+      
       const json = await res.json();
-      if (!json.ok) throw new Error(json.error || 'PREVIEW_FAILED');
-      setImagePreviews(json.images || []);
+      console.log('DEBUG: API 응답 데이터:', { 
+        ok: json.ok, 
+        hasImages: !!json.images, 
+        imageCount: json.images?.length || 0,
+        firstImage: json.images?.[0]?.slice(0, 50) || 'none'
+      });
+      
+      if (!json.ok) {
+        throw new Error(json.error || '이미지 생성 실패');
+      }
+      
+      if (!json.images || !Array.isArray(json.images) || json.images.length === 0) {
+        throw new Error('이미지 데이터가 없습니다');
+      }
+      
+      // 이미지 URL 유효성 검사
+      const validImages = json.images.filter((img: any) => img && typeof img === 'string' && img.trim() !== '');
+      if (validImages.length === 0) {
+        throw new Error('유효한 이미지 URL이 없습니다');
+      }
+      
+      setImagePreviews(validImages);
+      console.log('DEBUG: 이미지 미리보기 설정 완료:', validImages.length);
       
       setStatusKind('success');
       setStatusMsg('이미지 미리보기가 생성되었습니다.');
     } catch (e) {
-      console.error('imagen preview failed', e);
-      setError(e instanceof Error ? e.message : '이미지 프리뷰 생성 실패');
+      console.error('이미지 미리보기 실패:', e);
+      const errorMessage = e instanceof Error ? e.message : '이미지 프리뷰 생성 실패';
+      setError(errorMessage);
       setStatusKind('error');
-      setStatusMsg('이미지 미리보기 생성 실패');
+      setStatusMsg(`이미지 미리보기 생성 실패: ${errorMessage}`);
+      
+      // 에러 발생 시 이미지 배열 초기화
+      setImagePreviews([]);
     } finally {
       setIsImageLoading(false);
     }
@@ -760,8 +807,8 @@ export default function SceneWizardPage() {
       }
       
       const english = await translateToEnglish(optimizedPrompt);
-      const apiBase = 'https://videoprompt-production.up.railway.app';
-      const res = await fetch(`${apiBase}/api/imagen/preview`, {
+      const apiUrl = getApiUrl(API_ENDPOINTS.IMAGEN_PREVIEW);
+      const res = await fetch(apiUrl, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           prompt: english, 
@@ -834,6 +881,23 @@ export default function SceneWizardPage() {
     weather: '비',
   });
 
+  const clearAll = () => {
+    setGeneratedPrompt(null);
+    setVeo3Preview('');
+    setImagePreviews([]); // 이미지 미리보기도 초기화
+    setSeedanceJobIds([]);
+    setCharacters([]);
+    setActions([]);
+  };
+
+  // 이미지 미리보기 초기화 함수
+  const clearImagePreviews = () => {
+    setImagePreviews([]);
+    setError(null);
+    setStatusMsg(null);
+    setStatusKind('info');
+  };
+
   return (
     <Suspense fallback={<div className="p-6 text-sm text-gray-500">로딩 중…</div>}>
     <div className="min-h-screen bg-gray-50">
@@ -850,6 +914,10 @@ export default function SceneWizardPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => router.push('/planning')} className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100">
+                <Icon name="projects" size="sm" className="mr-2" />
+                콘텐츠 보관함
+              </Button>
               <Button variant="outline" onClick={handleSampleFill} data-testid="sample-fill-btn">
                 샘플 자동 채우기
               </Button>
@@ -1370,15 +1438,41 @@ export default function SceneWizardPage() {
                     <div className="text-sm font-medium text-gray-700 mb-2">이미지 미리보기 (16:9)</div>
                     <div className="grid grid-cols-1 gap-3">
                       <div className="relative w-full max-w-xl aspect-video bg-gray-100 rounded border overflow-hidden">
-                        {imagePreviews.length > 0 && (
+                        {imagePreviews.length > 0 && imagePreviews[0] && (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={imagePreviews[0]} alt="preview-0" className="absolute inset-0 w-full h-full object-contain" />
+                          <img 
+                            src={imagePreviews[0]} 
+                            alt="preview-0" 
+                            className="absolute inset-0 w-full h-full object-contain"
+                            onError={(e) => {
+                              console.error('이미지 로드 실패:', imagePreviews[0]);
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
                         )}
                         {isImageLoading && (
                           <div className="absolute inset-0 flex items-center justify-center bg-white/70">
                             <div className="flex flex-col items-center gap-2">
                               <Icon name="spinner" className="text-blue-600" />
                               <span className="text-blue-700 text-sm">작가가 글을 쓰는 중...</span>
+                            </div>
+                          </div>
+                        )}
+                        {!isImageLoading && imagePreviews.length === 0 && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+                            <div className="flex flex-col items-center gap-2 text-center p-4">
+                              <Icon name="image" className="text-gray-400" size="lg" />
+                              <span className="text-gray-500 text-sm">이미지 미리보기를 생성해주세요</span>
+                              <span className="text-xs text-gray-400">"이미지 미리보기" 버튼을 클릭하세요</span>
+                            </div>
+                          </div>
+                        )}
+                        {!isImageLoading && imagePreviews.length > 0 && !imagePreviews[0] && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-red-50">
+                            <div className="flex flex-col items-center gap-2 text-center p-4">
+                              <Icon name="error" className="text-red-400" size="lg" />
+                              <span className="text-red-500 text-sm">이미지 생성 실패</span>
+                              <span className="text-xs text-red-400">다시 시도해주세요</span>
                             </div>
                           </div>
                         )}

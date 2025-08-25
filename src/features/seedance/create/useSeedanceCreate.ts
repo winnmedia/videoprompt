@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { getApiUrl, API_ENDPOINTS } from '@/lib/config/api';
 
 export interface SeedanceCreatePayload {
   prompt: string;
@@ -21,8 +22,8 @@ export function useSeedanceCreate() {
 
   const createOne = useCallback(async (payload: SeedanceCreatePayload): Promise<string> => {
     setError(null);
-    const apiBase = 'https://videoprompt-production.up.railway.app';
-    const res = await fetch(`${apiBase}/api/seedance/create`, {
+    const apiUrl = getApiUrl(API_ENDPOINTS.SEEDANCE_CREATE);
+    const res = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

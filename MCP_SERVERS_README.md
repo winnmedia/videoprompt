@@ -186,3 +186,5 @@ node --trace-warnings src/lib/mcp-servers/[server-name]/index.mjs
 DEBUG=* node src/lib/mcp-servers/[server-name]/index.mjs
 ```
 
+
+
