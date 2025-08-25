@@ -50,6 +50,53 @@ const handleApiError = (error: any, endpoint: string) => {
   };
 };
 
+// 재시도 로직을 포함한 API 요청 함수
+async function apiRequestWithRetry(
+  url: string,
+  options: RequestInit,
+  retryAttempts: number = 3,
+  retryDelay: number = 2000
+): Promise<Response> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 1; attempt <= retryAttempts; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      
+      // 성공적인 응답이면 즉시 반환
+      if (response.ok) {
+        return response;
+      }
+      
+      // 5xx 서버 오류가 아닌 경우 재시도하지 않음
+      if (response.status < 500) {
+        return response;
+      }
+      
+      // 마지막 시도가 아니면 재시도
+      if (attempt < retryAttempts) {
+        console.log(`API 요청 실패 (시도 ${attempt}/${retryAttempts}), ${retryDelay}ms 후 재시도...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        continue;
+      }
+      
+      return response;
+      
+    } catch (error) {
+      lastError = error as Error;
+      
+      // 마지막 시도가 아니면 재시도
+      if (attempt < retryAttempts) {
+        console.log(`API 요청 오류 (시도 ${attempt}/${retryAttempts}), ${retryDelay}ms 후 재시도...`, error);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        continue;
+      }
+    }
+  }
+  
+  throw lastError || new Error('모든 재시도 시도 실패');
+}
+
 // API 요청 함수 (배포 환경 전용)
 export const apiRequest = async <T = any>(
   endpoint: string,
@@ -69,11 +116,34 @@ export const apiRequest = async <T = any>(
     
     console.log(`DEBUG: API 요청 시작: ${method} ${url}`);
     
-    const response = await fetch(url, options);
+    const response = await apiRequestWithRetry(url, options);
     
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText.slice(0, 200)}`);
+      let errorData;
+      
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { message: errorText };
+      }
+      
+      // 사용자 친화적인 에러 메시지
+      let userMessage = '요청을 처리하는 중 오류가 발생했습니다.';
+      
+      if (response.status === 503) {
+        userMessage = '서비스가 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해주세요.';
+      } else if (response.status === 502) {
+        userMessage = '백엔드 서비스에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.';
+      } else if (response.status === 504) {
+        userMessage = '요청 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.';
+      } else if (response.status >= 500) {
+        userMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+      } else if (response.status === 429) {
+        userMessage = '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.';
+      }
+      
+      throw new Error(`API 호출 실패: ${response.status} - ${userMessage}`);
     }
     
     const data = await response.json();

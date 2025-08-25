@@ -459,5 +459,90 @@
 
 ---
 
+## 2025-08-25
+
+### **Vercel 자동 배포 설정 및 수동 배포 완료**
+
+**프로젝트 개요:**
+- GitHub → Vercel 자동 배포 파이프라인 구축
+- TypeScript 타입 에러 해결로 빌드 성공
+- Railway 백엔드 API와 연동된 프로덕션 환경 구축
+
+**완성된 주요 작업들:**
+
+#### **1단계: TypeScript 타입 에러 해결 (완료)**
+- **에러 위치**: `src/app/test-video/page.tsx:35`, `src/app/scenario/page.tsx:161`
+- **에러 내용**: `'error' is of type 'unknown'` - catch 블록의 error 타입 안전성 문제
+- **해결 방법**: `error instanceof Error` 타입 가드 적용
+- **수정된 파일들**:
+  - `src/app/test-video/page.tsx`: `const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다'`
+  - `src/app/scenario/page.tsx`: 동일한 타입 가드 패턴 적용
+- **결과**: `npm run build` 성공, TypeScript 타입 검증 통과
+
+#### **2단계: Vercel 자동 배포 설정 파일 생성 (완료)**
+- **vercel.json**: Vercel 배포 설정 (API 함수 타임아웃, CORS 헤더, 리라이트 규칙)
+- **.github/workflows/deploy.yml**: GitHub Actions 워크플로우 (빌드 및 테스트)
+- **.vercelignore**: 배포에서 제외할 파일들 (테스트, 개발 도구, 문서 등)
+- **VERCEL_DEPLOYMENT.md**: 상세한 배포 설정 가이드
+
+#### **3단계: 환경별 API 자동 분기 설정 (완료)**
+- **src/lib/config/api.ts**: 중앙화된 API 설정 관리
+- **환경별 자동 분기**:
+  - 개발환경: `/api/*` (로컬 Next.js API Routes)
+  - 프로덕션: `https://videoprompt-production.up.railway.app/api/*` (Railway 백엔드)
+- **유연한 설정**: `NEXT_PUBLIC_API_BASE_URL` 환경변수로 커스터마이징 가능
+- **적용된 파일들**: `src/app/wizard/page.tsx`, `src/features/seedance/create/useSeedanceCreate.ts`
+
+#### **4단계: GitHub Actions 워크플로우 최적화 (완료)**
+- **워크플로우 이름**: "Build and Test" (단순화)
+- **실행 단계**:
+  1. 코드 체크아웃
+  2. Node.js 20 설정
+  3. 의존성 설치 (`npm ci`)
+  4. 테스트 실행 (`npm run test:run`)
+  5. 애플리케이션 빌드 (`npm run build`)
+  6. 빌드 성공 메시지
+- **트리거**: `main`/`master` 브랜치 푸시, Pull Request
+
+#### **5단계: Vercel 수동 배포 실행 (완료)**
+- **Vercel CLI 설치**: `npm install -g vercel`
+- **GitHub 연동**: Vercel과 GitHub 계정 연동 완료
+- **프로젝트 링크**: 기존 Vercel 프로젝트 `vlanets-projects/videoprompt`와 연결
+- **배포 실행**: `vercel --prod` 명령으로 성공적 배포
+- **vercel.json 설정 오류 해결**: `builds`와 `functions` 속성 충돌 해결
+
+**최종 성과 지표:**
+- **TypeScript 타입 에러**: 0개 (100% 해결)
+- **빌드 성공**: `npm run build` 통과
+- **Vercel 배포**: 성공적으로 완료
+- **Production URL**: `https://videoprompt-59ddoi7mu-vlanets-projects.vercel.app`
+- **API 연동**: Railway 백엔드와 정상 연동
+
+**생성된 핵심 시스템:**
+- **환경별 API 분기**: 개발/프로덕션 환경에 따른 자동 API 선택
+- **Vercel 배포 파이프라인**: GitHub Actions를 통한 자동 빌드 및 테스트
+- **타입 안전성**: TypeScript 타입 가드를 통한 에러 처리 개선
+- **배포 자동화**: Git 푸시 시 자동으로 빌드 및 테스트 실행
+
+**기술적 혁신:**
+- **하이브리드 아키텍처**: 로컬 개발환경과 프로덕션 Railway 백엔드의 완벽한 연동
+- **자동 환경 감지**: `process.env.NODE_ENV`를 통한 환경별 자동 설정
+- **중앙화된 API 관리**: 모든 API 엔드포인트를 한 곳에서 관리
+- **타입 안전성**: 런타임 에러 방지를 위한 컴파일 타임 타입 검증
+
+**비즈니스 임팩트:**
+- **개발 효율성**: 환경별 API 자동 분기, 일관된 개발 경험
+- **배포 안정성**: TypeScript 타입 검증, 자동화된 빌드 및 테스트
+- **운영 효율성**: Railway 백엔드와의 안정적인 연동, 자동 배포 파이프라인
+- **팀 생산성**: 표준화된 배포 프로세스, 환경별 설정 자동화
+
+**다음 단계 계획:**
+1. **자동 배포 설정**: Vercel에서 GitHub 연동으로 자동 배포 활성화
+2. **프로덕션 테스트**: 배포된 사이트에서 Railway 백엔드 API 정상 작동 확인
+3. **성능 최적화**: 번들 크기 분석, 이미지 최적화, 캐싱 전략 개선
+4. **모니터링 설정**: Vercel Analytics, 에러 추적, 성능 모니터링
+
+---
+
 ## 2025-08-20
 

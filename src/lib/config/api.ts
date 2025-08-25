@@ -10,7 +10,9 @@ export const API_CONFIG = {
     baseUrl: 'https://videoprompt-production.up.railway.app',
     apiPrefix: '/api',
     useProxy: false, // 직접 연결
-    timeout: 60000, // 60초 - 배포 환경 고려
+    timeout: 120000, // 120초 - Railway 백엔드 처리 시간 고려
+    retryAttempts: 3, // 재시도 횟수
+    retryDelay: 2000, // 재시도 간격 (ms)
   },
   
   // 개발 환경: Railway 백엔드 직접 연결 (로컬 가정 제거)
@@ -18,7 +20,9 @@ export const API_CONFIG = {
     baseUrl: 'https://videoprompt-production.up.railway.app',
     apiPrefix: '/api',
     useProxy: false, // 직접 연결
-    timeout: 60000, // 60초 - 배포 환경 고려
+    timeout: 120000, // 120초 - Railway 백엔드 처리 시간 고려
+    retryAttempts: 3, // 재시도 횟수
+    retryDelay: 2000, // 재시도 간격 (ms)
   },
   
   // 테스트 환경: Railway 백엔드 직접 연결
@@ -26,7 +30,9 @@ export const API_CONFIG = {
     baseUrl: 'https://videoprompt-production.up.railway.app',
     apiPrefix: '/api',
     useProxy: false, // 직접 연결
-    timeout: 30000, // 30초 - 테스트 환경
+    timeout: 60000, // 60초 - 테스트 환경
+    retryAttempts: 2, // 재시도 횟수
+    retryDelay: 1000, // 재시도 간격 (ms)
   }
 };
 
