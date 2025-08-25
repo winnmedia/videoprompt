@@ -10,6 +10,7 @@ if (typeof window === 'undefined') {
     }
   } catch {}
 }
+
 export type SeedanceQuality = 'standard' | 'pro';
 
 export interface SeedanceCreatePayload {
@@ -39,7 +40,7 @@ function extractJobId(json: any): string | undefined {
 
 // BytePlus ModelArk(ark) API (v3 contents/generations)
 // 예시: https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks
-const DEFAULT_MODELARK_BASE = process.env.SEEDANCE_API_BASE || process.env.MODELARK_API_BASE || 'https://ark.ap-southeast.bytepluses.com';
+const DEFAULT_MODELARK_BASE = process.env.SEEDANCE_API_BASE || 'https://ark.ap-southeast.bytepluses.com';
 const DEFAULT_CREATE_URL = `${DEFAULT_MODELARK_BASE.replace(/\/$/, '')}/api/v3/contents/generations/tasks`;
 const DEFAULT_STATUS_URL = `${DEFAULT_MODELARK_BASE.replace(/\/$/, '')}/api/v3/contents/generations/tasks/{id}`;
 // 기본 모델/엔드포인트 ID(ep-...)는 환경변수에서 주입
@@ -64,16 +65,11 @@ export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promi
     webhookUrl: !!payload.webhook_url
   });
 
-  // Mock 모드 또는 환경변수 미설정 시 안전한 모의 응답
+  // API 키가 설정되지 않은 경우 에러 반환 (Mock 모드 제거)
   if (!apiKey) {
-    console.log('DEBUG: API 키가 설정되지 않음 - Mock 모드로 실행');
-    return {
-      ok: true,
-      jobId: `mock-${Date.now()}`,
-      status: 'queued',
-      dashboardUrl: undefined,
-      raw: { mock: true, payload },
-    };
+    const error = 'Seedance API 키가 설정되지 않았습니다. 환경변수 SEEDANCE_API_KEY를 설정해주세요.';
+    console.error('DEBUG: Seedance API 키 설정 오류:', error);
+    return { ok: false, error };
   }
 
   try {
@@ -119,7 +115,7 @@ export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promi
     console.log('DEBUG: Seedance 요청 본문:', JSON.stringify(body, null, 2));
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000); // 30초 타임아웃
+    const timeout = setTimeout(() => controller.abort(), 60000); // 60초 타임아웃 (배포 환경 고려)
 
     try {
       const response = await fetch(url, {
@@ -202,7 +198,7 @@ export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promi
       clearTimeout(timeout);
       if (fetchError instanceof Error && fetchError.name === 'AbortError') {
         console.error('DEBUG: Seedance 요청 타임아웃');
-        return { ok: false, error: 'Request timeout after 30 seconds' };
+        return { ok: false, error: 'Request timeout after 60 seconds' };
       }
       
       // fetch 실패 원인을 더 구체적으로 파악
@@ -252,23 +248,20 @@ function buildStatusUrl(jobId: string): string | undefined {
 export async function getSeedanceStatus(jobId: string): Promise<SeedanceStatusResult> {
   const url = buildStatusUrl(jobId);
   const apiKey = process.env.SEEDANCE_API_KEY || process.env.MODELARK_API_KEY || '';
+  
   if (!url || !apiKey) {
-    // Mocked progress that completes fast
-    const pct = Math.min(100, Math.floor(((Date.now() / 1000) % 10) * 10));
-    const done = pct > 80;
+    // API 키가 설정되지 않은 경우 에러 반환 (Mock 모드 제거)
     return {
-      ok: true,
+      ok: false,
       jobId,
-      status: done ? 'succeeded' : 'processing',
-      progress: pct,
-      videoUrl: done ? `https://example.com/mock/${jobId}.mp4` : undefined,
-      dashboardUrl: undefined,
-      raw: { mock: true },
+      status: 'error',
+      error: 'Seedance API 키가 설정되지 않았습니다. 환경변수 SEEDANCE_API_KEY를 설정해주세요.',
     };
   }
+  
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10_000);
+    const timeout = setTimeout(() => controller.abort(), 30_000); // 30초 타임아웃
     const res = await fetch(url, {
       method: 'GET',
       headers: {
@@ -321,6 +314,7 @@ export async function getSeedanceStatus(jobId: string): Promise<SeedanceStatusRe
       // ark v3는 작업 생성 직후 404/400을 줄 수 있음: 약간의 지연 후 재시도 권장
       return { ok: false, jobId, status: 'error', error: `Seedance status error: ${res.status}`, raw: json };
     }
+    
     // ark v3 status
     const status = json?.data?.status || json?.status || json?.task_status || json?.state || 'processing';
     const progress = json?.data?.progress ?? json?.progress ?? json?.percent;
@@ -333,6 +327,7 @@ export async function getSeedanceStatus(jobId: string): Promise<SeedanceStatusRe
       json?.result?.video_url ||
       json?.output?.video?.url;
     const dashboardUrl = json?.data?.dashboard_url || json?.dashboard_url || json?.links?.dashboard;
+    
     return {
       ok: true,
       jobId,
