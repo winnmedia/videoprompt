@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import type { VideoAsset } from '@prisma/client';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+// Define a type for the selected fields from the VideoAsset model
+type VideoAssetListPayload = Pick<
+  VideoAsset,
+  'id' | 'provider' | 'status' | 'url' | 'codec' | 'duration' | 'version' | 'createdAt'
+>;
 
 type ApiSuccess<T> = { ok: true; data: T };
 type ApiError = { ok: false; code: string; error: string; details?: string };
@@ -23,7 +30,7 @@ export async function GET(_req: NextRequest) {
       },
     });
 
-    const list = rows.map((v) => ({
+    const list = rows.map((v: VideoAssetListPayload) => ({
       id: v.id,
       title: v.url?.split('/').pop() || '영상',
       provider: v.provider as any,
