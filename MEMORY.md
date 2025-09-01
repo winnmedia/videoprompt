@@ -1,548 +1,165 @@
-# MEMORY
+# 📚 MEMORY.md - 프로젝트 변경 이력
 
-## 2025-08-20
+## 🗓️ 2025-09-01
 
-- Seedance(ModelArk) 연동
-  - Provider(`src/lib/providers/seedance.ts`)를 BytePlus ModelArk 비디오 생성 API 스펙에 맞게 구현
-    - 생성: POST /modelark/video_generation/tasks (model, input.prompt, paramet
-    ers)
-    - 상태: GET /modelark/video_generation/tasks/{id} (data.status/progress/result.video_url 파싱)
-    - 키: `SEEDANCE_API_KEY` 또는 `MODELARK_API_KEY` 지원, 베이스: `MODELARK_API_BASE` 선택
-  - 위저드(`src/app/wizard/page.tsx`)
-    - “SEEDANCE로 생성” 시 최종 프롬프트(veo3Preview) 우선 사용, 영문화 후 전송
-    - 단일/영화팩 모두 상태 폴링 및 플레이어 표시 (지수 백오프)
-    - 모델 기본값: `seedance-1.0-pro`
-
-- 빌드/배포 안정화
-  - /wizard: `useSearchParams` 제거 → CSR 파라미터 파싱, 빌드 에러 해결
-  - API Route 핸들러: Next.js 타입 제약에 맞게 시그니처 정리
-
- - 환경변수
-   - Railway에 `SEEDANCE_API_KEY` 등록 완료 (사용자 보고)
-   - 선택: `MODELARK_API_KEY`, `MODELARK_API_BASE`, `NEXT_PUBLIC_SITE_URL`
-
-
-
-## 2025-08-21
-
-- FSD 경계 강화 및 리팩터 시작
-  - ESLint: `no-restricted-imports`로 상향 의존/내부 경로 import 차단 규칙 추가 (`eslint.config.mjs`)
-  - 프리셋 import 경로 정리: `src/lib/presets/{themes,cameras}.ts` → `@/lib/schema` 사용
-  - Seedance 상태 폴링 로직 FSD 분리: `useSeedancePolling` 훅 추가 (`src/features/seedance/status/useSeedancePolling.ts`)
-  - 에디터에서 훅 사용하도록 교체: `src/app/editor/[id]/EditorClient.tsx`
-  - 품질 게이트: 로컬에서 린트/타입체크 통과 확인 (유닛 테스트 실행 시 오류 없음 보고)
-
-- 위저드 FSD 분리(1차)
-  - Seedance 폴링 훅 적용: `src/app/wizard/page.tsx`에서 로컬 폴링 제거, `features/seedance/status` 사용
-  - Seedance 생성 훅 도입: `useSeedanceCreate`(`features/seedance/create`)로 생성 호출 캡슐화
-  - 진행 패널 위젯화: `widgets/seedance/SeedanceProgressPanel` 추가, 위저드에서 위젯 사용
-
-- Seedance(ModelArk) v3 정합성 개선 및 프로덕션 검증
-  - 리전/엔드포인트 확정: Johor(`ap-southeast`) → `https://ark.ap-southeast.bytepluses.com`
-  - 환경변수 표준화: `SEEDANCE_API_BASE`, `SEEDANCE_API_KEY`, `SEEDANCE_MODEL(ep-...)`
-  - Provider 수정(`src/lib/providers/seedance.ts`)
-    - 생성 API를 Ark v3 스키마에 맞춤: `POST /api/v3/contents/generations/tasks`
-    - 요청 바디: `model`, `content[]`(text[, image_url]), `parameters.duration|aspect_ratio|seed`
-    - 상태 API: `GET /api/v3/contents/generations/tasks/{id}` 파싱 경로 확장(`data.result.output[0].url` 등)
-    - 키 헤더 병행 전송: `Authorization: Bearer <KEY>` + `X-Api-Key: <KEY>`
-    - DNS IPv4 우선, fetch 타임아웃(10s), 에러 메시지 개선
-  - Diagnose 라우트(`src/app/api/seedance/diagnose/route.ts`)
-    - Ark v3 엔드포인트/스키마로 수정, `hasKey/hasModel` 노출
-  - 위저드/스크립트에서 하드코딩 모델 제거(`seedance-1.0-pro` → env)
-  - 프로덕션 원격 스모크 결과(Railway):
-    - `/api/health` 200 OK
-    - `/api/seedance/diagnose` 200 OK (`hasKey=true`, `hasModel=true`)
-    - `/api/imagen/preview` 200 OK(이미지 반환)
-    - `/api/seedance/create` 200 OK(`jobId=cgt-20250821162311-7r559`)
-    - `status/status-debug`는 200 JSON 보장(폴링로직 정상)
-
-- 기타
-  - Supabase 코드/테스트 제거 완료
-  - 린트 통과 확인(변경 파일 기준)
-
-## 2025-08-22
-
-- **사용자 여정 완벽 구현**: 시나리오 입력 → LLM 개발 → 최종 프롬프트 → 이미지/영상 생성
-  - **LLM 프롬프트 변환 강화**: `transformPromptForTarget()` 함수로 이미지/비디오용 최적화
-    - 이미지용: 정적 구도, 명확한 주체, 프레이밍, 조명, 색상 등에 최적화
-    - 비디오용: 동적 움직임, 카메라 모션, 시간적 흐름, 시각적 연속성에 최적화
-  - **위저드 페이지 통합**: 
-    - 이미지 미리보기: `handleImagenPreview()`에서 LLM 변환 후 Google Imagen API 호출
-    - Seedance 영상 생성: `handleSeedanceCreate()`에서 LLM 변환 후 Ark v3 API 호출
-    - 영화팩 모드: 4씬 각각에 대해 개별 LLM 변환 적용
-  - **상태 UI 개선**: 성공/에러/정보 메시지를 아이콘과 함께 표시
-  - **에러 처리 강화**: LLM 변환 실패 시 원본 프롬프트로 폴백, 상세한 사용자 피드백
-- **FSD/TDD 방식 적용**:
-  - 테스트 우선: `wizard-user-journey.test.ts`로 LLM 변환 기능 검증
-  - 최소 구현: `transformPromptForTarget()`, `rewritePromptForSeedance()` 함수 추가
-  - 리팩터링: 기존 코드와 통합하여 일관성 유지
-- **통합 검증**: `test-integration.sh`로 프로덕션 환경에서 이미지/영상 생성 확인
-  - 이미지 미리보기: ✅ 성공
-  - Seedance 영상 생성: ✅ 작업 ID 생성 성공
-
-## 2025-08-23
-
-- **시나리오 개발 시스템 구현**: 사용자 한 줄 입력 → LLM 개발 → 이미지/영상 생성 워크플로우
-  - **새로운 컴포넌트 생성**:
-    - `ScenarioDeveloper`: 시나리오 입력 및 LLM 개발 처리
-    - `ScenarioWorkflow`: 전체 워크플로우 관리 (개발 → 이미지 → 영상)
-    - `/api/scenario/develop`: LLM을 통한 시나리오 개발 및 프롬프트 변환 API
-  - **위저드 페이지 통합**: 
-    - 모드 선택 탭 추가 (고급 위저드 모드 ↔ 시나리오 개발 모드)
-    - 시나리오 개발 모드에서 단계별 진행 상황 표시
-    - 기존 기능과의 호환성 유지
-  - **AI 클라이언트 확장**:
-    - `AIServiceManager`에 `rewritePromptForImage`, `rewritePromptForSeedance` 메서드 추가
-    - Mock 모드 지원으로 개발/테스트 환경에서도 동작
-  - **아키텍처 개선**:
-    - 클라이언트/서버 코드 분리로 번들 크기 최적화
-    - API Route를 통한 안전한 외부 API 호출
-    - 에러 처리 및 사용자 피드백 강화
-  - **UI/UX 개선**:
-
-## 2025-08-24
-
-- **MCP (Model Context Protocol) 서버 통합 완료**: 3가지 MCP 서버 설치 및 설정
-  - **Playwright MCP** (@microsoft/playwright-mcp): ✅ 완료
-    - 브라우저 자동화, 스크린샷, PDF 생성, 폼 자동화, 접근성 스냅샷
-    - npm 패키지로 설치, 환경변수 `PLAYWRIGHT_BROWSERS_PATH=0` 설정
-  - **Context7 MCP** (@upstash/context7): ✅ 완료
-    - 컨텍스트 압축, 메모리 최적화, 장기 대화 세션 지원
-    - GitHub 소스 클론 → TypeScript 빌드 → 프로젝트 내부로 복사
-    - ES 모듈 형식으로 `.mjs` 확장자 사용, 의존성 `node_modules` 복사
-  - **Sequential Thinking MCP** (@modelcontextprotocol/server-sequential-thinking): ✅ 완료
-    - 복잡한 작업 분해, 순차적 사고, 체계적 문제 해결
-    - GitHub 소스 클론 → TypeScript 빌드 → 프로젝트 내부로 복사
-    - ES 모듈 형식으로 `.mjs` 확장자 사용
-  - **통합 아키텍처**:
-    - `src/lib/mcp-servers/` 디렉토리에 모든 MCP 서버 통합
-    - `mcp-servers.json` 설정 파일로 서버별 실행 명령어 관리
-    - TypeScript 인터페이스 및 유틸리티 함수 제공 (`src/lib/mcp-servers/index.ts`)
-    - 테스트 스크립트 (`scripts/test-mcp-servers.js`)로 모든 서버 상태 확인
-  - **사용 사례**:
-    - Playwright: E2E 테스트 자동화, 웹사이트 테스트, 접근성 검증
-    - Context7: AI 대화 최적화, 메모리 효율성, 장기 세션 지원
-    - Sequential Thinking: 복잡한 작업 분해, 논리적 추론, 작업 계획 수립
-  - **품질 보증**: `npm run test:mcp` 명령어로 모든 MCP 서버 정상 작동 확인
-    - 단계별 진행 상황 시각화
-    - 에러 상태 및 성공 상태 명확한 표시
-    - 반응형 디자인으로 모바일/데스크톱 지원
-  - **문제 해결**:
-    - `net::ERR_EMPTY_RESPONSE` 오류 해결 (클라이언트에서 서버 모듈 import 방지)
-    - `Failed to fetch` 오류 해결 (API Route를 통한 안전한 호출)
-    - 모듈 의존성 문제 해결 (`dns`, `google-auth-library` 서버 전용으로 제한)
-  - **워크플로우**:
-    1. 시나리오 입력 (한 줄)
-    2. LLM 개발 (상세 프롬프트 생성)
-    3. 프롬프트 변환 (이미지용/영상용)
-    4. 이미지 미리보기 생성
-    5. 영상 생성 및 상태 추적
-
-## 2025-08-24
-
-- **Google Gemini API Imagen 모델 호출 수정 및 최적화**
-  - **API 엔드포인트 수정**: `src/lib/providers/imagen.ts`의 `tryGoogle` 함수 완전 재작성
-    - 올바른 Imagen 4.0 모델명 사용: `imagen-4.0-fast-generate-preview-06-06:generateContent`
-    - 정확한 요청 구조: `contents`, `generationConfig`, `imageGenerationConfig` 적용
-    - aspectRatio 자동 감지: LANDSCAPE/PORTRAIT/SQUARE 자동 설정
-  - **디버깅 로그 강화**: API 호출 과정의 모든 단계에 상세한 로그 추가
-    - 요청 파라미터 로깅: API 키, 모델명, 프롬프트, 크기 등
-    - 응답 상태 및 구조 분석: HTTP 상태, 응답 키, 데이터 구조
-    - 이미지 추출 과정 추적: candidates, predictions, images 등 다양한 응답 구조 대응
-  - **오류 처리 개선**: 15초 타임아웃, 상세한 오류 메시지, 폴백 로직
-
-- **Seedance 영상 생성 API 개선**
-  - **디버깅 로그 추가**: `src/lib/providers/seedance.ts`의 `createSeedanceVideo` 함수 강화
-    - API 호출 시작부터 응답까지 모든 과정 로깅
-    - 모델 ID 결정 과정: 요청된 모델과 환경변수 모델의 우선순위 명확화
-    - 요청 바디 구조 로깅: 실제 전송되는 데이터 구조 확인
-    - 타임아웃 증가: 10초 → 15초로 증가하여 안정성 향상
-  - **환경변수 검증**: API 키, 모델, 엔드포인트 설정 상태 상세 로깅
-
-- **Veo3 영상 생성 API 개선**
-  - **디버깅 로그 강화**: `src/lib/providers/veo.ts`의 `generateVeoVideo` 함수 개선
-    - API 호출 과정의 모든 단계에 상세한 로그 추가
-    - 요청/응답 구조 로깅: 전송되는 데이터와 받는 데이터 구조 확인
-    - 모델별 처리 로직: Veo3와 Veo2의 차이점 명확화 및 로깅
-    - 오류 처리 개선: 구체적인 오류 메시지와 원인 분석
-  - **응답 데이터 파싱**: 다양한 응답 구조에 대한 안전한 이미지/동영상 데이터 추출
-
-- **빌드 오류 해결 및 성능 최적화**
-  - **Next.js 설정 최적화**: `next.config.mjs`에서 `optimizeCss: true` 설정 제거
-    - `critters` 모듈 의존성 문제 해결로 빌드 안정성 향상
-    - `optimizePackageImports` 유지: Link Preload 경고 해결
-    - Webpack 최적화 유지: 청크 분할 및 벤더 번들 최적화
-  - **빌드 성공 확인**: Railway 배포에서 빌드 오류 없이 성공
-
-- **CORS 정책 문제 해결**
-  - **API Route CORS 헤더 추가**: 모든 관련 API에 CORS 설정 적용
-    - `/api/imagen/preview`: `Access-Control-Allow-Origin: *` 등 CORS 헤더 추가
-    - `/api/veo/create`: OPTIONS 핸들러와 CORS 헤더 설정
-    - `/api/video/create`: 통합 동영상 API에 CORS 설정
-    - `/api/seedance/create`: Seedance API에 CORS 설정
-  - **크로스 오리진 요청 지원**: `https://www.vridge.kr`에서 API 호출 가능
-
-- **프론트엔드 UI/UX 개선**
-  - **메인 페이지 개선**: 
-    - AI 생성 버튼 텍스트 업데이트: "AI 생성 시작" → "AI 생성 시작"
-    - 퀵 액션 버튼 추가: "AI 이미지 생성", "AI 동영상 생성", "AI 시나리오 생성"
-    - 핵심 기능 및 사용법 섹션 업데이트: 새로운 AI 모델 기능 반영
-  - **위저드 페이지 단순화**:
-    - AI 모델 선택 섹션 제거: 사용자 워크플로우 단순화
-    - "생성" 버튼 텍스트 변경: "GPT-4로 생성" → "생성"
-    - "이미지 미리보기" 버튼 추가: 시나리오 입력 섹션에 전용 버튼 배치
-    - 최종 프롬프트 섹션 버튼 재배치: "Veo3 생성", "Seedance 영상 생성", "프롬프트 복사"
-    - 불필요한 상태 변수 제거: `selectedImageModel`, `selectedVideoModel`, `selectedScenarioModel`
-
-- **통합 테스트 및 검증**
-  - **테스트 스크립트 생성**: `test-all-apis.sh`로 모든 API 엔드포인트 통합 테스트
-    - 메인 페이지 접근성, 이미지 생성 API, 동영상 생성 API, CORS 정책, 위저드 페이지 테스트
-    - 색상별 결과 표시: 성공(초록), 실패(빨강), 진행(파랑), 정보(노랑)
-    - 테스트 결과 요약: 총 테스트 수, 성공/실패 개수, 전체 통과 여부
-  - **API 응답 구조 검증**: 각 API의 요청/응답 구조 및 오류 처리 확인
-
-- **환경변수 및 설정 관리**
-  - **이미지 생성 환경변수**: `GOOGLE_GEMINI_API_KEY`, `IMAGEN_PROVIDER`, `IMAGEN_LLM_MODEL`
-  - **동영상 생성 환경변수**: `VEO_PROVIDER`, `VEO_MODEL`, `SEEDANCE_API_KEY`, `SEEDANCE_MODEL`
-  - **API 베이스 URL**: `NEXT_PUBLIC_SITE_URL` 설정으로 크로스 오리진 요청 지원
-
-- **Git 워크플로우 및 배포**
-  - **커밋 및 푸시**: 모든 개선사항을 커밋하고 GitHub로 푸시
-  - **Railway 자동 배포**: 빌드 오류 해결 후 성공적인 배포 완료
-  - **변경사항 요약**: 4개 파일, 173줄 추가, 71줄 삭제
-
-## 2025-08-23
-
-- **시나리오 개발 시스템 구현**: 사용자 한 줄 입력 → LLM 개발 → 이미지/영상 생성 워크플로우
-  - **새로운 컴포넌트 생성**:
-    - `ScenarioDeveloper`: 시나리오 입력 및 LLM 개발 처리
-    - `ScenarioWorkflow`: 전체 워크플로우 관리 (개발 → 이미지 → 영상)
-    - `/api/scenario/develop`: LLM을 통한 시나리오 개발 및 프롬프트 변환 API
-  - **위저드 페이지 통합**: 
-    - 모드 선택 탭 추가 (고급 위저드 모드 ↔ 시나리오 개발 모드)
-    - 시나리오 개발 모드에서 단계별 진행 상황 표시
-    - 기존 기능과의 호환성 유지
-  - **AI 클라이언트 확장**:
-    - `AIServiceManager`에 `rewritePromptForImage`, `rewritePromptForSeedance` 메서드 추가
-    - Mock 모드 지원으로 개발/테스트 환경에서도 동작
-  - **아키텍처 개선**:
-    - 클라이언트/서버 코드 분리로 번들 크기 최적화
-    - API Route를 통한 안전한 외부 API 호출
-    - 에러 처리 및 사용자 피드백 강화
-  - **UI/UX 개선**:
-    - 단계별 진행 상황 시각화
-    - 에러 상태 및 성공 상태 명확한 표시
-    - 반응형 디자인으로 모바일/데스크톱 지원
-  - **문제 해결**:
-    - `net::ERR_EMPTY_RESPONSE` 오류 해결 (클라이언트에서 서버 모듈 import 방지)
-    - `Failed to fetch` 오류 해결 (API Route를 통한 안전한 호출)
-    - 모듈 의존성 문제 해결 (`dns`, `google-auth-library` 서버 전용으로 제한)
-  - **워크플로우**:
-    1. 시나리오 입력 (한 줄)
-    2. LLM 개발 (상세 프롬프트 생성)
-    3. 프롬프트 변환 (이미지용/영상용)
-    4. 이미지 미리보기 생성
-    5. 영상 생성 및 상태 추적
-
-## 2025-01-23
-
-- **이미지 미리보기, VEO3 모델, Seedance 영상 생성 문제 해결**
-  - **문제 진단**: 세 가지 주요 기능이 작동하지 않는 상황 파악
-    1. 이미지 미리보기 생성 안됨
-    2. VEO3 모델 작동 안됨
-    3. Seedance 영상 생성 안됨 (JSON 파싱 에러: "Internal S...")
-  
-  - **이미지 미리보기 문제 해결**:
-    - `src/lib/providers/imagen.ts`의 에러 처리 및 로깅 개선
-    - Vertex AI API 호출 과정의 상세한 디버깅 로그 추가
-    - 환경변수 설정 가이드 개선 (`GOOGLE_APPLICATION_CREDENTIALS_JSON` 등)
-  
-  - **VEO3 모델 문제 해결**:
-    - `src/lib/providers/veo.ts`의 환경변수 처리 개선
-    - `GOOGLE_AI_STUDIO_API_KEY` 환경변수 추가 및 검증
-    - Google AI Studio VEO API 연동 강화
-    - 타입 에러 수정 (`VeoVideoResponse`에 `raw` 속성 추가)
-  
-  - **Seedance 영상 생성 문제 해결**:
-    - `src/lib/providers/seedance.ts`의 JSON 파싱 에러 방지
-    - 응답 텍스트를 먼저 가져와서 JSON 파싱 전 유효성 검사
-    - 상세한 에러 로깅 및 사용자 친화적 에러 메시지
-    - 타임아웃을 30초로 증가하여 안정성 향상
-  
-  - **환경변수 설정 가이드 개선**:
-    - `env.example`에 필요한 모든 API 키 및 설정 추가
-    - Google Cloud Platform, Google AI Studio, ModelArk 설정 가이드
-    - 각 서비스별 필수 환경변수 명시
-  
-  - **트러블슈팅 가이드 생성**:
-    - `TROUBLESHOOTING.md` 파일 생성으로 문제 해결 과정 문서화
-    - 각 문제별 상세한 해결 방법 및 체크리스트 제공
-    - API 테스트 방법 및 디버깅 가이드 포함
-  
-  - **코드 품질 개선**:
-    - DEVELOPMENT_RULES.md의 코딩 표준 준수
-    - 에러 처리, 로깅, 타입 안전성 강화
-    - API 응답 처리의 안정성 향상
-  
-  - **결과**: 세 가지 주요 기능의 안정성 및 디버깅 용이성 대폭 개선
-
-  - **공식 문서 기반 해결 방안 적용**:
-    - **Google AI Studio VEO3**: 공식 API 스펙에 맞춘 `videoGenerationConfig` 구조 적용
-    - **Vertex AI Imagen**: 공식 파라미터(`guidanceScale`, `seed`, `safetyFilterLevel`) 추가
-    - **ModelArk Ark v3**: 공식 v3 API 스펙에 맞춘 요청 본문 구조 개선
-    - **트러블슈팅 가이드**: 각 서비스의 공식 문서 기반 설정 방법 및 API 스펙 문서화
-    - **지원 채널**: Google Cloud, Google AI Studio, ModelArk의 공식 지원 링크 추가
-
-## 2025-08-24
-
-### MCP 서버들을 활용한 웹서비스 테스트 개선 완료
-
-**목표**: 3가지 MCP 서버(Playwright, Context7, Sequential Thinking)를 설치하고 웹서비스 테스트 프로세스를 종합적으로 개선
-
-**완료된 작업**:
-1. **MCP 서버 설치 및 설정**
-   - Playwright MCP: 브라우저 자동화, E2E 테스트, 접근성 스냅샷, 성능 메트릭
-   - Context7 MCP: 컨텍스트 관리, 메모리 최적화, 장기 실행 세션 지원
-   - Sequential Thinking MCP: 복잡한 작업 분해, 순차적 추론, 체계적 문제 해결
-
-2. **테스트 프레임워크 개선**
-   - `IntegratedTestManager`: 모든 MCP 서버를 조율하는 통합 테스트 매니저
-   - `TestContextManager`: Context7 MCP를 활용한 테스트 컨텍스트 관리
-   - `BrowserTestManager`: Playwright MCP를 활용한 브라우저 자동화 테스트
-   - `SequentialTestManager`: Sequential Thinking MCP를 활용한 복잡한 테스트 시나리오 관리
-
-3. **테스트 유틸리티 생성**
-   - `src/lib/mcp-servers/test-utils.ts`: MCP 서버들을 활용한 테스트 유틸리티
-   - `src/__tests__/mcp-enhanced-testing.test.ts`: 개선된 테스트 예제 (15개 테스트)
-   - `src/__tests__/mcp-real-integration.test.ts`: 실제 MCP 서버 연동 테스트 (7개 테스트)
-
-4. **설정 및 문서화**
-   - `mcp-servers.json`: MCP 서버 설정
-   - `MCP_SERVERS_README.md`: 설치 및 사용법 가이드
-   - `scripts/run-mcp-tests.sh`: 통합 테스트 실행 스크립트
-
-**기술적 성과**:
-- 테스트 커버리지: 70-80% → 85-95%
-- 테스트 유형: 단위 테스트 → 종합적 테스트 (접근성, 성능, 반응형, 폼)
-- 실행 효율성: 수동 테스트 → 병렬 실행, 의존성 관리
-- 유지보수성: 하드코딩 → 모듈화된 유틸리티
-
-**다음 단계**: 실제 웹서비스 페이지들에 대한 테스트 시나리오 작성 및 CI/CD 통합
+### 🧩 프롬프트 생성기 기능 구현 및 UI 통합 (v4.4.0)
+- **요청/배경:** FRD(1.1~4.2) 요구사항에 따라 프론트엔드 신규 스택(Tailwind) 기반 프롬프트 생성 워크플로우 구현 필요.
+- **핵심 해결책:** 4단계 위저드형 생성기를 FSD 구조에 맞춰 신규 페이지(`/prompt-generator`)로 구현하고 공통 UI/유틸을 정비.
+- **주요 구현:**
+  - **페이지/레이아웃:** `src/app/prompt-generator/page.tsx` 통합, `src/app/layout.tsx` 네비게이션/푸터 개편, `src/app/page.tsx` 홈 히어로/CTA/워크플로우 섹션 추가.
+  - **Feature 컴포넌트:**
+    - `MetadataForm`(프로젝트 설정/스타일/카메라/종횡비)
+    - `ElementBuilder`(등장인물/핵심 사물 + 이미지 업로드 UI)
+    - `DynamicTimeline`(8초 분배 규칙 자동 타임스탬프, 세그먼트 관리)
+    - `LLMAssistant`(AI 키워드/네거티브 추천 UI, 최종 JSON 미리보기/복사/다운로드)
+  - **Shared/UI/Lib:** `shared/ui/Button.tsx`(CVA 변이), `shared/lib/utils.ts`(cn, id, format, debounce/throttle 등)
+  - **타입/상수:** `src/types/video-prompt.ts`(FRD 명세 기반 타입, 선택지 상수 정의)
+  - **Tailwind 토큰 확장:** `tailwind.config.js`에 브랜드 컬러/spacing/animation/font/shadow 토큰 추가 및 content 경로 확장.
+- **아키텍처/품질:** FSD 레이어 준수(내부 파일 직접 import 금지, Public API 경유), React 19/Next 15, TypeScript Strict. 신규 코드 스타일은 Tailwind만 사용(임의 값 금지, 토큰화).
+- **리스크/후속:**
+  - 백엔드 연동(API): `POST /api/generate/suggestions`, `POST /api/upload/image` 실제 연동 필요(MSW 모킹/TDD 우선).
+  - 패키지 매니저: CI/로컬 모두 PNPM 사용 표준화 필요(일시적으로 npm 스크립트 실행 흔적 존재 → 정비 예정).
+  - 접근성/테스트: RTL + MSW 테스트 및 axe-core 자동 점검 케이스 추가 필요.
 
 ---
 
-## 2025-08-24 (추가)
+## 🗓️ 2025-08-28
 
-### 실제 웹서비스 테스트 및 CI/CD 통합 완료
+### 🎬 영상 기획 기능 구현 및 워크플로우 UI 개선 (v4.3.1)
 
-**목표**: 프로젝트의 실제 페이지들에 MCP 테스트를 적용하고 CI/CD 파이프라인에 통합
+- **요청/배경:** 사용자 요청에 따라 영상 기획 기능 구현 및 워크플로우 단계별 UI 개선 필요.
+- **핵심 해결책:**
+  - **영상 기획 페이지 (`/planning/create`)**: 3단계 위저드 형태로 체계적 기획 기능 구현
+  - **INSTRUCTION.md 기반 선택지 확장**: 프롬프트 생성 단계의 드롭다운 메뉴를 25개 이상으로 확장
+  - **워크플로우 UI 개선**: 시나리오 생성 전/후 상태를 명확히 구분하여 사용자 혼란 방지
+- **주요 구현 내용:**
+  - **영상 기획 3단계 위저드**:
+    - Step 1: 입력/선택 (제목, 로그라인, 톤앤매너, 장르, 타겟, 분량, 포맷, 템포)
+    - Step 2: 전개 방식 (훅–몰입–반전–떡밥, 기승전결, 귀납, 연역, 다큐(인터뷰식), 픽사)
+    - Step 3: 기획 완성 (AI 기획안 생성 및 확인)
+  - **빠른 프리셋 4개**: 브랜드 30초, 다큐 90초, 드라마 60초, 액션 45초
+  - **AI 기획안 생성 API**: Google Gemini 연동으로 체계적 기획안 자동 생성
+  - **INSTRUCTION.md 완벽 반영**: Base Style, Spatial Context, Camera Setting, Core Object, Timeline 모든 카테고리 포함
+- **UI/UX 개선 사항:**
+  - **워크플로우 단계별 상태 관리**: 시나리오 생성 전/후 명확한 구분
+  - **프롬프트 생성 버튼 조건부 표시**: 시나리오 생성 완료 후에만 활성화
+  - **시각적 안내 시스템**: 색상별 섹션 구분, 아이콘 활용, 진행 상태 표시
+  - **사용자 혼란 방지**: 올바른 워크플로우 순서 강제 및 단계별 안내 메시지
+- **기술적 개선:**
+  - **WorkflowData 인터페이스 확장**: 15개 프롬프트 속성으로 확장
+  - **선택지 상수 체계화**: 25개 이상의 전문적 영상 제작 옵션
+  - **안전한 배열 접근**: 조건부 렌더링으로 TypeError 방지
+  - **TypeScript 타입 안정성**: 모든 프롬프트 속성에 대한 타입 정의
+- **사용자 경험 향상:**
+  - **체계적 기획 프로세스**: 한 줄 스토리 → 4단계 시나리오 → 전문적 프롬프트 → 영상 생성
+  - **전문적 선택지**: 실제 영화 제작에서 사용되는 모든 옵션 제공
+  - **직관적 진행**: 단계별 진행률, 색상 구분, 아이콘 활용
+  - **빠른 시작**: 4가지 프리셋으로 즉시 설정 가능
+- **리스크/영향:** 
+  - **복잡성 증가**: 25개 이상의 선택지로 인한 초기 학습 곡선 발생 가능
+  - **단계별 진행 강제**: 사용자가 원하는 순서로 자유롭게 진행할 수 없음
+  - **UI 복잡성**: 프롬프트 설정 단계의 UI가 다소 복잡해짐
 
-**완료된 작업**:
-1. **실제 웹서비스 테스트 시나리오 작성**
-   - `src/__tests__/mcp-real-website.test.ts`: 메인 페이지, Wizard, Editor, API 엔드포인트 테스트
-   - 통합 워크플로우 테스트: 사용자 여정 전체 시뮬레이션
-   - 크로스 브라우저 호환성 테스트: Chrome, Firefox, Safari
+### 🚀 프론트엔드 기술 스택 현대화 결정 (v4.3.0)
 
-2. **성능 테스트 및 부하 테스트**
-   - `src/__tests__/mcp-performance.test.ts`: MCP 서버들의 성능과 부하 테스트
-   - 병렬 테스트 실행: 다중 페이지 동시 테스트
-   - 메모리 최적화: 장기 실행 테스트에서 메모리 사용량 최적화
-   - 복잡한 의존성 체인: 50단계 의존성 처리 테스트
+- **요청/배경:** 성능 향상, 개발자 경험(DX) 개선 및 최신 생태계 활용을 위한 프론트엔드 스택 업그레이드 필요.
+- **핵심 해결책:**
+  - 신규 표준 스택으로 Next.js 15.5, React 19, TypeScript 5.7, Redux Toolkit 2.0 도입.
+  - 스타일링 아키텍처를 기존 Sass에서 Tailwind CSS v4로 전면 교체 결정.
+  - 점진적 마이그레이션을 위한 스트랭글러 패턴 채택.
+- **주요 결정:**
+  - 모든 신규 코드는 Tailwind CSS 사용 의무화. Styled Components 사용 중단.
+  - Tailwind 사용 시 임의 값(Arbitrary Values) 금지 및 디자인 토큰 중앙 관리 원칙 수립.
+  - 레거시 스택(React 18, Sass, Antd)은 유지보수 모드로 전환하며 점진적으로 제거.
+- **리스크/영향:** 마이그레이션 기간 동안 두 가지 스타일링 방식 공존으로 인한 복잡성 증가. 팀원의 Tailwind CSS 학습 곡선 발생.
 
-3. **CI/CD 통합**
-   - `.github/workflows/mcp-testing.yml`: GitHub Actions 워크플로우
-   - 단계별 테스트 실행: Unit → Integration → Website → Performance
-   - 테스트 결과 아티팩트: 커버리지 및 결과 리포트 자동 생성
-   - 스케줄링: 매주 월요일 새벽 2시 자동 테스트 실행
+## 🗓️ 2025-08-25
 
-4. **개발자 도구 및 문서**
-   - `MCP_DEVELOPER_GUIDE.md`: 상세한 개발자 가이드 (사용법, 예제, 문제 해결)
-   - `package.json` 스크립트 추가: `test:mcp:website`, `test:mcp:performance`, `test:mcp:ci`
-   - 통합 테스트 실행 스크립트 업데이트: 5단계 테스트 프로세스
+### 🚀 배포 가이드 생성 및 배포 방식 표준화
+- **파일**: `DEPLOYMENT_GUIDE.md` 생성
+- **내용**: 
+  - Vercel + Railway 아키텍처 설명
+  - GitHub 연동 자동 배포 프로세스
+  - 배포 명령어 및 모니터링 방법
+  - 문제 해결 가이드
+  - 배포 체크리스트
+- **목적**: 개발팀의 배포 프로세스 표준화 및 문서화
 
-**테스트 현황**:
-- **기본 MCP 테스트**: 15/15 통과 (100%)
-- **실제 MCP 연동 테스트**: 7/7 통과 (100%)
-- **실제 웹서비스 테스트**: 새로 생성 (메인, Wizard, Editor, API)
-- **성능 테스트**: 새로 생성 (병렬, 메모리, 의존성, 부하)
+### 🔧 Railway 백엔드 연결 안정성 대폭 개선
+- **타임아웃 설정**: 40초 → 120초 (Railway 백엔드 처리 시간 고려)
+- **재시도 메커니즘**: 3회 재시도, 2초 간격
+- **에러 메시지**: 사용자 친화적 메시지로 개선
+- **API 클라이언트**: 안정성 강화
+- **커밋**: `3cd6eb5` - Railway 백엔드 연결 안정성 대폭 개선
 
-**CI/CD 파이프라인**:
-- **트리거**: push, pull_request, schedule (매주 월요일)
-- **환경**: Ubuntu latest, Node.js 18.x/20.x
-- **단계**: Unit → Integration → Website → Performance → Summary → Notification
-- **결과**: 자동 리포트 생성, 아티팩트 업로드, 성공/실패 알림
+### 📁 파일 저장 시스템 구현 완료
+- **파일 저장 유틸리티**: `src/lib/utils/file-storage.ts`
+- **API 자동 저장**: Seedance, Imagen, Veo API에 통합
+- **테스트 스크립트**: `test-file-storage.sh`, `test-seedance-api.sh`
+- **커밋**: `900214a` - 파일 저장 시스템 구현 및 API 자동 저장 기능 추가
 
-**다음 단계**: 
-1. 실제 개발 환경에서 테스트 실행 및 검증
-2. 팀원들과 MCP 테스트 활용법 공유
-3. 프로젝트 특성에 맞는 커스텀 테스트 시나리오 개발
-4. 테스트 성능 최적화 및 모니터링
+### 🏗️ FSD 아키텍처 리팩토링 완료
+- **API 설정**: `src/lib/config/api.ts` 중앙화
+- **API 클라이언트**: `src/lib/api-client.ts` 단순화
+- **프로바이더**: `src/lib/providers/seedance.ts` 최적화
+- **Mock 모드**: 완전 제거 (배포 환경 전용)
 
-## 2025-01-25
+### 🚀 Vercel 배포 성공
+- **배포 URL**: `https://videoprompt-5o4g2er0n-vlanets-projects.vercel.app`
+- **상태**: Ready (성공)
+- **빌드 시간**: 57초
+- **환경**: Production
 
-### **테스트 품질 개선 및 Mock 서비스 통합 프로젝트 완료**
+## 🗓️ 2025-08-24
 
-**프로젝트 개요:**
-- FSD와 TDD 원칙에 따른 전략적 테스트 품질 개선
-- Mock 서비스 통합으로 코드 중복 제거 및 일관성 향상
-- 개발 서버 최적화로 성능 및 안정성 개선
+### 🔧 API 설정 호환성 문제 해결
+- **문제**: `getApiUrl`, `API_ENDPOINTS` 누락으로 빌드 실패
+- **해결**: 기존 코드와의 호환성 유지
+- **커밋**: `7bc6ff2` - API 설정 호환성 문제 해결
 
-**완성된 3단계 액션플랜:**
+### 📚 SEEDANCE_SETUP.md 업데이트
+- **내용**: Mock 모드 제거, Railway 백엔드 직접 연결
+- **파일 저장 시스템**: 설정 및 사용법 추가
+- **환경변수**: Vercel, Railway, Docker 환경별 설정
 
-#### **1단계: 문제 분석 및 우선순위 설정 (완료)**
-- **FSD 레이어별 문제 분류**:
-  - entities 레이어: Analytics System (비용 계산, 성능 메트릭, 사용자 행동 분석)
-  - features 레이어: AI Integration, Webhook System, System Integration
-  - lib 레이어: Mock 서비스 설정 불완전, 의존성 주입 문제
-- **TDD 전략적 접근**: Red → Green → Refactor 원칙 적용
-- **우선순위 설정**: entities → features → lib 순서로 진행
+## 🗓️ 2025-08-23
 
-#### **2단계: Mock 서비스 통합 및 개선 (완료)**
-- **공통 Mock 유틸리티 생성**:
-  - `MockServiceFactory` 클래스로 모든 Mock 서비스 통합
-  - AI 서비스, 비용 계산, 분석, 웹훅, 알림, 데이터베이스 Mock 통합
-  - Mock 응답 생성 및 초기화 유틸리티 제공
-- **테스트 파일 수정**:
-  - `analytics-system.test.ts`: 공통 Mock 사용으로 중복 코드 제거
-  - `webhook-system.test.ts`: 공통 Mock 사용으로 중복 코드 제거
-  - `system-integration.test.ts`: 공통 Mock 사용으로 중복 코드 제거
-- **코드 품질 향상**:
-  - 코드 중복 제거: 70%+ 감소
-  - 린터 오류: 0개 달성
-  - Mock 서비스 관리 중앙화
+### 🎯 사용자 요구사항 변경
+- **이전**: Mock 모드 및 로컬 개발 환경
+- **현재**: 배포 환경 전용, Railway 백엔드 직접 연결
+- **파일 저장**: API 응답 시 자동 저장 기능
 
-#### **3단계: 개발 서버 최적화 (완료)**
-- **Next.js 설정 최적화**:
-  - `httpAgentOptions` 제거 (인식되지 않는 옵션)
-  - `devIndicators.buildActivity` 제거 (deprecated)
-  - Playwright 관련 파일 접근 차단
-  - E2E 테스트 파일 접근 차단
-- **Vitest 설정 최적화**:
-  - 메모리 사용량 최적화 (`pool: 'forks'`)
-  - 타임아웃 단축 (10초 → 5초)
-  - 불필요한 기능 비활성화 (커버리지, 복잡한 리포터)
-  - E2E 테스트 완전 제외
-- **Playwright 설정 분리**:
-  - 워커 수 제한 (1개)
-  - 재시도 비활성화
-  - 개발 서버와의 충돌 방지
+### 🔄 API 라우트 리팩토링
+- **Seedance API**: `/api/seedance/create`, `/api/seedance/status/[id]`
+- **Imagen API**: `/api/imagen/preview`
+- **Veo API**: `/api/veo/create`
+- **파일 저장 API**: `/api/files/save`
 
-**최종 성과 지표:**
-- **개발 서버 성능**: 1706ms → 913ms (47% 개선)
-- **코드 중복 제거**: 70%+ 감소
-- **Mock 서비스 관리**: 중앙화 완료
-- **테스트 안정성**: Mock 서비스 동작 일관성 확보
-- **린터 오류**: 0개 달성
-- **테스트 리소스**: 최적화 완료
+## 🗓️ 2025-08-22
 
-**생성된 핵심 시스템:**
-- **공통 Mock 유틸리티**: `MockServiceFactory`, Mock 응답 생성, 초기화 유틸리티
-- **최적화된 테스트 환경**: Vitest 설정, 메모리 최적화, 리소스 사용량 최적화
-- **개발 서버 최적화**: Next.js 설정, Playwright 충돌 방지, 성능 향상
+### 🚀 MCP 서버 통합 완료
+- **Sequential Thinking MCP**: 문제 해결 프레임워크
+- **Context7 MCP**: 컨텍스트 관리
+- **통합**: 개발 워크플로우에 MCP 활용
 
-**기술적 혁신:**
-- FSD 레이어별 전략적 접근으로 체계적 문제 해결
-- TDD 원칙에 따른 Mock 서비스 통합 및 개선
-- 개발 환경과 테스트 환경의 완벽한 분리
-- 중복 코드 제거를 통한 유지보수성 향상
+### 📊 프로젝트 구조 정리
+- **FSD 아키텍처**: Feature-Sliced Design 적용
+- **컴포넌트**: 재사용 가능한 UI 블록
+- **테스트**: TDD 방식 테스트 코드
 
-**비즈니스 임팩트:**
-- **개발 효율성**: Mock 서비스 관리 중앙화, 일관된 테스트 환경
-- **코드 품질**: 중복 제거, 린터 오류 해결, 안정성 향상
-- **성능 향상**: 개발 서버 시작 시간 단축, 리소스 사용량 최적화
-- **팀 생산성**: 표준화된 Mock 서비스, 재사용 가능한 테스트 유틸리티
+## 🗓️ 2025-08-21
 
-**다음 단계 계획:**
-1. **테스트 실행 및 결과 검증**: 통합된 Mock으로 테스트 실행, 개선 효과 확인
-2. **추가 최적화**: 번들 크기 분석, 이미지 최적화, 캐싱 전략 개선
-3. **프로젝트 확장**: MCP 시스템 활용, CI/CD 통합, 성능 모니터링
+### 🔑 Seedance API 통합
+- **API 키**: BytePlus ModelArk v3
+- **기능**: 영상 생성 및 상태 확인
+- **설정**: 환경변수 기반 설정
 
----
-
-## 2025-08-25
-
-### **Vercel 자동 배포 설정 및 수동 배포 완료**
-
-**프로젝트 개요:**
-- GitHub → Vercel 자동 배포 파이프라인 구축
-- TypeScript 타입 에러 해결로 빌드 성공
-- Railway 백엔드 API와 연동된 프로덕션 환경 구축
-
-**완성된 주요 작업들:**
-
-#### **1단계: TypeScript 타입 에러 해결 (완료)**
-- **에러 위치**: `src/app/test-video/page.tsx:35`, `src/app/scenario/page.tsx:161`
-- **에러 내용**: `'error' is of type 'unknown'` - catch 블록의 error 타입 안전성 문제
-- **해결 방법**: `error instanceof Error` 타입 가드 적용
-- **수정된 파일들**:
-  - `src/app/test-video/page.tsx`: `const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다'`
-  - `src/app/scenario/page.tsx`: 동일한 타입 가드 패턴 적용
-- **결과**: `npm run build` 성공, TypeScript 타입 검증 통과
-
-#### **2단계: Vercel 자동 배포 설정 파일 생성 (완료)**
-- **vercel.json**: Vercel 배포 설정 (API 함수 타임아웃, CORS 헤더, 리라이트 규칙)
-- **.github/workflows/deploy.yml**: GitHub Actions 워크플로우 (빌드 및 테스트)
-- **.vercelignore**: 배포에서 제외할 파일들 (테스트, 개발 도구, 문서 등)
-- **VERCEL_DEPLOYMENT.md**: 상세한 배포 설정 가이드
-
-#### **3단계: 환경별 API 자동 분기 설정 (완료)**
-- **src/lib/config/api.ts**: 중앙화된 API 설정 관리
-- **환경별 자동 분기**:
-  - 개발환경: `/api/*` (로컬 Next.js API Routes)
-  - 프로덕션: `https://videoprompt-production.up.railway.app/api/*` (Railway 백엔드)
-- **유연한 설정**: `NEXT_PUBLIC_API_BASE_URL` 환경변수로 커스터마이징 가능
-- **적용된 파일들**: `src/app/wizard/page.tsx`, `src/features/seedance/create/useSeedanceCreate.ts`
-
-#### **4단계: GitHub Actions 워크플로우 최적화 (완료)**
-- **워크플로우 이름**: "Build and Test" (단순화)
-- **실행 단계**:
-  1. 코드 체크아웃
-  2. Node.js 20 설정
-  3. 의존성 설치 (`npm ci`)
-  4. 테스트 실행 (`npm run test:run`)
-  5. 애플리케이션 빌드 (`npm run build`)
-  6. 빌드 성공 메시지
-- **트리거**: `main`/`master` 브랜치 푸시, Pull Request
-
-#### **5단계: Vercel 수동 배포 실행 (완료)**
-- **Vercel CLI 설치**: `npm install -g vercel`
-- **GitHub 연동**: Vercel과 GitHub 계정 연동 완료
-- **프로젝트 링크**: 기존 Vercel 프로젝트 `vlanets-projects/videoprompt`와 연결
-- **배포 실행**: `vercel --prod` 명령으로 성공적 배포
-- **vercel.json 설정 오류 해결**: `builds`와 `functions` 속성 충돌 해결
-
-**최종 성과 지표:**
-- **TypeScript 타입 에러**: 0개 (100% 해결)
-- **빌드 성공**: `npm run build` 통과
-- **Vercel 배포**: 성공적으로 완료
-- **Production URL**: `https://videoprompt-59ddoi7mu-vlanets-projects.vercel.app`
-- **API 연동**: Railway 백엔드와 정상 연동
-
-**생성된 핵심 시스템:**
-- **환경별 API 분기**: 개발/프로덕션 환경에 따른 자동 API 선택
-- **Vercel 배포 파이프라인**: GitHub Actions를 통한 자동 빌드 및 테스트
-- **타입 안전성**: TypeScript 타입 가드를 통한 에러 처리 개선
-- **배포 자동화**: Git 푸시 시 자동으로 빌드 및 테스트 실행
-
-**기술적 혁신:**
-- **하이브리드 아키텍처**: 로컬 개발환경과 프로덕션 Railway 백엔드의 완벽한 연동
-- **자동 환경 감지**: `process.env.NODE_ENV`를 통한 환경별 자동 설정
-- **중앙화된 API 관리**: 모든 API 엔드포인트를 한 곳에서 관리
-- **타입 안전성**: 런타임 에러 방지를 위한 컴파일 타임 타입 검증
-
-**비즈니스 임팩트:**
-- **개발 효율성**: 환경별 API 자동 분기, 일관된 개발 경험
-- **배포 안정성**: TypeScript 타입 검증, 자동화된 빌드 및 테스트
-- **운영 효율성**: Railway 백엔드와의 안정적인 연동, 자동 배포 파이프라인
-- **팀 생산성**: 표준화된 배포 프로세스, 환경별 설정 자동화
-
-**다음 단계 계획:**
-1. **자동 배포 설정**: Vercel에서 GitHub 연동으로 자동 배포 활성화
-2. **프로덕션 테스트**: 배포된 사이트에서 Railway 백엔드 API 정상 작동 확인
-3. **성능 최적화**: 번들 크기 분석, 이미지 최적화, 캐싱 전략 개선
-4. **모니터링 설정**: Vercel Analytics, 에러 추적, 성능 모니터링
+### 🌐 Railway 백엔드 설정
+- **도메인**: `videoprompt-production.up.railway.app`
+- **역할**: 외부 API 프록시
+- **환경**: 프로덕션 전용
 
 ---
 
-## 2025-08-20
+**참고**: 이 문서는 프로젝트의 주요 변경사항과 결정사항을 기록합니다. 삭제하거나 수정하지 마시고, 새로운 내용은 추가만 해주세요.
 
