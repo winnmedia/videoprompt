@@ -9,8 +9,8 @@ DEVELOPMENT_RULES.md — VideoPlanet 최종 통합 개발지침 (v2.4.0)
 
 의사결정 기록 (MEMORY.md): 주요 기술적 결정의 배경과 결과를 기록하는 불변의 로그.
 
-0) 적용 범위 (기술 스택)
-Frontend: Next.js 14(App Router), React 18, TypeScript
+0. 적용 범위 (기술 스택)
+   Frontend: Next.js 14(App Router), React 18, TypeScript
 
 State: Redux Toolkit, Redux Persist(민감정보 제외)
 
@@ -108,7 +108,7 @@ E2E(스모크): 핵심 경로 최소화(로그인→핵심 기능→로그아웃
 SAST(정적 분석 보안 테스트) 적용: SonarQube, Snyk 등을 CI에 통합하여 잠재적 보안 취약점을 자동으로 검출합니다.
 
 Ⅵ. Git/PR 규칙
-브랜치: feat/*, fix/*, refactor/*, chore/*, docs/*
+브랜치: feat/_, fix/_, refactor/_, chore/_, docs/\*
 
 커밋 메시지: Conventional Commits, “왜”를 포함
 
@@ -227,6 +227,5 @@ TDD 상세 운영: 본 문서 Ⅲ·Ⅳ 절
 
 버전: 2.4.0
 최종 업데이트: 2025-08-23
-
 
 ㅂ

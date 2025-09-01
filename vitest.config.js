@@ -9,11 +9,17 @@ module.exports = {
     testTimeout: 5000, // 10초 → 5초로 단축
     hookTimeout: 5000, // 10초 → 5초로 단축
     teardownTimeout: 5000, // 10초 → 5초로 단축
-    include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-    exclude: ['tests/e2e/**/*', 'node_modules/**/*', '**/*.e2e.{test,spec}.{js,ts}'],
+    include: ['src/**/?(*.){test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    exclude: [
+      'tests/e2e/**/*',
+      '**/*.e2e.{test,spec}.{js,ts,jsx,tsx}',
+      '**/node_modules/**',
+      'playwright-report/**',
+      'test-results/**',
+    ],
     environmentOptions: {
       jsdom: {
-        resources: 'limited', // 'usable' → 'limited'로 변경
+        resources: 'usable',
       },
     },
     // 메모리 최적화 옵션 추가
@@ -22,7 +28,7 @@ module.exports = {
       forks: {
         singleFork: true, // 단일 포크 사용
         maxForks: 1, // 최대 포크 수 제한
-      }
+      },
     },
     // 불필요한 기능 비활성화
     coverage: {
@@ -43,10 +49,9 @@ module.exports = {
   define: {
     'process.env.NODE_ENV': '"test"',
     'process.env.OPENAI_API_KEY': `"${process.env.OPENAI_API_KEY || 'test-openai-key'}"`,
-    'process.env.GOOGLE_GEMINI_API_KEY': `"${process.env.GOOGLE_GEMINI_API_KEY || 'test-gemini-key'}"`
+    'process.env.GOOGLE_GEMINI_API_KEY': `"${process.env.GOOGLE_GEMINI_API_KEY || 'test-gemini-key'}"`,
   },
   testEnvironmentOptions: {
     customExportConditions: ['node', 'node-addons'],
   },
 };
-

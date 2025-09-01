@@ -17,7 +17,7 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
       const pages = [
         'http://localhost:3000',
         'http://localhost:3000/wizard',
-        'http://localhost:3000/editor/test-id'
+        'http://localhost:3000/editor/test-id',
       ];
 
       const startTime = Date.now();
@@ -29,14 +29,14 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
           {
             type: 'accessibility' as const,
             name: `페이지 ${index + 1} 접근성 테스트`,
-            config: { includePerformance: true }
-          }
+            config: { includePerformance: true },
+          },
         ];
 
         const result = await testManager.runComprehensiveTest(
           `parallel-test-${index}`,
           url,
-          testSteps
+          testSteps,
         );
 
         return result;
@@ -47,7 +47,7 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
       const totalTime = endTime - startTime;
 
       // 모든 테스트가 성공해야 함
-      expect(pageResults.every(r => r.success)).toBe(true);
+      expect(pageResults.every((r) => r.success)).toBe(true);
       expect(pageResults).toHaveLength(3);
 
       // 성능 기준: 3개 페이지 테스트가 5초 이내 완료
@@ -65,8 +65,8 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
           resolution: '4K',
           frameRate: 60,
           quality: 'ultra-high',
-          effects: Array.from({ length: 50 }, (_, i) => `effect${i}`)
-        }
+          effects: Array.from({ length: 50 }, (_, i) => `effect${i}`),
+        },
       };
 
       const startTime = Date.now();
@@ -75,24 +75,24 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
         {
           type: 'form' as const,
           name: '대용량 폼 데이터 테스트',
-          config: { 
+          config: {
             formData: largeFormData,
-            performanceTracking: true
-          }
-        }
+            performanceTracking: true,
+          },
+        },
       ];
 
       const result = await testManager.runComprehensiveTest(
         'large-form-performance-test',
         'http://localhost:3000/wizard',
-        testSteps
+        testSteps,
       );
 
       const endTime = Date.now();
       const processingTime = endTime - startTime;
 
       expect(result.success).toBe(true);
-      
+
       // 성능 기준: 대용량 폼 처리가 3초 이내 완료
       expect(processingTime).toBeLessThan(3000);
 
@@ -111,17 +111,17 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
           {
             type: 'custom' as const,
             name: `반복 테스트 ${i + 1}`,
-            config: { 
+            config: {
               iteration: i,
-              memoryTracking: true 
-            }
-          }
+              memoryTracking: true,
+            },
+          },
         ];
 
         const result = await testManager.runComprehensiveTest(
           `memory-test-${i}`,
           'http://localhost:3000',
-          testSteps
+          testSteps,
         );
 
         results.push(result);
@@ -135,7 +135,7 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
       const endMemory = process.memoryUsage().heapUsed;
       const memoryIncrease = (endMemory - startMemory) / 1024 / 1024; // MB
 
-      expect(results.every(r => r.success)).toBe(true);
+      expect(results.every((r) => r.success)).toBe(true);
       expect(results).toHaveLength(iterations);
 
       // 메모리 증가가 50MB 이하여야 함
@@ -153,7 +153,7 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
       for (let i = 0; i < contextCount; i++) {
         testManager['contextManager'].createContext(`context-${i}`, {
           data: `test-data-${i}`,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
       }
 
@@ -194,15 +194,15 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
           config: {
             level: i,
             dependencies,
-            complexity: Math.floor(Math.random() * 10) + 1
-          }
+            complexity: Math.floor(Math.random() * 10) + 1,
+          },
         });
       }
 
       const result = await testManager.runComprehensiveTest(
         'complex-dependency-test',
         'http://localhost:3000',
-        testSteps
+        testSteps,
       );
 
       const endTime = Date.now();
@@ -228,17 +228,17 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
           {
             type: 'custom' as const,
             name: `병렬 테스트 ${i + 1}`,
-            config: { 
+            config: {
               parallel: true,
-              testId: i 
-            }
-          }
+              testId: i,
+            },
+          },
         ];
 
         return testManager.runComprehensiveTest(
           `parallel-test-${i}`,
           'http://localhost:3000',
-          testSteps
+          testSteps,
         );
       });
 
@@ -246,7 +246,7 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
       const endTime = Date.now();
       const totalTime = endTime - startTime;
 
-      expect(results.every(r => r.success)).toBe(true);
+      expect(results.every((r) => r.success)).toBe(true);
       expect(results).toHaveLength(parallelTests);
 
       // 성능 기준: 10개 병렬 테스트가 5초 이내 완료
@@ -256,7 +256,7 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
       console.log(`📊 병렬 테스트 수: ${parallelTests}개`);
 
       // 성공한 테스트 수 확인
-      const successCount = results.filter(r => r.success).length;
+      const successCount = results.filter((r) => r.success).length;
       console.log(`✅ 성공한 테스트: ${successCount}개`);
     });
   });
@@ -274,14 +274,14 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
           {
             type: 'accessibility' as const,
             name: '접근성 테스트',
-            config: { includePerformance: true }
+            config: { includePerformance: true },
           },
           {
             type: 'responsive' as const,
             name: '반응형 테스트',
-            config: { viewports: [{ width: 1920, height: 1080 }] }
-          }
-        ]
+            config: { viewports: [{ width: 1920, height: 1080 }] },
+          },
+        ],
       );
 
       // 2. Context7 MCP: 메모리 최적화 테스트
@@ -292,9 +292,9 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
           {
             type: 'custom' as const,
             name: '메모리 최적화 테스트',
-            config: { memoryTracking: true }
-          }
-        ]
+            config: { memoryTracking: true },
+          },
+        ],
       );
 
       // 3. Sequential Thinking MCP: 복잡한 워크플로우 테스트
@@ -305,19 +305,19 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
           {
             type: 'custom' as const,
             name: '복잡한 워크플로우 테스트',
-            config: { 
+            config: {
               workflow: 'complex',
-              steps: ['init', 'process', 'validate', 'cleanup']
-            }
-          }
-        ]
+              steps: ['init', 'process', 'validate', 'cleanup'],
+            },
+          },
+        ],
       );
 
       // 모든 테스트 동시 실행
       const [playwrightResult, context7Result, sequentialResult] = await Promise.all([
         playwrightTest,
         context7Test,
-        sequentialTest
+        sequentialTest,
       ]);
 
       results.push(playwrightResult, context7Result, sequentialResult);
@@ -326,7 +326,7 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
       const totalTime = endTime - startTime;
 
       // 모든 테스트가 성공해야 함
-      expect(results.every(r => r.success)).toBe(true);
+      expect(results.every((r) => r.success)).toBe(true);
       expect(results).toHaveLength(3);
 
       // 성능 기준: 통합 테스트가 8초 이내 완료
@@ -344,7 +344,9 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
 
     it('부하 테스트를 통해 시스템 한계를 파악할 수 있다', async () => {
       if (process.env.MCP_LOAD_TEST !== 'true') {
-        console.log('⏭️  부하 테스트가 비활성화되어 있습니다. MCP_LOAD_TEST=true로 설정하여 실행하세요.');
+        console.log(
+          '⏭️  부하 테스트가 비활성화되어 있습니다. MCP_LOAD_TEST=true로 설정하여 실행하세요.',
+        );
         return;
       }
 
@@ -364,12 +366,12 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
               {
                 type: 'custom' as const,
                 name: `사용자 ${i + 1} 테스트`,
-                config: { 
+                config: {
                   userId: i,
-                  loadTest: true 
-                }
-              }
-            ]
+                  loadTest: true,
+                },
+              },
+            ],
           );
 
           userPromises.push(userTest);
@@ -379,25 +381,27 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
         const endTime = Date.now();
         const responseTime = endTime - startTime;
 
-        const successCount = userResults.filter(r => r.success).length;
-        const failureCount = userResults.filter(r => !r.success).length;
+        const successCount = userResults.filter((r) => r.success).length;
+        const failureCount = userResults.filter((r) => !r.success).length;
 
         loadResults.push({
           userCount,
           responseTime,
           successCount,
           failureCount,
-          successRate: (successCount / userCount) * 100
+          successRate: (successCount / userCount) * 100,
         });
 
         console.log(`📊 ${userCount}명 동시 사용자 테스트:`);
         console.log(`   - 응답 시간: ${responseTime}ms`);
-        console.log(`   - 성공률: ${(successCount / userCount * 100).toFixed(1)}%`);
+        console.log(`   - 성공률: ${((successCount / userCount) * 100).toFixed(1)}%`);
         console.log(`   - 성공: ${successCount}명, 실패: ${failureCount}명`);
 
         // 시스템 한계 도달 시 중단
         if (successRate < 80) {
-          console.log(`⚠️  시스템 한계 도달: ${userCount}명 동시 사용자에서 성공률 ${successRate.toFixed(1)}%`);
+          console.log(
+            `⚠️  시스템 한계 도달: ${userCount}명 동시 사용자에서 성공률 ${successRate.toFixed(1)}%`,
+          );
           break;
         }
       }
@@ -406,8 +410,10 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
       expect(loadResults[0].successRate).toBeGreaterThan(90); // 첫 번째 레벨은 높은 성공률
 
       console.log(`📈 부하 테스트 결과 요약:`);
-      loadResults.forEach(result => {
-        console.log(`   ${result.userCount}명: ${result.successRate.toFixed(1)}% 성공, ${result.responseTime}ms 응답`);
+      loadResults.forEach((result) => {
+        console.log(
+          `   ${result.userCount}명: ${result.successRate.toFixed(1)}% 성공, ${result.responseTime}ms 응답`,
+        );
       });
     });
   });
@@ -416,24 +422,20 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
     it('테스트 완료 후 시스템을 정리할 수 있다', async () => {
       // 모든 컨텍스트 정리
       testManager.clearAllContexts();
-      
+
       // 메모리 사용량 확인
       const finalMemory = process.memoryUsage().heapUsed;
-      
+
       // 테스트 요약 생성
       const summary = testManager.getTestSummary();
-      
+
       expect(summary.totalTests).toBe(0);
       expect(summary.passedTests).toBe(0);
       expect(summary.failedTests).toBe(0);
-      
+
       console.log(`🧹 MCP 테스트 정리 중...`);
       console.log(`📊 테스트 성능 요약:`, summary);
       console.log(`💾 최종 메모리 사용량: ${(finalMemory / 1024 / 1024).toFixed(2)} MB`);
     });
   });
 });
-
-
-
-

@@ -87,7 +87,7 @@ const testSteps = [
   {
     type: 'accessibility' as const,
     name: '접근성 테스트',
-    config: { includePerformance: true }
+    config: { includePerformance: true },
   },
   {
     type: 'responsive' as const,
@@ -95,16 +95,16 @@ const testSteps = [
     config: {
       viewports: [
         { width: 1920, height: 1080 },
-        { width: 768, height: 1024 }
-      ]
-    }
-  }
+        { width: 768, height: 1024 },
+      ],
+    },
+  },
 ];
 
 const result = await testManager.runComprehensiveTest(
   'my-test',
   'http://localhost:3000',
-  testSteps
+  testSteps,
 );
 
 console.log('테스트 성공:', result.success);
@@ -148,14 +148,14 @@ describe('내 기능 테스트', () => {
       {
         type: 'accessibility' as const,
         name: '접근성 검사',
-        config: { includePerformance: true }
-      }
+        config: { includePerformance: true },
+      },
     ];
 
     const result = await testManager.runComprehensiveTest(
       'test-name',
       'http://localhost:3000',
-      testSteps
+      testSteps,
     );
 
     expect(result.success).toBe(true);
@@ -166,6 +166,7 @@ describe('내 기능 테스트', () => {
 ### 2. 테스트 단계 타입
 
 #### Accessibility Test
+
 ```typescript
 {
   type: 'accessibility' as const,
@@ -179,6 +180,7 @@ describe('내 기능 테스트', () => {
 ```
 
 #### Responsive Test
+
 ```typescript
 {
   type: 'responsive' as const,
@@ -194,6 +196,7 @@ describe('내 기능 테스트', () => {
 ```
 
 #### Form Test
+
 ```typescript
 {
   type: 'form' as const,
@@ -210,6 +213,7 @@ describe('내 기능 테스트', () => {
 ```
 
 #### Custom Test
+
 ```typescript
 {
   type: 'custom' as const,
@@ -229,27 +233,27 @@ const testConfig = {
   performance: {
     metrics: ['FCP', 'LCP', 'CLS', 'TTFB'],
     budget: {
-      FCP: 2000,    // 2초
-      LCP: 4000,    // 4초
-      CLS: 0.1      // 0.1
-    }
+      FCP: 2000, // 2초
+      LCP: 4000, // 4초
+      CLS: 0.1, // 0.1
+    },
   },
-  
+
   // 접근성 테스트
   accessibility: {
     rules: ['color-contrast', 'keyboard-navigation', 'screen-reader'],
-    level: 'AA' // WCAG 2.1 AA 기준
+    level: 'AA', // WCAG 2.1 AA 기준
   },
-  
+
   // 반응형 테스트
   responsive: {
     viewports: [
       { width: 1920, height: 1080 },
       { width: 768, height: 1024 },
-      { width: 375, height: 667 }
+      { width: 375, height: 667 },
     ],
-    testSteps: ['step1', 'step2', 'step3']
-  }
+    testSteps: ['step1', 'step2', 'step3'],
+  },
 };
 ```
 
@@ -258,29 +262,30 @@ const testConfig = {
 ### 1. Playwright MCP 활용
 
 #### 브라우저 자동화
+
 ```typescript
 // 페이지 접근성 테스트
 const result = await testManager['browserManager'].testPageAccessibility(url);
 
 // 폼 자동화 테스트
-const formResult = await testManager['browserManager'].testFormAutomation(
-  url, 
-  { username: 'test', password: 'test123' }
-);
+const formResult = await testManager['browserManager'].testFormAutomation(url, {
+  username: 'test',
+  password: 'test123',
+});
 
 // 반응형 디자인 테스트
-const responsiveResult = await testManager['browserManager'].testResponsiveDesign(
-  url,
-  [{ width: 1920, height: 1080 }, { width: 768, height: 1024 }]
-);
+const responsiveResult = await testManager['browserManager'].testResponsiveDesign(url, [
+  { width: 1920, height: 1080 },
+  { width: 768, height: 1024 },
+]);
 ```
 
 #### 성능 메트릭 수집
+
 ```typescript
-const performanceResult = await testManager['browserManager'].testPageAccessibility(
-  url,
-  { includePerformance: true }
-);
+const performanceResult = await testManager['browserManager'].testPageAccessibility(url, {
+  includePerformance: true,
+});
 
 console.log('FCP:', performanceResult.metrics.FCP);
 console.log('LCP:', performanceResult.metrics.LCP);
@@ -290,13 +295,14 @@ console.log('CLS:', performanceResult.metrics.CLS);
 ### 2. Context7 MCP 활용
 
 #### 컨텍스트 관리
+
 ```typescript
 const contextManager = testManager['contextManager'];
 
 // 컨텍스트 생성
 const context = contextManager.createContext('test-id', {
   url: 'http://localhost:3000',
-  userAgent: 'Mozilla/5.0...'
+  userAgent: 'Mozilla/5.0...',
 });
 
 // 단계 추가
@@ -310,11 +316,12 @@ contextManager.completeStep('step1', { result: 'success' });
 ```
 
 #### 메모리 최적화
+
 ```typescript
 // 주기적 컨텍스트 정리
 for (let i = 0; i < 100; i++) {
   // ... 테스트 실행 ...
-  
+
   if (i % 20 === 0) {
     testManager.clearAllContexts();
   }
@@ -328,6 +335,7 @@ console.log('메모리 사용량:', memoryUsage.heapUsed / 1024 / 1024, 'MB');
 ### 3. Sequential Thinking MCP 활용
 
 #### 복잡한 워크플로우
+
 ```typescript
 const sequentialManager = testManager['sequentialManager'];
 
@@ -345,18 +353,15 @@ const result = await sequentialManager.executeTestPlan('complex-workflow', conte
 ```
 
 #### 병렬 테스트 관리
+
 ```typescript
 // 병렬 테스트 실행
 const testPromises = urls.map(async (url, index) => {
-  return testManager.runComprehensiveTest(
-    `parallel-test-${index}`,
-    url,
-    testSteps
-  );
+  return testManager.runComprehensiveTest(`parallel-test-${index}`, url, testSteps);
 });
 
 const results = await Promise.all(testPromises);
-const successCount = results.filter(r => r.success).length;
+const successCount = results.filter((r) => r.success).length;
 ```
 
 ## ⚡ 성능 최적화
@@ -373,10 +378,8 @@ for (let i = 0; i < urls.length; i += concurrency) {
 }
 
 for (const chunk of chunks) {
-  const promises = chunk.map(url => 
-    testManager.runComprehensiveTest('test', url, testSteps)
-  );
-  
+  const promises = chunk.map((url) => testManager.runComprehensiveTest('test', url, testSteps));
+
   const results = await Promise.all(promises);
   // 결과 처리
 }
@@ -408,11 +411,11 @@ const testSteps = [
   {
     type: 'accessibility' as const,
     name: '접근성 테스트',
-    config: { 
+    config: {
       timeout: 10000, // 10초
-      retryCount: 3   // 3회 재시도
-    }
-  }
+      retryCount: 3, // 3회 재시도
+    },
+  },
 ];
 ```
 
@@ -421,6 +424,7 @@ const testSteps = [
 ### 1. 일반적인 오류
 
 #### MCP 서버 연결 실패
+
 ```bash
 # MCP 서버 상태 확인
 npm run test:mcp
@@ -430,6 +434,7 @@ npm test -- src/__tests__/mcp-enhanced-testing.test.ts
 ```
 
 #### Playwright 브라우저 오류
+
 ```bash
 # 브라우저 재설치
 npx playwright install --with-deps
@@ -439,6 +444,7 @@ echo $PLAYWRIGHT_BROWSERS_PATH
 ```
 
 #### 메모리 부족 오류
+
 ```typescript
 // Node.js 메모리 제한 증가
 // package.json의 test 스크립트에 추가
@@ -451,27 +457,23 @@ export NODE_OPTIONS="--max-old-space-size=4096"
 ### 2. 디버깅 팁
 
 #### 상세 로그 활성화
+
 ```typescript
 // 테스트 실행 시 상세 로그
-const result = await testManager.runComprehensiveTest(
-  'debug-test',
-  url,
-  testSteps,
-  { debug: true, verbose: true }
-);
+const result = await testManager.runComprehensiveTest('debug-test', url, testSteps, {
+  debug: true,
+  verbose: true,
+});
 ```
 
 #### 단계별 실행
+
 ```typescript
 // 개별 단계 실행으로 문제 파악
 for (const step of testSteps) {
   try {
     console.log(`단계 실행 중: ${step.name}`);
-    const stepResult = await testManager.runComprehensiveTest(
-      'step-test',
-      url,
-      [step]
-    );
+    const stepResult = await testManager.runComprehensiveTest('step-test', url, [step]);
     console.log(`단계 결과:`, stepResult);
   } catch (error) {
     console.error(`단계 실패: ${step.name}`, error);
@@ -489,23 +491,23 @@ name: MCP Testing
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   mcp-tests:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-    
-    - run: npm ci
-    - run: npx playwright install --with-deps
-    - run: npm run test:mcp:ci
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - run: npm ci
+      - run: npx playwright install --with-deps
+      - run: npm run test:mcp:ci
 ```
 
 ### 2. 테스트 실행 명령어
@@ -578,7 +580,3 @@ npm test -- --watch
 ---
 
 **💡 팁**: 처음에는 간단한 테스트부터 시작하여 점진적으로 복잡한 시나리오를 추가하는 것을 권장합니다. MCP 서버들의 강력한 기능을 활용하여 웹서비스의 품질을 한 단계 높여보세요!
-
-
-
-

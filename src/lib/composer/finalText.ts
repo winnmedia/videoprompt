@@ -8,13 +8,7 @@ export function formatSceneJson(scene: ScenePrompt): string {
 }
 
 export function composeFinalTextSingle(scene: ScenePrompt): string {
-  return [
-    'CINEMATIC MOVIE PROMPTS',
-    '',
-    'SCENE 1',
-    '',
-    formatSceneJson(scene),
-  ].join('\n\n');
+  return ['CINEMATIC MOVIE PROMPTS', '', 'SCENE 1', '', formatSceneJson(scene)].join('\n\n');
 }
 
 export function composeFinalTextMulti(scenes: ScenePrompt[]): string {
@@ -33,5 +27,3 @@ export function composeFinalTextMulti(scenes: ScenePrompt[]): string {
   });
   return parts.join('\n');
 }
-
-

@@ -4,18 +4,18 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkVeoVideoStatus } from '@/lib/providers/veo';
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: operationId } = await params;
-    
+
     if (!operationId) {
-      return NextResponse.json({ 
-        ok: false, 
-        error: 'MISSING_OPERATION_ID' 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'MISSING_OPERATION_ID',
+        },
+        { status: 400 },
+      );
     }
 
     console.log('DEBUG: Veo status check for operation:', operationId);
@@ -28,20 +28,25 @@ export async function GET(
         operationId: result.operationId,
         videoUrl: result.videoUrl,
         status: result.status,
-        progress: result.progress
+        progress: result.progress,
       });
     } else {
-      return NextResponse.json({
-        ok: false,
-        error: result.error || 'STATUS_CHECK_FAILED'
-      }, { status: 502 });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: result.error || 'STATUS_CHECK_FAILED',
+        },
+        { status: 502 },
+      );
     }
-
   } catch (error) {
     console.error('Veo status check error:', error);
-    return NextResponse.json({ 
-      ok: false, 
-      error: (error as Error).message 
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        ok: false,
+        error: (error as Error).message,
+      },
+      { status: 500 },
+    );
   }
 }

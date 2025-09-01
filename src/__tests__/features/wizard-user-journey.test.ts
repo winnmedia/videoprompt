@@ -10,40 +10,51 @@ describe('Wizard User Journey - LLM Prompt Transformation', () => {
   });
 
   it('이미지용 프롬프트 변환이 올바르게 작동한다', async () => {
-    const mockResponse = { ok: true, json: () => Promise.resolve({ choices: [{ message: { content: 'Static image prompt' } }] }) };
+    const mockResponse = {
+      ok: true,
+      json: () => Promise.resolve({ choices: [{ message: { content: 'Static image prompt' } }] }),
+    };
     (global.fetch as any).mockResolvedValue(mockResponse);
-    
+
     const result = await transformPromptForTarget('A cinematic scene', { target: 'image' });
     expect(result).toBe('Static image prompt');
   });
 
   it('비디오용 프롬프트 변환이 올바르게 작동한다', async () => {
-    const mockResponse = { ok: true, json: () => Promise.resolve({ choices: [{ message: { content: 'Video prompt with motion' } }] }) };
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({ choices: [{ message: { content: 'Video prompt with motion' } }] }),
+    };
     (global.fetch as any).mockResolvedValue(mockResponse);
-    
-    const result = await transformPromptForTarget('A cinematic scene', { 
-      target: 'video', 
-      aspectRatio: '16:9', 
-      duration: 3 
+
+    const result = await transformPromptForTarget('A cinematic scene', {
+      target: 'video',
+      aspectRatio: '16:9',
+      duration: 3,
     });
     expect(result).toBe('Video prompt with motion');
   });
 
   it('Seedance 전용 프롬프트 변환이 올바르게 작동한다', async () => {
-    const mockResponse = { ok: true, json: () => Promise.resolve({ choices: [{ message: { content: 'Optimized video prompt' } }] }) };
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({ choices: [{ message: { content: 'Optimized video prompt' } }] }),
+    };
     (global.fetch as any).mockResolvedValue(mockResponse);
-    
+
     const result = await rewritePromptForSeedance('A cinematic scene', {
       aspectRatio: '21:9',
       duration: 5,
-      style: 'cinematic'
+      style: 'cinematic',
     });
     expect(result).toBe('Optimized video prompt');
   });
 
   it('API 실패 시 원본 프롬프트를 반환한다', async () => {
     (global.fetch as any).mockRejectedValue(new Error('API Error'));
-    
+
     const result = await transformPromptForTarget('Original prompt', { target: 'image' });
     expect(result).toBe('Original prompt');
   });

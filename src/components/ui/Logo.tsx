@@ -33,13 +33,13 @@ export function Logo({ variant = 'icon', size = 'md', className }: LogoProps) {
       src={mainLogoSrc}
       width={imgSize[size]}
       height={imgSize[size]}
-      alt="VideoPlanet"
+      alt="VLANET"
       className="inline-block"
       onError={(e) => {
         const el = e.currentTarget as HTMLImageElement;
         if (!el.dataset.fallback) {
           el.dataset.fallback = '1';
-          el.src = withVer('/logo.svg');
+          el.src = withVer('/w_logo.svg');
         }
       }}
     />
@@ -52,13 +52,13 @@ export function Logo({ variant = 'icon', size = 'md', className }: LogoProps) {
         src={badgeLogoSrc}
         width={imgSize[size]}
         height={imgSize[size]}
-        alt="VideoPlanet Badge"
+        alt="VLANET Badge"
         className={cn('inline-block', className)}
         onError={(e) => {
           const el = e.currentTarget as HTMLImageElement;
           if (!el.dataset.fallback) {
             el.dataset.fallback = '1';
-            el.src = withVer('/logo.svg');
+            el.src = withVer('/b_sb_logo.svg');
           }
         }}
       />

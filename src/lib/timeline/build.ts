@@ -7,8 +7,18 @@ export interface TimelineElement {
 
 export type SfxMode = 'full' | 'lite';
 
-const ACTION_BEATS = ['establish setting and subject', 'inciting event, panic rises', 'pursuit/core action escalates', 'resolution with strong visual punctuation'];
-const SFX_FULL = ['ambient bed, surface details, subtle foley', "shouts, impacts, sharp SFX", 'footsteps, metal clanks, wind gusts', 'spotlight hum, distant siren, low bass swell'];
+const ACTION_BEATS = [
+  'establish setting and subject',
+  'inciting event, panic rises',
+  'pursuit/core action escalates',
+  'resolution with strong visual punctuation',
+];
+const SFX_FULL = [
+  'ambient bed, surface details, subtle foley',
+  'shouts, impacts, sharp SFX',
+  'footsteps, metal clanks, wind gusts',
+  'spotlight hum, distant siren, low bass swell',
+];
 const SFX_LITE = ['ambient', 'impact', 'movement', 'resolve'];
 
 export function buildTimeline(durationSec: number, mode: SfxMode = 'full'): TimelineElement[] {
@@ -24,5 +34,3 @@ export function buildTimeline(durationSec: number, mode: SfxMode = 'full'): Time
   }
   return out;
 }
-
-

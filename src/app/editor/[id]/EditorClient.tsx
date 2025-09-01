@@ -25,9 +25,15 @@ export default function EditorClient({ id }: EditorClientProps) {
     if (typeof window === 'undefined') return [] as string[];
     const p = new URLSearchParams(window.location.search);
     const s = p.get('jobs') || '';
-    return s.split(',').map(v => v.trim()).filter(Boolean);
+    return s
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean);
   }, []);
-  const clientJobActive = useMemo(() => !!(mounted && (jobId || (jobIds && jobIds.length))), [mounted, jobId, jobIds]);
+  const clientJobActive = useMemo(
+    () => !!(mounted && (jobId || (jobIds && jobIds.length))),
+    [mounted, jobId, jobIds],
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -50,23 +56,32 @@ export default function EditorClient({ id }: EditorClientProps) {
   };
 
   // Seedance polling moved to features hook (FSD)
-  const seedanceIdList = useMemo(() => (jobIds.length ? jobIds : (jobId ? [jobId] : [])), [jobId, jobIds]);
+  const seedanceIdList = useMemo(
+    () => (jobIds.length ? jobIds : jobId ? [jobId] : []),
+    [jobId, jobIds],
+  );
   const { statuses: seedanceStatuses } = useSeedancePolling(seedanceIdList);
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+      <div className="border-b bg-white shadow-sm">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
             <div className="flex items-center space-x-4">
               <Icon name="edit" size="lg" className="text-primary-500" />
-              <h1 className="text-2xl font-bold text-gray-900">에디터</h1>
+              <h1 className="text-2xl font-bold text-gray-900">타임라인 에디터</h1>
               <span className="text-sm text-gray-500">프로젝트 ID: {id}</span>
             </div>
             <div className="flex items-center space-x-3">
               {lastPromptRaw && (
-                <Button variant="outline" onClick={handleCopyVeo3} data-testid="editor-copy-veo3" title="최종 프롬프트 복사">
-                  <Icon name="copy" size="sm" className="mr-2" />프롬프트 복사
+                <Button
+                  variant="outline"
+                  onClick={handleCopyVeo3}
+                  data-testid="editor-copy-veo3"
+                  title="최종 프롬프트 복사"
+                >
+                  <Icon name="copy" size="sm" className="mr-2" />
+                  프롬프트 복사
                 </Button>
               )}
             </div>
@@ -74,35 +89,72 @@ export default function EditorClient({ id }: EditorClientProps) {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-8">
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <div className="flex items-center justify-between mb-6">
+          <div className="rounded-lg border bg-white p-6 shadow-sm">
+            <div className="mb-6 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900">Seedance 생성 상태</h2>
-              <div className="text-xs text-gray-500">{jobIds.length ? `Jobs: ${jobIds.join(', ')}` : (jobId ? `Job ID: ${jobId}` : 'Job 없음')}</div>
+              <div className="text-xs text-gray-500">
+                {jobIds.length
+                  ? `Jobs: ${jobIds.join(', ')}`
+                  : jobId
+                    ? `Job ID: ${jobId}`
+                    : 'Job 없음'}
+              </div>
             </div>
 
             {clientJobActive ? (
               jobIds.length ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   {jobIds.map((jid) => (
-                    <div key={jid} className="border rounded p-3 bg-white">
-                      <div className="text-xs text-gray-500 mb-1">{jid}</div>
-                      <div className="w-full bg-gray-200 h-2 rounded overflow-hidden">
-                        <div className="bg-primary-500 h-2" style={{ width: `${Math.min(100, (seedanceStatuses[jid]?.progress ?? 5))}%` }} />
+                    <div key={jid} className="rounded border bg-white p-3">
+                      <div className="mb-1 text-xs text-gray-500">{jid}</div>
+                      <div className="h-2 w-full overflow-hidden rounded bg-gray-200">
+                        <div
+                          className="h-2 bg-primary-500"
+                          style={{
+                            width: `${Math.min(100, seedanceStatuses[jid]?.progress ?? 5)}%`,
+                          }}
+                        />
                       </div>
-                      <div className="mt-2 text-sm text-gray-700">상태: {seedanceStatuses[jid]?.status || 'processing'}{seedanceStatuses[jid]?.progress != null ? ` • ${seedanceStatuses[jid]?.progress}%` : ''}</div>
+                      <div className="mt-2 text-sm text-gray-700">
+                        상태: {seedanceStatuses[jid]?.status || 'processing'}
+                        {seedanceStatuses[jid]?.progress != null
+                          ? ` • ${seedanceStatuses[jid]?.progress}%`
+                          : ''}
+                      </div>
                       <div className="mt-2">
                         {seedanceStatuses[jid]?.videoUrl ? (
                           <>
-                            <video src={seedanceStatuses[jid]?.videoUrl} controls className="w-full rounded border" autoPlay muted />
+                            <video
+                              src={seedanceStatuses[jid]?.videoUrl}
+                              controls
+                              className="w-full rounded border"
+                              autoPlay
+                              muted
+                            />
                             <div className="mt-2 flex items-center gap-2">
-                              <a href={seedanceStatuses[jid]?.videoUrl!} target="_blank" rel="noreferrer" className="text-xs text-primary-600 hover:underline">새 탭에서 열기</a>
-                              <a href={seedanceStatuses[jid]?.videoUrl!} download className="text-xs text-secondary-700 hover:underline">다운로드</a>
+                              <a
+                                href={seedanceStatuses[jid]?.videoUrl!}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-xs text-primary-600 hover:underline"
+                              >
+                                새 탭에서 열기
+                              </a>
+                              <a
+                                href={seedanceStatuses[jid]?.videoUrl!}
+                                download
+                                className="text-xs text-secondary-700 hover:underline"
+                              >
+                                다운로드
+                              </a>
                             </div>
                           </>
                         ) : (
-                          <div className="aspect-video w-full bg-gray-100 rounded border grid place-items-center text-sm text-gray-500">영상 준비 중…</div>
+                          <div className="grid aspect-video w-full place-items-center rounded border bg-gray-100 text-sm text-gray-500">
+                            영상 준비 중…
+                          </div>
                         )}
                       </div>
                     </div>
@@ -110,21 +162,50 @@ export default function EditorClient({ id }: EditorClientProps) {
                 </div>
               ) : (
                 <div>
-                  <div className="w-full bg-gray-200 h-2 rounded overflow-hidden">
-                    <div className="bg-primary-500 h-2" style={{ width: `${Math.min(100, (seedanceStatuses[jobId]?.progress ?? 5))}%` }} />
+                  <div className="h-2 w-full overflow-hidden rounded bg-gray-200">
+                    <div
+                      className="h-2 bg-primary-500"
+                      style={{ width: `${Math.min(100, seedanceStatuses[jobId]?.progress ?? 5)}%` }}
+                    />
                   </div>
-                  <div className="mt-2 text-sm text-gray-700">상태: {seedanceStatuses[jobId]?.status || 'processing'}{seedanceStatuses[jobId]?.progress != null ? ` • ${seedanceStatuses[jobId]?.progress}%` : ''}</div>
+                  <div className="mt-2 text-sm text-gray-700">
+                    상태: {seedanceStatuses[jobId]?.status || 'processing'}
+                    {seedanceStatuses[jobId]?.progress != null
+                      ? ` • ${seedanceStatuses[jobId]?.progress}%`
+                      : ''}
+                  </div>
                   <div className="mt-2">
                     {seedanceStatuses[jobId]?.videoUrl ? (
                       <>
-                        <video src={seedanceStatuses[jobId]?.videoUrl} controls className="w-full rounded border" autoPlay muted />
+                        <video
+                          src={seedanceStatuses[jobId]?.videoUrl}
+                          controls
+                          className="w-full rounded border"
+                          autoPlay
+                          muted
+                        />
                         <div className="mt-2 flex items-center gap-2">
-                          <a href={seedanceStatuses[jobId]?.videoUrl} target="_blank" rel="noreferrer" className="text-sm text-primary-600 hover:underline">새 탭에서 열기</a>
-                          <a href={seedanceStatuses[jobId]?.videoUrl} download className="text-sm text-secondary-700 hover:underline">다운로드</a>
+                          <a
+                            href={seedanceStatuses[jobId]?.videoUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sm text-primary-600 hover:underline"
+                          >
+                            새 탭에서 열기
+                          </a>
+                          <a
+                            href={seedanceStatuses[jobId]?.videoUrl}
+                            download
+                            className="text-sm text-secondary-700 hover:underline"
+                          >
+                            다운로드
+                          </a>
                         </div>
                       </>
                     ) : (
-                      <div className="aspect-video w-full bg-gray-100 rounded border grid place-items-center text-sm text-gray-500">영상 준비 중…</div>
+                      <div className="grid aspect-video w-full place-items-center rounded border bg-gray-100 text-sm text-gray-500">
+                        영상 준비 중…
+                      </div>
                     )}
                   </div>
                 </div>
@@ -140,5 +221,3 @@ export default function EditorClient({ id }: EditorClientProps) {
     </div>
   );
 }
-
-

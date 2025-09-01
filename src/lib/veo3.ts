@@ -1,5 +1,9 @@
 import { ScenePrompt } from '@/types/api';
-import { translateKoreanToEnglish, translateArray, translateWizardContextToEnglish } from '@/lib/i18n';
+import {
+  translateKoreanToEnglish,
+  translateArray,
+  translateWizardContextToEnglish,
+} from '@/lib/i18n';
 import type { WizardLikeContext } from '@/lib/i18n';
 
 // Accept a loose Wizard-like context (some fields optional) and normalize inside
@@ -13,13 +17,13 @@ const joinList = (items?: string[] | null, fallback = 'none') => {
 function translateCameraKoreanToEnglish(label?: string): string | undefined {
   if (!label) return label;
   const map: Record<string, string> = {
-    '와이드': 'wide',
-    '따라가기': 'tracking',
-    'POV': 'POV',
-    '탑뷰': 'top view',
-    '돌리인': 'dolly-in',
-    '롱테이크': 'long take',
-    '핸드헬드': 'handheld',
+    와이드: 'wide',
+    따라가기: 'tracking',
+    POV: 'POV',
+    탑뷰: 'top view',
+    돌리인: 'dolly-in',
+    롱테이크: 'long take',
+    핸드헬드: 'handheld',
     '드론 오비탈': 'drone orbital',
   };
   return map[label] || label;
@@ -65,7 +69,7 @@ export function buildVeo3PromptFromWizard(ctx: WizardContextInput): string {
 
   // keep original text; upstream i18n handles translation
   const toEnglish = (text?: string) => text || '';
-  const description = (enhancedPrompt && enhancedPrompt.trim()) ? enhancedPrompt : scenario;
+  const description = enhancedPrompt && enhancedPrompt.trim() ? enhancedPrompt : scenario;
   const keywords = suggestions && suggestions.length > 0 ? suggestions : [];
 
   return [
@@ -84,18 +88,24 @@ export function buildVeo3PromptFromWizard(ctx: WizardContextInput): string {
     `Scene Description: ${toEnglish(description)}`,
     '',
     // Cinematography & Look
-    (cameraMovement || shotType) ? `Cinematography: ${[cameraMovement, shotType].filter(Boolean).map(toEnglish).join(', ')}` : undefined,
+    cameraMovement || shotType
+      ? `Cinematography: ${[cameraMovement, shotType].filter(Boolean).map(toEnglish).join(', ')}`
+      : undefined,
     lighting ? `Lighting: ${toEnglish(lighting)}` : undefined,
     colorPalette ? `Color Palette: ${toEnglish(colorPalette)}` : undefined,
     soundAmbience ? `Sound Ambience: ${toEnglish(soundAmbience)}` : undefined,
     sfxDensity ? `SFX Density: ${toEnglish(sfxDensity)}` : undefined,
     safetyPreset ? `Safety Preset: ${toEnglish(safetyPreset)}` : undefined,
-    (detailStrength || motionSmoothing || coherence || randomness) ? `Technical: ${[
-      detailStrength && `detail=${toEnglish(detailStrength)}`,
-      motionSmoothing && `motion=${toEnglish(motionSmoothing)}`,
-      coherence && `coherence=${toEnglish(coherence)}`,
-      randomness && `randomness=${toEnglish(randomness)}`,
-    ].filter(Boolean).join(', ')}` : undefined,
+    detailStrength || motionSmoothing || coherence || randomness
+      ? `Technical: ${[
+          detailStrength && `detail=${toEnglish(detailStrength)}`,
+          motionSmoothing && `motion=${toEnglish(motionSmoothing)}`,
+          coherence && `coherence=${toEnglish(coherence)}`,
+          randomness && `randomness=${toEnglish(randomness)}`,
+        ]
+          .filter(Boolean)
+          .join(', ')}`
+      : undefined,
     seed !== undefined && seed !== '' ? `Seed: ${seed}` : undefined,
     '',
     // Elements
@@ -109,7 +119,9 @@ export function buildVeo3PromptFromWizard(ctx: WizardContextInput): string {
     '- Ensure visual clarity with coherent lighting and color palette.',
     '',
     'Output: a single cohesive shot that fits the requested duration and aspect.',
-  ].filter(Boolean).join('\n');
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 export function buildVeo3PromptFromScene(scene: ScenePrompt): string {
@@ -118,20 +130,22 @@ export function buildVeo3PromptFromScene(scene: ScenePrompt): string {
   const style = m.base_style || 'N/A';
   const aspect = m.aspect_ratio || '16:9';
   const camera = translateCameraKoreanToEnglish(m.camera_setup) || 'default';
-  const duration = Array.isArray(scene.timeline) && scene.timeline.length > 0
-    ? (() => {
-        try {
-          const t = scene.timeline[0].timestamp || '00:00-00:02';
-          const parts = t.split('-')[1] || '00:02';
-          const [mm, ss] = parts.split(':').map((v) => parseInt(v, 10));
-          return (mm * 60 + ss) || 2;
-        } catch {
-          return 2;
-        }
-      })()
-    : 2;
+  const duration =
+    Array.isArray(scene.timeline) && scene.timeline.length > 0
+      ? (() => {
+          try {
+            const t = scene.timeline[0].timestamp || '00:00-00:02';
+            const parts = t.split('-')[1] || '00:02';
+            const [mm, ss] = parts.split(':').map((v) => parseInt(v, 10));
+            return mm * 60 + ss || 2;
+          } catch {
+            return 2;
+          }
+        })()
+      : 2;
 
-  const description = scene.text && scene.text !== 'none' ? String(scene.text) : (scene.assembled_elements?.[0] || '');
+  const description =
+    scene.text && scene.text !== 'none' ? String(scene.text) : scene.assembled_elements?.[0] || '';
   const keywords = Array.isArray(scene.keywords) ? scene.keywords : [];
 
   return [
@@ -149,7 +163,7 @@ export function buildVeo3PromptFromScene(scene: ScenePrompt): string {
     '- Ensure visual clarity with coherent lighting and color palette.',
     '',
     'Output: a single cohesive shot that fits the requested duration and aspect.',
-  ].filter(Boolean).join('\n');
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
-
-

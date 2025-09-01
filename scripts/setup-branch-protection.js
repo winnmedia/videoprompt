@@ -10,11 +10,11 @@ const readline = require('readline');
 
 const rl = readline.createInterface({
   input: process.stdin,
-  output: process.stdout
+  output: process.stdout,
 });
 
 function question(query) {
-  return new Promise(resolve => rl.question(query, resolve));
+  return new Promise((resolve) => rl.question(query, resolve));
 }
 
 async function setupBranchProtection() {
@@ -39,7 +39,7 @@ async function setupBranchProtection() {
 
     // main 브랜치 보호 규칙
     await setupMainBranchProtection(octokit, owner, repo);
-    
+
     // develop 브랜치 보호 규칙
     await setupDevelopBranchProtection(octokit, owner, repo);
 
@@ -47,7 +47,6 @@ async function setupBranchProtection() {
     console.log('\n📋 설정된 규칙:');
     console.log('   • main: 모든 MCP 테스트 + 2명 리뷰 필수');
     console.log('   • develop: 기본 MCP 테스트 + 1명 리뷰 필수');
-
   } catch (error) {
     console.error('❌ 설정 중 오류 발생:', error.message);
     process.exit(1);
@@ -69,21 +68,21 @@ async function setupMainBranchProtection(octokit, owner, repo) {
           'MCP Unit Tests (20.x)',
           'MCP Integration Tests',
           'MCP Real Website Tests',
-          'MCP Performance Tests'
-        ]
+          'MCP Performance Tests',
+        ],
       },
       enforce_admins: true,
       required_pull_request_reviews: {
         required_approving_review_count: 2,
         dismiss_stale_reviews: true,
         require_code_owner_reviews: true,
-        require_last_push_approval: true
+        require_last_push_approval: true,
       },
       restrictions: null,
       allow_force_pushes: false,
       allow_deletions: false,
       block_creations: false,
-      required_conversation_resolution: true
+      required_conversation_resolution: true,
     });
 
     console.log('✅ main 브랜치 보호 규칙 설정 완료');
@@ -100,24 +99,20 @@ async function setupDevelopBranchProtection(octokit, owner, repo) {
       branch: 'develop',
       required_status_checks: {
         strict: true,
-        contexts: [
-          'MCP Unit Tests (18.x)',
-          'MCP Unit Tests (20.x)',
-          'MCP Integration Tests'
-        ]
+        contexts: ['MCP Unit Tests (18.x)', 'MCP Unit Tests (20.x)', 'MCP Integration Tests'],
       },
       enforce_admins: false,
       required_pull_request_reviews: {
         required_approving_review_count: 1,
         dismiss_stale_reviews: true,
         require_code_owner_reviews: false,
-        require_last_push_approval: false
+        require_last_push_approval: false,
       },
       restrictions: null,
       allow_force_pushes: false,
       allow_deletions: false,
       block_creations: false,
-      required_conversation_resolution: true
+      required_conversation_resolution: true,
     });
 
     console.log('✅ develop 브랜치 보호 규칙 설정 완료');
@@ -132,7 +127,3 @@ if (require.main === module) {
 }
 
 module.exports = { setupBranchProtection };
-
-
-
-

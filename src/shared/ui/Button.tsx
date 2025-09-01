@@ -8,8 +8,10 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: 'bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800',
-        secondary: 'bg-secondary-100 text-secondary-900 hover:bg-secondary-200 active:bg-secondary-300',
-        outline: 'border border-secondary-300 bg-transparent hover:bg-secondary-50 active:bg-secondary-100',
+        secondary:
+          'bg-secondary-100 text-secondary-900 hover:bg-secondary-200 active:bg-secondary-300',
+        outline:
+          'border border-secondary-300 bg-transparent hover:bg-secondary-50 active:bg-secondary-100',
         ghost: 'hover:bg-secondary-100 active:bg-secondary-200',
         destructive: 'bg-danger-600 text-white hover:bg-danger-700 active:bg-danger-800',
         success: 'bg-success-600 text-white hover:bg-success-700 active:bg-success-800',
@@ -28,7 +30,7 @@ const buttonVariants = cva(
       variant: 'default',
       size: 'default',
     },
-  }
+  },
 );
 
 export interface ButtonProps
@@ -41,7 +43,10 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, loading, leftIcon, rightIcon, children, disabled, ...props }, ref) => {
+  (
+    { className, variant, size, loading, leftIcon, rightIcon, children, disabled, ...props },
+    ref,
+  ) => {
     const isDisabled = disabled || loading;
 
     return (
@@ -78,10 +83,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {!loading && rightIcon && <span className="ml-2">{rightIcon}</span>}
       </button>
     );
-  }
+  },
 );
 
 Button.displayName = 'Button';
 
 export { Button, buttonVariants };
-

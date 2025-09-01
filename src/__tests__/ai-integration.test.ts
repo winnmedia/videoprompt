@@ -7,11 +7,11 @@ describe('AI Integration Tests', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Mock environment variables directly
     process.env.OPENAI_API_KEY = 'test-openai-key';
     process.env.GOOGLE_GEMINI_API_KEY = 'test-gemini-key';
-    
+
     aiManager = createAIServiceManager();
   });
 
@@ -33,15 +33,17 @@ describe('AI Integration Tests', () => {
     it('should generate scene prompt successfully', async () => {
       // Given: OpenAI API가 정상 응답
       const mockResponse = {
-        choices: [{
-          message: {
-            content: JSON.stringify({
-              enhancedPrompt: '따뜻한 부엌에서 아이가 쿠키를 만드는 장면',
-              suggestions: ['부엌', '쿠키', '아이'],
-              metadata: { duration: 30, theme: '따뜻함' }
-            })
-          }
-        }]
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                enhancedPrompt: '따뜻한 부엌에서 아이가 쿠키를 만드는 장면',
+                suggestions: ['부엌', '쿠키', '아이'],
+                metadata: { duration: 30, theme: '따뜻함' },
+              }),
+            },
+          },
+        ],
       };
 
       (global.fetch as any).mockResolvedValueOnce(createMockResponse(mockResponse));
@@ -52,7 +54,7 @@ describe('AI Integration Tests', () => {
         theme: '따뜻함',
         style: '자연스러운',
         aspectRatio: '16:9',
-        duration: 30
+        duration: 30,
       });
 
       // Then: 성공적인 응답
@@ -67,7 +69,7 @@ describe('AI Integration Tests', () => {
 
       // When: 오류 상황에서 장면 생성 시도
       const result = await aiManager.generateScenePrompt({
-        prompt: '테스트 장면'
+        prompt: '테스트 장면',
       });
 
       // Then: 오류 처리
@@ -81,17 +83,21 @@ describe('AI Integration Tests', () => {
       // Given: Gemini API가 정상 응답
       const mockResponse = {
         ok: true,
-        candidates: [{
-          content: {
-            parts: [{
-              text: JSON.stringify({
-                enhancedPrompt: '맑은 바다에서 아이가 수영하는 장면',
-                suggestions: ['바다', '수영', '아이'],
-                metadata: { duration: 45, theme: '자연' }
-              })
-            }]
-          }
-        }]
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text: JSON.stringify({
+                    enhancedPrompt: '맑은 바다에서 아이가 수영하는 장면',
+                    suggestions: ['바다', '수영', '아이'],
+                    metadata: { duration: 45, theme: '자연' },
+                  }),
+                },
+              ],
+            },
+          },
+        ],
       };
 
       (global.fetch as any).mockResolvedValueOnce(createMockResponse(mockResponse));
@@ -102,7 +108,7 @@ describe('AI Integration Tests', () => {
         theme: '자연',
         style: '밝은',
         aspectRatio: '16:9',
-        duration: 45
+        duration: 45,
       });
 
       // Then: 성공적인 응답
@@ -118,7 +124,7 @@ describe('AI Integration Tests', () => {
       // When: 오류 상황에서 장면 생성 시도
       const result = await aiManager.generateScenePrompt({
         prompt: '테스트 장면',
-        preferredService: 'gemini'
+        preferredService: 'gemini',
       });
 
       // Then: 오류 처리
@@ -132,23 +138,29 @@ describe('AI Integration Tests', () => {
       // Given: OpenAI 실패, Gemini 성공
       (global.fetch as any)
         .mockResolvedValueOnce(createMockError('Rate limit exceeded', 429))
-        .mockResolvedValueOnce(createMockResponse({
-          candidates: [{
-            content: {
-              parts: [{
-                text: JSON.stringify({
-                  enhancedPrompt: 'Gemini fallback 응답',
-                  suggestions: ['fallback'],
-                  metadata: {}
-                })
-              }]
-            }
-          }]
-        }));
+        .mockResolvedValueOnce(
+          createMockResponse({
+            candidates: [
+              {
+                content: {
+                  parts: [
+                    {
+                      text: JSON.stringify({
+                        enhancedPrompt: 'Gemini fallback 응답',
+                        suggestions: ['fallback'],
+                        metadata: {},
+                      }),
+                    },
+                  ],
+                },
+              },
+            ],
+          }),
+        );
 
       // When: OpenAI 실패 후 Gemini fallback
       const result = await aiManager.generateScenePrompt({
-        prompt: 'fallback 테스트'
+        prompt: 'fallback 테스트',
       });
 
       // Then: Gemini fallback 성공
@@ -160,22 +172,26 @@ describe('AI Integration Tests', () => {
       // Given: Gemini 실패, OpenAI 성공
       (global.fetch as any)
         .mockResolvedValueOnce(createMockError('Internal server error', 500))
-        .mockResolvedValueOnce(createMockResponse({
-          choices: [{
-            message: {
-              content: JSON.stringify({
-                enhancedPrompt: 'OpenAI fallback 응답',
-                suggestions: ['fallback'],
-                metadata: {}
-              })
-            }
-          }]
-        }));
+        .mockResolvedValueOnce(
+          createMockResponse({
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify({
+                    enhancedPrompt: 'OpenAI fallback 응답',
+                    suggestions: ['fallback'],
+                    metadata: {},
+                  }),
+                },
+              },
+            ],
+          }),
+        );
 
       // When: Gemini 실패 후 OpenAI fallback
       const result = await aiManager.generateScenePrompt({
         prompt: 'fallback 테스트',
-        preferredService: 'gemini'
+        preferredService: 'gemini',
       });
 
       // Then: OpenAI fallback 성공
@@ -190,13 +206,17 @@ describe('AI Integration Tests', () => {
       const existingPrompt = '아이가 쿠키를 만듦';
       const feedback = '더 구체적으로 만들어주세요';
 
-      (global.fetch as any).mockResolvedValueOnce(createMockResponse({
-        choices: [{
-          message: {
-            content: '아이가 부엌에서 쿠키 반죽을 만드는 구체적인 장면'
-          }
-        }]
-      }));
+      (global.fetch as any).mockResolvedValueOnce(
+        createMockResponse({
+          choices: [
+            {
+              message: {
+                content: '아이가 부엌에서 쿠키 반죽을 만드는 구체적인 장면',
+              },
+            },
+          ],
+        }),
+      );
 
       // When: 프롬프트 개선
       const result = await aiManager.enhancePrompt(existingPrompt, feedback);
@@ -214,7 +234,7 @@ describe('AI Integration Tests', () => {
 
       // When: 네트워크 오류 상황에서 요청
       const result = await aiManager.generateScenePrompt({
-        prompt: '네트워크 테스트'
+        prompt: '네트워크 테스트',
       });
 
       // Then: 적절한 오류 처리
@@ -224,17 +244,21 @@ describe('AI Integration Tests', () => {
 
     it('should handle invalid JSON responses', async () => {
       // Given: 잘못된 JSON 응답
-      (global.fetch as any).mockResolvedValueOnce(createMockResponse({
-        choices: [{
-          message: {
-            content: 'Invalid JSON response'
-          }
-        }]
-      }));
+      (global.fetch as any).mockResolvedValueOnce(
+        createMockResponse({
+          choices: [
+            {
+              message: {
+                content: 'Invalid JSON response',
+              },
+            },
+          ],
+        }),
+      );
 
       // When: 잘못된 JSON 처리
       const result = await aiManager.generateScenePrompt({
-        prompt: 'JSON 테스트'
+        prompt: 'JSON 테스트',
       });
 
       // Then: 텍스트로 처리

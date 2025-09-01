@@ -16,10 +16,7 @@ export interface UseSeedancePollingOptions {
  * Seedance 작업 ID 목록에 대한 상태 폴링 훅 (결정론적 백오프 포함)
  * Public API: features/seedance/status
  */
-export function useSeedancePolling(
-  jobIds: string[],
-  options: UseSeedancePollingOptions = {}
-) {
+export function useSeedancePolling(jobIds: string[], options: UseSeedancePollingOptions = {}) {
   const [statuses, setStatuses] = useState<Record<string, SeedanceStatus>>({});
   const [error, setError] = useState<string | null>(null);
 
@@ -45,7 +42,7 @@ export function useSeedancePolling(
         const res = await fetch(`/api/seedance/status/${encodeURIComponent(id)}`);
         const json = await res.json();
         if (!cancelRef.current) {
-          setStatuses(prev => ({
+          setStatuses((prev) => ({
             ...prev,
             [id]: {
               status: json.status,
@@ -73,10 +70,12 @@ export function useSeedancePolling(
       if (timerRef.current) clearTimeout(timerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(jobIds), options.initialIntervalMs, options.maxIntervalMs, options.backoffFactor]);
+  }, [
+    JSON.stringify(jobIds),
+    options.initialIntervalMs,
+    options.maxIntervalMs,
+    options.backoffFactor,
+  ]);
 
   return { statuses, error } as const;
 }
-
-
-

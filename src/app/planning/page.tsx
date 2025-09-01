@@ -21,21 +21,57 @@ interface VideoItem {
   provider: 'seedance' | 'veo3' | 'mock';
   duration: number;
   aspectRatio: string;
+  codec?: string;
+  version?: string;
   status: 'queued' | 'processing' | 'completed' | 'failed';
   videoUrl?: string;
   thumbnailUrl?: string;
+  refPromptTitle?: string;
   createdAt: string;
   completedAt?: string;
   jobId?: string;
 }
 
+interface ScenarioItem {
+  id: string;
+  title: string;
+  version: string;
+  author: string;
+  updatedAt: string;
+  hasFourStep: boolean;
+  hasTwelveShot: boolean;
+  pdfUrl?: string;
+}
+
+interface PromptItem {
+  id: string;
+  scenarioTitle: string;
+  version: string;
+  keywordCount: number;
+  segmentCount: number;
+  updatedAt: string;
+}
+
+interface ImageAsset {
+  id: string;
+  type: '콘티' | '인서트';
+  tags: string[];
+  resolution: string;
+  uploader: string;
+  uploadedAt: string;
+  url?: string;
+}
+
 export default function PlanningPage() {
-  const [activeTab, setActiveTab] = useState<'plans' | 'videos'>('plans');
+  const [activeTab, setActiveTab] = useState<'scenario' | 'prompt' | 'image' | 'video'>('scenario');
   const [planningItems, setPlanningItems] = useState<PlanningItem[]>([]);
+  const [scenarioItems, setScenarioItems] = useState<ScenarioItem[]>([]);
+  const [promptItems, setPromptItems] = useState<PromptItem[]>([]);
+  const [imageItems, setImageItems] = useState<ImageAsset[]>([]);
   const [videoItems, setVideoItems] = useState<VideoItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
-  
+
   // 검색 및 필터링 상태
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -46,51 +82,118 @@ export default function PlanningPage() {
   const [viewingItem, setViewingItem] = useState<PlanningItem | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [viewMode, setViewMode] = useState(false);
-  
+
   // 새 기획안 생성 모드 상태
   const [createMode, setCreateMode] = useState(false);
   const [newItem, setNewItem] = useState<Partial<PlanningItem>>({
     title: '',
     description: '',
     type: 'scenario',
-    status: 'draft'
+    status: 'draft',
   });
 
-  // 샘플 데이터 로드
+  // 샘플 데이터 로드 → 서버 연동으로 대체(MVP: 시나리오/프롬프트/영상 목록)
   useEffect(() => {
-    loadSampleData();
+    (async () => {
+      try {
+        setLoading(true);
+        const [scRes, vaRes, prRes] = await Promise.all([
+          fetch('/api/planning/scenarios'),
+          fetch('/api/planning/video-assets'),
+          fetch('/api/planning/prompt'),
+        ]);
+        const scJson = scRes.ok ? await scRes.json() : { ok: false };
+        const vaJson = vaRes.ok ? await vaRes.json() : { ok: false };
+        const prJson = prRes.ok ? await prRes.json() : { ok: false };
+        if (scJson?.ok && Array.isArray(scJson.data)) {
+          setScenarioItems(scJson.data);
+        }
+        if (vaJson?.ok && Array.isArray(vaJson.data)) {
+          setVideoItems(vaJson.data);
+        }
+        if (prJson?.ok && Array.isArray(prJson.data)) {
+          const mapped = prJson.data.map((p: any) => ({
+            id: p.id,
+            scenarioTitle: p.metadata?.title || '시나리오',
+            version: `V${p.version}`,
+            keywordCount: Array.isArray(p.metadata?.keywords) ? p.metadata.keywords.length : 0,
+            segmentCount: Array.isArray(p.timeline) ? p.timeline.length : 0,
+            updatedAt: p.createdAt,
+          }));
+          setPromptItems(mapped);
+        }
+        if (!scJson?.ok || !vaJson?.ok) {
+          loadSampleData();
+        }
+      } catch {
+        loadSampleData();
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   const loadSampleData = () => {
-    // 샘플 기획안 데이터
-    const samplePlans: PlanningItem[] = [
+    const sampleScenarios: ScenarioItem[] = [
       {
-        id: '1',
-        title: '산맥 위의 일몰 영상',
-        description: '아름다운 산맥 위로 지는 태양을 담은 5초 영상',
-        createdAt: '2024-01-15T10:30:00Z',
-        status: 'completed',
-        type: 'video'
-      },
-      {
-        id: '2',
-        title: '바다 파도 영상',
-        description: '깊은 파란 바다의 파도를 담은 8초 영상',
-        createdAt: '2024-01-14T15:45:00Z',
-        status: 'completed',
-        type: 'video'
-      },
-      {
-        id: '3',
+        id: 's1',
         title: '마법의 숲 시나리오',
-        description: '빛나는 버섯이 있는 마법의 숲을 배경으로 한 시나리오',
-        createdAt: '2024-01-13T09:20:00Z',
-        status: 'draft',
-        type: 'scenario'
-      }
+        version: 'V3',
+        author: '홍길동',
+        updatedAt: '2024-01-16T11:20:00Z',
+        hasFourStep: true,
+        hasTwelveShot: true,
+        pdfUrl: '#',
+      },
+      {
+        id: 's2',
+        title: '산맥 위의 일몰 시나리오',
+        version: 'V1',
+        author: '이영희',
+        updatedAt: '2024-01-15T09:05:00Z',
+        hasFourStep: true,
+        hasTwelveShot: false,
+      },
     ];
 
-    // 샘플 영상 데이터
+    const samplePrompts: PromptItem[] = [
+      {
+        id: 'p1',
+        scenarioTitle: '마법의 숲 시나리오',
+        version: 'V3',
+        keywordCount: 12,
+        segmentCount: 8,
+        updatedAt: '2024-01-16T12:00:00Z',
+      },
+      {
+        id: 'p2',
+        scenarioTitle: '산맥 위의 일몰 시나리오',
+        version: 'V1',
+        keywordCount: 9,
+        segmentCount: 6,
+        updatedAt: '2024-01-15T10:10:00Z',
+      },
+    ];
+
+    const sampleImages: ImageAsset[] = [
+      {
+        id: 'img1',
+        type: '콘티',
+        tags: ['숲', '밤', '버섯'],
+        resolution: '1920x1080',
+        uploader: '홍길동',
+        uploadedAt: '2024-01-14T08:45:00Z',
+      },
+      {
+        id: 'img2',
+        type: '인서트',
+        tags: ['산맥', '일몰'],
+        resolution: '1080x1920',
+        uploader: '이영희',
+        uploadedAt: '2024-01-13T14:20:00Z',
+      },
+    ];
+
     const sampleVideos: VideoItem[] = [
       {
         id: 'v1',
@@ -99,12 +202,16 @@ export default function PlanningPage() {
         provider: 'seedance',
         duration: 5,
         aspectRatio: '16:9',
+        codec: 'H.264',
+        version: 'V1',
         status: 'completed',
+        refPromptTitle: '산맥 일몰 프롬프트',
         videoUrl: 'https://example.com/video1.mp4',
-        thumbnailUrl: 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNjAiIGhlaWdodD0iOTAiIHZpZXdCb3g9IjAgMCAxNjAgOTAiPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNGRjZCMzU7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iNTAlIiBzdHlsZT0ic3RvcC1jb2xvcjojRjc5MzFFO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNGRkQyM0Y7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxjaXJjbGUgY3g9IjEyMCIgY3k9IjIwIiByPSIxNSIgZmlsbD0iI0ZGRDIzRiIvPgogIDxwb2x5Z29uIHBvaW50cz0iMTYsNjMgNDgsMzYgODAsNTQgMTEyLDQ2IDE0NCw2MyIgZmlsbD0iIzJEMzc0OCIvPgogIDx0ZXh0IHg9IjgwIiB5PSI3NSIgZmlsbD0id2hpdGUiIGZvbnQtc2l6ZT0iOCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+5LiA6Ie06rO8PC90ZXh0Pgo8L3N2Zz4=',
+        thumbnailUrl:
+          'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNjAiIGhlaWdodD0iOTAiIHZpZXdCb3g9IjAgMCAxNjAgOTAiPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNGRjZCMzU7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iNTAlIiBzdHlsZT0ic3RvcC1jb2xvcjojRjc5MzFFO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNGRkQyM0Y7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxjaXJjbGUgY3g9IjEyMCIgY3k9IjIwIiByPSIxNSIgZmlsbD0iI0ZGRDIzRiIvPgogIDxwb2x5Z29uIHBvaW50cz0iMTYsNjMgNDgsMzYgODAsNTQgMTEyLDQ2IDE0NCw2MyIgZmlsbD0iIzJEMzc0OCIvPgogIDx0ZXh0IHg9IjgwIiB5PSI3NSIgZmlsbD0id2hpdGUiIGZvbnQtc2l6ZT0iOCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+5LiA6Ie06rO8PC90ZXh0Pgo8L3N2Zz4=',
         createdAt: '2024-01-15T10:30:00Z',
         completedAt: '2024-01-15T10:35:00Z',
-        jobId: 'cgt-20250825112943-ckpns'
+        jobId: 'cgt-20250825112943-ckpns',
       },
       {
         id: 'v2',
@@ -113,62 +220,73 @@ export default function PlanningPage() {
         provider: 'seedance',
         duration: 8,
         aspectRatio: '9:16',
+        codec: 'H.265',
+        version: 'V2',
         status: 'completed',
+        refPromptTitle: '바다 파도 프롬프트',
         videoUrl: 'https://example.com/video2.mp4',
-        thumbnailUrl: 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5MCIgaGVpZ2h0PSIxNjAiIHZpZXdCb3g9IjAgMCA5MCAxNjAiPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMzMTgyQ0U7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iNTAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNDI5OUUxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM2M0IzRUQ7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxyZWN0IHg9IjAiIHk9Ijk2IiB3aWR0aD0iOTAiIGhlaWdodD0iNjQiIGZpbGw9IiMzMTgyQ0UiLz4KICA8dGV4dCB4PSI0NSIgeT0iMTQwIiBmaWxsPSJ3aGl0ZSIgZm9udC1zaXplPSI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7rs7TsnbQ8L3RleHQ+Cjwvc3ZnPg==',
+        thumbnailUrl:
+          'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5MCIgaGVpZ2h0PSIxNjAiIHZpZXdCb3g9IjAgMCA5MCAxNjAiPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMzMTgyQ0U7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iNTAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNDI5OUUxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM2M0IzRUQ7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxyZWN0IHg9IjAiIHk9Ijk2IiB3aWR0aD0iOTAiIGhlaWdodD0iNjQiIGZpbGw9IiMzMTgyQ0UiLz4KICA8dGV4dCB4PSI0NSIgeT0iMTQwIiBmaWxsPSJ3aGl0ZSIgZm9udC1zaXplPSI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7rs7TsnbQ8L3RleHQ+Cjwvc3ZnPg==',
         createdAt: '2024-01-14T15:45:00Z',
         completedAt: '2024-01-14T15:53:00Z',
-        jobId: 'cgt-20250825112952-pb2rp'
+        jobId: 'cgt-20250825112952-pb2rp',
       },
-      {
-        id: 'v3',
-        title: '마법의 숲',
-        prompt: 'a magical forest with glowing mushrooms',
-        provider: 'mock',
-        duration: 10,
-        aspectRatio: '21:9',
-        status: 'completed',
-        videoUrl: 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMTAwIiBoZWlnaHQ9IjkwMCIgdmlld0JveD0iMCAwIDIxMDAgOTAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjI1NDNEO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjUwJSIgc3R5bGU9InN0b3AtY29sb3I6IzM4QTE2OTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNjhEMzkxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNiZykiLz4KICA8dGV4dCB4PSIxMDUwIiB5PSI0NTAiIGZpbGw9IndoaXRlIiBmb250LXNpemU9IjI3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7kuIDoh7Tqs7w8L3RleHQ+Cjwvc3ZnPg==',
-        thumbnailUrl: 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMTAiIGhlaWdodD0iOTAiIHZpZXdCb3g9IjAgMCAyMTAgOTAiPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyMjU0M0Q7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iNTAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMzhBMTY5O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM2OEQzOTE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDx0ZXh0IHg9IjEwNSIgeT0iNzUiIGZpbGw9IndoaXRlIiBmb250LXNpemU9IjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuyYgeyDgTwvdGV4dD4KPC9zdmc+',
-        createdAt: '2024-01-13T09:20:00Z',
-        completedAt: '2024-01-13T09:20:00Z'
-      }
     ];
 
-    setPlanningItems(samplePlans);
+    setScenarioItems(sampleScenarios);
+    setPromptItems(samplePrompts);
+    setImageItems(sampleImages);
     setVideoItems(sampleVideos);
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'text-green-600 bg-green-100';
-      case 'in-progress': return 'text-blue-600 bg-blue-100';
-      case 'draft': return 'text-gray-600 bg-gray-100';
-      case 'queued': return 'text-yellow-600 bg-yellow-100';
-      case 'processing': return 'text-blue-600 bg-blue-100';
-      case 'failed': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
+      case 'completed':
+        return 'text-green-600 bg-green-100';
+      case 'in-progress':
+        return 'text-blue-600 bg-blue-100';
+      case 'draft':
+        return 'text-gray-600 bg-gray-100';
+      case 'queued':
+        return 'text-yellow-600 bg-yellow-100';
+      case 'processing':
+        return 'text-blue-600 bg-blue-100';
+      case 'failed':
+        return 'text-red-600 bg-red-100';
+      default:
+        return 'text-gray-600 bg-gray-100';
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'completed': return '완료';
-      case 'in-progress': return '진행중';
-      case 'draft': return '초안';
-      case 'queued': return '대기중';
-      case 'processing': return '처리중';
-      case 'failed': return '실패';
-      default: return status;
+      case 'completed':
+        return '완료';
+      case 'in-progress':
+        return '진행중';
+      case 'draft':
+        return '초안';
+      case 'queued':
+        return '대기중';
+      case 'processing':
+        return '처리중';
+      case 'failed':
+        return '실패';
+      default:
+        return status;
     }
   };
 
   const getProviderIcon = (provider: string) => {
     switch (provider) {
-      case 'seedance': return 'Video';
-      case 'veo3': return 'Video';
-      case 'mock': return 'Mock';
-      default: return 'Video';
+      case 'seedance':
+        return 'Video';
+      case 'veo3':
+        return 'Video';
+      case 'mock':
+        return 'Mock';
+      default:
+        return 'Video';
     }
   };
 
@@ -178,7 +296,7 @@ export default function PlanningPage() {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
@@ -210,10 +328,8 @@ export default function PlanningPage() {
 
   const handleSaveEdit = () => {
     if (editingItem) {
-      setPlanningItems(prev => 
-        prev.map(item => 
-          item.id === editingItem.id ? editingItem : item
-        )
+      setPlanningItems((prev) =>
+        prev.map((item) => (item.id === editingItem.id ? editingItem : item)),
       );
       setEditMode(false);
       setEditingItem(null);
@@ -237,7 +353,7 @@ export default function PlanningPage() {
       title: '',
       description: '',
       type: 'scenario',
-      status: 'draft'
+      status: 'draft',
     });
   };
 
@@ -249,16 +365,16 @@ export default function PlanningPage() {
         description: newItem.description,
         type: newItem.type as any,
         status: newItem.status as any,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
-      
-      setPlanningItems(prev => [newPlanningItem, ...prev]);
+
+      setPlanningItems((prev) => [newPlanningItem, ...prev]);
       setCreateMode(false);
       setNewItem({
         title: '',
         description: '',
         type: 'scenario',
-        status: 'draft'
+        status: 'draft',
       });
     }
   };
@@ -269,39 +385,40 @@ export default function PlanningPage() {
       title: '',
       description: '',
       type: 'scenario',
-      status: 'draft'
+      status: 'draft',
     });
   };
 
   // 기획안 삭제 핸들러
   const handleDelete = (itemId: string) => {
     if (confirm('정말로 이 기획안을 삭제하시겠습니까?')) {
-      setPlanningItems(prev => prev.filter(item => item.id !== itemId));
+      setPlanningItems((prev) => prev.filter((item) => item.id !== itemId));
     }
   };
 
   // 필터링된 기획안 목록 계산
-  const filteredPlanningItems = planningItems.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.description.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredPlanningItems = planningItems.filter((item) => {
+    const matchesSearch =
+      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
     const matchesType = typeFilter === 'all' || item.type === typeFilter;
-    
+
     return matchesSearch && matchesStatus && matchesType;
   });
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* 헤더 */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+      <header className="border-b bg-white shadow-sm">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
             <Logo size="lg" />
-            <nav className="hidden md:flex items-center space-x-8">
-              <a href="/" className="text-gray-700 hover:text-primary-600 font-medium">
+            <nav className="hidden items-center space-x-8 md:flex">
+              <a href="/" className="font-medium text-gray-700 hover:text-primary-600">
                 홈
               </a>
-              <a href="/wizard" className="text-gray-700 hover:text-primary-600 font-medium">
+              <a href="/wizard" className="font-medium text-gray-700 hover:text-primary-600">
                 AI 영상 생성
               </a>
             </nav>
@@ -315,387 +432,399 @@ export default function PlanningPage() {
       </header>
 
       {/* 메인 콘텐츠 */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">기획안 관리</h1>
           <p className="mt-2 text-gray-600">AI로 생성된 기획안과 영상을 관리하고 확인하세요</p>
         </div>
 
         {/* 탭 네비게이션 */}
-        <div className="border-b border-gray-200 mb-8">
-          <nav className="-mb-px flex space-x-8">
+        <div className="mb-8 border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8" role="tablist">
             <button
-              onClick={() => setActiveTab('plans')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'plans'
+              data-testid="tab-scenario"
+              onClick={() => setActiveTab('scenario')}
+              className={`border-b-2 px-1 py-2 text-sm font-medium ${
+                activeTab === 'scenario'
                   ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
               }`}
             >
-              기획안 목록 ({planningItems.length})
+              AI 시나리오 ({scenarioItems.length})
             </button>
             <button
-              onClick={() => setActiveTab('videos')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'videos'
+              data-testid="tab-prompt"
+              onClick={() => setActiveTab('prompt')}
+              className={`border-b-2 px-1 py-2 text-sm font-medium ${
+                activeTab === 'prompt'
                   ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
               }`}
             >
-              영상 수집 ({videoItems.length})
+              프롬프트 ({promptItems.length})
+            </button>
+            <button
+              data-testid="tab-image"
+              onClick={() => setActiveTab('image')}
+              className={`border-b-2 px-1 py-2 text-sm font-medium ${
+                activeTab === 'image'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+              }`}
+            >
+              이미지 ({imageItems.length})
+            </button>
+            <button
+              data-testid="tab-video"
+              onClick={() => setActiveTab('video')}
+              className={`border-b-2 px-1 py-2 text-sm font-medium ${
+                activeTab === 'video'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+              }`}
+            >
+              영상 ({videoItems.length})
             </button>
           </nav>
         </div>
 
-        {/* 기획안 목록 탭 */}
-        {activeTab === 'plans' && (
-          <div className="card">
-            <div className="px-6 py-4 border-b border-border">
-              <div className="flex justify-between items-center">
-                <h2 className="text-lg font-medium text-text">기획안 목록</h2>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-text-lighter">
-                    총 {filteredPlanningItems.length}개
-                  </span>
-                  <div className="flex items-center space-x-2">
-                    <Button 
-                      onClick={() => window.location.href = '/planning/create'}
-                      size="sm" 
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      🎬 영상 기획
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleCreateNew}
-                      className="btn-secondary"
-                    >
-                      <Icon name="plus" size="sm" />
-                      간단 기획안
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              
-              {/* 검색 및 필터링 */}
-              <div className="mt-4 space-y-3">
-                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
-                  <div className="flex-1">
-                    <div className="relative">
-                      <Icon 
-                        name="search" 
-                        size="sm" 
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-lighter"
-                      />
-                      <input
-                        type="text"
-                        placeholder="기획안 검색..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="input-primary pl-10"
-                      />
-                    </div>
-                  </div>
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
-                  >
-                    <option value="all">모든 상태</option>
-                    <option value="draft">초안</option>
-                    <option value="in-progress">진행중</option>
-                    <option value="completed">완료</option>
-                  </select>
-                  <select
-                    value={typeFilter}
-                    onChange={(e) => setTypeFilter(e.target.value)}
-                    className="px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
-                  >
-                    <option value="all">모든 타입</option>
-                    <option value="scenario">시나리오</option>
-                    <option value="video">영상</option>
-                    <option value="image">이미지</option>
-                  </select>
-                </div>
-                
-                {/* 필터 결과 표시 */}
-                {(searchTerm || statusFilter !== 'all' || typeFilter !== 'all') && (
-                  <div className="flex items-center space-x-2 text-sm text-text-light">
-                    <span>필터링 결과:</span>
-                    {searchTerm && (
-                      <span className="bg-primary/10 text-primary px-2 py-1 rounded-full text-xs">
-                        검색: "{searchTerm}"
-                      </span>
-                    )}
-                    {statusFilter !== 'all' && (
-                      <span className="bg-green-100 text-green-600 px-2 py-1 rounded-full text-xs">
-                        상태: {getStatusText(statusFilter)}
-                      </span>
-                    )}
-                    {typeFilter !== 'all' && (
-                      <span className="bg-primary-50 text-primary-500 px-2 py-1 rounded-full text-xs">
-                        타입: {typeFilter}
-                      </span>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSearchTerm('');
-                        setStatusFilter('all');
-                        setTypeFilter('all');
-                      }}
-                      className="text-xs btn-ghost"
-                    >
-                      필터 초기화
-                    </Button>
-                  </div>
-                )}
-              </div>
+        {/* AI 시나리오 탭 */}
+        {activeTab === 'scenario' && (
+          <div className="rounded-lg bg-white shadow">
+            <div className="border-b border-gray-200 px-6 py-4">
+              <h2 className="text-lg font-medium text-gray-900">AI 시나리오</h2>
             </div>
-            
-            <div className="divide-y divide-border">
-              {filteredPlanningItems.length === 0 ? (
-                <div className="px-6 py-12 text-center">
-                  <Icon name="projects" size="xl" className="mx-auto mb-4 text-text-lighter" />
-                  <h3 className="text-lg font-medium text-text mb-2">기획안이 없습니다</h3>
-                  <p className="text-text-light mb-4">
-                    {searchTerm || statusFilter !== 'all' || typeFilter !== 'all' 
-                      ? '검색 조건에 맞는 기획안이 없습니다.' 
-                      : '새로운 기획안을 생성해보세요.'}
-                  </p>
-                  {!searchTerm && statusFilter === 'all' && typeFilter === 'all' && (
-                    <Button onClick={handleCreateNew} className="btn-primary">
-                      첫 기획안 만들기
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                filteredPlanningItems.map((item) => (
-                  <div key={item.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                            item.type === 'video' ? 'bg-primary-50 text-primary-500' :
-                            item.type === 'image' ? 'bg-green-100 text-green-600' :
-                            'bg-primary-50 text-primary-500'
-                          }`}>
-                            <Icon 
-                              name={item.type === 'video' ? 'video' : item.type === 'image' ? 'image' : 'projects'} 
-                              size="sm" 
-                            />
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2">
-                              <h3 className="text-lg font-medium text-text">{item.title}</h3>
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
-                                {getStatusText(item.status)}
-                              </span>
-                            </div>
-                            <p className="text-sm text-text-light mt-1">{item.description}</p>
-                            <div className="flex items-center space-x-4 mt-2 text-sm text-text-lighter">
-                              <span className="flex items-center space-x-1">
-                                <Icon name="clock" size="sm" />
-                                <span>{formatDate(item.createdAt)}</span>
-                              </span>
-                              <span className="flex items-center space-x-1">
-                                <Icon name="target" size="sm" />
-                                <span>{item.type}</span>
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex space-x-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleEdit(item)}
-                          className="flex items-center space-x-1 btn-secondary"
-                        >
-                          <Icon name="edit" size="sm" />
-                          <span>편집</span>
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleView(item)}
-                          className="flex items-center space-x-1 btn-secondary"
-                        >
-                          <Icon name="check" size="sm" />
-                          <span>보기</span>
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleDelete(item.id)}
-                          className="text-error hover:bg-error/10 border-error/30 hover:border-error/50 flex items-center space-x-1"
-                        >
-                          <Icon name="delete" size="sm" />
-                          <span>삭제</span>
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      제목
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      버전
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      작성자
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      업데이트
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      4단계/12숏
+                    </th>
+                    <th className="px-6 py-3" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {scenarioItems.map((s) => (
+                    <tr key={s.id}>
+                      <td className="px-6 py-4 text-sm text-gray-900">{s.title}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{s.version}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{s.author}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{formatDate(s.updatedAt)}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">
+                        {s.hasFourStep ? 'Y' : 'N'} / {s.hasTwelveShot ? 'Y' : 'N'}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {s.pdfUrl && (
+                          <a
+                            href={s.pdfUrl}
+                            className="text-sm text-primary-600 hover:text-primary-800"
+                          >
+                            PDF 다운로드
+                          </a>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {scenarioItems.length === 0 && (
+                <div className="p-6 text-center text-gray-500">시나리오가 없습니다</div>
               )}
             </div>
           </div>
         )}
 
-        {/* 영상 수집 탭 */}
-        {activeTab === 'videos' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* 영상 목록 */}
-            <div className="lg:col-span-2">
-              <div className="bg-white rounded-lg shadow">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h2 className="text-lg font-medium text-gray-900">생성된 영상</h2>
-                </div>
-                <div className="divide-y divide-gray-200">
-                  {videoItems.map((video) => (
-                    <div 
-                      key={video.id} 
-                      className={`px-6 py-4 hover:bg-gray-50 cursor-pointer ${
-                        selectedVideo?.id === video.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''
-                      }`}
-                      onClick={() => handleVideoSelect(video)}
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div className="flex-shrink-0">
-                          <img 
-                            src={video.thumbnailUrl} 
-                            alt={video.title}
-                            className="w-20 h-12 object-cover rounded"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-lg font-medium text-gray-900">{video.title}</h3>
-                          <p className="text-sm text-gray-600">{video.prompt}</p>
-                          <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                            <span>{getProviderIcon(video.provider)} {video.provider}</span>
-                            <span>Duration: {video.duration}초</span>
-                            <span>Ratio: {video.aspectRatio}</span>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(video.status)}`}>
-                              {getStatusText(video.status)}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex-shrink-0">
-                          <Button 
-                            variant="outline" 
+        {/* 프롬프트 탭 */}
+        {activeTab === 'prompt' && (
+          <div className="rounded-lg bg-white shadow">
+            <div className="border-b border-gray-200 px-6 py-4">
+              <h2 className="text-lg font-medium text-gray-900">프롬프트</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      참조 시나리오
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      버전
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      키워드 수
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      세그먼트 수
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      업데이트
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {promptItems.map((p) => (
+                    <tr key={p.id}>
+                      <td className="px-6 py-4 text-sm text-gray-900">{p.scenarioTitle}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{p.version}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{p.keywordCount}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{p.segmentCount}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{formatDate(p.updatedAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {promptItems.length === 0 && (
+                <div className="p-6 text-center text-gray-500">프롬프트가 없습니다</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 이미지 탭 */}
+        {activeTab === 'image' && (
+          <div className="rounded-lg bg-white shadow">
+            <div className="border-b border-gray-200 px-6 py-4">
+              <h2 className="text-lg font-medium text-gray-900">이미지</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      타입
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      태그
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      해상도
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      업로더
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      업로드일
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {imageItems.map((img) => (
+                    <tr key={img.id}>
+                      <td className="px-6 py-4 text-sm text-gray-900">{img.type}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{img.tags.join(', ')}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{img.resolution}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{img.uploader}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">
+                        {formatDate(img.uploadedAt)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {imageItems.length === 0 && (
+                <div className="p-6 text-center text-gray-500">이미지가 없습니다</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 영상 탭 */}
+        {activeTab === 'video' && (
+          <div className="space-y-8">
+            <div className="rounded-lg bg-white shadow">
+              <div className="border-b border-gray-200 px-6 py-4">
+                <h2 className="text-lg font-medium text-gray-900">영상</h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        버전
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        제목
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        길이
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        코덱
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        상태
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        제공자
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        참조 프롬프트
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        생성시간
+                      </th>
+                      <th className="px-6 py-3" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 bg-white">
+                    {videoItems.map((v) => (
+                      <tr key={v.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm text-gray-700">{v.version || '-'}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{v.title}</td>
+                        <td className="px-6 py-4 text-sm text-gray-700">{v.duration}s</td>
+                        <td className="px-6 py-4 text-sm text-gray-700">{v.codec || '-'}</td>
+                        <td className="px-6 py-4 text-sm">
+                          <span
+                            className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(v.status)}`}
+                          >
+                            {getStatusText(v.status)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-700">{v.provider}</td>
+                        <td className="px-6 py-4 text-sm text-gray-700">
+                          {v.refPromptTitle || '-'}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-700">
+                          {formatDate(v.createdAt)}
+                        </td>
+                        <td className="space-x-2 px-6 py-4 text-right">
+                          <Button variant="outline" size="sm" onClick={() => setSelectedVideo(v)}>
+                            보기
+                          </Button>
+                          <a
+                            href={`/feedback?videoId=${v.id}`}
+                            className="inline-flex h-8 items-center justify-center rounded-lg border border-secondary-300 bg-transparent px-3 text-xs text-secondary-700 hover:bg-secondary-50"
+                          >
+                            피드백
+                          </a>
+                          <Button
+                            variant="outline"
                             size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDownloadVideo(video);
-                            }}
-                            disabled={!video.videoUrl || video.status !== 'completed'}
+                            onClick={() => handleDownloadVideo(v)}
+                            disabled={!v.videoUrl || v.status !== 'completed'}
                           >
                             다운로드
                           </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {videoItems.length === 0 && (
+                  <div className="p-6 text-center text-gray-500">영상이 없습니다</div>
+                )}
               </div>
             </div>
 
-            {/* 영상 플레이어 */}
-            <div className="lg:col-span-1">
-              <div className="bg-white rounded-lg shadow sticky top-8">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h2 className="text-lg font-medium text-gray-900">영상 플레이어</h2>
-                </div>
-                <div className="p-6">
-                  {selectedVideo ? (
-                    <div className="space-y-4">
-                      <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
-                        {selectedVideo.videoUrl ? (
-                          selectedVideo.videoUrl.startsWith('data:image/svg+xml') ? (
-                            <img 
-                              src={selectedVideo.videoUrl} 
-                              alt={selectedVideo.title}
-                              className="w-full h-full object-contain"
-                            />
-                          ) : (
-                            <video 
-                              controls 
-                              className="w-full h-full"
-                              poster={selectedVideo.thumbnailUrl}
-                            >
-                              <source src={selectedVideo.videoUrl} type="video/mp4" />
-                              브라우저가 비디오를 지원하지 않습니다.
-                            </video>
-                          )
+            {/* 선택된 영상 상세/플레이어 */}
+            <div className="rounded-lg bg-white shadow">
+              <div className="border-b border-gray-200 px-6 py-4">
+                <h2 className="text-lg font-medium text-gray-900">영상 플레이어</h2>
+              </div>
+              <div className="p-6">
+                {selectedVideo ? (
+                  <div className="space-y-4">
+                    <div className="aspect-video overflow-hidden rounded-lg bg-gray-100">
+                      {selectedVideo.videoUrl ? (
+                        selectedVideo.videoUrl.startsWith('data:image/svg+xml') ? (
+                          <img
+                            src={selectedVideo.videoUrl}
+                            alt={selectedVideo.title}
+                            className="h-full w-full object-contain"
+                          />
                         ) : (
-                          <div className="flex items-center justify-center h-full text-gray-500">
-                            <div className="text-center">
-                              <Icon name="video" size="xl" className="mx-auto mb-2" />
-                              <p>영상 URL이 없습니다</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-3">
-                        <h3 className="text-lg font-medium text-gray-900">{selectedVideo.title}</h3>
-                        <p className="text-sm text-gray-600">{selectedVideo.prompt}</p>
-                        
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="font-medium text-gray-700">제공자:</span>
-                            <span className="ml-2">{getProviderIcon(selectedVideo.provider)} {selectedVideo.provider}</span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-gray-700">지속시간:</span>
-                            <span className="ml-2">{selectedVideo.duration}초</span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-gray-700">비율:</span>
-                            <span className="ml-2">{selectedVideo.aspectRatio}</span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-gray-700">상태:</span>
-                            <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedVideo.status)}`}>
-                              {getStatusText(selectedVideo.status)}
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <div className="text-sm text-gray-500">
-                          <p>생성일: {formatDate(selectedVideo.createdAt)}</p>
-                          {selectedVideo.completedAt && (
-                            <p>완료일: {formatDate(selectedVideo.completedAt)}</p>
-                          )}
-                          {selectedVideo.jobId && (
-                            <p>작업 ID: {selectedVideo.jobId}</p>
-                          )}
-                        </div>
-                        
-                        <div className="flex space-x-2">
-                          <Button 
-                            onClick={() => handleDownloadVideo(selectedVideo)}
-                            disabled={!selectedVideo.videoUrl || selectedVideo.status !== 'completed'}
-                            className="flex-1"
+                          <video
+                            controls
+                            className="h-full w-full"
+                            poster={selectedVideo.thumbnailUrl}
                           >
-                            다운로드
-                          </Button>
-                          <Button variant="outline" className="flex-1">
-                            재생성
-                          </Button>
+                            <source src={selectedVideo.videoUrl} type="video/mp4" />
+                            브라우저가 비디오를 지원하지 않습니다.
+                          </video>
+                        )
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-gray-500">
+                          <div className="text-center">
+                            <Icon name="video" size="xl" className="mx-auto mb-2" />
+                            <p>영상 URL이 없습니다</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-medium text-gray-900">{selectedVideo.title}</h3>
+                      <p className="text-sm text-gray-600">{selectedVideo.prompt}</p>
+
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium text-gray-700">제공자:</span>
+                          <span className="ml-2">
+                            {getProviderIcon(selectedVideo.provider)} {selectedVideo.provider}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-medium text-gray-700">지속시간:</span>
+                          <span className="ml-2">{selectedVideo.duration}초</span>
+                        </div>
+                        <div>
+                          <span className="font-medium text-gray-700">비율:</span>
+                          <span className="ml-2">{selectedVideo.aspectRatio}</span>
+                        </div>
+                        <div>
+                          <span className="font-medium text-gray-700">상태:</span>
+                          <span
+                            className={`ml-2 rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(selectedVideo.status)}`}
+                          >
+                            {getStatusText(selectedVideo.status)}
+                          </span>
                         </div>
                       </div>
+
+                      <div className="text-sm text-gray-500">
+                        <p>생성일: {formatDate(selectedVideo.createdAt)}</p>
+                        {selectedVideo.completedAt && (
+                          <p>완료일: {formatDate(selectedVideo.completedAt)}</p>
+                        )}
+                        {selectedVideo.jobId && <p>작업 ID: {selectedVideo.jobId}</p>}
+                      </div>
+
+                      <div className="flex space-x-2">
+                        <Button
+                          onClick={() => handleDownloadVideo(selectedVideo)}
+                          disabled={!selectedVideo.videoUrl || selectedVideo.status !== 'completed'}
+                          className="flex-1"
+                        >
+                          다운로드
+                        </Button>
+                        <a
+                          href={`/feedback?videoId=${selectedVideo.id}`}
+                          className="inline-flex h-10 flex-1 items-center justify-center rounded-lg border border-secondary-300 bg-transparent text-secondary-700 hover:bg-secondary-50"
+                        >
+                          피드백으로 이동
+                        </a>
+                      </div>
                     </div>
-                  ) : (
-                    <div className="text-center text-gray-500 py-12">
-                      <Icon name="video" size="xl" className="mx-auto mb-4" />
-                      <p>왼쪽에서 영상을 선택하세요</p>
-                    </div>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <div className="py-12 text-center text-gray-500">
+                    <Icon name="video" size="xl" className="mx-auto mb-4" />
+                    <p>위 표에서 영상을 선택하세요</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -703,34 +832,38 @@ export default function PlanningPage() {
 
         {/* 편집 모달 */}
         {editMode && editingItem && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4">
-              <h2 className="text-xl font-bold mb-4">기획안 편집</h2>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="mx-4 w-full max-w-2xl rounded-lg bg-white p-6">
+              <h2 className="mb-4 text-xl font-bold">기획안 편집</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">제목</label>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">제목</label>
                   <input
                     type="text"
                     value={editingItem.title}
-                    onChange={(e) => setEditingItem({...editingItem, title: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => setEditingItem({ ...editingItem, title: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">설명</label>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">설명</label>
                   <textarea
                     value={editingItem.description}
-                    onChange={(e) => setEditingItem({...editingItem, description: e.target.value})}
+                    onChange={(e) =>
+                      setEditingItem({ ...editingItem, description: e.target.value })
+                    }
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">상태</label>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">상태</label>
                   <select
                     value={editingItem.status}
-                    onChange={(e) => setEditingItem({...editingItem, status: e.target.value as any})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) =>
+                      setEditingItem({ ...editingItem, status: e.target.value as any })
+                    }
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="draft">초안</option>
                     <option value="in-progress">진행중</option>
@@ -738,13 +871,11 @@ export default function PlanningPage() {
                   </select>
                 </div>
               </div>
-              <div className="flex justify-end space-x-2 mt-6">
+              <div className="mt-6 flex justify-end space-x-2">
                 <Button variant="outline" onClick={handleCancelEdit}>
                   취소
                 </Button>
-                <Button onClick={handleSaveEdit}>
-                  저장
-                </Button>
+                <Button onClick={handleSaveEdit}>저장</Button>
               </div>
             </div>
           </div>
@@ -752,9 +883,9 @@ export default function PlanningPage() {
 
         {/* 보기 모달 */}
         {viewMode && viewingItem && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4">
-              <div className="flex justify-between items-start mb-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="mx-4 w-full max-w-2xl rounded-lg bg-white p-6">
+              <div className="mb-4 flex items-start justify-between">
                 <h2 className="text-xl font-bold">기획안 상세보기</h2>
                 <Button variant="outline" size="sm" onClick={handleCloseView}>
                   닫기
@@ -775,7 +906,9 @@ export default function PlanningPage() {
                 </div>
                 <div>
                   <span className="font-medium text-gray-700">상태:</span>
-                  <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(viewingItem.status)}`}>
+                  <span
+                    className={`ml-2 rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(viewingItem.status)}`}
+                  >
                     {getStatusText(viewingItem.status)}
                   </span>
                 </div>
@@ -790,37 +923,37 @@ export default function PlanningPage() {
 
         {/* 새 기획안 생성 모달 */}
         {createMode && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4">
-              <h2 className="text-xl font-bold mb-4">새 기획안 생성</h2>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="mx-4 w-full max-w-2xl rounded-lg bg-white p-6">
+              <h2 className="mb-4 text-xl font-bold">새 기획안 생성</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">제목</label>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">제목</label>
                   <input
                     type="text"
                     value={newItem.title}
-                    onChange={(e) => setNewItem({...newItem, title: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => setNewItem({ ...newItem, title: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="기획안 제목을 입력하세요"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">설명</label>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">설명</label>
                   <textarea
                     value={newItem.description}
-                    onChange={(e) => setNewItem({...newItem, description: e.target.value})}
+                    onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="기획안에 대한 설명을 입력하세요"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">타입</label>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">타입</label>
                     <select
                       value={newItem.type}
-                      onChange={(e) => setNewItem({...newItem, type: e.target.value as any})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onChange={(e) => setNewItem({ ...newItem, type: e.target.value as any })}
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="scenario">시나리오</option>
                       <option value="video">영상</option>
@@ -828,11 +961,11 @@ export default function PlanningPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">상태</label>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">상태</label>
                     <select
                       value={newItem.status}
-                      onChange={(e) => setNewItem({...newItem, status: e.target.value as any})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onChange={(e) => setNewItem({ ...newItem, status: e.target.value as any })}
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="draft">초안</option>
                       <option value="in-progress">진행중</option>
@@ -841,14 +974,11 @@ export default function PlanningPage() {
                   </div>
                 </div>
               </div>
-              <div className="flex justify-end space-x-2 mt-6">
+              <div className="mt-6 flex justify-end space-x-2">
                 <Button variant="outline" onClick={handleCancelCreate}>
                   취소
                 </Button>
-                <Button 
-                  onClick={handleSaveNew}
-                  disabled={!newItem.title || !newItem.description}
-                >
+                <Button onClick={handleSaveNew} disabled={!newItem.title || !newItem.description}>
                   생성
                 </Button>
               </div>

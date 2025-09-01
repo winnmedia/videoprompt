@@ -4,7 +4,7 @@
   "private": true,
   "engines": {
     "node": ">=20.19.0",
-    "npm": ">=10.0.0"
+    "pnpm": ">=9.0.0"
   },
   "scripts": {
     "dev": "next dev --turbopack",
@@ -22,16 +22,20 @@
     "db:studio": "prisma studio",
     "test:e2e": "playwright test",
     "test:mcp": "node scripts/test-mcp-servers.js",
-    "test:mcp:enhanced": "npm test -- src/__tests__/mcp-enhanced-testing.test.ts",
-    "test:mcp:integration": "npm test -- src/__tests__/mcp-real-integration.test.ts",
-    "test:mcp:website": "npm test -- src/__tests__/mcp-real-website.test.ts",
-    "test:mcp:performance": "npm test -- src/__tests__/mcp-performance.test.ts",
+    "test:mcp:enhanced": "pnpm test -- src/__tests__/mcp-enhanced-testing.test.ts",
+    "test:mcp:integration": "pnpm test -- src/__tests__/mcp-real-integration.test.ts",
+    "test:mcp:website": "pnpm test -- src/__tests__/mcp-real-website.test.ts",
+    "test:mcp:performance": "pnpm test -- src/__tests__/mcp-performance.test.ts",
     "test:mcp:all": "./scripts/run-mcp-tests.sh",
-    "test:mcp:ci": "npm run test:mcp:enhanced && npm run test:mcp:integration && npm run test:mcp:website && npm run test:mcp:performance",
+    "test:mcp:ci": "pnpm run test:mcp:enhanced && pnpm run test:mcp:integration && pnpm run test:mcp:website && pnpm run test:mcp:performance",
     "monitor:mcp": "node scripts/mcp-performance-monitor.js monitor",
     "report:mcp": "node scripts/mcp-performance-monitor.js report",
     "notify:mcp:test": "node scripts/mcp-notification-service.js test",
-    "setup:mcp:notifications": "node scripts/mcp-notification-service.js config"
+    "setup:mcp:notifications": "node scripts/mcp-notification-service.js config",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "dep:check": "madge --circular --extensions ts,tsx src"
   },
   "dependencies": {
     "@playwright/mcp": "^0.0.34",
@@ -48,6 +52,7 @@
     "zustand": "^5.0.7"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
     "@eslint/eslintrc": "^3",
     "@playwright/test": "^1.55.0",
     "@types/node": "^20.19.11",
@@ -59,8 +64,11 @@
     "eslint": "^9",
     "eslint-config-next": "15.4.6",
     "jsdom": "^26.1.0",
+    "madge": "^6.1.0",
     "playwright": "^1.55.0",
     "postcss": "^8.4.31",
+    "prettier": "^3.6.2",
+    "prettier-plugin-tailwindcss": "^0.5.14",
     "prisma": "^5.18.0",
     "tailwindcss": "^3.4.0",
     "typescript": "^5",

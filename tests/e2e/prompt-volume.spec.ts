@@ -4,7 +4,7 @@ test('prompt-volume: 4-scene final prompt structure/volume check', async ({ page
   await page.goto('/wizard');
 
   // Enable movie pack (4-scene)
-  const moviePack = page.locator('#movie-pack');
+  const moviePack = page.locator('#movie-pack').first();
   await expect(moviePack).toBeVisible();
   if (!(await moviePack.isChecked())) {
     await moviePack.check();
@@ -55,12 +55,14 @@ test('prompt-volume: 4-scene final prompt structure/volume check', async ({ page
     const jsonText = block.slice(start, end + 1);
     // JSON parse should succeed
     let parsed: any;
-    try { parsed = JSON.parse(jsonText); } catch (e) { parsed = null; }
+    try {
+      parsed = JSON.parse(jsonText);
+    } catch (e) {
+      parsed = null;
+    }
     expect(parsed).toBeTruthy();
     expect(parsed?.metadata).toBeTruthy();
     expect(Array.isArray(parsed?.key_elements)).toBeTruthy();
     expect(Array.isArray(parsed?.timeline)).toBeTruthy();
   }
 });
-
-

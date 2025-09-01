@@ -20,24 +20,37 @@ async function fetchWithTimeout(url: string, ms = 5000) {
 
 export async function GET() {
   const modelarkBase = process.env.MODELARK_API_BASE || 'https://api.byteplusapi.com';
-  const createUrl = (process.env.SEEDANCE_API_URL_CREATE) || `${modelarkBase.replace(/\/$/, '')}/modelark/video_generation/tasks`;
-  const statusUrl = (process.env.SEEDANCE_API_URL_STATUS) || `${modelarkBase.replace(/\/$/, '')}/modelark/video_generation/tasks/{id}`;
+  const createUrl =
+    process.env.SEEDANCE_API_URL_CREATE ||
+    `${modelarkBase.replace(/\/$/, '')}/modelark/video_generation/tasks`;
+  const statusUrl =
+    process.env.SEEDANCE_API_URL_STATUS ||
+    `${modelarkBase.replace(/\/$/, '')}/modelark/video_generation/tasks/{id}`;
   const hasKey = Boolean(process.env.SEEDANCE_API_KEY || process.env.MODELARK_API_KEY);
-  const region = process.env.RAILWAY_REGION || process.env.FLY_REGION || process.env.VERCEL_REGION || 'unknown';
+  const region =
+    process.env.RAILWAY_REGION || process.env.FLY_REGION || process.env.VERCEL_REGION || 'unknown';
 
   // Egress IP
   const ipify = await fetchWithTimeout('https://api.ipify.org?format=json');
   const ifconfig = await fetchWithTimeout('https://ifconfig.me/ip');
 
   // DNS resolve
-  let a4: string[] = []; let a6: string[] = []; let dnsError: string | null = null;
+  let a4: string[] = [];
+  let a6: string[] = [];
+  let dnsError: string | null = null;
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const dns = require('dns').promises as typeof import('dns').promises;
-    try { a4 = await dns.resolve4(new URL(modelarkBase).hostname); } catch (e: any) { dnsError = e?.message || 'resolve4 failed'; }
-    try { a6 = await dns.resolve6(new URL(modelarkBase).hostname); } catch {}
+    try {
+      a4 = await dns.resolve4(new URL(modelarkBase).hostname);
+    } catch (e: any) {
+      dnsError = e?.message || 'resolve4 failed';
+    }
+    try {
+      a6 = await dns.resolve6(new URL(modelarkBase).hostname);
+    } catch {}
   } catch (e: any) {
-    dnsError = dnsError || (e?.message || 'dns not available');
+    dnsError = dnsError || e?.message || 'dns not available';
   }
 
   return NextResponse.json({
@@ -54,5 +67,3 @@ export async function GET() {
     hasKey,
   });
 }
-
-

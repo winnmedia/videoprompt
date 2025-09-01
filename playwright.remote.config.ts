@@ -10,5 +10,3 @@ export default defineConfig({
   },
   // NOTE: remote 환경 대상으로 테스트할 때는 로컬 webServer를 띄우지 않습니다
 });
-
-

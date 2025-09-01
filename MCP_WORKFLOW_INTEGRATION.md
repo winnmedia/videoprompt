@@ -100,18 +100,20 @@ npm run test:mcp
 #### 기능 개발 시 MCP 테스트 작성 가이드
 
 1. **새로운 기능 개발 시**:
+
    ```bash
    # 기능 브랜치 생성
    git checkout -b feature/new-feature
-   
+
    # 기능 구현
    # ...
-   
+
    # MCP 테스트 작성
    # src/__tests__/feature-new-feature.mcp.test.ts
    ```
 
 2. **MCP 테스트 템플릿**:
+
    ```typescript
    import { describe, it, expect, beforeAll, afterAll } from 'vitest';
    import { IntegratedTestManager } from '@/lib/mcp-servers/test-utils';
@@ -132,14 +134,14 @@ npm run test:mcp
          {
            type: 'accessibility' as const,
            name: '접근성 테스트',
-           config: { includePerformance: true }
-         }
+           config: { includePerformance: true },
+         },
        ];
 
        const result = await testManager.runComprehensiveTest(
          'new-feature-test',
          'http://localhost:3000/new-feature',
-         testSteps
+         testSteps,
        );
 
        expect(result.success).toBe(true);
@@ -150,6 +152,7 @@ npm run test:mcp
 ### 2.2 코드 리뷰 체크리스트
 
 #### MCP 테스트 관련 체크리스트:
+
 - [ ] MCP 테스트가 작성되었는가?
 - [ ] 테스트가 실제 사용자 시나리오를 반영하는가?
 - [ ] 접근성 테스트가 포함되었는가?
@@ -214,8 +217,8 @@ echo "✅ 모든 MCP 테스트 통과. 푸시를 진행합니다."
 # 추가 설정
 env:
   MCP_PERFORMANCE_TEST: true
-  MCP_LOAD_TEST: false  # CI에서는 기본적으로 비활성화
-  NODE_OPTIONS: "--max-old-space-size=4096"
+  MCP_LOAD_TEST: false # CI에서는 기본적으로 비활성화
+  NODE_OPTIONS: '--max-old-space-size=4096'
 ```
 
 ### 4.2 브랜치 보호 규칙 설정
@@ -268,13 +271,13 @@ class MCPPerformanceMonitor {
       timestamp,
       testSuite,
       duration,
-      passRate
+      passRate,
     });
 
     // 최근 30일 데이터만 유지
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     this.metrics.testRuns = this.metrics.testRuns.filter(
-      run => new Date(run.timestamp) > thirtyDaysAgo
+      (run) => new Date(run.timestamp) > thirtyDaysAgo,
     );
 
     this.calculateAverages();
@@ -283,14 +286,14 @@ class MCPPerformanceMonitor {
 
   calculateAverages() {
     const suites = ['enhanced', 'integration', 'website', 'performance'];
-    
-    suites.forEach(suite => {
-      const suiteRuns = this.metrics.testRuns.filter(run => run.testSuite === suite);
+
+    suites.forEach((suite) => {
+      const suiteRuns = this.metrics.testRuns.filter((run) => run.testSuite === suite);
       if (suiteRuns.length > 0) {
         this.metrics.averages[suite] = {
           avgDuration: suiteRuns.reduce((sum, run) => sum + run.duration, 0) / suiteRuns.length,
           avgPassRate: suiteRuns.reduce((sum, run) => sum + run.passRate, 0) / suiteRuns.length,
-          totalRuns: suiteRuns.length
+          totalRuns: suiteRuns.length,
         };
       }
     });
@@ -303,7 +306,7 @@ class MCPPerformanceMonitor {
   generateReport() {
     console.log('📊 MCP 테스트 성능 리포트');
     console.log('================================');
-    
+
     Object.entries(this.metrics.averages).forEach(([suite, avg]) => {
       console.log(`${suite.toUpperCase()}:`);
       console.log(`  평균 실행 시간: ${avg.avgDuration.toFixed(2)}ms`);
@@ -332,12 +335,14 @@ class MCPNotificationService {
 
   async notifyTestFailure(testSuite, failedTests, branch) {
     const message = {
-      embeds: [{
-        title: '❌ MCP 테스트 실패',
-        description: `**브랜치**: ${branch}\n**테스트 스위트**: ${testSuite}\n**실패한 테스트**: ${failedTests}개`,
-        color: 0xff0000,
-        timestamp: new Date().toISOString()
-      }]
+      embeds: [
+        {
+          title: '❌ MCP 테스트 실패',
+          description: `**브랜치**: ${branch}\n**테스트 스위트**: ${testSuite}\n**실패한 테스트**: ${failedTests}개`,
+          color: 0xff0000,
+          timestamp: new Date().toISOString(),
+        },
+      ],
     };
 
     if (this.webhookUrl) {
@@ -351,12 +356,14 @@ class MCPNotificationService {
 
   async notifyTestSuccess(testSuite, passedTests, branch) {
     const message = {
-      embeds: [{
-        title: '✅ MCP 테스트 성공',
-        description: `**브랜치**: ${branch}\n**테스트 스위트**: ${testSuite}\n**통과한 테스트**: ${passedTests}개`,
-        color: 0x00ff00,
-        timestamp: new Date().toISOString()
-      }]
+      embeds: [
+        {
+          title: '✅ MCP 테스트 성공',
+          description: `**브랜치**: ${branch}\n**테스트 스위트**: ${testSuite}\n**통과한 테스트**: ${passedTests}개`,
+          color: 0x00ff00,
+          timestamp: new Date().toISOString(),
+        },
+      ],
     };
 
     if (this.webhookUrl) {
@@ -379,8 +386,8 @@ class MCPNotificationService {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          text: `❌ MCP 테스트 실패: ${testSuite} (${failedTests}개 실패, 브랜치: ${branch})`
-        })
+          text: `❌ MCP 테스트 실패: ${testSuite} (${failedTests}개 실패, 브랜치: ${branch})`,
+        }),
       });
     } catch (error) {
       console.error('Slack 알림 전송 실패:', error);
@@ -396,6 +403,7 @@ module.exports = MCPNotificationService;
 ### 6.1 일반적인 문제 및 해결책
 
 #### MCP 서버 연결 실패
+
 ```bash
 # 해결 방법
 npm run test:mcp
@@ -405,6 +413,7 @@ npm run setup:mcp-servers
 ```
 
 #### 메모리 부족 오류
+
 ```bash
 # Node.js 메모리 제한 증가
 export NODE_OPTIONS="--max-old-space-size=8192"
@@ -412,6 +421,7 @@ npm run test:mcp:performance
 ```
 
 #### 테스트 타임아웃
+
 ```bash
 # 타임아웃 설정 증가
 export MCP_SERVER_TIMEOUT=60000
@@ -421,6 +431,7 @@ npm run test:mcp:integration
 ### 6.2 성능 최적화 가이드
 
 #### 병렬 테스트 최적화
+
 ```typescript
 // 동시 실행 수 제한
 const concurrency = Math.min(4, require('os').cpus().length);
@@ -431,12 +442,13 @@ for (let i = 0; i < testCases.length; i += concurrency) {
 }
 
 for (const chunk of chunks) {
-  const promises = chunk.map(testCase => runTest(testCase));
+  const promises = chunk.map((testCase) => runTest(testCase));
   await Promise.all(promises);
 }
 ```
 
 #### 메모리 관리
+
 ```typescript
 // 주기적 정리
 setInterval(() => {
@@ -473,7 +485,3 @@ setInterval(() => {
 4. **1개월 내**: 전체 워크플로우 안정화
 
 이 가이드를 따라 단계적으로 진행하면 MCP 테스트가 개발 워크플로우에 자연스럽게 통합됩니다.
-
-
-
-

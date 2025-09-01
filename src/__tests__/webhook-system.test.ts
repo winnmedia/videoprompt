@@ -17,7 +17,7 @@ describe('Webhook System', () => {
         event: 'integration.connected',
         integration_id: 'openai',
         user_id: 'user-123',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       // When: 웹훅 이벤트 처리
@@ -27,7 +27,7 @@ describe('Webhook System', () => {
       expect(mockWebhookHandlers['integration.connected']).toHaveBeenCalledWith(webhookData);
       expect(mockNotificationService.sendToUser).toHaveBeenCalledWith(
         'user-123',
-        'OpenAI 서비스가 성공적으로 연결되었습니다.'
+        'OpenAI 서비스가 성공적으로 연결되었습니다.',
       );
     });
 
@@ -38,7 +38,7 @@ describe('Webhook System', () => {
         integration_id: 'gemini',
         user_id: 'user-123',
         reason: 'API 키 만료',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       // When: 웹훅 이벤트 처리
@@ -48,7 +48,7 @@ describe('Webhook System', () => {
       expect(mockWebhookHandlers['integration.disconnected']).toHaveBeenCalledWith(webhookData);
       expect(mockNotificationService.sendToUser).toHaveBeenCalledWith(
         'user-123',
-        'Gemini 서비스 연결이 해제되었습니다. API 키를 확인해주세요.'
+        'Gemini 서비스 연결이 해제되었습니다. API 키를 확인해주세요.',
       );
     });
   });
@@ -61,7 +61,7 @@ describe('Webhook System', () => {
         project_id: 'proj-456',
         user_id: 'user-123',
         project_title: '새로운 영상 프로젝트',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       // When: 웹훅 이벤트 처리
@@ -71,7 +71,7 @@ describe('Webhook System', () => {
       expect(mockWebhookHandlers['project.created']).toHaveBeenCalledWith(webhookData);
       expect(mockNotificationService.sendToUser).toHaveBeenCalledWith(
         'user-123',
-        '새로운 영상 프로젝트가 생성되었습니다!'
+        '새로운 영상 프로젝트가 생성되었습니다!',
       );
     });
   });
@@ -86,7 +86,7 @@ describe('Webhook System', () => {
         user_id: 'user-123',
         generation_time: 2500,
         ai_service: 'openai',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       // When: 웹훅 이벤트 처리
@@ -96,7 +96,7 @@ describe('Webhook System', () => {
       expect(mockWebhookHandlers['scene.generated']).toHaveBeenCalledWith(webhookData);
       expect(mockNotificationService.sendToUser).toHaveBeenCalledWith(
         'user-123',
-        '장면 생성이 완료되었습니다! (2.5초 소요)'
+        '장면 생성이 완료되었습니다! (2.5초 소요)',
       );
     });
 
@@ -108,14 +108,14 @@ describe('Webhook System', () => {
         fallback_service: 'gemini',
         user_id: 'user-123',
         reason: 'Rate limit exceeded',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       // When: 웹훅 이벤트 처리
       // Then: fallback 로깅 및 모니터링
       expect(mockNotificationService.sendToChannel).toHaveBeenCalledWith(
         'monitoring',
-        'AI 서비스 fallback 발생: OpenAI → Gemini'
+        'AI 서비스 fallback 발생: OpenAI → Gemini',
       );
     });
   });
@@ -125,7 +125,7 @@ describe('Webhook System', () => {
       // Given: 웹훅 처리 중 오류 발생
       const invalidWebhookData = {
         event: 'invalid.event',
-        malformed_data: 'invalid'
+        malformed_data: 'invalid',
       };
 
       // When: 잘못된 웹훅 데이터 처리 시도
@@ -143,7 +143,7 @@ describe('Webhook System', () => {
       const webhookData = {
         event: 'integration.connected',
         integration_id: 'openai',
-        user_id: 'user-123'
+        user_id: 'user-123',
       };
 
       // When: 첫 번째 시도 실패 후 재시도
@@ -162,7 +162,7 @@ describe('Webhook System', () => {
             throw error;
           }
           // 재시도 로직
-          await new Promise(resolve => setTimeout(resolve, 1000 * attemptCount));
+          await new Promise((resolve) => setTimeout(resolve, 1000 * attemptCount));
           return processWebhook();
         }
       };

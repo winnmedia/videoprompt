@@ -10,5 +10,3 @@ export function normalizeNegatives(input: string[]): string[] {
   }
   return out;
 }
-
-

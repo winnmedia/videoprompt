@@ -16,7 +16,7 @@ class MCPNotificationService {
 
   loadConfig() {
     const configPath = path.join(__dirname, '../mcp-notification-config.json');
-    
+
     try {
       if (fs.existsSync(configPath)) {
         return JSON.parse(fs.readFileSync(configPath, 'utf8'));
@@ -32,47 +32,47 @@ class MCPNotificationService {
           enabled: !!process.env.SLACK_WEBHOOK_URL,
           webhookUrl: process.env.SLACK_WEBHOOK_URL,
           channel: '#mcp-testing',
-          username: 'MCP Bot'
+          username: 'MCP Bot',
         },
         discord: {
           enabled: !!process.env.DISCORD_WEBHOOK_URL,
           webhookUrl: process.env.DISCORD_WEBHOOK_URL,
-          username: 'MCP Bot'
+          username: 'MCP Bot',
         },
         email: {
           enabled: !!process.env.EMAIL_SERVICE_API_KEY,
           apiKey: process.env.EMAIL_SERVICE_API_KEY,
           from: 'mcp-testing@yourcompany.com',
-          to: ['team@yourcompany.com']
+          to: ['team@yourcompany.com'],
         },
         teams: {
           enabled: !!process.env.TEAMS_WEBHOOK_URL,
-          webhookUrl: process.env.TEAMS_WEBHOOK_URL
-        }
+          webhookUrl: process.env.TEAMS_WEBHOOK_URL,
+        },
       },
       rules: {
         testFailure: {
           enabled: true,
           severity: 'high',
-          channels: ['slack', 'discord']
+          channels: ['slack', 'discord'],
         },
         performanceDegradation: {
           enabled: true,
           severity: 'medium',
-          channels: ['slack']
+          channels: ['slack'],
         },
         systemAlert: {
           enabled: true,
           severity: 'high',
-          channels: ['slack', 'email']
+          channels: ['slack', 'email'],
         },
         dailyReport: {
           enabled: true,
           severity: 'low',
           channels: ['slack'],
-          schedule: '09:00'
-        }
-      }
+          schedule: '09:00',
+        },
+      },
     };
   }
 
@@ -86,8 +86,8 @@ class MCPNotificationService {
             { title: '테스트 스위트', value: '{testSuite}', short: true },
             { title: '실패한 테스트', value: '{failedCount}/{totalCount}', short: true },
             { title: '브랜치', value: '{branch}', short: true },
-            { title: '커밋', value: '{commit}', short: true }
-          ]
+            { title: '커밋', value: '{commit}', short: true },
+          ],
         },
         performanceDegradation: {
           color: 'warning',
@@ -96,8 +96,8 @@ class MCPNotificationService {
             { title: '테스트 스위트', value: '{testSuite}', short: true },
             { title: '실행 시간', value: '{duration}초', short: true },
             { title: '이전 평균', value: '{previousAvg}초', short: true },
-            { title: '증가율', value: '{increasePercent}%', short: true }
-          ]
+            { title: '증가율', value: '{increasePercent}%', short: true },
+          ],
         },
         systemAlert: {
           color: 'danger',
@@ -105,8 +105,8 @@ class MCPNotificationService {
           fields: [
             { title: '알림 유형', value: '{alertType}', short: true },
             { title: '심각도', value: '{severity}', short: true },
-            { title: '메시지', value: '{message}', short: false }
-          ]
+            { title: '메시지', value: '{message}', short: false },
+          ],
         },
         dailyReport: {
           color: 'good',
@@ -115,26 +115,28 @@ class MCPNotificationService {
             { title: '총 실행 횟수', value: '{totalRuns}회', short: true },
             { title: '평균 성공률', value: '{avgPassRate}%', short: true },
             { title: '평균 실행 시간', value: '{avgDuration}초', short: true },
-            { title: '알림 수', value: '{alertCount}개', short: true }
-          ]
-        }
+            { title: '알림 수', value: '{alertCount}개', short: true },
+          ],
+        },
       },
       discord: {
         testFailure: {
           title: '🚨 MCP 테스트 실패',
           color: 0xff0000,
-          description: '**테스트 스위트**: {testSuite}\n**실패**: {failedCount}/{totalCount}\n**브랜치**: {branch}\n**커밋**: {commit}'
+          description:
+            '**테스트 스위트**: {testSuite}\n**실패**: {failedCount}/{totalCount}\n**브랜치**: {branch}\n**커밋**: {commit}',
         },
         performanceDegradation: {
           title: '⚠️ MCP 테스트 성능 저하',
           color: 0xffa500,
-          description: '**테스트 스위트**: {testSuite}\n**실행 시간**: {duration}초\n**증가율**: {increasePercent}%'
+          description:
+            '**테스트 스위트**: {testSuite}\n**실행 시간**: {duration}초\n**증가율**: {increasePercent}%',
         },
         systemAlert: {
           title: '🔥 MCP 시스템 알림',
           color: 0xff0000,
-          description: '**유형**: {alertType}\n**심각도**: {severity}\n**메시지**: {message}'
-        }
+          description: '**유형**: {alertType}\n**심각도**: {severity}\n**메시지**: {message}',
+        },
       },
       email: {
         testFailure: {
@@ -149,7 +151,7 @@ class MCPNotificationService {
             <h3>실패한 테스트 목록:</h3>
             <ul>{failedTestsList}</ul>
             <p><a href="{buildUrl}">빌드 로그 보기</a></p>
-          `
+          `,
         },
         systemAlert: {
           subject: '[MCP Alert] 시스템 알림 - {alertType}',
@@ -159,9 +161,9 @@ class MCPNotificationService {
             <p><strong>심각도:</strong> {severity}</p>
             <p><strong>메시지:</strong> {message}</p>
             <p><strong>시간:</strong> {timestamp}</p>
-          `
-        }
-      }
+          `,
+        },
+      },
     };
   }
 
@@ -186,7 +188,7 @@ class MCPNotificationService {
       }
     }
 
-    return { success: results.some(r => r.success), results };
+    return { success: results.some((r) => r.success), results };
   }
 
   async sendToChannel(channel, type, data) {
@@ -207,7 +209,7 @@ class MCPNotificationService {
   async sendSlackNotification(type, data) {
     const config = this.config.channels.slack;
     const template = this.templates.slack[type];
-    
+
     if (!template) {
       throw new Error(`Slack template not found for type: ${type}`);
     }
@@ -215,23 +217,25 @@ class MCPNotificationService {
     const payload = {
       channel: config.channel,
       username: config.username,
-      attachments: [{
-        color: template.color,
-        title: this.replaceTemplate(template.title, data),
-        fields: template.fields.map(field => ({
-          title: field.title,
-          value: this.replaceTemplate(field.value, data),
-          short: field.short
-        })),
-        footer: 'MCP Testing System',
-        ts: Math.floor(Date.now() / 1000)
-      }]
+      attachments: [
+        {
+          color: template.color,
+          title: this.replaceTemplate(template.title, data),
+          fields: template.fields.map((field) => ({
+            title: field.title,
+            value: this.replaceTemplate(field.value, data),
+            short: field.short,
+          })),
+          footer: 'MCP Testing System',
+          ts: Math.floor(Date.now() / 1000),
+        },
+      ],
     };
 
     const response = await fetch(config.webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -244,25 +248,27 @@ class MCPNotificationService {
   async sendDiscordNotification(type, data) {
     const config = this.config.channels.discord;
     const template = this.templates.discord[type];
-    
+
     if (!template) {
       throw new Error(`Discord template not found for type: ${type}`);
     }
 
     const payload = {
       username: config.username,
-      embeds: [{
-        title: this.replaceTemplate(template.title, data),
-        description: this.replaceTemplate(template.description, data),
-        color: template.color,
-        timestamp: new Date().toISOString()
-      }]
+      embeds: [
+        {
+          title: this.replaceTemplate(template.title, data),
+          description: this.replaceTemplate(template.description, data),
+          color: template.color,
+          timestamp: new Date().toISOString(),
+        },
+      ],
     };
 
     const response = await fetch(config.webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -275,7 +281,7 @@ class MCPNotificationService {
   async sendEmailNotification(type, data) {
     const config = this.config.channels.email;
     const template = this.templates.email[type];
-    
+
     if (!template) {
       throw new Error(`Email template not found for type: ${type}`);
     }
@@ -292,27 +298,30 @@ class MCPNotificationService {
 
   async sendTeamsNotification(type, data) {
     const config = this.config.channels.teams;
-    
+
     // Microsoft Teams 메시지 카드 형식
     const payload = {
-      "@type": "MessageCard",
-      "@context": "http://schema.org/extensions",
-      "themeColor": type === 'testFailure' ? "FF0000" : type === 'performanceDegradation' ? "FFA500" : "0078D4",
-      "summary": `MCP ${type} 알림`,
-      "sections": [{
-        "activityTitle": `MCP ${type} 알림`,
-        "activitySubtitle": data.message || '',
-        "facts": Object.entries(data).map(([key, value]) => ({
-          "name": key,
-          "value": String(value)
-        }))
-      }]
+      '@type': 'MessageCard',
+      '@context': 'http://schema.org/extensions',
+      themeColor:
+        type === 'testFailure' ? 'FF0000' : type === 'performanceDegradation' ? 'FFA500' : '0078D4',
+      summary: `MCP ${type} 알림`,
+      sections: [
+        {
+          activityTitle: `MCP ${type} 알림`,
+          activitySubtitle: data.message || '',
+          facts: Object.entries(data).map(([key, value]) => ({
+            name: key,
+            value: String(value),
+          })),
+        },
+      ],
     };
 
     const response = await fetch(config.webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -329,7 +338,13 @@ class MCPNotificationService {
   }
 
   // 테스트 실패 알림
-  async notifyTestFailure(testSuite, failedTests, totalTests, branch = 'unknown', commit = 'unknown') {
+  async notifyTestFailure(
+    testSuite,
+    failedTests,
+    totalTests,
+    branch = 'unknown',
+    commit = 'unknown',
+  ) {
     const data = {
       testSuite,
       failedCount: failedTests.length,
@@ -337,8 +352,8 @@ class MCPNotificationService {
       branch,
       commit,
       timestamp: new Date().toISOString(),
-      failedTestsList: failedTests.map(test => `<li>${test.name}: ${test.error}</li>`).join(''),
-      buildUrl: process.env.BUILD_URL || '#'
+      failedTestsList: failedTests.map((test) => `<li>${test.name}: ${test.error}</li>`).join(''),
+      buildUrl: process.env.BUILD_URL || '#',
     };
 
     return await this.sendNotification('testFailure', data);
@@ -346,14 +361,14 @@ class MCPNotificationService {
 
   // 성능 저하 알림
   async notifyPerformanceDegradation(testSuite, currentDuration, previousAvg) {
-    const increasePercent = ((currentDuration - previousAvg) / previousAvg * 100).toFixed(1);
-    
+    const increasePercent = (((currentDuration - previousAvg) / previousAvg) * 100).toFixed(1);
+
     const data = {
       testSuite,
       duration: (currentDuration / 1000).toFixed(1),
       previousAvg: (previousAvg / 1000).toFixed(1),
       increasePercent,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     return await this.sendNotification('performanceDegradation', data);
@@ -365,7 +380,7 @@ class MCPNotificationService {
       alertType,
       severity,
       message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     return await this.sendNotification('systemAlert', data);
@@ -378,7 +393,7 @@ class MCPNotificationService {
       avgPassRate: (report.summary.avgPassRate * 100).toFixed(1),
       avgDuration: (report.summary.avgDuration / 1000).toFixed(1),
       alertCount: report.summary.totalAlerts,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     return await this.sendNotification('dailyReport', data);
@@ -405,7 +420,7 @@ class MCPNotificationService {
       totalCount: 15,
       branch: 'feature/test-notifications',
       commit: 'abc123',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
@@ -420,9 +435,9 @@ class MCPNotificationService {
 // CLI 인터페이스
 if (require.main === module) {
   const service = new MCPNotificationService();
-  
+
   const command = process.argv[2];
-  
+
   switch (command) {
     case 'test':
       service.testNotifications();
@@ -433,9 +448,10 @@ if (require.main === module) {
     case 'notify':
       const type = process.argv[3];
       const data = JSON.parse(process.argv[4] || '{}');
-      service.sendNotification(type, data)
-        .then(result => console.log('알림 전송 결과:', result))
-        .catch(error => console.error('알림 전송 실패:', error));
+      service
+        .sendNotification(type, data)
+        .then((result) => console.log('알림 전송 결과:', result))
+        .catch((error) => console.error('알림 전송 실패:', error));
       break;
     default:
       console.log('사용법:');
@@ -446,7 +462,3 @@ if (require.main === module) {
 }
 
 module.exports = MCPNotificationService;
-
-
-
-

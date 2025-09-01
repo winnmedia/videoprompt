@@ -18,10 +18,10 @@ describe('MCP Real Website - 실제 웹서비스 테스트', () => {
         {
           type: 'accessibility' as const,
           name: '메인 페이지 접근성 테스트',
-          config: { 
+          config: {
             includePerformance: true,
-            accessibilityRules: ['color-contrast', 'keyboard-navigation', 'screen-reader']
-          }
+            accessibilityRules: ['color-contrast', 'keyboard-navigation', 'screen-reader'],
+          },
         },
         {
           type: 'responsive' as const,
@@ -29,11 +29,11 @@ describe('MCP Real Website - 실제 웹서비스 테스트', () => {
           config: {
             viewports: [
               { width: 1920, height: 1080 }, // 데스크톱
-              { width: 1024, height: 768 },  // 태블릿
-              { width: 375, height: 667 },   // 모바일
-              { width: 320, height: 568 }    // 작은 모바일
-            ]
-          }
+              { width: 1024, height: 768 }, // 태블릿
+              { width: 375, height: 667 }, // 모바일
+              { width: 320, height: 568 }, // 작은 모바일
+            ],
+          },
         },
         {
           type: 'performance' as const,
@@ -43,16 +43,16 @@ describe('MCP Real Website - 실제 웹서비스 테스트', () => {
             budget: {
               FCP: 2000,
               LCP: 4000,
-              CLS: 0.1
-            }
-          }
-        }
+              CLS: 0.1,
+            },
+          },
+        },
       ];
 
       const result = await testManager.runComprehensiveTest(
         'main-page-comprehensive-test',
         'http://localhost:3000',
-        testSteps
+        testSteps,
       );
 
       expect(result.success).toBe(true);
@@ -68,23 +68,23 @@ describe('MCP Real Website - 실제 웹서비스 테스트', () => {
           config: {
             formData: {
               search: 'video prompt',
-              category: 'creative'
-            }
-          }
+              category: 'creative',
+            },
+          },
         },
         {
           type: 'custom' as const,
           name: '네비게이션 메뉴 테스트',
           config: {
-            navigationPaths: ['/wizard', '/editor', '/integrations']
-          }
-        }
+            navigationPaths: ['/wizard', '/editor', '/integrations'],
+          },
+        },
       ];
 
       const result = await testManager.runComprehensiveTest(
         'main-page-interaction-test',
         'http://localhost:3000',
-        testSteps
+        testSteps,
       );
 
       expect(result.success).toBe(true);
@@ -98,10 +98,10 @@ describe('MCP Real Website - 실제 웹서비스 테스트', () => {
         {
           type: 'accessibility' as const,
           name: 'Wizard 페이지 접근성 테스트',
-          config: { 
+          config: {
             includePerformance: true,
-            focusManagement: true
-          }
+            focusManagement: true,
+          },
         },
         {
           type: 'form' as const,
@@ -110,10 +110,10 @@ describe('MCP Real Website - 실제 웹서비스 테스트', () => {
             formData: {
               step1: { title: '테스트 비디오', description: 'MCP 테스트용' },
               step2: { duration: '30', style: 'modern' },
-              step3: { output: 'mp4', quality: 'high' }
+              step3: { output: 'mp4', quality: 'high' },
             },
-            multiStep: true
-          }
+            multiStep: true,
+          },
         },
         {
           type: 'responsive' as const,
@@ -122,17 +122,17 @@ describe('MCP Real Website - 실제 웹서비스 테스트', () => {
             viewports: [
               { width: 1920, height: 1080 },
               { width: 768, height: 1024 },
-              { width: 375, height: 667 }
+              { width: 375, height: 667 },
             ],
-            testSteps: ['step1', 'step2', 'step3']
-          }
-        }
+            testSteps: ['step1', 'step2', 'step3'],
+          },
+        },
       ];
 
       const result = await testManager.runComprehensiveTest(
         'wizard-page-comprehensive-test',
         'http://localhost:3000/wizard',
-        testSteps
+        testSteps,
       );
 
       expect(result.success).toBe(true);
@@ -148,24 +148,24 @@ describe('MCP Real Website - 실제 웹서비스 테스트', () => {
             testScenarios: [
               'incomplete_form_submission',
               'network_error_handling',
-              'validation_error_display'
-            ]
-          }
+              'validation_error_display',
+            ],
+          },
         },
         {
           type: 'performance' as const,
           name: 'Wizard 성능 테스트',
           config: {
             metrics: ['FCP', 'LCP', 'CLS'],
-            userInteractions: ['form_input', 'step_navigation', 'validation']
-          }
-        }
+            userInteractions: ['form_input', 'step_navigation', 'validation'],
+          },
+        },
       ];
 
       const result = await testManager.runComprehensiveTest(
         'wizard-page-state-test',
         'http://localhost:3000/wizard',
-        testSteps
+        testSteps,
       );
 
       expect(result.success).toBe(true);
@@ -179,23 +179,18 @@ describe('MCP Real Website - 실제 웹서비스 테스트', () => {
         {
           type: 'accessibility' as const,
           name: 'Editor 접근성 테스트',
-          config: { 
+          config: {
             includePerformance: true,
             dynamicContent: true,
-            keyboardShortcuts: true
-          }
+            keyboardShortcuts: true,
+          },
         },
         {
           type: 'custom' as const,
           name: 'Editor 실시간 편집 테스트',
           config: {
-            editOperations: [
-              'text_input',
-              'format_change',
-              'undo_redo',
-              'save_autosave'
-            ]
-          }
+            editOperations: ['text_input', 'format_change', 'undo_redo', 'save_autosave'],
+          },
         },
         {
           type: 'responsive' as const,
@@ -203,17 +198,17 @@ describe('MCP Real Website - 실제 웹서비스 테스트', () => {
           config: {
             viewports: [
               { width: 1920, height: 1080 },
-              { width: 1024, height: 768 }
+              { width: 1024, height: 768 },
             ],
-            testEditor: true
-          }
-        }
+            testEditor: true,
+          },
+        },
       ];
 
       const result = await testManager.runComprehensiveTest(
         'editor-page-comprehensive-test',
         'http://localhost:3000/editor/test-id',
-        testSteps
+        testSteps,
       );
 
       expect(result.success).toBe(true);
@@ -228,26 +223,19 @@ describe('MCP Real Website - 실제 웹서비스 테스트', () => {
           type: 'custom' as const,
           name: 'Seedance API 테스트',
           config: {
-            endpoints: [
-              '/api/seedance/generate',
-              '/api/seedance/status',
-              '/api/seedance/download'
-            ],
+            endpoints: ['/api/seedance/generate', '/api/seedance/status', '/api/seedance/download'],
             testMethods: ['GET', 'POST'],
-            expectedStatusCodes: [200, 201, 400, 500]
-          }
+            expectedStatusCodes: [200, 201, 400, 500],
+          },
         },
         {
           type: 'custom' as const,
           name: 'Imagen API 테스트',
           config: {
-            endpoints: [
-              '/api/imagen/preview',
-              '/api/imagen/generate'
-            ],
+            endpoints: ['/api/imagen/preview', '/api/imagen/generate'],
             testMethods: ['POST'],
-            expectedStatusCodes: [200, 400, 500]
-          }
+            expectedStatusCodes: [200, 400, 500],
+          },
         },
         {
           type: 'performance' as const,
@@ -255,15 +243,15 @@ describe('MCP Real Website - 실제 웹서비스 테스트', () => {
           config: {
             metrics: ['TTFB', 'response_time'],
             loadTesting: true,
-            concurrentRequests: 10
-          }
-        }
+            concurrentRequests: 10,
+          },
+        },
       ];
 
       const result = await testManager.runComprehensiveTest(
         'api-endpoints-test',
         'http://localhost:3000',
-        testSteps
+        testSteps,
       );
 
       expect(result.success).toBe(true);
@@ -281,9 +269,9 @@ describe('MCP Real Website - 실제 웹서비스 테스트', () => {
             userJourney: 'registration_login',
             testData: {
               email: 'test@example.com',
-              password: 'testpassword123'
-            }
-          }
+              password: 'testpassword123',
+            },
+          },
         },
         {
           type: 'custom' as const,
@@ -294,28 +282,24 @@ describe('MCP Real Website - 실제 웹서비스 테스트', () => {
               'wizard_navigation',
               'form_completion',
               'generation_start',
-              'progress_tracking'
-            ]
-          }
+              'progress_tracking',
+            ],
+          },
         },
         {
           type: 'custom' as const,
           name: '결과 확인 및 다운로드',
           config: {
             userJourney: 'result_verification',
-            actions: [
-              'preview_generation',
-              'quality_check',
-              'download_file'
-            ]
-          }
-        }
+            actions: ['preview_generation', 'quality_check', 'download_file'],
+          },
+        },
       ];
 
       const result = await testManager.runComprehensiveTest(
         'user-journey-integration-test',
         'http://localhost:3000',
-        testSteps
+        testSteps,
       );
 
       expect(result.success).toBe(true);
@@ -332,8 +316,8 @@ describe('MCP Real Website - 실제 웹서비스 테스트', () => {
           config: {
             browser: 'chrome',
             version: 'latest',
-            features: ['es6', 'webgl', 'webrtc']
-          }
+            features: ['es6', 'webgl', 'webrtc'],
+          },
         },
         {
           type: 'custom' as const,
@@ -341,8 +325,8 @@ describe('MCP Real Website - 실제 웹서비스 테스트', () => {
           config: {
             browser: 'firefox',
             version: 'latest',
-            features: ['es6', 'webgl']
-          }
+            features: ['es6', 'webgl'],
+          },
         },
         {
           type: 'custom' as const,
@@ -350,15 +334,15 @@ describe('MCP Real Website - 실제 웹서비스 테스트', () => {
           config: {
             browser: 'safari',
             version: 'latest',
-            features: ['es6', 'webgl']
-          }
-        }
+            features: ['es6', 'webgl'],
+          },
+        },
       ];
 
       const result = await testManager.runComprehensiveTest(
         'cross-browser-compatibility-test',
         'http://localhost:3000',
-        testSteps
+        testSteps,
       );
 
       expect(result.success).toBe(true);
@@ -366,7 +350,3 @@ describe('MCP Real Website - 실제 웹서비스 테스트', () => {
     });
   });
 });
-
-
-
-

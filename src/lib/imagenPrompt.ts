@@ -23,7 +23,12 @@ export type ImagenPromptInput = {
 };
 
 function join(items?: Array<string | undefined | null>, sep = ', '): string {
-  return (items || []).filter(Boolean).map(String).map(s => s.trim()).filter(Boolean).join(sep);
+  return (items || [])
+    .filter(Boolean)
+    .map(String)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join(sep);
 }
 
 function softenMotion(camera?: string, movement?: string): string | undefined {
@@ -35,7 +40,8 @@ function softenMotion(camera?: string, movement?: string): string | undefined {
   if (c.includes('wide')) tags.push('wide composition');
   if (c.includes('close')) tags.push('tight close-up framing');
   if (c.includes('top') || c.includes('over')) tags.push('top/over-shoulder framing');
-  if (m.includes('dolly') || m.includes('tracking') || m.includes('handheld')) tags.push('static capture, no motion blur');
+  if (m.includes('dolly') || m.includes('tracking') || m.includes('handheld'))
+    tags.push('static capture, no motion blur');
   return tags.length ? join(tags) : undefined;
 }
 
@@ -60,11 +66,14 @@ export function buildImagenPrompt(input: ImagenPromptInput): string {
   const mood = input.mood || input.visualTone || input.style;
   const env = join([input.theme, input.weather], ', ');
   const look = join([input.style, input.visualTone], ', ');
-  const chars = (input.characters && input.characters.length) ? `Subjects: ${join(input.characters)}` : undefined;
-  const kws = (input.keywords && input.keywords.length) ? `Keywords: ${join(input.keywords)}` : undefined;
-  const negatives = (input.negativePrompts && input.negativePrompts.length)
-    ? `Negative: ${join(input.negativePrompts)}`
-    : undefined;
+  const chars =
+    input.characters && input.characters.length ? `Subjects: ${join(input.characters)}` : undefined;
+  const kws =
+    input.keywords && input.keywords.length ? `Keywords: ${join(input.keywords)}` : undefined;
+  const negatives =
+    input.negativePrompts && input.negativePrompts.length
+      ? `Negative: ${join(input.negativePrompts)}`
+      : undefined;
 
   return [
     // Header
@@ -87,7 +96,7 @@ export function buildImagenPrompt(input: ImagenPromptInput): string {
     // Guidance
     'Details: sharp focus, natural skin tones, cinematic depth of field, film grain subtle',
     'Framing: rule of thirds, balanced composition, clean background',
-  ].filter(Boolean).join('\n');
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
-
-

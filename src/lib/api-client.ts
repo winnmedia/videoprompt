@@ -6,7 +6,7 @@ const apiConfig = getApiConfig();
 // 공통 fetch 옵션
 const createFetchOptions = (method: string, body?: any, customTimeout?: number) => {
   const timeout = customTimeout || getApiTimeout();
-  
+
   const options: RequestInit = {
     method,
     headers: {
@@ -14,11 +14,11 @@ const createFetchOptions = (method: string, body?: any, customTimeout?: number) 
     },
     signal: AbortSignal.timeout(timeout),
   };
-  
+
   if (body) {
     options.body = JSON.stringify(body);
   }
-  
+
   return options;
 };
 
@@ -32,7 +32,7 @@ const handleApiError = (error: any, endpoint: string) => {
       timeout: true,
     };
   }
-  
+
   if (error.name === 'AbortError') {
     return {
       ok: false,
@@ -41,7 +41,7 @@ const handleApiError = (error: any, endpoint: string) => {
       aborted: true,
     };
   }
-  
+
   return {
     ok: false,
     error: `API 요청 실패 (${endpoint}): ${error.message}`,
@@ -55,45 +55,49 @@ async function apiRequestWithRetry(
   url: string,
   options: RequestInit,
   retryAttempts: number = 3,
-  retryDelay: number = 2000
+  retryDelay: number = 2000,
 ): Promise<Response> {
   let lastError: Error | null = null;
-  
+
   for (let attempt = 1; attempt <= retryAttempts; attempt++) {
     try {
       const response = await fetch(url, options);
-      
+
       // 성공적인 응답이면 즉시 반환
       if (response.ok) {
         return response;
       }
-      
+
       // 5xx 서버 오류가 아닌 경우 재시도하지 않음
       if (response.status < 500) {
         return response;
       }
-      
+
       // 마지막 시도가 아니면 재시도
       if (attempt < retryAttempts) {
-        console.log(`API 요청 실패 (시도 ${attempt}/${retryAttempts}), ${retryDelay}ms 후 재시도...`);
-        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        console.log(
+          `API 요청 실패 (시도 ${attempt}/${retryAttempts}), ${retryDelay}ms 후 재시도...`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, retryDelay));
         continue;
       }
-      
+
       return response;
-      
     } catch (error) {
       lastError = error as Error;
-      
+
       // 마지막 시도가 아니면 재시도
       if (attempt < retryAttempts) {
-        console.log(`API 요청 오류 (시도 ${attempt}/${retryAttempts}), ${retryDelay}ms 후 재시도...`, error);
-        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        console.log(
+          `API 요청 오류 (시도 ${attempt}/${retryAttempts}), ${retryDelay}ms 후 재시도...`,
+          error,
+        );
+        await new Promise((resolve) => setTimeout(resolve, retryDelay));
         continue;
       }
     }
   }
-  
+
   throw lastError || new Error('모든 재시도 시도 실패');
 }
 
@@ -102,7 +106,7 @@ export const apiRequest = async <T = any>(
   endpoint: string,
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
   body?: any,
-  customTimeout?: number
+  customTimeout?: number,
 ): Promise<T> => {
   try {
     // Railway 백엔드 상태 확인
@@ -110,27 +114,27 @@ export const apiRequest = async <T = any>(
     if (!isBackendHealthy) {
       throw new Error('Railway 백엔드 서비스가 사용할 수 없습니다.');
     }
-    
+
     const url = buildApiUrl(endpoint);
     const options = createFetchOptions(method, body, customTimeout);
-    
+
     console.log(`DEBUG: API 요청 시작: ${method} ${url}`);
-    
+
     const response = await apiRequestWithRetry(url, options);
-    
+
     if (!response.ok) {
       const errorText = await response.text();
       let errorData;
-      
+
       try {
         errorData = JSON.parse(errorText);
       } catch {
         errorData = { message: errorText };
       }
-      
+
       // 사용자 친화적인 에러 메시지
       let userMessage = '요청을 처리하는 중 오류가 발생했습니다.';
-      
+
       if (response.status === 503) {
         userMessage = '서비스가 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해주세요.';
       } else if (response.status === 502) {
@@ -142,18 +146,17 @@ export const apiRequest = async <T = any>(
       } else if (response.status === 429) {
         userMessage = '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.';
       }
-      
+
       throw new Error(`API 호출 실패: ${response.status} - ${userMessage}`);
     }
-    
+
     const data = await response.json();
     console.log(`DEBUG: API 응답 성공: ${endpoint}`, { status: response.status, data });
-    
+
     return data;
-    
   } catch (error) {
     console.error(`DEBUG: API 요청 실패: ${endpoint}`, error);
-    
+
     // 에러 처리 및 상세 정보 반환
     const errorResult = handleApiError(error, endpoint);
     throw errorResult;
@@ -161,16 +164,16 @@ export const apiRequest = async <T = any>(
 };
 
 // 편의 함수들
-export const apiGet = <T = any>(endpoint: string, timeout?: number) => 
+export const apiGet = <T = any>(endpoint: string, timeout?: number) =>
   apiRequest<T>(endpoint, 'GET', undefined, timeout);
 
-export const apiPost = <T = any>(endpoint: string, body: any, timeout?: number) => 
+export const apiPost = <T = any>(endpoint: string, body: any, timeout?: number) =>
   apiRequest<T>(endpoint, 'POST', body, timeout);
 
-export const apiPut = <T = any>(endpoint: string, body: any, timeout?: number) => 
+export const apiPut = <T = any>(endpoint: string, body: any, timeout?: number) =>
   apiRequest<T>(endpoint, 'PUT', body, timeout);
 
-export const apiDelete = <T = any>(endpoint: string, timeout?: number) => 
+export const apiDelete = <T = any>(endpoint: string, timeout?: number) =>
   apiRequest<T>(endpoint, 'DELETE', undefined, timeout);
 
 // Seedance API 전용 함수들 (배포 환경 전용)
@@ -195,29 +198,29 @@ export const veoApi = {
 export const checkBackendHealth = async () => {
   try {
     const response = await fetch('https://videoprompt-production.up.railway.app/api/health', {
-      signal: AbortSignal.timeout(10000)
+      signal: AbortSignal.timeout(10000),
     });
-    
+
     if (response.ok) {
       const data = await response.json();
       return {
         ok: true,
         status: 'healthy',
         uptime: data.uptimeSec,
-        timestamp: data.timestamp
+        timestamp: data.timestamp,
       };
     } else {
       return {
         ok: false,
         status: 'unhealthy',
-        error: `HTTP ${response.status}`
+        error: `HTTP ${response.status}`,
       };
     }
   } catch (error) {
     return {
       ok: false,
       status: 'unreachable',
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
     };
   }
 };

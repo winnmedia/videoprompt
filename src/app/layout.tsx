@@ -1,75 +1,87 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import Link from 'next/link';
+import Image from 'next/image';
 import './globals.css';
+import { assertEnvInitialized } from '@/shared/config/env';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'VideoPrompt - AI 영상 생성 플랫폼',
-  description: 'AI를 활용한 전문가 수준의 영상 콘텐츠 생성 및 관리 플랫폼',
-  keywords: 'AI, 영상 생성, 비디오, 콘텐츠, 프롬프트',
+  title: 'VLANET - AI 영상 플랫폼',
+  description: 'AI 시나리오 · 프롬프트 · 영상 생성 · 피드백 파이프라인',
+  keywords: 'VLANET, AI Video, Scenario, Prompt, Feedback',
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // 런타임 환경변수 스키마 검증 (앱 부팅 시 1회)
+  assertEnvInitialized();
   return (
     <html lang="ko">
-      <body className={inter.className}>
-        <div className="min-h-screen bg-gray-50">
-          <header className="bg-white shadow-sm border-b border-gray-200">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex justify-between items-center h-16">
+      <body className={`${inter.className} bg-surface-100 text-gray-100`}>
+        <div className="min-h-screen">
+          <header className="border-b border-white/10 bg-surface-200/80 backdrop-blur">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              <div className="flex h-16 items-center justify-between">
                 {/* 로고 */}
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <h1 className="text-2xl font-bold text-primary-600">
-                      VideoPrompt
-                    </h1>
-                  </div>
-                </div>
+                <Link href="/" className="flex items-center" aria-label="VLANET Home">
+                  <Image src="/w_logo.svg" alt="VLANET" width={64} height={64} className="h-10 w-auto md:h-12 lg:h-16" />
+                </Link>
 
                 {/* 네비게이션 */}
-                <nav className="hidden md:flex space-x-8">
-                  <a
+                <nav className="hidden space-x-6 text-sm md:flex" data-testid="main-nav">
+                  <Link
+                    href="/wizard"
+                    className="px-2 py-2 text-gray-200 transition-colors hover:text-brand-300"
+                  >
+                    AI 영상 생성
+                  </Link>
+                  <Link
                     href="/"
-                    className="text-gray-900 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
+                    className="px-2 py-2 text-gray-200 transition-colors hover:text-brand-300"
                   >
                     홈
-                  </a>
-                  <a
+                  </Link>
+                  <Link
+                    href="/scenario"
+                    className="px-2 py-2 text-gray-200 transition-colors hover:text-brand-300"
+                  >
+                    AI 영상 기획
+                  </Link>
+                  <Link
                     href="/prompt-generator"
-                    className="text-gray-900 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
+                    className="px-2 py-2 text-gray-200 transition-colors hover:text-brand-300"
                   >
                     프롬프트 생성기
-                  </a>
-                  <a
+                  </Link>
+                  <Link
                     href="/workflow"
-                    className="text-gray-900 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
+                    className="px-2 py-2 text-gray-200 transition-colors hover:text-brand-300"
                   >
-                    영상 제작
-                  </a>
-                  <a
-                    href="/scenario"
-                    className="text-gray-900 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
+                    영상 생성
+                  </Link>
+                  <Link
+                    href="/feedback"
+                    className="px-2 py-2 text-gray-200 transition-colors hover:text-brand-300"
                   >
-                    시나리오 개발
-                  </a>
-                  <a
+                    영상 피드백
+                  </Link>
+                  <Link
                     href="/planning"
-                    className="text-gray-900 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
+                    className="px-2 py-2 text-gray-200 transition-colors hover:text-brand-300"
                   >
                     콘텐츠 관리
-                  </a>
+                  </Link>
                 </nav>
 
-                {/* 사용자 메뉴 */}
-                <div className="flex items-center space-x-4">
-                  <button className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                    시작하기
-                  </button>
+                {/* 액션 */}
+                <div className="flex items-center gap-3">
+                  <Link
+                    href="/scenario"
+                    className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-400"
+                  >
+                    무료로 시작하기
+                  </Link>
                 </div>
               </div>
             </div>
@@ -77,43 +89,68 @@ export default function RootLayout({
 
           <main>{children}</main>
 
-          <footer className="bg-white border-t border-gray-200 mt-16">
-            <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <div className="col-span-1 md:col-span-2">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    VideoPrompt
-                  </h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">
-                    AI를 활용한 전문가 수준의 영상 콘텐츠 생성 및 관리 플랫폼입니다. 
-                    복잡한 설정 없이 3단계만으로 전문가 수준의 영상을 제작할 수 있습니다.
-                  </p>
+          <footer className="mt-16 border-t border-white/10 bg-surface-200">
+            <div className="mx-auto max-w-7xl px-4 py-10 text-sm text-gray-300 sm:px-6 lg:px-8">
+              <div className="mb-4 flex items-center gap-3">
+                <Image src="/w_logo.svg" alt="VLANET" width={48} height={24} className="h-6 w-auto" />
+              </div>
+              <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
+                <div className="col-span-1 text-gray-400 md:col-span-2">
+                  AI 시나리오 · 프롬프트 · 영상 생성 · 피드백까지 한 번에.
                 </div>
-                
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-900 mb-4">제품</h4>
-                  <ul className="space-y-2 text-sm text-gray-600">
-                    <li><a href="/prompt-generator" className="hover:text-primary-600">프롬프트 생성기</a></li>
-                    <li><a href="/workflow" className="hover:text-primary-600">영상 제작</a></li>
-                    <li><a href="/scenario" className="hover:text-primary-600">시나리오 개발</a></li>
-                    <li><a href="/planning" className="hover:text-primary-600">콘텐츠 관리</a></li>
+                  <h3 className="mb-2 font-medium text-gray-200">제품</h3>
+                  <ul className="space-y-1">
+                    <li>
+                      <Link href="/scenario" className="hover:text-brand-300">
+                        AI 영상 기획
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/prompt-generator" className="hover:text-brand-300">
+                        프롬프트 생성기
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/workflow" className="hover:text-brand-300">
+                        영상 생성
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/feedback" className="hover:text-brand-300">
+                        영상 피드백
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/planning" className="hover:text-brand-300">
+                        콘텐츠 관리
+                      </Link>
+                    </li>
                   </ul>
                 </div>
-                
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-900 mb-4">지원</h4>
-                  <ul className="space-y-2 text-sm text-gray-600">
-                    <li><a href="/docs" className="hover:text-primary-600">문서</a></li>
-                    <li><a href="/api" className="hover:text-primary-600">API</a></li>
-                    <li><a href="/contact" className="hover:text-primary-600">문의</a></li>
+                  <h3 className="mb-2 font-medium text-gray-200">지원</h3>
+                  <ul className="space-y-1">
+                    <li>
+                      <Link href="/docs" className="hover:text-brand-300">
+                        문서
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/api" className="hover:text-brand-300">
+                        API
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/contact" className="hover:text-brand-300">
+                        문의
+                      </Link>
+                    </li>
                   </ul>
                 </div>
               </div>
-              
-              <div className="mt-8 pt-8 border-t border-gray-200">
-                <p className="text-sm text-gray-500 text-center">
-                  © 2025 VideoPrompt. All rights reserved.
-                </p>
+              <div className="mt-8 border-t border-white/10 pt-6 text-center text-gray-300">
+                © 2025 vlanet. All rights reserved.
               </div>
             </div>
           </footer>
