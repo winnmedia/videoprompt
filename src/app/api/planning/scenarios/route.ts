@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
@@ -9,22 +10,32 @@ type ApiError = { ok: false; code: string; error: string; details?: string };
 
 export async function GET(_req: NextRequest) {
   try {
-    const rows = await prisma.scenario.findMany({
+    type ScenarioRow = Prisma.ScenarioGetPayload<{
+      select: {
+        id: true;
+        title: true;
+        version: true;
+        updatedAt: true;
+        pdfUrl: true;
+        structure4: true;
+        shots12: true;
+      };
+    }>;
+
+    const rows: ScenarioRow[] = await prisma.scenario.findMany({
       orderBy: { updatedAt: 'desc' },
       select: {
         id: true,
         title: true,
-        logline: true,
         structure4: true,
         shots12: true,
         pdfUrl: true,
         updatedAt: true,
-        createdAt: true,
         version: true,
       },
     });
 
-    const list = rows.map((s) => ({
+    const list = rows.map((s: ScenarioRow) => ({
       id: s.id,
       title: s.title,
       version: `V${s.version}`,
