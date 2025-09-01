@@ -1,6 +1,6 @@
 /**
  * MCP 서버들을 활용한 테스트 유틸리티
- * 
+ *
  * 각 MCP 서버의 특성을 활용하여 테스트를 개선합니다:
  * - Playwright MCP: 브라우저 자동화 테스트
  * - Context7 MCP: 테스트 컨텍스트 관리
@@ -65,9 +65,9 @@ export class TestContextManager {
       testId,
       startTime: Date.now(),
       metadata: metadata || {},
-      steps: []
+      steps: [],
     };
-    
+
     this.contexts.set(testId, context);
     this.currentContext = context;
     return context;
@@ -84,7 +84,7 @@ export class TestContextManager {
     const step: TestStep = {
       name,
       status: 'pending',
-      metadata
+      metadata,
     };
 
     this.currentContext.steps.push(step);
@@ -97,7 +97,7 @@ export class TestContextManager {
   startStep(stepName: string): void {
     if (!this.currentContext) return;
 
-    const step = this.currentContext.steps.find(s => s.name === stepName);
+    const step = this.currentContext.steps.find((s) => s.name === stepName);
     if (step) {
       step.status = 'running';
       step.startTime = Date.now();
@@ -110,7 +110,7 @@ export class TestContextManager {
   completeStep(stepName: string, metadata?: Record<string, any>): void {
     if (!this.currentContext) return;
 
-    const step = this.currentContext.steps.find(s => s.name === stepName);
+    const step = this.currentContext.steps.find((s) => s.name === stepName);
     if (step) {
       step.status = 'completed';
       step.endTime = Date.now();
@@ -126,7 +126,7 @@ export class TestContextManager {
   failStep(stepName: string, error: string): void {
     if (!this.currentContext) return;
 
-    const step = this.currentContext.steps.find(s => s.name === stepName);
+    const step = this.currentContext.steps.find((s) => s.name === stepName);
     if (step) {
       step.status = 'failed';
       step.endTime = Date.now();
@@ -191,7 +191,7 @@ export class BrowserTestManager {
     const result: BrowserTestResult = {
       url,
       title: '',
-      errors: []
+      errors: [],
     };
 
     try {
@@ -202,22 +202,21 @@ export class BrowserTestManager {
       // 4. 스크린샷 캡처
 
       result.title = 'Test Page'; // 실제 구현에서는 페이지 제목 가져오기
-      
+
       // 접근성 스냅샷 (실제로는 Playwright MCP의 browser_snapshot 사용)
       result.accessibilitySnapshot = {
         landmarks: [],
         headings: [],
         buttons: [],
-        forms: []
+        forms: [],
       };
 
       // 성능 메트릭 (실제로는 Playwright MCP의 성능 API 사용)
       result.performanceMetrics = {
         loadTime: 1000,
         domContentLoaded: 800,
-        firstContentfulPaint: 1200
+        firstContentfulPaint: 1200,
       };
-
     } catch (error) {
       result.errors.push(`접근성 테스트 실패: ${error}`);
     }
@@ -247,7 +246,10 @@ export class BrowserTestManager {
   /**
    * 반응형 디자인 테스트
    */
-  async testResponsiveDesign(url: string, viewports: Array<{ width: number; height: number }>): Promise<any[]> {
+  async testResponsiveDesign(
+    url: string,
+    viewports: Array<{ width: number; height: number }>,
+  ): Promise<any[]> {
     const results = [];
 
     for (const viewport of viewports) {
@@ -256,14 +258,14 @@ export class BrowserTestManager {
         const result = {
           viewport,
           screenshot: `screenshot-${viewport.width}x${viewport.height}.png`,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
         results.push(result);
       } catch (error) {
         results.push({
           viewport,
           error: error instanceof Error ? error.message : String(error),
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
       }
     }
@@ -285,7 +287,7 @@ export class SequentialTestManager {
     const plan: SequentialTestPlan = {
       testName,
       steps: [],
-      expectedOutcomes: []
+      expectedOutcomes: [],
     };
 
     this.testPlans.set(testName, plan);
@@ -296,11 +298,11 @@ export class SequentialTestManager {
    * 테스트 단계 추가
    */
   addTestStep(
-    testName: string, 
-    stepName: string, 
-    description: string, 
+    testName: string,
+    stepName: string,
+    description: string,
     dependencies?: string[],
-    timeout?: number
+    timeout?: number,
   ): void {
     const plan = this.testPlans.get(testName);
     if (!plan) {
@@ -312,7 +314,7 @@ export class SequentialTestManager {
       description,
       dependencies: dependencies || [],
       timeout: timeout || 30000,
-      retryCount: 0
+      retryCount: 0,
     });
   }
 
@@ -341,44 +343,43 @@ export class SequentialTestManager {
 
     // 각 단계를 컨텍스트에 추가
     for (const step of plan.steps) {
-      contextManager.addStep(step.name, { 
+      contextManager.addStep(step.name, {
         description: step.description,
         timeout: step.timeout,
-        retryCount: step.retryCount
+        retryCount: step.retryCount,
       });
     }
 
     // 단계별 실행
     for (const step of plan.steps) {
       contextManager.startStep(step.name);
-      
+
       try {
         // 의존성 확인
         if (step.dependencies && step.dependencies.length > 0) {
-          const dependencyResults = step.dependencies.map(dep => {
-            const depStep = context.steps.find(s => s.name === dep);
+          const dependencyResults = step.dependencies.map((dep) => {
+            const depStep = context.steps.find((s) => s.name === dep);
             return depStep?.status === 'completed';
           });
-          
-          if (dependencyResults.some(result => !result)) {
+
+          if (dependencyResults.some((result) => !result)) {
             throw new Error(`Dependencies not met: ${step.dependencies.join(', ')}`);
           }
         }
 
         // 테스트 단계 실행 (실제 구현에서는 각 단계별 로직 실행)
         await this.executeTestStep(step, context);
-        
-        contextManager.completeStep(step.name, { 
+
+        contextManager.completeStep(step.name, {
           duration: Date.now() - (context.startTime || 0),
           stepType: 'sequential',
-          dependencies: step.dependencies
+          dependencies: step.dependencies,
         });
-
-              } catch (error) {
-          contextManager.failStep(step.name, error instanceof Error ? error.message : String(error));
-          allStepsPassed = false;
-          break;
-        }
+      } catch (error) {
+        contextManager.failStep(step.name, error instanceof Error ? error.message : String(error));
+        allStepsPassed = false;
+        break;
+      }
     }
 
     return allStepsPassed;
@@ -388,9 +389,9 @@ export class SequentialTestManager {
     // 실제 테스트 단계 실행 로직
     // 각 단계별로 다른 테스트 로직을 실행
     console.log(`Executing test step: ${step.name}`);
-    
+
     // 시뮬레이션된 지연
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
   /**
@@ -432,7 +433,7 @@ export class IntegratedTestManager {
       type: 'accessibility' | 'performance' | 'form' | 'responsive' | 'custom';
       name: string;
       config?: any;
-    }>
+    }>,
   ): Promise<{
     success: boolean;
     results: any[];
@@ -445,16 +446,16 @@ export class IntegratedTestManager {
     try {
       // 각 테스트 단계를 컨텍스트에 추가
       for (const step of testSteps) {
-        this.contextManager.addStep(step.name, { 
+        this.contextManager.addStep(step.name, {
           type: step.type,
-          config: step.config
+          config: step.config,
         });
       }
 
       // 각 테스트 단계 실행
       for (const step of testSteps) {
         this.contextManager.startStep(step.name);
-        
+
         try {
           let result;
           switch (step.type) {
@@ -465,14 +466,20 @@ export class IntegratedTestManager {
               result = await this.browserManager.testPageAccessibility(url); // 성능 메트릭 포함
               break;
             case 'form':
-              result = await this.browserManager.testFormAutomation(url, step.config?.formData || {});
+              result = await this.browserManager.testFormAutomation(
+                url,
+                step.config?.formData || {},
+              );
               break;
             case 'responsive':
-              result = await this.browserManager.testResponsiveDesign(url, step.config?.viewports || [
-                { width: 1920, height: 1080 },
-                { width: 768, height: 1024 },
-                { width: 375, height: 667 }
-              ]);
+              result = await this.browserManager.testResponsiveDesign(
+                url,
+                step.config?.viewports || [
+                  { width: 1920, height: 1080 },
+                  { width: 768, height: 1024 },
+                  { width: 375, height: 667 },
+                ],
+              );
               break;
             default:
               result = { type: 'custom', name: step.name, status: 'completed' };
@@ -480,17 +487,19 @@ export class IntegratedTestManager {
 
           results.push(result);
           this.contextManager.completeStep(step.name, { result });
-          
         } catch (stepError) {
           // 개별 단계 실패 시 해당 단계를 실패로 표시
-          this.contextManager.failStep(step.name, stepError instanceof Error ? stepError.message : String(stepError));
-          results.push({ 
-            type: step.type, 
-            name: step.name, 
-            status: 'failed', 
-            error: stepError instanceof Error ? stepError.message : String(stepError)
+          this.contextManager.failStep(
+            step.name,
+            stepError instanceof Error ? stepError.message : String(stepError),
+          );
+          results.push({
+            type: step.type,
+            name: step.name,
+            status: 'failed',
+            error: stepError instanceof Error ? stepError.message : String(stepError),
           });
-          
+
           // 전체 테스트 실패로 처리
           throw stepError;
         }
@@ -500,15 +509,14 @@ export class IntegratedTestManager {
       return {
         success: true,
         results,
-        context: this.contextManager.getCurrentContext() || context
+        context: this.contextManager.getCurrentContext() || context,
       };
-
     } catch (error) {
       // 에러 발생 시 전체 테스트 실패로 표시
       return {
         success: false,
         results,
-        context: this.contextManager.getCurrentContext() || context
+        context: this.contextManager.getCurrentContext() || context,
       };
     }
   }
@@ -524,11 +532,11 @@ export class IntegratedTestManager {
   } {
     const contexts = this.contextManager.getAllContexts();
     const totalTests = contexts.length;
-    const passedTests = contexts.filter(c => 
-      c.steps.every(s => s.status === 'completed')
+    const passedTests = contexts.filter((c) =>
+      c.steps.every((s) => s.status === 'completed'),
     ).length;
     const failedTests = totalTests - passedTests;
-    
+
     const totalDuration = contexts.reduce((sum, c) => {
       const duration = c.steps.reduce((stepSum, s) => {
         if (s.startTime && s.endTime) {
@@ -545,7 +553,7 @@ export class IntegratedTestManager {
       totalTests,
       passedTests,
       failedTests,
-      averageDuration
+      averageDuration,
     };
   }
 

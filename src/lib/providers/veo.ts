@@ -18,12 +18,19 @@ export type VeoVideoResponse = {
 
 // Google Veo 3 API를 통한 동영상 생성
 export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVideoResponse> {
-  const { prompt, aspectRatio = '16:9', duration = 8, model = 'veo-3.0-generate-preview', personGeneration = 'dont_allow' } = options;
+  const {
+    prompt,
+    aspectRatio = '16:9',
+    duration = 8,
+    model = 'veo-3.0-generate-preview',
+    personGeneration = 'dont_allow',
+  } = options;
 
   // 환경변수 확인 및 로깅
-  const apiKey = process.env.GOOGLE_AI_STUDIO_API_KEY || process.env.GOOGLE_API_KEY || process.env.VEO_API_KEY;
+  const apiKey =
+    process.env.GOOGLE_AI_STUDIO_API_KEY || process.env.GOOGLE_API_KEY || process.env.VEO_API_KEY;
   const provider = process.env.VEO_PROVIDER || 'google';
-  
+
   console.log('DEBUG: VEO 비디오 생성 시작:', {
     prompt: prompt.slice(0, 100),
     aspectRatio,
@@ -31,11 +38,12 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
     model,
     provider,
     hasApiKey: !!apiKey,
-    personGeneration
+    personGeneration,
   });
 
   if (!apiKey) {
-    const error = 'Google AI Studio API key is not configured. Set GOOGLE_AI_STUDIO_API_KEY environment variable.';
+    const error =
+      'Google AI Studio API key is not configured. Set GOOGLE_AI_STUDIO_API_KEY environment variable.';
     console.error('DEBUG: VEO API 키 미설정:', error);
     return { ok: false, error };
   }
@@ -52,17 +60,17 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
         {
           parts: [
             {
-              text: prompt
-            }
-          ]
-        }
+              text: prompt,
+            },
+          ],
+        },
       ],
       generationConfig: {
         temperature: 0.7,
         topK: 40,
         topP: 0.95,
         maxOutputTokens: 2048,
-      }
+      },
     };
 
     // VEO3 모델별 추가 설정
@@ -71,7 +79,7 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
       (requestBody as any).videoGenerationConfig = {
         aspectRatio: aspectRatio,
         duration: `${duration}s`,
-        personGeneration: personGeneration
+        personGeneration: personGeneration,
       };
     }
 
@@ -94,18 +102,24 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
 
       clearTimeout(timeout);
 
-      console.log('DEBUG: VEO 응답 상태:', { status: response.status, statusText: response.statusText });
+      console.log('DEBUG: VEO 응답 상태:', {
+        status: response.status,
+        statusText: response.statusText,
+      });
 
       // 응답 텍스트를 먼저 가져와서 JSON 파싱 에러 방지
       const responseText = await response.text();
       console.log('DEBUG: VEO 응답 텍스트 (처음 500자):', responseText.slice(0, 500));
 
       if (!response.ok) {
-        console.error('DEBUG: VEO HTTP 에러:', { status: response.status, statusText: response.statusText });
+        console.error('DEBUG: VEO HTTP 에러:', {
+          status: response.status,
+          statusText: response.statusText,
+        });
         return {
           ok: false,
           error: `HTTP ${response.status}: ${response.statusText}`,
-          raw: { responseText: responseText.slice(0, 1000) }
+          raw: { responseText: responseText.slice(0, 1000) },
         };
       }
 
@@ -118,7 +132,7 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
         return {
           ok: false,
           error: `Invalid JSON response: ${parseError instanceof Error ? parseError.message : 'Unknown parse error'}`,
-          raw: { responseText: responseText.slice(0, 1000) }
+          raw: { responseText: responseText.slice(0, 1000) },
         };
       }
 
@@ -135,7 +149,7 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
         return {
           ok: false,
           error: 'No operation ID found in response',
-          raw: jsonResponse
+          raw: jsonResponse,
         };
       }
 
@@ -145,9 +159,8 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
         videoUrl,
         status,
         progress,
-        raw: jsonResponse
+        raw: jsonResponse,
       };
-
     } catch (fetchError) {
       clearTimeout(timeout);
       if (fetchError instanceof Error && fetchError.name === 'AbortError') {
@@ -156,13 +169,12 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
       }
       throw fetchError;
     }
-
   } catch (error) {
     console.error('DEBUG: VEO 예상치 못한 에러:', error);
     return {
       ok: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
-      raw: { error: String(error) }
+      raw: { error: String(error) },
     };
   }
 }
@@ -171,32 +183,32 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
 export async function checkVeoVideoStatus(operationId: string): Promise<VeoVideoResponse> {
   const apiKey = process.env.GOOGLE_GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) {
-    return { 
-      ok: false, 
-      error: 'GOOGLE_GEMINI_API_KEY not configured' 
+    return {
+      ok: false,
+      error: 'GOOGLE_GEMINI_API_KEY not configured',
     };
   }
 
   try {
     const url = `https://generativelanguage.googleapis.com/v1/operations/${operationId}?key=${encodeURIComponent(apiKey)}`;
-    
+
     const response = await fetch(url);
-    
+
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'unknown error');
       return {
         ok: false,
-        error: `Status check error: ${response.status} - ${errorText}`
+        error: `Status check error: ${response.status} - ${errorText}`,
       };
     }
 
     const data = await response.json();
-    
+
     if (data.done) {
       if (data.error) {
         return {
           ok: false,
-          error: `Video generation failed: ${data.error.message || 'unknown error'}`
+          error: `Video generation failed: ${data.error.message || 'unknown error'}`,
         };
       }
 
@@ -206,7 +218,7 @@ export async function checkVeoVideoStatus(operationId: string): Promise<VeoVideo
           ok: true,
           videoUrl: video.uri || `data:${video.mimeType};base64,${video.data}`,
           status: 'succeeded',
-          progress: 100
+          progress: 100,
         };
       }
     } else {
@@ -216,20 +228,19 @@ export async function checkVeoVideoStatus(operationId: string): Promise<VeoVideo
         ok: true,
         operationId,
         status: 'running',
-        progress
+        progress,
       };
     }
 
     return {
       ok: false,
-      error: 'Operation not completed or no video data'
+      error: 'Operation not completed or no video data',
     };
-
   } catch (error) {
     console.error('DEBUG: Veo status check exception:', error);
     return {
       ok: false,
-      error: `Status check exception: ${error instanceof Error ? error.message : 'unknown error'}`
+      error: `Status check exception: ${error instanceof Error ? error.message : 'unknown error'}`,
     };
   }
 }

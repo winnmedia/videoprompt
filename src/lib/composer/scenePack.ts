@@ -12,14 +12,14 @@ export function composeSceneFromProfile(profileIdx: number): ScenePrompt {
       'Wide establishing: setting and subject under mood.',
       'Inciting event introduces tension and reaction.',
       'Pursuit or core action escalates visibly.',
-      'Resolution beat with a strong visual punctuation.'
-    ][Math.min(i,3)],
+      'Resolution beat with a strong visual punctuation.',
+    ][Math.min(i, 3)],
     audio: [
       'Heavy ambient bed with surface details',
       'Shouts, impacts, sharp SFX',
       'Footsteps, metal clanks, wind gusts',
-      'Chopper blades/spotlight hum/low bass swell'
-    ][Math.min(i,3)],
+      'Chopper blades/spotlight hum/low bass swell',
+    ][Math.min(i, 3)],
   }));
 
   return {
@@ -40,7 +40,5 @@ export function composeSceneFromProfile(profileIdx: number): ScenePrompt {
 }
 
 export function composeFourScenePack(): ScenePrompt[] {
-  return [0,1,2,3].map(composeSceneFromProfile);
+  return [0, 1, 2, 3].map(composeSceneFromProfile);
 }
-
-

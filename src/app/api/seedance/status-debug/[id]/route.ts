@@ -7,7 +7,11 @@ export const revalidate = 0;
 function resolveStatusUrl(id: string) {
   const explicit = process.env.SEEDANCE_API_URL_STATUS;
   if (explicit) return explicit.replace('{id}', id);
-  const base = (process.env.SEEDANCE_API_BASE || process.env.MODELARK_API_BASE || 'https://ark.ap-southeast.bytepluses.com').replace(/\/$/, '');
+  const base = (
+    process.env.SEEDANCE_API_BASE ||
+    process.env.MODELARK_API_BASE ||
+    'https://ark.ap-southeast.bytepluses.com'
+  ).replace(/\/$/, '');
   return `${base}/api/v3/contents/generations/tasks/${encodeURIComponent(id)}`;
 }
 
@@ -24,34 +28,40 @@ export async function GET(_req: Request, ctx: any) {
     const res = await fetch(url, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         'X-Api-Key': apiKey,
-        'Accept': 'application/json',
+        Accept: 'application/json',
       },
       signal: controller.signal as any,
     });
     const text = await res.text();
     let parsed: any = null;
-    try { parsed = JSON.parse(text); } catch {}
+    try {
+      parsed = JSON.parse(text);
+    } catch {}
 
-    return NextResponse.json({
-      ok: res.ok,
-      httpStatus: res.status,
-      resolvedUrl: url,
-      hasKey: Boolean(apiKey),
-      parsed,
-      bodySnippet: (text || '').slice(0, 1024),
-    }, { status: 200 });
+    return NextResponse.json(
+      {
+        ok: res.ok,
+        httpStatus: res.status,
+        resolvedUrl: url,
+        hasKey: Boolean(apiKey),
+        parsed,
+        bodySnippet: (text || '').slice(0, 1024),
+      },
+      { status: 200 },
+    );
   } catch (e: any) {
-    return NextResponse.json({
-      ok: false,
-      error: e?.message || 'network error',
-      resolvedUrl: url,
-      hasKey: Boolean(apiKey),
-    }, { status: 200 });
+    return NextResponse.json(
+      {
+        ok: false,
+        error: e?.message || 'network error',
+        resolvedUrl: url,
+        hasKey: Boolean(apiKey),
+      },
+      { status: 200 },
+    );
   } finally {
     clearTimeout(timeout);
   }
 }
-
-

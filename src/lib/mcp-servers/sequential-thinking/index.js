@@ -1,114 +1,132 @@
 #!/usr/bin/env node
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { CallToolRequestSchema, ListToolsRequestSchema, } from "@modelcontextprotocol/sdk/types.js";
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 // Fixed chalk import for ESM
 import chalk from 'chalk';
 class SequentialThinkingServer {
-    thoughtHistory = [];
-    branches = {};
-    disableThoughtLogging;
-    constructor() {
-        this.disableThoughtLogging = (process.env.DISABLE_THOUGHT_LOGGING || "").toLowerCase() === "true";
+  thoughtHistory = [];
+  branches = {};
+  disableThoughtLogging;
+  constructor() {
+    this.disableThoughtLogging =
+      (process.env.DISABLE_THOUGHT_LOGGING || '').toLowerCase() === 'true';
+  }
+  validateThoughtData(input) {
+    const data = input;
+    if (!data.thought || typeof data.thought !== 'string') {
+      throw new Error('Invalid thought: must be a string');
     }
-    validateThoughtData(input) {
-        const data = input;
-        if (!data.thought || typeof data.thought !== 'string') {
-            throw new Error('Invalid thought: must be a string');
-        }
-        if (!data.thoughtNumber || typeof data.thoughtNumber !== 'number') {
-            throw new Error('Invalid thoughtNumber: must be a number');
-        }
-        if (!data.totalThoughts || typeof data.totalThoughts !== 'number') {
-            throw new Error('Invalid totalThoughts: must be a number');
-        }
-        if (typeof data.nextThoughtNeeded !== 'boolean') {
-            throw new Error('Invalid nextThoughtNeeded: must be a boolean');
-        }
-        return {
-            thought: data.thought,
-            thoughtNumber: data.thoughtNumber,
-            totalThoughts: data.totalThoughts,
-            nextThoughtNeeded: data.nextThoughtNeeded,
-            isRevision: data.isRevision,
-            revisesThought: data.revisesThought,
-            branchFromThought: data.branchFromThought,
-            branchId: data.branchId,
-            needsMoreThoughts: data.needsMoreThoughts,
-        };
+    if (!data.thoughtNumber || typeof data.thoughtNumber !== 'number') {
+      throw new Error('Invalid thoughtNumber: must be a number');
     }
-    formatThought(thoughtData) {
-        const { thoughtNumber, totalThoughts, thought, isRevision, revisesThought, branchFromThought, branchId } = thoughtData;
-        let prefix = '';
-        let context = '';
-        if (isRevision) {
-            prefix = chalk.yellow('🔄 Revision');
-            context = ` (revising thought ${revisesThought})`;
-        }
-        else if (branchFromThought) {
-            prefix = chalk.green('🌿 Branch');
-            context = ` (from thought ${branchFromThought}, ID: ${branchId})`;
-        }
-        else {
-            prefix = chalk.blue('💭 Thought');
-            context = '';
-        }
-        const header = `${prefix} ${thoughtNumber}/${totalThoughts}${context}`;
-        const border = '─'.repeat(Math.max(header.length, thought.length) + 4);
-        return `
+    if (!data.totalThoughts || typeof data.totalThoughts !== 'number') {
+      throw new Error('Invalid totalThoughts: must be a number');
+    }
+    if (typeof data.nextThoughtNeeded !== 'boolean') {
+      throw new Error('Invalid nextThoughtNeeded: must be a boolean');
+    }
+    return {
+      thought: data.thought,
+      thoughtNumber: data.thoughtNumber,
+      totalThoughts: data.totalThoughts,
+      nextThoughtNeeded: data.nextThoughtNeeded,
+      isRevision: data.isRevision,
+      revisesThought: data.revisesThought,
+      branchFromThought: data.branchFromThought,
+      branchId: data.branchId,
+      needsMoreThoughts: data.needsMoreThoughts,
+    };
+  }
+  formatThought(thoughtData) {
+    const {
+      thoughtNumber,
+      totalThoughts,
+      thought,
+      isRevision,
+      revisesThought,
+      branchFromThought,
+      branchId,
+    } = thoughtData;
+    let prefix = '';
+    let context = '';
+    if (isRevision) {
+      prefix = chalk.yellow('🔄 Revision');
+      context = ` (revising thought ${revisesThought})`;
+    } else if (branchFromThought) {
+      prefix = chalk.green('🌿 Branch');
+      context = ` (from thought ${branchFromThought}, ID: ${branchId})`;
+    } else {
+      prefix = chalk.blue('💭 Thought');
+      context = '';
+    }
+    const header = `${prefix} ${thoughtNumber}/${totalThoughts}${context}`;
+    const border = '─'.repeat(Math.max(header.length, thought.length) + 4);
+    return `
 ┌${border}┐
 │ ${header} │
 ├${border}┤
 │ ${thought.padEnd(border.length - 2)} │
 └${border}┘`;
-    }
-    processThought(input) {
-        try {
-            const validatedInput = this.validateThoughtData(input);
-            if (validatedInput.thoughtNumber > validatedInput.totalThoughts) {
-                validatedInput.totalThoughts = validatedInput.thoughtNumber;
-            }
-            this.thoughtHistory.push(validatedInput);
-            if (validatedInput.branchFromThought && validatedInput.branchId) {
-                if (!this.branches[validatedInput.branchId]) {
-                    this.branches[validatedInput.branchId] = [];
-                }
-                this.branches[validatedInput.branchId].push(validatedInput);
-            }
-            if (!this.disableThoughtLogging) {
-                const formattedThought = this.formatThought(validatedInput);
-                console.error(formattedThought);
-            }
-            return {
-                content: [{
-                        type: "text",
-                        text: JSON.stringify({
-                            thoughtNumber: validatedInput.thoughtNumber,
-                            totalThoughts: validatedInput.totalThoughts,
-                            nextThoughtNeeded: validatedInput.nextThoughtNeeded,
-                            branches: Object.keys(this.branches),
-                            thoughtHistoryLength: this.thoughtHistory.length
-                        }, null, 2)
-                    }]
-            };
+  }
+  processThought(input) {
+    try {
+      const validatedInput = this.validateThoughtData(input);
+      if (validatedInput.thoughtNumber > validatedInput.totalThoughts) {
+        validatedInput.totalThoughts = validatedInput.thoughtNumber;
+      }
+      this.thoughtHistory.push(validatedInput);
+      if (validatedInput.branchFromThought && validatedInput.branchId) {
+        if (!this.branches[validatedInput.branchId]) {
+          this.branches[validatedInput.branchId] = [];
         }
-        catch (error) {
-            return {
-                content: [{
-                        type: "text",
-                        text: JSON.stringify({
-                            error: error instanceof Error ? error.message : String(error),
-                            status: 'failed'
-                        }, null, 2)
-                    }],
-                isError: true
-            };
-        }
+        this.branches[validatedInput.branchId].push(validatedInput);
+      }
+      if (!this.disableThoughtLogging) {
+        const formattedThought = this.formatThought(validatedInput);
+        console.error(formattedThought);
+      }
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                thoughtNumber: validatedInput.thoughtNumber,
+                totalThoughts: validatedInput.totalThoughts,
+                nextThoughtNeeded: validatedInput.nextThoughtNeeded,
+                branches: Object.keys(this.branches),
+                thoughtHistoryLength: this.thoughtHistory.length,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                error: error instanceof Error ? error.message : String(error),
+                status: 'failed',
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+        isError: true,
+      };
     }
+  }
 }
 const SEQUENTIAL_THINKING_TOOL = {
-    name: "sequentialthinking",
-    description: `A detailed tool for dynamic and reflective problem-solving through thoughts.
+  name: 'sequentialthinking',
+  description: `A detailed tool for dynamic and reflective problem-solving through thoughts.
 This tool helps analyze problems through a flexible thinking process that can adapt and evolve.
 Each thought can build on, question, or revise previous insights as understanding deepens.
 
@@ -162,83 +180,88 @@ You should:
 9. Repeat the process until satisfied with the solution
 10. Provide a single, ideally correct answer as the final output
 11. Only set next_thought_needed to false when truly done and a satisfactory answer is reached`,
-    inputSchema: {
-        type: "object",
-        properties: {
-            thought: {
-                type: "string",
-                description: "Your current thinking step"
-            },
-            nextThoughtNeeded: {
-                type: "boolean",
-                description: "Whether another thought step is needed"
-            },
-            thoughtNumber: {
-                type: "integer",
-                description: "Current thought number",
-                minimum: 1
-            },
-            totalThoughts: {
-                type: "integer",
-                description: "Estimated total thoughts needed",
-                minimum: 1
-            },
-            isRevision: {
-                type: "boolean",
-                description: "Whether this revises previous thinking"
-            },
-            revisesThought: {
-                type: "integer",
-                description: "Which thought is being reconsidered",
-                minimum: 1
-            },
-            branchFromThought: {
-                type: "integer",
-                description: "Branching point thought number",
-                minimum: 1
-            },
-            branchId: {
-                type: "string",
-                description: "Branch identifier"
-            },
-            needsMoreThoughts: {
-                type: "boolean",
-                description: "If more thoughts are needed"
-            }
-        },
-        required: ["thought", "nextThoughtNeeded", "thoughtNumber", "totalThoughts"]
-    }
-};
-const server = new Server({
-    name: "sequential-thinking-server",
-    version: "0.2.0",
-}, {
-    capabilities: {
-        tools: {},
+  inputSchema: {
+    type: 'object',
+    properties: {
+      thought: {
+        type: 'string',
+        description: 'Your current thinking step',
+      },
+      nextThoughtNeeded: {
+        type: 'boolean',
+        description: 'Whether another thought step is needed',
+      },
+      thoughtNumber: {
+        type: 'integer',
+        description: 'Current thought number',
+        minimum: 1,
+      },
+      totalThoughts: {
+        type: 'integer',
+        description: 'Estimated total thoughts needed',
+        minimum: 1,
+      },
+      isRevision: {
+        type: 'boolean',
+        description: 'Whether this revises previous thinking',
+      },
+      revisesThought: {
+        type: 'integer',
+        description: 'Which thought is being reconsidered',
+        minimum: 1,
+      },
+      branchFromThought: {
+        type: 'integer',
+        description: 'Branching point thought number',
+        minimum: 1,
+      },
+      branchId: {
+        type: 'string',
+        description: 'Branch identifier',
+      },
+      needsMoreThoughts: {
+        type: 'boolean',
+        description: 'If more thoughts are needed',
+      },
     },
-});
+    required: ['thought', 'nextThoughtNeeded', 'thoughtNumber', 'totalThoughts'],
+  },
+};
+const server = new Server(
+  {
+    name: 'sequential-thinking-server',
+    version: '0.2.0',
+  },
+  {
+    capabilities: {
+      tools: {},
+    },
+  },
+);
 const thinkingServer = new SequentialThinkingServer();
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: [SEQUENTIAL_THINKING_TOOL],
+  tools: [SEQUENTIAL_THINKING_TOOL],
 }));
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    if (request.params.name === "sequentialthinking") {
-        return thinkingServer.processThought(request.params.arguments);
-    }
-    return {
-        content: [{
-                type: "text",
-                text: `Unknown tool: ${request.params.name}`
-            }],
-        isError: true
-    };
+  if (request.params.name === 'sequentialthinking') {
+    return thinkingServer.processThought(request.params.arguments);
+  }
+  return {
+    content: [
+      {
+        type: 'text',
+        text: `Unknown tool: ${request.params.name}`,
+      },
+    ],
+    isError: true,
+  };
 });
 async function runServer() {
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    console.error("Sequential Thinking MCP Server running on stdio");
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  console.error('Sequential Thinking MCP Server running on stdio');
 }
 runServer().catch((error) => {
-    console.error("Fatal error running server:", error);
-    process.exit(1);
+  console.error('Fatal error running server:', error);
+  process.exit(1);
 });

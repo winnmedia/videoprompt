@@ -1,13 +1,13 @@
 export type CameraBeat = 'intro' | 'incite' | 'pursue' | 'resolve';
 
 const KOREAN_TO_EN_CAMERA: Record<string, string> = {
-  '와이드': 'wide',
-  '따라가기': 'tracking',
-  'POV': 'POV',
-  '탑뷰': 'top view',
-  '돌리인': 'dolly-in',
-  '롱테이크': 'long take',
-  '핸드헬드': 'handheld',
+  와이드: 'wide',
+  따라가기: 'tracking',
+  POV: 'POV',
+  탑뷰: 'top view',
+  돌리인: 'dolly-in',
+  롱테이크: 'long take',
+  핸드헬드: 'handheld',
   '드론 오비탈': 'drone orbital',
 };
 
@@ -34,5 +34,3 @@ export function finalizeCameraSetup(beats: CameraBeat[]): string {
   }
   return steps.join(' → ');
 }
-
-

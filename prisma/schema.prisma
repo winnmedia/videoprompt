@@ -79,4 +79,68 @@ model Timeline {
   updatedAt     DateTime @updatedAt @map("updated_at")
 }
 
+// === Unified Pipeline Minimal Entities ===
+
+model Scenario {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String
+  logline     String?
+  structure4  Json?    // 4-step structure
+  shots12     Json?    // 12-shot breakdown
+  pdfUrl      String?  @map("pdf_url")
+  version     Int      @default(1)
+  createdBy   String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  prompts     Prompt[]
+}
+
+model Prompt {
+  id           String   @id @default(uuid()) @db.Uuid
+  scenarioId   String   @db.Uuid @map("scenario_id")
+  scenario     Scenario @relation(fields: [scenarioId], references: [id])
+  metadata     Json
+  timeline     Json
+  negative     Json?
+  version      Int      @default(1)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  videoAssets  VideoAsset[]
+}
+
+model VideoAsset {
+  id         String   @id @default(uuid()) @db.Uuid
+  promptId   String   @db.Uuid @map("prompt_id")
+  prompt     Prompt   @relation(fields: [promptId], references: [id])
+  provider   String   // 'seedance' | 'veo3'
+  status     String   // 'queued' | 'processing' | 'completed' | 'failed'
+  url        String?  // final video url
+  codec      String?  
+  duration   Int?     // seconds
+  version    Int      @default(1)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+}
+
+model ShareToken {
+  id         String   @id @default(uuid()) @db.Uuid
+  token      String   @unique
+  role       String   // 'viewer' | 'commenter'
+  nickname   String?
+  targetType String   // 'project' | 'scenario' | 'prompt' | 'video'
+  targetId   String
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+}
+
+model Comment {
+  id         String   @id @default(uuid()) @db.Uuid
+  targetType String   // 'video' | 'project'
+  targetId   String
+  author     String?  // nickname or user id
+  text       String
+  timecode   String?  // mmssfff
+  createdAt  DateTime @default(now()) @map("created_at")
+}
+
 

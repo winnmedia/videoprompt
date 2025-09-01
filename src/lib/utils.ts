@@ -20,7 +20,11 @@ export function createTimeRange(start: number, end: number): string {
 }
 
 // AbortController 기반 fetch 타임아웃 유틸
-export async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 10000): Promise<Response> {
+export async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  timeoutMs = 10000,
+): Promise<Response> {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -45,21 +49,24 @@ export function safeJsonParse<T = any>(text: string): T | null {
  * @param maxSize 최대 허용 크기 (기본값: 5000)
  * @returns 안전한 데이터 또는 에러 응답
  */
-export function validateResponseSize(data: any, maxSize: number = 5000): { safe: boolean; data?: any; error?: string } {
+export function validateResponseSize(
+  data: any,
+  maxSize: number = 5000,
+): { safe: boolean; data?: any; error?: string } {
   try {
     const jsonString = JSON.stringify(data);
     if (jsonString.length > maxSize) {
       console.warn(`Response size ${jsonString.length} exceeds limit ${maxSize}`);
       return {
         safe: false,
-        error: `Response too large (${jsonString.length} > ${maxSize}) - potential header overflow prevented`
+        error: `Response too large (${jsonString.length} > ${maxSize}) - potential header overflow prevented`,
       };
     }
     return { safe: true, data };
   } catch (error) {
     return {
       safe: false,
-      error: `Failed to validate response size: ${error instanceof Error ? error.message : 'Unknown error'}`
+      error: `Failed to validate response size: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
   }
 }
@@ -76,7 +83,7 @@ export function createSafeResponse(data: any, maxSize: number = 5000): any {
     return {
       ok: false,
       error: validation.error,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
   return validation.data;

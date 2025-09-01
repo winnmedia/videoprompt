@@ -23,22 +23,27 @@ function buildPlaceholderSvg(prompt: string, size: string = '768x768'): string {
     <text x="50%" y="48%" dominant-baseline="middle" text-anchor="middle" fill="#1f2937" font-size="18" font-family="sans-serif">AI Image Preview</text>
     <text x="50%" y="56%" dominant-baseline="middle" text-anchor="middle" fill="#4b5563" font-size="12" font-family="monospace">${text}</text>
   </g>
-  <rect x="16" y="16" width="${w-32}" height="${h-32}" fill="none" stroke="#93c5fd" stroke-width="2" stroke-dasharray="6 6"/>
+  <rect x="16" y="16" width="${w - 32}" height="${h - 32}" fill="none" stroke="#93c5fd" stroke-width="2" stroke-dasharray="6 6"/>
 </svg>`;
   const b64 = Buffer.from(svg, 'utf8').toString('base64');
   return `data:image/svg+xml;base64,${b64}`;
 }
 
 // Google AI(Imagen) 또는 ModelArk 프록시를 시도 후 실패 시 플레이스홀더 반환
-export async function generateImagenPreview(options: ImagenPreviewOptions): Promise<{ images: string[] }>{
+export async function generateImagenPreview(
+  options: ImagenPreviewOptions,
+): Promise<{ images: string[] }> {
   const { prompt, size = '768x768', n = 1 } = options;
 
   const apiKey = process.env.GOOGLE_GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   const providerPref = String(process.env.IMAGEN_PROVIDER || '').toLowerCase();
   const llmModel = String(process.env.IMAGEN_LLM_MODEL || 'imagegeneration-004');
-  const preferLLM = providerPref === 'llm' || providerPref === 'google' || providerPref === 'google-llm';
-  const preferVertex = providerPref === 'vertex' || providerPref === 'google-vertex' || providerPref === 'vertex-ai';
-  const preferOpenAI = providerPref === 'openai' || providerPref === 'openai-only' || providerPref === 'openai-images';
+  const preferLLM =
+    providerPref === 'llm' || providerPref === 'google' || providerPref === 'google-llm';
+  const preferVertex =
+    providerPref === 'vertex' || providerPref === 'google-vertex' || providerPref === 'vertex-ai';
+  const preferOpenAI =
+    providerPref === 'openai' || providerPref === 'openai-only' || providerPref === 'openai-images';
 
   console.log('DEBUG: Imagen preview 시작:', {
     prompt: prompt.slice(0, 100),
@@ -48,26 +53,31 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
     hasApiKey: !!apiKey,
     preferLLM,
     preferVertex,
-    preferOpenAI
+    preferOpenAI,
   });
 
   // 0) Vertex AI(Imagen) — OAuth(Bearer)로 호출
   const tryVertex = async (): Promise<string[] | null> => {
     // 서버 사이드에서만 실행
     if (typeof window !== 'undefined') return null;
-    
+
     const projectId = process.env.VERTEX_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT || '';
     const location = process.env.VERTEX_LOCATION || 'us-central1';
     const model = process.env.VERTEX_IMAGEN_MODEL || 'imagegeneration@002';
     const saJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-    
-    console.log('DEBUG: Vertex AI 시도:', { projectId: !!projectId, location, model, hasSaJson: !!saJson });
-    
+
+    console.log('DEBUG: Vertex AI 시도:', {
+      projectId: !!projectId,
+      location,
+      model,
+      hasSaJson: !!saJson,
+    });
+
     if (!projectId || !saJson) {
       console.log('DEBUG: Vertex AI 설정 부족');
       return null;
     }
-    
+
     try {
       // 지연 의존 로딩(런타임에서만 필요)
       // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -101,41 +111,52 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
           guidanceScale: 7.5,
           seed: Math.floor(Math.random() * 1000000),
           // 안전 필터 설정
-          safetyFilterLevel: "BLOCK_MEDIUM_AND_ABOVE"
+          safetyFilterLevel: 'BLOCK_MEDIUM_AND_ABOVE',
         },
       };
 
-      console.log('DEBUG: Vertex AI 요청:', { url, width, height, sampleCount: body.parameters.sampleCount });
+      console.log('DEBUG: Vertex AI 요청:', {
+        url,
+        width,
+        height,
+        sampleCount: body.parameters.sampleCount,
+      });
 
       const controller = new AbortController();
       const t = setTimeout(() => controller.abort(), 8000);
       const res = await fetch(url, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token.token}`,
+          Authorization: `Bearer ${token.token}`,
           'Content-Type': 'application/json; charset=utf-8',
         },
         body: JSON.stringify(body),
         signal: controller.signal as any,
       });
       clearTimeout(t);
-      
+
       if (!res.ok) {
         const errorText = await res.text();
-        console.error('DEBUG: Vertex AI 응답 오류:', { status: res.status, statusText: res.statusText, error: errorText.slice(0, 200) });
+        console.error('DEBUG: Vertex AI 응답 오류:', {
+          status: res.status,
+          statusText: res.statusText,
+          error: errorText.slice(0, 200),
+        });
         return null;
       }
-      
+
       const json: any = await res.json();
       const preds: any[] = Array.isArray(json?.predictions) ? json.predictions : [];
       const images = preds
         .map((p: any) => p?.bytesBase64Encoded || p?.b64_json)
         .filter(Boolean)
         .slice(0, n);
-      
-      console.log('DEBUG: Vertex AI 성공:', { predictionsCount: preds.length, imagesCount: images.length });
+
+      console.log('DEBUG: Vertex AI 성공:', {
+        predictionsCount: preds.length,
+        imagesCount: images.length,
+      });
       return images.length > 0 ? images : null;
-      
     } catch (error) {
       console.error('DEBUG: Vertex AI 에러:', error);
       return null;
@@ -148,12 +169,12 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
       const width = parseInt(wStr, 10) || 768;
       const height = parseInt(hStr, 10) || 768;
 
-      console.log('DEBUG: Google Gemini API 호출 시도:', { 
+      console.log('DEBUG: Google Gemini API 호출 시도:', {
         apiKey: apiKey ? `${apiKey.substring(0, 10)}...` : 'none',
         llmModel,
         prompt: prompt.slice(0, 100),
         size: `${width}x${height}`,
-        n
+        n,
       });
 
       // Google Gemini API Imagen 모델 호출
@@ -165,8 +186,8 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
             contents: [
               {
                 role: 'user',
-                parts: [{ text: String(prompt || '').slice(0, 1500) }]
-              }
+                parts: [{ text: String(prompt || '').slice(0, 1500) }],
+              },
             ],
             generationConfig: {
               temperature: 0.7,
@@ -178,7 +199,7 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
               numberOfImages: Math.max(1, Math.min(4, n)),
               aspectRatio: width > height ? 'LANDSCAPE' : width < height ? 'PORTRAIT' : 'SQUARE',
               imageSize: `${width}x${height}`,
-            }
+            },
           },
         },
         {
@@ -188,8 +209,8 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
             contents: [
               {
                 role: 'user',
-                parts: [{ text: String(prompt || '').slice(0, 1500) }]
-              }
+                parts: [{ text: String(prompt || '').slice(0, 1500) }],
+              },
             ],
             generationConfig: {
               temperature: 0.7,
@@ -201,7 +222,7 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
               numberOfImages: Math.max(1, Math.min(4, n)),
               aspectRatio: width > height ? 'LANDSCAPE' : width < height ? 'PORTRAIT' : 'SQUARE',
               imageSize: `${width}x${height}`,
-            }
+            },
           },
         },
         {
@@ -212,14 +233,14 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
             imageSize: { width, height },
             numberOfImages: Math.max(1, Math.min(4, n)),
           },
-        }
+        },
       ];
 
       for (const attempt of attempts) {
         console.log(`DEBUG: ${attempt.description} 시도 중...`);
         const controller = new AbortController();
         const t = setTimeout(() => controller.abort(), 15000); // 15초 타임아웃
-        
+
         try {
           const res = await fetch(attempt.url, {
             method: 'POST',
@@ -227,23 +248,23 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
             body: JSON.stringify(attempt.body),
             signal: controller.signal as any,
           });
-          
+
           clearTimeout(t);
-          
+
           console.log(`DEBUG: ${attempt.description} 응답 상태:`, res.status, res.statusText);
-          
+
           if (!res.ok) {
             const errorText = await res.text().catch(() => 'unknown error');
             console.log(`DEBUG: ${attempt.description} 오류 응답:`, errorText);
             continue;
           }
-          
+
           const json: any = await res.json().catch(() => ({}));
           console.log(`DEBUG: ${attempt.description} 응답 키:`, Object.keys(json));
-          
+
           // 응답 데이터에서 이미지 추출
           const images: string[] = [];
-          
+
           // 다양한 응답 구조 대응
           if (json.candidates && Array.isArray(json.candidates)) {
             for (const candidate of json.candidates) {
@@ -268,9 +289,9 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
               }
             }
           }
-          
+
           console.log(`DEBUG: ${attempt.description}에서 ${images.length}개 이미지 추출`);
-          
+
           if (images.length > 0) {
             const result = images.slice(0, n).map((img, index) => {
               console.log(`DEBUG: 이미지 ${index + 1} 생성 완료`);
@@ -278,14 +299,13 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
             });
             return result;
           }
-          
         } catch (error) {
           console.log(`DEBUG: ${attempt.description} 시도 중 오류:`, error);
           clearTimeout(t);
           continue;
         }
       }
-      
+
       console.log('DEBUG: 모든 Google API 시도 실패');
       return null;
     } catch (error) {
@@ -314,7 +334,7 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
       clearTimeout(t);
       const json: any = await res.json();
       const out: string[] = (json?.images || json?.result?.images || [])
-        .map((it: any) => it?.b64_json ? `data:image/png;base64,${it.b64_json}` : it?.url)
+        .map((it: any) => (it?.b64_json ? `data:image/png;base64,${it.b64_json}` : it?.url))
         .filter(Boolean)
         .slice(0, n);
       return out.length > 0 ? out : null;
@@ -326,7 +346,11 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
   // OpenAI Images API (gpt-image-1)
   const tryOpenAI = async (): Promise<string[] | null> => {
     const openaiKey = process.env.OPENAI_API_KEY || process.env.OPENAI_API_TOKEN;
-    console.log('DEBUG: OpenAI API Key present:', !!openaiKey, openaiKey ? `${openaiKey.substring(0, 10)}...` : 'none');
+    console.log(
+      'DEBUG: OpenAI API Key present:',
+      !!openaiKey,
+      openaiKey ? `${openaiKey.substring(0, 10)}...` : 'none',
+    );
     if (!openaiKey) return null;
     try {
       const [wStr, hStr] = String(size).split('x');
@@ -349,7 +373,7 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openaiKey}`,
+          Authorization: `Bearer ${openaiKey}`,
         },
         body: JSON.stringify(body),
         signal: controller.signal as any,
@@ -368,11 +392,13 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
       }
       const json: any = await res.json().catch(() => ({}));
       console.log('DEBUG: OpenAI response JSON keys:', Object.keys(json));
-      const images: string[] = Array.isArray(json?.data) ? json.data
-        .map((d: any) => d?.b64_json)
-        .filter(Boolean)
-        .slice(0, n)
-        .map((b64: string) => `data:image/png;base64,${b64}`) : [];
+      const images: string[] = Array.isArray(json?.data)
+        ? json.data
+            .map((d: any) => d?.b64_json)
+            .filter(Boolean)
+            .slice(0, n)
+            .map((b64: string) => `data:image/png;base64,${b64}`)
+        : [];
       console.log('DEBUG: OpenAI images count:', images.length);
       return images.length ? images : null;
     } catch (err) {
@@ -403,22 +429,34 @@ export async function generateImagenPreview(options: ImagenPreviewOptions): Prom
   }
   // 강제 LLM 모드인데 이미지가 나오지 않으면 플레이스홀더로 폴백
   if (preferLLM) {
-    try { console.warn('Google LLM image generation failed: no images returned. Falling back to placeholder.'); } catch {}
-    const images = Array.from({ length: Math.max(1, Math.min(4, n)) }, () => buildPlaceholderSvg(prompt, size));
+    try {
+      console.warn(
+        'Google LLM image generation failed: no images returned. Falling back to placeholder.',
+      );
+    } catch {}
+    const images = Array.from({ length: Math.max(1, Math.min(4, n)) }, () =>
+      buildPlaceholderSvg(prompt, size),
+    );
     return { images };
   }
   // 강제 OpenAI 모드인데 이미지가 나오지 않으면 에러 메시지와 함께 플레이스홀더 생성
   if (preferOpenAI) {
-    try { console.error('OpenAI image generation failed: no images returned. Check OPENAI_API_KEY validity and Images API access.'); } catch {}
-    const images = Array.from({ length: Math.max(1, Math.min(4, n)) }, () => buildPlaceholderSvg(`OpenAI 실패: ${prompt}`, size));
+    try {
+      console.error(
+        'OpenAI image generation failed: no images returned. Check OPENAI_API_KEY validity and Images API access.',
+      );
+    } catch {}
+    const images = Array.from({ length: Math.max(1, Math.min(4, n)) }, () =>
+      buildPlaceholderSvg(`OpenAI 실패: ${prompt}`, size),
+    );
     return { images };
   }
   const m = await tryModelArk();
   if (m && m.length) return { images: m };
 
   // 플레이스홀더 n장 생성
-  const images = Array.from({ length: Math.max(1, Math.min(4, n)) }, () => buildPlaceholderSvg(prompt, size));
+  const images = Array.from({ length: Math.max(1, Math.min(4, n)) }, () =>
+    buildPlaceholderSvg(prompt, size),
+  );
   return { images };
 }
-
-

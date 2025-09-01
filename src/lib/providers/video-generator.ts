@@ -27,15 +27,17 @@ export type VideoGenerationResponse = {
 };
 
 // 명시적 provider 선택을 통한 동영상 생성
-export async function generateVideo(options: VideoGenerationOptions): Promise<VideoGenerationResponse> {
-  const { 
-    prompt, 
-    aspectRatio = '16:9', 
-    duration = 8, 
+export async function generateVideo(
+  options: VideoGenerationOptions,
+): Promise<VideoGenerationResponse> {
+  const {
+    prompt,
+    aspectRatio = '16:9',
+    duration = 8,
     provider,
     veoModel = 'veo-3.0-generate-preview',
     personGeneration = 'dont_allow',
-    seedanceModel
+    seedanceModel,
   } = options;
 
   // provider가 명시되지 않은 경우 에러
@@ -43,7 +45,7 @@ export async function generateVideo(options: VideoGenerationOptions): Promise<Vi
     return {
       ok: false,
       provider: 'seedance' as VideoProvider, // 기본값
-      error: 'INVALID_PROVIDER: Must specify either "veo" or "seedance"'
+      error: 'INVALID_PROVIDER: Must specify either "veo" or "seedance"',
     };
   }
 
@@ -55,12 +57,12 @@ export async function generateVideo(options: VideoGenerationOptions): Promise<Vi
       aspectRatio,
       duration,
       model: veoModel,
-      personGeneration
+      personGeneration,
     });
 
     return {
       ...result,
-      provider: 'veo' as VideoProvider
+      provider: 'veo' as VideoProvider,
     };
   }
 
@@ -71,7 +73,7 @@ export async function generateVideo(options: VideoGenerationOptions): Promise<Vi
       prompt,
       aspect_ratio: aspectRatio,
       duration_seconds: duration,
-      model: seedanceModel
+      model: seedanceModel,
     });
 
     return {
@@ -80,7 +82,7 @@ export async function generateVideo(options: VideoGenerationOptions): Promise<Vi
       operationId: result.jobId,
       error: result.error,
       status: result.status === 'queued' ? 'pending' : (result.status as any),
-      progress: 0
+      progress: 0,
     };
   }
 
@@ -88,17 +90,20 @@ export async function generateVideo(options: VideoGenerationOptions): Promise<Vi
   return {
     ok: false,
     provider: 'seedance' as VideoProvider,
-    error: 'UNKNOWN_PROVIDER'
+    error: 'UNKNOWN_PROVIDER',
   };
 }
 
 // 동영상 상태 확인 (provider 명시 필요)
-export async function checkVideoStatus(operationId: string, provider: VideoProvider): Promise<VideoGenerationResponse> {
+export async function checkVideoStatus(
+  operationId: string,
+  provider: VideoProvider,
+): Promise<VideoGenerationResponse> {
   if (!provider || (provider !== 'veo' && provider !== 'seedance')) {
     return {
       ok: false,
       provider: 'seedance' as VideoProvider,
-      error: 'INVALID_PROVIDER: Must specify either "veo" or "seedance"'
+      error: 'INVALID_PROVIDER: Must specify either "veo" or "seedance"',
     };
   }
 
@@ -106,7 +111,7 @@ export async function checkVideoStatus(operationId: string, provider: VideoProvi
     const result = await checkVeoVideoStatus(operationId);
     return {
       ...result,
-      provider: 'veo' as VideoProvider
+      provider: 'veo' as VideoProvider,
     };
   }
 
@@ -119,7 +124,7 @@ export async function checkVideoStatus(operationId: string, provider: VideoProvi
     videoUrl: result.videoUrl,
     error: result.error,
     status: result.status as any,
-    progress: result.progress || 0
+    progress: result.progress || 0,
   };
 }
 
@@ -134,20 +139,20 @@ export function getProviderInfo(provider: VideoProvider) {
           '오디오 포함',
           '빠른 생성 (11초~6분)',
           '시네마틱 품질',
-          '다양한 시각적 스타일 지원'
+          '다양한 시각적 스타일 지원',
         ],
         limitations: [
           '지역 제한 (EU, UK, Switzerland, MENA)',
           '2일 후 자동 삭제',
           'AI 워터마킹 (SynthID)',
-          '최대 8초 고정 (Veo 3)'
+          '최대 8초 고정 (Veo 3)',
         ],
         bestFor: [
           '고품질 단기 동영상',
           '빠른 프로토타이핑',
           '오디오가 필요한 콘텐츠',
-          '시네마틱 스타일'
-        ]
+          '시네마틱 스타일',
+        ],
       };
     case 'seedance':
       return {
@@ -157,27 +162,22 @@ export function getProviderInfo(provider: VideoProvider) {
           '다양한 모델 선택',
           '안정적인 API',
           '지역 제한 없음',
-          '커스터마이징 가능'
+          '커스터마이징 가능',
         ],
         limitations: [
           '생성 시간이 더 김',
           '오디오 미지원',
           '품질이 Veo보다 낮을 수 있음',
-          '더 많은 컴퓨팅 리소스 필요'
+          '더 많은 컴퓨팅 리소스 필요',
         ],
-        bestFor: [
-          '긴 동영상',
-          '안정성 중시',
-          '지역 제한이 있는 사용자',
-          '대량 생성'
-        ]
+        bestFor: ['긴 동영상', '안정성 중시', '지역 제한이 있는 사용자', '대량 생성'],
       };
     default:
       return {
         name: 'Unknown Provider',
         advantages: [],
         limitations: ['Provider not specified'],
-        bestFor: []
+        bestFor: [],
       };
   }
 }

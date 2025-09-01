@@ -12,11 +12,11 @@ interface IntegrationCardProps {
   onConfigure?: (id: string) => void;
 }
 
-export function IntegrationCard({ 
-  integration, 
-  onConnect, 
-  onDisconnect, 
-  onConfigure 
+export function IntegrationCard({
+  integration,
+  onConnect,
+  onDisconnect,
+  onConfigure,
 }: IntegrationCardProps) {
   const getStatusColor = (status: VideoPlanetIntegration['status']) => {
     switch (status) {
@@ -49,16 +49,12 @@ export function IntegrationCard({
       case 'connected':
         return (
           <div className="flex space-x-2">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => onConfigure?.(integration.id)}
-            >
+            <Button variant="outline" size="sm" onClick={() => onConfigure?.(integration.id)}>
               <Icon name="gear" size="sm" className="mr-2" />
               설정
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => onDisconnect?.(integration.id)}
               className="text-red-600 hover:text-red-700"
@@ -70,22 +66,14 @@ export function IntegrationCard({
         );
       case 'pending':
         return (
-          <Button 
-            variant="outline" 
-            size="sm"
-            disabled
-            className="opacity-50"
-          >
+          <Button variant="outline" size="sm" disabled className="opacity-50">
             <Icon name="clock" size="sm" className="mr-2" />
             연결 중...
           </Button>
         );
       case 'disconnected':
         return (
-          <Button 
-            size="sm"
-            onClick={() => onConnect?.(integration.id)}
-          >
+          <Button size="sm" onClick={() => onConnect?.(integration.id)}>
             <Icon name="plus" size="sm" className="mr-2" />
             연결하기
           </Button>
@@ -96,12 +84,12 @@ export function IntegrationCard({
   };
 
   return (
-    <Card className="hover:shadow-lg transition-all duration-300 group h-full border-2 hover:border-primary-200">
+    <Card className="group h-full border-2 transition-all duration-300 hover:border-primary-200 hover:shadow-lg">
       <CardHeader className="p-4 pb-2">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
             <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center transition-colors duration-300 group-hover:scale-110"
+              className="flex h-12 w-12 items-center justify-center rounded-xl transition-colors duration-300 group-hover:scale-110"
               style={{ backgroundColor: `${integration.color}20` }}
             >
               <integration.icon
@@ -111,45 +99,40 @@ export function IntegrationCard({
               />
             </div>
             <div>
-              <CardTitle className="text-lg font-semibold text-gray-900" data-testid={`integration-title-${integration.id}`}>
+              <CardTitle
+                className="text-lg font-semibold text-gray-900"
+                data-testid={`integration-title-${integration.id}`}
+              >
                 {integration.name}
               </CardTitle>
-              <Badge 
-                variant="outline" 
-                className={`mt-1 ${getStatusColor(integration.status)}`}
-              >
+              <Badge variant="outline" className={`mt-1 ${getStatusColor(integration.status)}`}>
                 {getStatusText(integration.status)}
               </Badge>
             </div>
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent className="p-4 pt-0">
-        <p className="text-sm text-gray-600 mb-4 leading-relaxed">
-          {integration.description}
-        </p>
-        
+        <p className="mb-4 text-sm leading-relaxed text-gray-600">{integration.description}</p>
+
         {/* Features */}
         <div className="mb-4">
-          <h4 className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">
+          <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
             주요 기능
           </h4>
           <div className="flex flex-wrap gap-1">
             {integration.features.slice(0, 3).map((feature, index) => (
-              <Badge 
-                key={index} 
-                variant="secondary" 
-                className="text-xs px-2 py-1 bg-gray-100 text-gray-700"
+              <Badge
+                key={index}
+                variant="secondary"
+                className="bg-gray-100 px-2 py-1 text-xs text-gray-700"
               >
                 {feature}
               </Badge>
             ))}
             {integration.features.length > 3 && (
-              <Badge 
-                variant="secondary" 
-                className="text-xs px-2 py-1 bg-gray-100 text-gray-700"
-              >
+              <Badge variant="secondary" className="bg-gray-100 px-2 py-1 text-xs text-gray-700">
                 +{integration.features.length - 3}
               </Badge>
             )}
@@ -164,9 +147,7 @@ export function IntegrationCard({
         )}
 
         {/* Action Buttons */}
-        <div className="flex justify-end">
-          {getActionButton()}
-        </div>
+        <div className="flex justify-end">{getActionButton()}</div>
       </CardContent>
     </Card>
   );

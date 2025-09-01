@@ -21,7 +21,7 @@ describe('Analytics System', () => {
         tokens_used: 1500,
         user_id: 'user-123',
         project_id: 'proj-456',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       // When: 사용량 추적
@@ -38,7 +38,7 @@ describe('Analytics System', () => {
         page: '/wizard',
         user_id: 'user-123',
         session_id: 'sess-789',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       // When: 사용자 액션 추적
@@ -56,7 +56,7 @@ describe('Analytics System', () => {
         model: 'gpt-4',
         input_tokens: 1000,
         output_tokens: 500,
-        requests: 10
+        requests: 10,
       };
 
       // When: 비용 계산
@@ -73,7 +73,7 @@ describe('Analytics System', () => {
         model: 'gemini-pro',
         input_tokens: 800,
         output_tokens: 400,
-        requests: 8
+        requests: 8,
       };
 
       // When: 비용 계산
@@ -87,10 +87,10 @@ describe('Analytics System', () => {
     it('should calculate total monthly costs', async () => {
       // Given: 월간 사용량 데이터
       const monthlyUsage = {
-        openai: { cost: 25.50 },
+        openai: { cost: 25.5 },
         gemini: { cost: 18.75 },
         storage: { cost: 5.25 },
-        other: { cost: 2.00 }
+        other: { cost: 2.0 },
       };
 
       // When: 총 비용 계산
@@ -98,7 +98,7 @@ describe('Analytics System', () => {
 
       // Then: 모든 서비스 비용 합계
       expect(mockCostService.getTotalCost).toHaveBeenCalledWith(monthlyUsage);
-      expect(totalCost).toBe(51.50);
+      expect(totalCost).toBe(51.5);
     });
   });
 
@@ -110,14 +110,17 @@ describe('Analytics System', () => {
         endpoint: 'scene_generation',
         response_time_ms: 2500,
         status: 'success',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       // When: 응답 시간 추적
       await mockAnalyticsService.trackEvent('api_response_time', responseTimeData);
 
       // Then: 성능 메트릭이 추적됨
-      expect(mockAnalyticsService.trackEvent).toHaveBeenCalledWith('api_response_time', responseTimeData);
+      expect(mockAnalyticsService.trackEvent).toHaveBeenCalledWith(
+        'api_response_time',
+        responseTimeData,
+      );
     });
 
     it('should identify performance bottlenecks', async () => {
@@ -127,14 +130,17 @@ describe('Analytics System', () => {
         average_response_time: 3500,
         p95_response_time: 8000,
         error_rate: 0.05,
-        throughput: 100
+        throughput: 100,
       };
 
       // When: 성능 분석
       const bottlenecks = await mockAnalyticsService.generateReport('performance', performanceData);
 
       // Then: 병목 지점 식별
-      expect(mockAnalyticsService.generateReport).toHaveBeenCalledWith('performance', performanceData);
+      expect(mockAnalyticsService.generateReport).toHaveBeenCalledWith(
+        'performance',
+        performanceData,
+      );
       expect(bottlenecks).toContain('response_time');
     });
   });
@@ -148,9 +154,9 @@ describe('Analytics System', () => {
           { page: '/', timestamp: '2024-01-01T10:00:00Z' },
           { page: '/wizard', timestamp: '2024-01-01T10:05:00Z' },
           { page: '/editor', timestamp: '2024-01-01T10:15:00Z' },
-          { page: '/integrations', timestamp: '2024-01-01T10:30:00Z' }
+          { page: '/integrations', timestamp: '2024-01-01T10:30:00Z' },
         ],
-        completion_time: 1800
+        completion_time: 1800,
       };
 
       // When: 여정 분석
@@ -169,14 +175,20 @@ describe('Analytics System', () => {
         total_users: 1000,
         active_users: 750,
         daily_active_users: 150,
-        weekly_active_users: 400
+        weekly_active_users: 400,
       };
 
       // When: 채택률 계산
-      const adoptionRate = await mockAnalyticsService.getUsageStats('feature_adoption', featureData);
+      const adoptionRate = await mockAnalyticsService.getUsageStats(
+        'feature_adoption',
+        featureData,
+      );
 
       // Then: 정확한 채택률 계산
-      expect(mockAnalyticsService.getUsageStats).toHaveBeenCalledWith('feature_adoption', featureData);
+      expect(mockAnalyticsService.getUsageStats).toHaveBeenCalledWith(
+        'feature_adoption',
+        featureData,
+      );
       expect(adoptionRate).toBe(0.75); // 75%
     });
   });
@@ -190,14 +202,17 @@ describe('Analytics System', () => {
         active_users: 1200,
         total_projects: 500,
         ai_generations: 2500,
-        revenue: 2500.00
+        revenue: 2500.0,
       };
 
       // When: 비즈니스 리포트 생성
       const report = await mockAnalyticsService.generateReport('business_monthly', businessData);
 
       // Then: 포괄적인 비즈니스 리포트
-      expect(mockAnalyticsService.generateReport).toHaveBeenCalledWith('business_monthly', businessData);
+      expect(mockAnalyticsService.generateReport).toHaveBeenCalledWith(
+        'business_monthly',
+        businessData,
+      );
       expect(report).toHaveProperty('user_growth');
       expect(report).toHaveProperty('engagement_metrics');
       expect(report).toHaveProperty('revenue_analysis');
@@ -209,14 +224,20 @@ describe('Analytics System', () => {
         months: ['2023-10', '2023-11', '2023-12'],
         user_growth: [100, 120, 150],
         ai_usage: [1000, 1500, 2000],
-        revenue: [1000, 1500, 2000]
+        revenue: [1000, 1500, 2000],
       };
 
       // When: 트렌드 예측
-      const predictions = await mockAnalyticsService.generateReport('trend_prediction', historicalData);
+      const predictions = await mockAnalyticsService.generateReport(
+        'trend_prediction',
+        historicalData,
+      );
 
       // Then: 미래 트렌드 예측
-      expect(mockAnalyticsService.generateReport).toHaveBeenCalledWith('trend_prediction', historicalData);
+      expect(mockAnalyticsService.generateReport).toHaveBeenCalledWith(
+        'trend_prediction',
+        historicalData,
+      );
       expect(predictions).toHaveProperty('next_month_users');
       expect(predictions).toHaveProperty('next_month_revenue');
     });

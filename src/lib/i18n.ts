@@ -1,10 +1,10 @@
 import { mapCameraToEnglish } from '@/lib/pel/camera';
 
 const THEME_MAP: Record<string, string> = {
-  '집': 'home interior',
-  '부엌': 'kitchen',
-  '거실': 'living room',
-  '복도': 'hallway',
+  집: 'home interior',
+  부엌: 'kitchen',
+  거실: 'living room',
+  복도: 'hallway',
   '욕실(문 닫힘)': 'bathroom (door closed)',
   '바다(맑은 낮)': 'sunny seaside daytime',
   '숲(낮)': 'forest (day)',
@@ -21,50 +21,50 @@ const THEME_MAP: Record<string, string> = {
   '지하철 승강장': 'subway platform',
   '해질녘 옥상': 'rooftop at dusk',
   '봄 벚꽃길': 'spring cherry blossom path',
-  '일반': 'general',
+  일반: 'general',
 };
 
 const STYLE_MAP: Record<string, string> = {
-  '자연스러운': 'natural',
-  '드라마틱한': 'dramatic',
-  '코믹한': 'comic',
-  '로맨틱한': 'romantic',
-  '액션': 'action',
-  '미스터리': 'mystery',
-  '판타지': 'fantasy',
-  'SF': 'sci-fi',
+  자연스러운: 'natural',
+  드라마틱한: 'dramatic',
+  코믹한: 'comic',
+  로맨틱한: 'romantic',
+  액션: 'action',
+  미스터리: 'mystery',
+  판타지: 'fantasy',
+  SF: 'sci-fi',
 };
 
 const MOOD_MAP: Record<string, string> = {
-  '밝음': 'bright',
-  '아늑함': 'cozy',
-  '모험': 'adventurous',
-  '신비': 'mysterious',
-  '차분': 'calm',
+  밝음: 'bright',
+  아늑함: 'cozy',
+  모험: 'adventurous',
+  신비: 'mysterious',
+  차분: 'calm',
 };
 
 const WEATHER_MAP: Record<string, string> = {
-  '맑음': 'clear',
-  '비': 'rain',
-  '눈': 'snow',
-  '안개': 'fog',
+  맑음: 'clear',
+  비: 'rain',
+  눈: 'snow',
+  안개: 'fog',
 };
 
 const CHARACTER_MAP: Record<string, string> = {
-  '엄마': 'mother',
-  '아빠': 'father',
-  '친구': 'friend',
-  '강아지': 'dog',
-  '고양이': 'cat',
-  '로봇': 'robot',
+  엄마: 'mother',
+  아빠: 'father',
+  친구: 'friend',
+  강아지: 'dog',
+  고양이: 'cat',
+  로봇: 'robot',
 };
 
 const ACTION_MAP: Record<string, string> = {
-  '걷기': 'walking',
-  '달리기': 'running',
-  '요리': 'cooking',
-  '춤': 'dancing',
-  '숨바꼭질': 'hide-and-seek',
+  걷기: 'walking',
+  달리기: 'running',
+  요리: 'cooking',
+  춤: 'dancing',
+  숨바꼭질: 'hide-and-seek',
   '문열기/닫기': 'open/close door',
 };
 
@@ -82,7 +82,7 @@ export function translateKoreanToEnglish(value?: string): string | undefined {
 
 export function translateArray(values?: string[]): string[] {
   if (!values) return [];
-  return values.map(v => translateKoreanToEnglish(v) || v);
+  return values.map((v) => translateKoreanToEnglish(v) || v);
 }
 
 export interface WizardLikeContext {
@@ -132,5 +132,3 @@ export function translateWizardContextToEnglish(ctx: WizardLikeContext): WizardL
     // scenario/enhancedPrompt left as-is (LLM instructed to English). Could integrate MT if needed.
   };
 }
-
-

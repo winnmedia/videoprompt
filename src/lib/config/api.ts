@@ -14,7 +14,7 @@ export const API_CONFIG = {
     retryAttempts: 3, // 재시도 횟수
     retryDelay: 2000, // 재시도 간격 (ms)
   },
-  
+
   // 개발 환경: Railway 백엔드 직접 연결 (로컬 가정 제거)
   development: {
     baseUrl: 'https://videoprompt-production.up.railway.app',
@@ -24,7 +24,7 @@ export const API_CONFIG = {
     retryAttempts: 3, // 재시도 횟수
     retryDelay: 2000, // 재시도 간격 (ms)
   },
-  
+
   // 테스트 환경: Railway 백엔드 직접 연결
   test: {
     baseUrl: 'https://videoprompt-production.up.railway.app',
@@ -33,7 +33,7 @@ export const API_CONFIG = {
     timeout: 60000, // 60초 - 테스트 환경
     retryAttempts: 2, // 재시도 횟수
     retryDelay: 1000, // 재시도 간격 (ms)
-  }
+  },
 };
 
 // 현재 환경 감지
@@ -55,7 +55,7 @@ export const buildApiUrl = (endpoint: string) => {
   const baseUrl = config.baseUrl.replace(/\/$/, '');
   const apiPrefix = config.apiPrefix.replace(/^\//, '');
   const cleanEndpoint = endpoint.replace(/^\//, '');
-  
+
   return `${baseUrl}/${apiPrefix}/${cleanEndpoint}`;
 };
 
@@ -99,7 +99,7 @@ export const shouldUseProxy = () => {
 export const checkRailwayBackend = async () => {
   try {
     const response = await fetch('https://videoprompt-production.up.railway.app/api/health', {
-      signal: AbortSignal.timeout(10000)
+      signal: AbortSignal.timeout(10000),
     });
     return response.ok;
   } catch (error) {

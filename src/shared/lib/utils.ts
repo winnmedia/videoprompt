@@ -52,11 +52,11 @@ export function generateId(): string {
  */
 export function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 Bytes';
-  
+
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
+
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
@@ -86,7 +86,7 @@ export function chunkArray<T>(array: T[], size: number): T[][] {
 export function deepClone<T>(obj: T): T {
   if (obj === null || typeof obj !== 'object') return obj;
   if (obj instanceof Date) return new Date(obj.getTime()) as T;
-  if (obj instanceof Array) return obj.map(item => deepClone(item)) as T;
+  if (obj instanceof Array) return obj.map((item) => deepClone(item)) as T;
   if (typeof obj === 'object') {
     const clonedObj = {} as T;
     for (const key in obj) {
@@ -104,10 +104,10 @@ export function deepClone<T>(obj: T): T {
  */
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
-  wait: number
+  wait: number,
 ): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout;
-  
+
   return (...args: Parameters<T>) => {
     clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), wait);
@@ -119,10 +119,10 @@ export function debounce<T extends (...args: any[]) => any>(
  */
 export function throttle<T extends (...args: any[]) => any>(
   func: T,
-  limit: number
+  limit: number,
 ): (...args: Parameters<T>) => void {
   let inThrottle: boolean;
-  
+
   return (...args: Parameters<T>) => {
     if (!inThrottle) {
       func(...args);
@@ -144,7 +144,7 @@ export const storage = {
       return defaultValue || null;
     }
   },
-  
+
   set: <T>(key: string, value: T): void => {
     try {
       window.localStorage.setItem(key, JSON.stringify(value));
@@ -152,7 +152,7 @@ export const storage = {
       // 스토리지 에러 무시
     }
   },
-  
+
   remove: (key: string): void => {
     try {
       window.localStorage.removeItem(key);
@@ -160,14 +160,14 @@ export const storage = {
       // 스토리지 에러 무시
     }
   },
-  
+
   clear: (): void => {
     try {
       window.localStorage.clear();
     } catch {
       // 스토리지 에러 무시
     }
-  }
+  },
 };
 
 /**
@@ -182,7 +182,7 @@ export const sessionStorage = {
       return defaultValue || null;
     }
   },
-  
+
   set: <T>(key: string, value: T): void => {
     try {
       window.sessionStorage.setItem(key, JSON.stringify(value));
@@ -190,7 +190,7 @@ export const sessionStorage = {
       // 스토리지 에러 무시
     }
   },
-  
+
   remove: (key: string): void => {
     try {
       window.sessionStorage.removeItem(key);
@@ -198,13 +198,12 @@ export const sessionStorage = {
       // 스토리지 에러 무시
     }
   },
-  
+
   clear: (): void => {
     try {
       window.sessionStorage.clear();
     } catch {
       // 스토리지 에러 무시
     }
-  }
+  },
 };
-

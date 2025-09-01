@@ -9,7 +9,11 @@ type JobState = {
 const store = new Map<string, JobState>();
 
 export function upsertJobState(update: Partial<JobState> & { jobId: string }) {
-  const prev = store.get(update.jobId) || { jobId: update.jobId, status: 'unknown', updatedAt: Date.now() };
+  const prev = store.get(update.jobId) || {
+    jobId: update.jobId,
+    status: 'unknown',
+    updatedAt: Date.now(),
+  };
   const next: JobState = {
     ...prev,
     ...update,
@@ -22,5 +26,3 @@ export function upsertJobState(update: Partial<JobState> & { jobId: string }) {
 export function getJobState(jobId: string): JobState | undefined {
   return store.get(jobId);
 }
-
-

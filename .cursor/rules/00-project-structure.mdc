@@ -12,31 +12,6 @@ alwaysApply: true
 
 - **Architecture:** Feature-Sliced Design (FSD) + Clean Architecture.
 
-- **Frontend (신규 스택 - New Stack):**
-    - **Framework/Library:** Next.js 15.5, React 19.
-    - **Language:** TypeScript 5.7 (Strict Mode).
-    - **Styling:** **Tailwind CSS v4 (표준).**
-    - **State Management:** Redux Toolkit 2.0.
-
-- **Frontend (레거시 스택 - Legacy Stack):**
-    - **Framework/Library:** React 18.
-    - **Styling:** Sass (SCSS Modules), Ant Design. (Styled Components는 사용 중단).
-    - **State Management:** Redux Toolkit.
-
-- **Backend:**
-    - Django 4.2, DRF, Channels, PostgreSQL, Redis.
-
-- **API/Validation:** Axios, WebSocket, **Zod (런타임 검증 표준)**.
-
-- **Testing:**
-    - Runner: Jest.
-    - Component: React Testing Library (RTL).
-    - Mocking: **MSW (Mock Service Worker 표준)**.
-    - E2E: Cypress.
-    - Accessibility: Axe-core (jest-axe, cypress-axe).
-
-- **Tools:** SWC/Turbopack, ESLint, Prettier (Tailwind Plugin 포함), Stylelint (레거시용), Commitlint.
-- **Package Manager:** **PNPM 사용 강제.** (npm, yarn 사용 금지).
 - **Deployment:** Vercel (Frontend), Railway (Backend).
 
 ---
@@ -230,10 +205,7 @@ AI는 다음 행위를 절대 수행해서는 안 됩니다.
 5.  **Refactor.**
 
 #### 5.4.2. Git 커밋 메시지
-- Conventional Commits 형식 준수 (Commit Hook으로 자동 검증).
-- 모든 커밋 메시지에 다음 서명을 포함해야 합니다:
-🤖 Generated with Claude Code
-Co-Authored-By: Claude noreply@anthropic.com
+- Conventional Commits 형식 준수 (Commit Hook으로 자동 검증)
 
 
 #### 5.4.4. 완료 조건 (Definition of Done - DoD)
@@ -271,40 +243,3 @@ src/
 ├── entities/
 └── shared/
 tailwind.config.js # Tailwind 설정 및 디자인 토큰 중앙 관리
-
-
-### 6.2. 의사결정 히스토리 (Decision History)
-
-#### [2025-08-28] 프론트엔드 기술 스택 현대화 결정 (v4.3.0)
-
-- **요청/배경:** 성능 향상, 개발자 경험(DX) 개선 및 최신 생태계 활용을 위한 프론트엔드 스택 업그레이드 필요.
-- **핵심 해결책:**
-    - 신규 표준 스택으로 Next.js 15.5, React 19, TypeScript 5.7, Redux Toolkit 2.0 도입.
-    - 스타일링 아키텍처를 기존 Sass에서 Tailwind CSS v4로 전면 교체 결정.
-    - 점진적 마이그레이션을 위한 스트랭글러 패턴 채택.
-- **주요 결정:**
-    - 모든 신규 코드는 Tailwind CSS 사용 의무화. Styled Components 사용 중단.
-    - Tailwind 사용 시 임의 값(Arbitrary Values) 금지 및 디자인 토큰 중앙 관리 원칙 수립.
-    - 레거시 스택(React 18, Sass, Antd)은 유지보수 모드로 전환하며 점진적으로 제거.
-- **리스크/영향:** 마이그레이션 기간 동안 두 가지 스타일링 방식 공존으로 인한 복잡성 증가. 팀원의 Tailwind CSS 학습 곡선 발생.
-
-#### [2025-08-28] 개발 표준 강화 및 자동화 도입 (v4.2.0)
-
-- **요청/배경:** 운영 구체성 강화 및 자동화된 품질 강제 방안 도입 필요.
-- **핵심 해결책:** 중복 방지 절차 강화, 리팩토링 트리거 수치화, 성능 예산 CI 연동, 자동화 도구 도입, 환경 변수 검증 의무화.
-
-#### [2025-08-28] 개발 표준 문서 통합 및 호환성 개선 (v4.1.0)
-
-- **요청/배경:** 개발 표준을 단일 문서로 통합하고, 마크다운 호환성 개선 요청.
-- **핵심 해결책:** 모든 문서를 `CLAUDE.md`로 통합 완료.
-
-#### [2025-08-23] 아키텍처 도입 결정 (FSD + Clean Architecture)
-
-- **요청/배경:** 프로젝트 규모 확장 대비 및 팀 병렬 작업 효율화 필요.
-- **핵심 해결책:** Feature-Sliced Design(FSD)과 클린 아키텍처 도입 결정.
-
-<!-- 새로운 기록은 이 위에 추가해 주세요 (시간 역순) -->
-
----
-**문서 버전: 4.3.0 (Modernized Stack)**
-**최종 업데이트: 2025-08-28**

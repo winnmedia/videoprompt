@@ -4,12 +4,12 @@ import React, { useState, useMemo } from 'react';
 import { IntegrationGrid } from '@/components/ui/IntegrationGrid';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
-import { 
-  videoPlanetIntegrations, 
-  integrationCategories, 
+import {
+  videoPlanetIntegrations,
+  integrationCategories,
   getIntegrationsByCategory,
   searchIntegrations,
-  type VideoPlanetIntegration 
+  type VideoPlanetIntegration,
 } from '@/lib/integrations';
 
 export default function IntegrationsPage() {
@@ -33,7 +33,7 @@ export default function IntegrationsPage() {
 
     // 연결된 서비스만 표시
     if (showConnectedOnly) {
-      integrations = integrations.filter(integration => integration.status === 'connected');
+      integrations = integrations.filter((integration) => integration.status === 'connected');
     }
 
     return integrations;
@@ -42,9 +42,9 @@ export default function IntegrationsPage() {
   // 통계 정보
   const stats = useMemo(() => {
     const total = videoPlanetIntegrations.length;
-    const connected = videoPlanetIntegrations.filter(i => i.status === 'connected').length;
-    const pending = videoPlanetIntegrations.filter(i => i.status === 'pending').length;
-    const disconnected = videoPlanetIntegrations.filter(i => i.status === 'disconnected').length;
+    const connected = videoPlanetIntegrations.filter((i) => i.status === 'connected').length;
+    const pending = videoPlanetIntegrations.filter((i) => i.status === 'pending').length;
+    const disconnected = videoPlanetIntegrations.filter((i) => i.status === 'disconnected').length;
 
     return { total, connected, pending, disconnected };
   }, []);
@@ -65,8 +65,8 @@ export default function IntegrationsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="border-b border-gray-200 bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">서비스 통합</h1>
@@ -76,8 +76,7 @@ export default function IntegrationsPage() {
             </div>
             <div className="flex items-center space-x-4">
               <Button size="lg">
-                <Icon name="plus" size="sm" className="mr-2" />
-                새 통합 추가
+                <Icon name="plus" size="sm" className="mr-2" />새 통합 추가
               </Button>
             </div>
           </div>
@@ -85,9 +84,9 @@ export default function IntegrationsPage() {
       </div>
 
       {/* Stats */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="border-b border-gray-200 bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
               <div className="text-sm text-gray-500">전체 서비스</div>
@@ -109,19 +108,17 @@ export default function IntegrationsPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col sm:flex-row gap-4">
+      <div className="border-b border-gray-200 bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-4 sm:flex-row">
             {/* Category Filter */}
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                카테고리
-              </label>
+              <label className="mb-2 block text-sm font-medium text-gray-700">카테고리</label>
               <select
                 data-testid="category-select"
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 {integrationCategories.map((category) => (
                   <option key={category} value={category}>
@@ -133,14 +130,12 @@ export default function IntegrationsPage() {
 
             {/* Search */}
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                검색
-              </label>
+              <label className="mb-2 block text-sm font-medium text-gray-700">검색</label>
               <div className="relative">
-                <Icon 
-                  name="search" 
-                  size="sm" 
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" 
+                <Icon
+                  name="search"
+                  size="sm"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 transform text-gray-400"
                 />
                 <input
                   data-testid="search-input"
@@ -148,7 +143,7 @@ export default function IntegrationsPage() {
                   placeholder="서비스 이름이나 설명으로 검색..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full rounded-md border border-gray-300 py-2 pl-10 pr-3 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
             </div>
@@ -160,7 +155,7 @@ export default function IntegrationsPage() {
                   type="checkbox"
                   checked={showConnectedOnly}
                   onChange={(e) => setShowConnectedOnly(e.target.checked)}
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                  className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                 />
                 <span className="ml-2 text-sm text-gray-700">연결된 서비스만</span>
               </label>
@@ -170,7 +165,7 @@ export default function IntegrationsPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Results Info */}
         <div className="mb-6">
           <div className="flex items-center justify-between">

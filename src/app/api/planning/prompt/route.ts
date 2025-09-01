@@ -1,0 +1,63 @@
+import { NextRequest } from 'next/server';
+import { prisma } from '@/lib/db';
+import { z } from 'zod';
+import { success, failure, getTraceId } from '@/shared/lib/api-response';
+import { logger } from '@/shared/lib/logger';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+export async function POST(req: NextRequest) {
+  try {
+    const traceId = getTraceId(req);
+    const schema = z.object({
+      scenarioId: z.string().uuid(),
+      metadata: z.any(),
+      timeline: z.array(z.any()),
+      negative: z.array(z.any()).optional(),
+      version: z.number().int().min(1).default(1),
+    });
+    const { scenarioId, metadata, timeline, negative, version } = schema.parse(await req.json());
+
+    const created = await prisma.prompt.create({
+      data: {
+        scenarioId,
+        metadata,
+        timeline,
+        ...(typeof negative !== 'undefined' ? { negative } : {}),
+        version,
+      },
+    });
+
+    logger.info('prompt created', { id: created.id, version: created.version }, traceId);
+    return success({ id: created.id, version: created.version }, 200, traceId);
+  } catch (e: any) {
+    logger.error('prompt create failed', { error: e?.message });
+    return failure('UNKNOWN', e?.message || 'Server error', 500);
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const traceId = getTraceId(req);
+    const scenarioIdParam = req.nextUrl.searchParams.get('scenarioId');
+    const list = await prisma.prompt.findMany({
+      where: scenarioIdParam ? { scenarioId: z.string().uuid().parse(scenarioIdParam) } : undefined,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        version: true,
+        scenarioId: true,
+        metadata: true,
+        timeline: true,
+        negative: true,
+        createdAt: true,
+      },
+    });
+    logger.info('prompt list', { count: list.length }, traceId);
+    return success(list, 200, traceId);
+  } catch (e: any) {
+    logger.error('prompt list failed', { error: e?.message });
+    return failure('UNKNOWN', e?.message || 'Server error', 500);
+  }
+}

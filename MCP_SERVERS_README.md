@@ -11,6 +11,7 @@
 ## 🚀 설치된 서버들
 
 ### 1. Playwright MCP (@microsoft/playwright-mcp)
+
 - **설치 상태**: ✅ 완료
 - **패키지**: `@playwright/mcp`
 - **주요 기능**:
@@ -21,6 +22,7 @@
   - 네트워크 요청 모니터링
 
 ### 2. Context7 MCP (@upstash/context7)
+
 - **설치 상태**: ✅ 완료
 - **위치**: `src/lib/mcp-servers/context7/`
 - **주요 기능**:
@@ -30,6 +32,7 @@
   - 컨텍스트 최적화
 
 ### 3. Sequential Thinking MCP (@modelcontextprotocol/server-sequential-thinking)
+
 - **설치 상태**: ✅ 완료
 - **위치**: `src/lib/mcp-servers/sequential-thinking/`
 - **주요 기능**:
@@ -41,6 +44,7 @@
 ## 🔧 설정 파일
 
 ### mcp-servers.json
+
 ```json
 {
   "mcpServers": {
@@ -66,11 +70,13 @@
 ## 🧪 테스트
 
 ### MCP 서버 테스트 실행
+
 ```bash
 npm run test:mcp
 ```
 
 ### 개별 서버 테스트
+
 ```bash
 # Playwright MCP
 npx @playwright/mcp --help
@@ -100,12 +106,9 @@ src/lib/mcp-servers/
 ## 🔌 통합 방법
 
 ### TypeScript/JavaScript에서 사용
+
 ```typescript
-import { 
-  MCP_SERVERS, 
-  checkAllMCPServers, 
-  getMCPServerInfo 
-} from '@/lib/mcp-servers';
+import { MCP_SERVERS, checkAllMCPServers, getMCPServerInfo } from '@/lib/mcp-servers';
 
 // 사용 가능한 MCP 서버 목록
 const availableServers = Object.keys(MCP_SERVERS);
@@ -120,17 +123,20 @@ const playwrightInfo = getMCPServerInfo('playwright');
 ## 🎯 사용 사례
 
 ### Playwright MCP
+
 - **E2E 테스트 자동화**: 웹사이트 테스트 자동화
 - **스크린샷 생성**: 페이지 상태 캡처
 - **폼 자동화**: 반복적인 데이터 입력 작업
 - **접근성 테스트**: 웹 접근성 검증
 
 ### Context7 MCP
+
 - **AI 대화 최적화**: 긴 대화 세션의 메모리 효율성
 - **컨텍스트 압축**: 중요 정보만 유지하면서 메모리 절약
 - **장기 세션 지원**: 연속적인 작업 흐름 유지
 
 ### Sequential Thinking MCP
+
 - **복잡한 작업 분해**: 큰 작업을 작은 단계로 나누기
 - **논리적 추론**: 체계적인 문제 해결 과정
 - **작업 계획 수립**: 단계별 실행 계획 생성
@@ -145,6 +151,7 @@ const playwrightInfo = getMCPServerInfo('playwright');
 ## 🔄 업데이트
 
 ### MCP 서버 업데이트
+
 ```bash
 # Playwright MCP
 npm update @playwright/mcp
@@ -178,6 +185,7 @@ cp -r dist/* ../../../src/lib/mcp-servers/sequential-thinking/
 4. **의존성 충돌**: 각 서버의 `package.json` 확인
 
 ### 로그 확인
+
 ```bash
 # 상세한 오류 정보
 node --trace-warnings src/lib/mcp-servers/[server-name]/index.mjs
@@ -185,7 +193,3 @@ node --trace-warnings src/lib/mcp-servers/[server-name]/index.mjs
 # 디버그 모드
 DEBUG=* node src/lib/mcp-servers/[server-name]/index.mjs
 ```
-
-
-
-

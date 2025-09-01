@@ -35,21 +35,22 @@ export function useSeedanceCreate() {
     return jobId;
   }, []);
 
-  const createBatch = useCallback(async (payloads: SeedanceCreatePayload[]): Promise<string[]> => {
-    setIsCreating(true);
-    setError(null);
-    try {
-      const results = await Promise.all(payloads.map(p => createOne(p)));
-      return results.filter(Boolean);
-    } catch (e: any) {
-      setError(e?.message || 'Seedance 생성 실패');
-      throw e;
-    } finally {
-      setIsCreating(false);
-    }
-  }, [createOne]);
+  const createBatch = useCallback(
+    async (payloads: SeedanceCreatePayload[]): Promise<string[]> => {
+      setIsCreating(true);
+      setError(null);
+      try {
+        const results = await Promise.all(payloads.map((p) => createOne(p)));
+        return results.filter(Boolean);
+      } catch (e: any) {
+        setError(e?.message || 'Seedance 생성 실패');
+        throw e;
+      } finally {
+        setIsCreating(false);
+      }
+    },
+    [createOne],
+  );
 
   return { isCreating, error, createOne, createBatch } as const;
 }
-
-

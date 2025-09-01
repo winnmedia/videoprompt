@@ -13,11 +13,7 @@
       "name": "web",
       "startCommand": "npm run start",
       "buildCommand": "npm run prisma:generate && npm run build",
-      "envVars": [
-        { "key": "NODE_ENV", "value": "production" }
-      ]
+      "envVars": [{ "key": "NODE_ENV", "value": "production" }]
     }
   ]
 }
-
-

@@ -8,13 +8,13 @@ export async function POST(request: NextRequest) {
     if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
       return NextResponse.json(
         { success: false, error: '시나리오 프롬프트가 필요합니다.' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // AI 서비스 매니저 생성
     const aiManager = createAIServiceManager();
-    
+
     // 1단계: 기본 시나리오 개발
     const developmentResult = await aiManager.generateScenePrompt({
       prompt: prompt.trim(),
@@ -35,13 +35,13 @@ export async function POST(request: NextRequest) {
     // 2단계: 이미지용 프롬프트 변환
     const imagePromptResult = await aiManager.rewritePromptForImage(
       developmentResult.data.enhancedPrompt,
-      'cinematic, photorealistic, high quality, detailed'
+      'cinematic, photorealistic, high quality, detailed',
     );
 
     // 3단계: Seedance용 프롬프트 변환
     const seedancePromptResult = await aiManager.rewritePromptForSeedance(
       developmentResult.data.enhancedPrompt,
-      '--duration 5 --aspect 16:9 --style cinematic'
+      '--duration 5 --aspect 16:9 --style cinematic',
     );
 
     const result = {
@@ -61,25 +61,18 @@ export async function POST(request: NextRequest) {
       success: true,
       data: result,
     });
-
   } catch (error) {
     console.error('시나리오 개발 API 오류:', error);
-    
+
     const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
-    
+
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: errorMessage,
         timestamp: new Date().toISOString(),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-
-
-
-
-
-

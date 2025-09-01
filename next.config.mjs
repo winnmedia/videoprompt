@@ -4,7 +4,7 @@ const nextConfig = {
   async rewrites() {
     const apiBase = 'https://videoprompt-production.up.railway.app';
     console.log('🚀 Using Railway backend API proxy for all API calls');
-    
+
     return [
       // Seedance API
       { source: '/api/seedance/:path*', destination: `${apiBase}/api/seedance/:path*` },
@@ -23,13 +23,13 @@ const nextConfig = {
 
   // 배포 안정성 우선: 린트 에러로 빌드 실패 방지
   eslint: { ignoreDuringBuilds: true },
-  
+
   // 성능 최적화 설정
   experimental: {
     // Link Preload 경고 해결 - 더 구체적인 경로 지정
     optimizePackageImports: ['@/components/ui', '@/lib/providers'],
   },
-  
+
   // 웹팩 최적화
   webpack: (config, { dev, isServer }) => {
     if (!dev && !isServer) {
@@ -65,5 +65,3 @@ const nextConfig = {
 };
 
 export default nextConfig;
-
-

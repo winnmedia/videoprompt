@@ -42,20 +42,25 @@ describe('VideoPlanet System Integration', () => {
       expect(scenePrompt).toBeDefined();
 
       // When: 4단계 - 데이터베이스에 저장
-      const savedScene = await mockDBService.insertScene({ user_id: userId, project_id: projectId, prompt: userInput, generated_content: scenePrompt });
+      const savedScene = await mockDBService.insertScene({
+        user_id: userId,
+        project_id: projectId,
+        prompt: userInput,
+        generated_content: scenePrompt,
+      });
 
       // When: 5단계 - 웹훅 이벤트 전송
       await mockWebhookService.send('scene.generated', {
         scene_id: savedScene.id,
         user_id: userId,
-        project_id: projectId
+        project_id: projectId,
       });
 
       // When: 6단계 - 분석 이벤트 추적
       await mockAnalyticsService.trackEvent('workflow_completed', {
         user_id: userId,
         workflow_type: 'scene_generation',
-        duration_ms: 5000
+        duration_ms: 5000,
       });
 
       // Then: 전체 워크플로우가 성공적으로 완료
@@ -92,14 +97,14 @@ describe('VideoPlanet System Integration', () => {
       const integrations = [
         { id: 'openai', name: 'OpenAI', status: 'connected' },
         { id: 'gemini', name: 'Gemini', status: 'connected' },
-        { id: 'railway', name: 'Railway', status: 'connected' }
+        { id: 'railway', name: 'Railway', status: 'connected' },
       ];
 
       // When: 서비스 상태 확인
       const serviceStatuses = await Promise.all([
         mockOpenAIService.isAvailable(),
         mockGeminiService.isAvailable(),
-        mockDBService.getUser()
+        mockDBService.getUser(),
       ]);
 
       // Then: 모든 서비스가 정상 작동
@@ -110,20 +115,17 @@ describe('VideoPlanet System Integration', () => {
 
     it('should handle service degradation gracefully', async () => {
       // Given: 일부 서비스 성능 저하
-      mockOpenAIService.generateScenePrompt.mockImplementation(() => 
-        new Promise(resolve => setTimeout(resolve, 10000)) // 10초 지연
+      mockOpenAIService.generateScenePrompt.mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 10000)), // 10초 지연
       );
 
       // When: 타임아웃 설정으로 서비스 전환
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 5000)
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout')), 5000),
       );
 
       try {
-        await Promise.race([
-          mockOpenAIService.generateScenePrompt('테스트'),
-          timeoutPromise
-        ]);
+        await Promise.race([mockOpenAIService.generateScenePrompt('테스트'), timeoutPromise]);
       } catch (error) {
         // OpenAI 타임아웃 시 Gemini 사용
         const fallbackResult = await mockGeminiService.generateScenePrompt('테스트');
@@ -159,7 +161,10 @@ describe('VideoPlanet System Integration', () => {
       const concurrentOperations = [
         mockDBService.insertScene({ project_id: projectId, user_id: userId }),
         mockDBService.insertScene({ project_id: projectId, user_id: userId }),
-        mockAnalyticsService.trackEvent('project_accessed', { project_id: projectId, user_id: userId })
+        mockAnalyticsService.trackEvent('project_accessed', {
+          project_id: projectId,
+          user_id: userId,
+        }),
       ];
 
       // Then: 모든 작업이 성공적으로 완료
@@ -189,12 +194,11 @@ describe('VideoPlanet System Integration', () => {
         expect(fallbackResult).toBeDefined();
 
         // 2. 데이터베이스 재연결 시도
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         mockDBService.insertScene.mockRestore(); // 복구
 
         // 3. 정상 작업 재개
-        const result = await mockDBService
-          .insertScene({ content: 'test' });
+        const result = await mockDBService.insertScene({ content: 'test' });
         expect(result).toBeDefined();
       }
     });
@@ -206,11 +210,11 @@ describe('VideoPlanet System Integration', () => {
       const errorScenarios = [
         { service: 'openai', error: 'API rate limit exceeded' },
         { service: 'database', error: 'Database connection timeout' },
-        { service: 'analytics', error: 'Tracking service unavailable' }
+        { service: 'analytics', error: 'Tracking service unavailable' },
       ];
 
       // When: 오류 메시지 생성
-      const errorMessages = errorScenarios.map(scenario => {
+      const errorMessages = errorScenarios.map((scenario) => {
         switch (scenario.service) {
           case 'openai':
             return 'AI 서비스 사용량이 초과되었습니다. 잠시 후 다시 시도해주세요.';
@@ -224,7 +228,7 @@ describe('VideoPlanet System Integration', () => {
       });
 
       // Then: 사용자 친화적인 오류 메시지 제공
-      errorMessages.forEach(message => {
+      errorMessages.forEach((message) => {
         expect(message).toContain('해주세요');
         expect(message.length).toBeGreaterThan(10);
       });
@@ -234,8 +238,8 @@ describe('VideoPlanet System Integration', () => {
   describe('Performance and Scalability', () => {
     it('should handle high load scenarios', async () => {
       // Given: 높은 부하 상황 (100개 동시 요청)
-      const concurrentRequests = Array.from({ length: 100 }, (_, i) => 
-        mockOpenAIService.generateScenePrompt(`장면 ${i}`)
+      const concurrentRequests = Array.from({ length: 100 }, (_, i) =>
+        mockOpenAIService.generateScenePrompt(`장면 ${i}`),
       );
 
       // When: 동시 요청 처리
@@ -253,7 +257,7 @@ describe('VideoPlanet System Integration', () => {
       // Given: 리소스 사용량 모니터링
       const resourceUsage = {
         memory: process.memoryUsage(),
-        cpu: process.cpuUsage()
+        cpu: process.cpuUsage(),
       };
 
       // When: 최적화 작업 수행
