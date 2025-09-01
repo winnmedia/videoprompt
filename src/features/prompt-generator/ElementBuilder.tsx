@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/shared/ui/Button';
-import { Plus, X, Upload, User, Cube } from 'lucide-react';
+import { Plus, X, Upload, User, Box } from 'lucide-react';
 import { type Character, type CoreObject, type Elements } from '@/types/video-prompt';
 import { generateId } from '@/shared/lib/utils';
 import { cn } from '@/shared/lib/utils';
@@ -263,7 +263,7 @@ export const ElementBuilder: React.FC<ElementBuilderProps> = ({
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-              <Cube className="w-5 h-5 text-primary-600" />
+              <Box className="w-5 h-5 text-primary-600" />
               핵심 사물
             </h2>
             <Button
@@ -279,7 +279,7 @@ export const ElementBuilder: React.FC<ElementBuilderProps> = ({
 
           {elements.core_objects.length === 0 ? (
             <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
-              <Cube className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <Box className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-500">아직 핵심 사물이 없습니다</p>
               <p className="text-sm text-gray-400">+ 버튼을 클릭하여 첫 번째 사물을 추가하세요</p>
             </div>
@@ -315,7 +315,7 @@ export const ElementBuilder: React.FC<ElementBuilderProps> = ({
                     </div>
 
                     <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">
+                      <label className="block textsm font-medium text-gray-700">
                         레퍼런스 이미지
                       </label>
                       <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
