@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { Scenario } from '@prisma/client';
 import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
@@ -10,10 +9,15 @@ type ApiError = { ok: false; code: string; error: string; details?: string };
 
 export async function GET(_req: NextRequest) {
   try {
-    type ScenarioRow = Pick<
-      Scenario,
-      'id' | 'title' | 'version' | 'updatedAt' | 'pdfUrl' | 'structure4' | 'shots12'
-    >;
+    type ScenarioRow = {
+      id: string;
+      title: string;
+      version: number;
+      updatedAt: Date;
+      pdfUrl: string | null;
+      structure4: unknown;
+      shots12: unknown;
+    };
 
     const rows: ScenarioRow[] = await prisma.scenario.findMany({
       orderBy: { updatedAt: 'desc' },
