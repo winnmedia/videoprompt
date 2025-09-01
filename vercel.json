@@ -1,15 +1,12 @@
 {
-  "buildCommand": "pnpm install --frozen-lockfile && pnpm build",
+  "version": 2,
   "installCommand": "pnpm install --frozen-lockfile",
-  "outputDirectory": ".next",
+  "buildCommand": "pnpm build",
   "git": {
     "deploymentEnabled": {
       "main": true
     }
-  }
-}
-{
-  "version": 2,
+  },
   "env": {
     "NODE_ENV": "production"
   },
@@ -22,25 +19,13 @@
     {
       "source": "/api/(.*)",
       "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        },
-        {
-          "key": "Access-Control-Allow-Methods",
-          "value": "GET, POST, PUT, DELETE, OPTIONS"
-        },
-        {
-          "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization"
-        }
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, DELETE, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" }
       ]
     }
   ],
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
-    }
+    { "source": "/api/(.*)", "destination": "/api/$1" }
   ]
 }
