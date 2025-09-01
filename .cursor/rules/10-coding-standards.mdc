@@ -1,6 +1,5 @@
 ---
-globs: *.ts,*.tsx
-description: TypeScript/React 코드 표준 및 에러 처리 규칙
+alwaysApply: false
 ---
 # TypeScript/React 코딩 규칙
 

@@ -357,15 +357,24 @@ export default function PlanningPage() {
                   <span className="text-sm text-text-lighter">
                     총 {filteredPlanningItems.length}개
                   </span>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleCreateNew}
-                    className="flex items-center space-x-2 btn-secondary"
-                  >
-                    <Icon name="plus" size="sm" />
-                    새 기획안
-                  </Button>
+                  <div className="flex items-center space-x-2">
+                    <Button 
+                      onClick={() => window.location.href = '/planning/create'}
+                      size="sm" 
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      🎬 영상 기획
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleCreateNew}
+                      className="btn-secondary"
+                    >
+                      <Icon name="plus" size="sm" />
+                      간단 기획안
+                    </Button>
+                  </div>
                 </div>
               </div>
               
