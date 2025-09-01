@@ -1,15 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import type { VideoAsset } from '@prisma/client';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // Define a type for the selected fields from the VideoAsset model
-type VideoAssetListPayload = Pick<
-  VideoAsset,
-  'id' | 'provider' | 'status' | 'url' | 'codec' | 'duration' | 'version' | 'createdAt'
->;
+type VideoAssetListPayload = {
+  id: string;
+  provider: string;
+  status: string;
+  url: string | null;
+  codec: string | null;
+  duration: number | null;
+  version: number;
+  createdAt: Date;
+};
 
 type ApiSuccess<T> = { ok: true; data: T };
 type ApiError = { ok: false; code: string; error: string; details?: string };
