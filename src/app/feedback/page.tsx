@@ -185,9 +185,16 @@ export default function FeedbackPage() {
         </div>
       </div>
 
-      {/* Player */}
+      {/* Player: 빈 상태도 16:9 유지 */}
       <div className="overflow-hidden rounded-lg bg-black">
-        <video ref={videoRef} src={activeVersion.src} controls className="w-full" />
+        <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+          <video
+            ref={videoRef}
+            src={activeVersion.src}
+            controls
+            className="absolute inset-0 h-full w-full"
+          />
+        </div>
       </div>
 
       {/* Toolbar */}

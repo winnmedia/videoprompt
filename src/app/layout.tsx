@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import Link from 'next/link';
-import Image from 'next/image';
 import './globals.css';
 import { assertEnvInitialized } from '@/shared/config/env';
+import { Logo } from '@/components/ui/Logo';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -18,58 +18,34 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   assertEnvInitialized();
   return (
     <html lang="ko">
-      <body className={`${inter.className} bg-surface-100 text-gray-100`}>
+      <body className={`${inter.className} bg-white text-gray-900`}>
         <div className="min-h-screen">
-          <header className="border-b border-white/10 bg-surface-200/80 backdrop-blur">
+          <header className="border-b border-gray-200 bg-white/80 backdrop-blur">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
               <div className="flex h-16 items-center justify-between">
                 {/* 로고 */}
                 <Link href="/" className="flex items-center" aria-label="VLANET Home">
-                  <Image src="/w_logo.svg" alt="VLANET" width={64} height={64} className="h-10 w-auto md:h-12 lg:h-16" />
+                  <Logo size="sm" />
                 </Link>
 
                 {/* 네비게이션 */}
                 <nav className="hidden space-x-6 text-sm md:flex" data-testid="main-nav">
-                  <Link
-                    href="/wizard"
-                    className="px-2 py-2 text-gray-200 transition-colors hover:text-brand-300"
-                  >
-                    AI 영상 생성
-                  </Link>
-                  <Link
-                    href="/"
-                    className="px-2 py-2 text-gray-200 transition-colors hover:text-brand-300"
-                  >
+                  <Link href="/" className="px-2 py-2 text-gray-900 transition-colors hover:text-brand-600">
                     홈
                   </Link>
-                  <Link
-                    href="/scenario"
-                    className="px-2 py-2 text-gray-200 transition-colors hover:text-brand-300"
-                  >
+                  <Link href="/scenario" className="px-2 py-2 text-gray-900 transition-colors hover:text-brand-600">
                     AI 영상 기획
                   </Link>
-                  <Link
-                    href="/prompt-generator"
-                    className="px-2 py-2 text-gray-200 transition-colors hover:text-brand-300"
-                  >
+                  <Link href="/prompt-generator" className="px-2 py-2 text-gray-900 transition-colors hover:text-brand-600">
                     프롬프트 생성기
                   </Link>
-                  <Link
-                    href="/workflow"
-                    className="px-2 py-2 text-gray-200 transition-colors hover:text-brand-300"
-                  >
-                    영상 생성
+                  <Link href="/wizard" className="px-2 py-2 text-gray-900 transition-colors hover:text-brand-600">
+                    AI 영상 생성
                   </Link>
-                  <Link
-                    href="/feedback"
-                    className="px-2 py-2 text-gray-200 transition-colors hover:text-brand-300"
-                  >
+                  <Link href="/feedback" className="px-2 py-2 text-gray-900 transition-colors hover:text-brand-600">
                     영상 피드백
                   </Link>
-                  <Link
-                    href="/planning"
-                    className="px-2 py-2 text-gray-200 transition-colors hover:text-brand-300"
-                  >
+                  <Link href="/planning" className="px-2 py-2 text-gray-900 transition-colors hover:text-brand-600">
                     콘텐츠 관리
                   </Link>
                 </nav>
@@ -89,67 +65,67 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
           <main>{children}</main>
 
-          <footer className="mt-16 border-t border-white/10 bg-surface-200">
-            <div className="mx-auto max-w-7xl px-4 py-10 text-sm text-gray-300 sm:px-6 lg:px-8">
+          <footer className="mt-16 border-t border-gray-200 bg-white">
+            <div className="mx-auto max-w-7xl px-4 py-10 text-sm text-gray-600 sm:px-6 lg:px-8">
               <div className="mb-4 flex items-center gap-3">
-                <Image src="/w_logo.svg" alt="VLANET" width={48} height={24} className="h-6 w-auto" />
+                <Logo size="sm" />
               </div>
               <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
-                <div className="col-span-1 text-gray-400 md:col-span-2">
+                <div className="col-span-1 text-gray-600 md:col-span-2">
                   AI 시나리오 · 프롬프트 · 영상 생성 · 피드백까지 한 번에.
                 </div>
                 <div>
-                  <h3 className="mb-2 font-medium text-gray-200">제품</h3>
+                  <h3 className="mb-2 font-medium text-gray-800">제품</h3>
                   <ul className="space-y-1">
                     <li>
-                      <Link href="/scenario" className="hover:text-brand-300">
+                      <Link href="/scenario" className="hover:text-brand-600">
                         AI 영상 기획
                       </Link>
                     </li>
                     <li>
-                      <Link href="/prompt-generator" className="hover:text-brand-300">
+                      <Link href="/prompt-generator" className="hover:text-brand-600">
                         프롬프트 생성기
                       </Link>
                     </li>
                     <li>
-                      <Link href="/workflow" className="hover:text-brand-300">
-                        영상 생성
+                      <Link href="/wizard" className="hover:text-brand-600">
+                        AI 영상 생성
                       </Link>
                     </li>
                     <li>
-                      <Link href="/feedback" className="hover:text-brand-300">
+                      <Link href="/feedback" className="hover:text-brand-600">
                         영상 피드백
                       </Link>
                     </li>
                     <li>
-                      <Link href="/planning" className="hover:text-brand-300">
+                      <Link href="/planning" className="hover:text-brand-600">
                         콘텐츠 관리
                       </Link>
                     </li>
                   </ul>
                 </div>
                 <div>
-                  <h3 className="mb-2 font-medium text-gray-200">지원</h3>
+                  <h3 className="mb-2 font-medium text-gray-800">지원</h3>
                   <ul className="space-y-1">
                     <li>
-                      <Link href="/docs" className="hover:text-brand-300">
+                      <Link href="/docs" className="hover:text-brand-600">
                         문서
                       </Link>
                     </li>
                     <li>
-                      <Link href="/api" className="hover:text-brand-300">
+                      <Link href="/api" className="hover:text-brand-600">
                         API
                       </Link>
                     </li>
                     <li>
-                      <Link href="/contact" className="hover:text-brand-300">
+                      <Link href="/contact" className="hover:text-brand-600">
                         문의
                       </Link>
                     </li>
                   </ul>
                 </div>
               </div>
-              <div className="mt-8 border-t border-white/10 pt-6 text-center text-gray-300">
+              <div className="mt-8 border-t border-gray-200 pt-6 text-center text-gray-500">
                 © 2025 vlanet. All rights reserved.
               </div>
             </div>
