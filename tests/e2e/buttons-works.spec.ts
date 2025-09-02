@@ -58,7 +58,8 @@ test('buttons-works: 홈/위저드/에디터/통합 주요 버튼 클릭 무에�
 
   // 위저드 주요 버튼 (위저드 페이지에서 수행)
   await page.goto('/wizard');
-  await page.waitForLoadState('networkidle');
+  // 위저드 페이지는 고정 헤딩 텍스트 대신 버튼/컨트롤 존재를 기준으로 안정화
+  await expect(page.getByTestId('generate-btn-side').first()).toBeVisible();
   await safeClickEnabled(page.getByTestId('generate-btn-side').first()); // 빈 시나리오면 disabled 확인
   await page.getByTestId('sample-fill-btn').first().click();
   await page.getByTestId('generate-btn-side').first().click();
