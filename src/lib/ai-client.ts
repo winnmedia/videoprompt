@@ -128,7 +128,6 @@ class OpenAIClient {
           metadata: {},
         },
       };
-    }
     } catch (error) {
       console.error('OpenAI API error:', error);
       return {
@@ -269,7 +268,6 @@ class GeminiClient {
           metadata: {},
         },
       };
-    }
     } catch (error) {
       console.error('Gemini API error:', error);
       return {
