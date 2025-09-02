@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
+import { getUserIdFromRequest } from '@/shared/lib/auth';
 import { logger } from '@/shared/lib/logger';
 import { randomBytes } from 'crypto';
 import { prisma } from '@/lib/db';
@@ -33,10 +34,11 @@ export async function POST(req: NextRequest) {
         .default(7 * 24 * 3600),
     });
     const { targetType, targetId, role, nickname, expiresIn } = schema.parse(await req.json());
+    const userId = getUserIdFromRequest(req);
     const token = randomBytes(16).toString('hex');
     const expiresAt = new Date(Date.now() + expiresIn * 1000);
     const created = await prisma.shareToken.create({
-      data: { token, role, nickname: nickname ?? null, targetType, targetId, expiresAt },
+      data: { token, role, nickname: nickname ?? null, targetType, targetId, expiresAt, ...(userId ? { userId } : {}) },
       select: { token: true, expiresAt: true, role: true, nickname: true },
     });
     logger.info('share token created', { targetType, targetId, role }, traceId);

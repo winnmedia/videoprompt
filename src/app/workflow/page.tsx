@@ -203,6 +203,7 @@ const MODEL_OPTIONS = [
 export default function WorkflowPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const project = useProjectStore();
+  const [recentPrompts, setRecentPrompts] = useState<Array<{ id: string; savedAt: number; name: string }>>([]);
   const [workflowData, setWorkflowData] = useState<WorkflowData>({
     story: '',
     scenario: {
@@ -259,6 +260,17 @@ export default function WorkflowPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep]);
+
+  // 최근 프롬프트 패널 (localStorage)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('vp:recentPrompts');
+      if (raw) {
+        const arr = JSON.parse(raw) as Array<{ id: string; savedAt: number; name: string }>;
+        setRecentPrompts(Array.isArray(arr) ? arr.slice(0, 5) : []);
+      }
+    } catch {}
+  }, []);
 
   const goToNextStep = useCallback(() => {
     setCurrentStep((prev) => Math.min(prev + 1, WORKFLOW_STEPS.length));
@@ -540,6 +552,34 @@ export default function WorkflowPage() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* 최근 프롬프트 / 가이드 */}
+      <div className="mx-auto max-w-4xl px-6 pt-6 lg:px-8">
+        {recentPrompts.length > 0 ? (
+          <div className="rounded-lg border border-gray-200 bg-white p-4">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-gray-800">최근 생성된 프롬프트</h2>
+              <a href="/wizard" className="text-sm text-brand-600 hover:underline">위저드로 이동</a>
+            </div>
+            <ul className="grid grid-cols-1 gap-2 md:grid-cols-2">
+              {recentPrompts.map((p) => (
+                <li key={p.id} className="rounded-md border border-gray-100 p-3 text-sm">
+                  <div className="line-clamp-1 font-medium text-gray-900" title={p.name}>{p.name}</div>
+                  <div className="text-xs text-gray-500">{new Date(p.savedAt).toLocaleString()}</div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-600">
+            아직 생성된 프롬프트가 없습니다. AI 영상 기획 또는 프롬프트 생성기를 먼저 사용해 주세요.
+            <div className="mt-3 flex justify-center gap-3">
+              <a href="/scenario" className="rounded-md bg-primary-600 px-4 py-2 text-white hover:bg-primary-700">AI 영상 기획</a>
+              <a href="/prompt-generator" className="rounded-md border px-4 py-2 text-gray-800 hover:text-brand-600">프롬프트 생성기</a>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Workflow Steps */}

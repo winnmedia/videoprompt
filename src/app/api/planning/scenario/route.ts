@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
+import { getUserIdFromRequest } from '@/shared/lib/auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -24,6 +25,7 @@ export async function POST(req: NextRequest) {
     });
     const { title, logline, structure4, shots12, pdfUrl } = schema.parse(await req.json());
 
+    const userId = getUserIdFromRequest(req);
     const created = await prisma.scenario.create({
       data: {
         title,
@@ -31,6 +33,7 @@ export async function POST(req: NextRequest) {
         structure4: structure4 ?? null,
         shots12: shots12 ?? null,
         pdfUrl: pdfUrl ?? null,
+        ...(userId ? { userId } : {}),
       },
       select: { id: true, title: true, createdAt: true },
     });

@@ -15,7 +15,7 @@ const items = [
 export function MainNav() {
   const pathname = usePathname() || '';
   return (
-    <nav className="hidden space-x-6 text-sm md:flex" data-testid="main-nav" aria-label="주요 내비게이션">
+    <nav className="hidden items-center space-x-6 text-sm md:flex" data-testid="main-nav" aria-label="주요 내비게이션">
       {items.map(({ href, label }) => {
         const active = pathname === href || (href !== '/' && pathname.startsWith(href));
         const ref = useSoftPrefetch(href);
@@ -34,6 +34,7 @@ export function MainNav() {
           </Link>
         );
       })}
+      <Link href="/login" prefetch={false} className="ml-4 rounded border px-3 py-1 text-gray-800 hover:text-brand-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400">로그인</Link>
     </nav>
   );
 }

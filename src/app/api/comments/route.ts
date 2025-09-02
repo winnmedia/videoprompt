@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
+import { getUserIdFromRequest } from '@/shared/lib/auth';
 import { logger } from '@/shared/lib/logger';
 
 export const runtime = 'nodejs';
@@ -34,11 +35,13 @@ export async function POST(req: NextRequest) {
     if (found.role !== 'commenter')
       return json({ ok: false, code: 'FORBIDDEN', error: 'no comment permission' }, 403);
 
+    const reqUserId = getUserIdFromRequest(req);
     const created = await prisma.comment.create({
       data: {
         targetType,
         targetId,
         author: found.nickname ?? null,
+        ...(reqUserId ? { userId: reqUserId } : {}),
         text,
         timecode: timecode ?? null,
       },

@@ -1,6 +1,18 @@
 import { ScenePrompt, Scene } from '@/types/api';
 import { z } from 'zod';
 
+// Utility: fetch with timeout (ms)
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit & { timeoutMs?: number } = {}) {
+  const { timeoutMs = 20000, ...rest } = init as any;
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...rest, signal: controller.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 // AI 서비스 타입 정의
 export interface AIServiceConfig {
   openai: {
@@ -72,7 +84,7 @@ class OpenAIClient {
 
       const userPrompt = `주제: ${request.prompt}\n\n위 주제에 맞는 장면을 생성해주세요.`;
 
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetchWithTimeout('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
@@ -143,7 +155,7 @@ class OpenAIClient {
 
       const userPrompt = `기존 프롬프트: ${existingPrompt}\n\n개선 요청: ${feedback}\n\n개선된 프롬프트를 제공해주세요.`;
 
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetchWithTimeout('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
@@ -204,7 +216,7 @@ class GeminiClient {
     try {
       const prompt = `You are an award‑winning film director and cinematic prompt architect. Respond in English ONLY.\n\nSubject: ${request.prompt}\nTheme: ${request.theme || 'general'}\nAudience: ${request.targetAudience || 'general'}\nStyle: ${request.style || 'natural'}\nAspect Ratio: ${request.aspectRatio || '16:9'}\nDuration: ${request.duration || 2}s\nMood: ${request.mood || 'default'}\nCamera: ${request.camera || 'default'} (use English camera terms like wide, tracking, POV, top view, dolly-in, long take, handheld, drone orbital)\nWeather: ${request.weather || 'default'}\nCharacters: ${request.characters && request.characters.length ? request.characters.join(', ') : 'none'}\nActions: ${request.actions && request.actions.length ? request.actions.join(', ') : 'none'}\n\nCreate a detailed and creative scene prompt. Include:\n1) Visual description\n2) Camera movement and angles\n3) Lighting and mood\n4) Color palette\n5) 5-10 keywords (English only)\n\nReturn as valid JSON.`;
 
-      const response = await fetch(
+      const response = await fetchWithTimeout(
         `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`,
         {
           method: 'POST',
@@ -281,7 +293,7 @@ class GeminiClient {
     try {
       const prompt = `Existing prompt: ${existingPrompt}\n\nFeedback: ${feedback}\n\nImprove the prompt per the feedback in English ONLY. Make it more specific and visually clear.`;
 
-      const response = await fetch(
+      const response = await fetchWithTimeout(
         `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`,
         {
           method: 'POST',
@@ -448,15 +460,15 @@ export const createAIServiceManager = (): AIServiceManager => {
   const config: AIServiceConfig = {
     openai: {
       apiKey: process.env.OPENAI_API_KEY || '',
-      model: 'gpt-4',
-      maxTokens: 2000,
-      temperature: 0.7,
+      model: 'gpt-4o-mini',
+      maxTokens: 800,
+      temperature: 0.6,
     },
     gemini: {
       apiKey: process.env.GOOGLE_GEMINI_API_KEY || '',
-      model: 'gemini-pro',
-      temperature: 0.7,
-      maxOutputTokens: 2000,
+      model: 'gemini-1.5-flash',
+      temperature: 0.6,
+      maxOutputTokens: 1024,
     },
   };
 

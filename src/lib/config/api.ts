@@ -61,6 +61,12 @@ export const buildApiUrl = (endpoint: string) => {
 
 // 기존 코드와의 호환성을 위한 함수들
 export const getApiUrl = (endpoint: string): string => {
+  const cleanEndpoint = endpoint.replace(/^\//, '');
+  // 브라우저(클라이언트)에서는 항상 동일 출처의 Next API를 경유하여 CORS/보안/폴백 일관성 확보
+  if (typeof window !== 'undefined') {
+    return `/api/${cleanEndpoint}`;
+  }
+  // 서버(SSR/라우트 핸들러)에서는 Railway 백엔드로 직접 연결
   return buildApiUrl(endpoint);
 };
 
