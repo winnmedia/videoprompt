@@ -24,7 +24,7 @@ test.describe('Global nav routing', () => {
     await page.waitForLoadState('networkidle');
 
     // Workflow (Video Generation)
-    await nav.getByRole('link', { name: '영상 생성', exact: true }).click();
+    await nav.getByRole('link', { name: 'AI 영상 생성', exact: true }).click();
     await expect(page).toHaveURL(/\/workflow/);
     await page.waitForLoadState('networkidle');
 
