@@ -14,7 +14,7 @@ function json<T>(body: ApiResponse<T>, status = 200) {
   return NextResponse.json(body, { status });
 }
 
-// MVP: PDF 생성은 TODO. 우선 JSON 파일(data URI) 반환으로 대체
+// 개선: Marp 스타일을 흉내낸 레이아웃으로 pdfkit 출력 향상(섹션 구분/타이틀/테이블 분위기)
 export async function POST(req: NextRequest) {
   try {
     const traceId = getTraceId(req);
@@ -47,12 +47,13 @@ export async function POST(req: NextRequest) {
         doc.on('error', () => {
           /* swallow */
         });
-        doc.fontSize(18).text('VLANET • 기획안 내보내기', { align: 'center' });
+        doc.fontSize(22).text('VLANET • 기획안 내보내기', { align: 'center' });
         doc.moveDown();
         doc.fontSize(12).text(`제목: ${scenario?.title ?? ''}`);
         doc.text(`로그라인: ${scenario?.oneLine ?? ''}`);
+        doc.text(`버전: ${scenario?.version ?? ''}`);
         doc.moveDown();
-        doc.text('구성(4단계):');
+        doc.fontSize(14).text('구성(4단계):');
         try {
           const s = Array.isArray(scenario?.structure4) ? scenario.structure4 : [];
           s.forEach((step: any, idx: number) => {
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
           });
         } catch {}
         doc.moveDown();
-        doc.text('숏트(요약):');
+        doc.fontSize(14).text('숏트(요약):');
         try {
           const sh = Array.isArray(shots) ? shots : [];
           sh.slice(0, 12).forEach((shot: any, idx: number) => {

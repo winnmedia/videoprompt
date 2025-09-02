@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const BASE = process.env.PW_BASE_URL || 'http://localhost:3000';
+const BASE = process.env.PW_BASE_URL || 'http://localhost:3100';
 
 test('피드백: 토큰 유효성 검증 및 댓글 작성', async ({ page }) => {
   // 토큰 검증, 댓글 목록/작성 모킹
@@ -33,6 +33,7 @@ test('피드백: 토큰 유효성 검증 및 댓글 작성', async ({ page }) =>
   });
 
   await page.goto(`${BASE}/feedback?videoId=video-asset-1&token=tok-123`);
+  await page.waitForLoadState('networkidle');
   await expect(page.getByTestId('feedback-comments-title')).toBeVisible();
   await page.getByTestId('feedback-textarea').fill('테스트 댓글 @TC0000');
 

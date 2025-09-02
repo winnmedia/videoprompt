@@ -468,7 +468,7 @@ export default function ScenarioPage() {
 
         {/* 1단계: 스토리 입력 */}
         {currentStep === 1 && (
-          <div className="card p-4 sm:p-6">
+          <div className="card p-4 sm:p-6" aria-busy={loading} aria-live="polite">
             <h2 className="mb-6 text-xl font-semibold text-gray-900">스토리 입력</h2>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -704,13 +704,17 @@ export default function ScenarioPage() {
               </Button>
             </div>
 
-            {/* 로딩 메시지 */}
-            {loading && loadingMessage && (
-              <div className="mt-4 text-center">
-                <div className="text-primary inline-flex items-center space-x-2">
-                  <div className="border-primary h-4 w-4 animate-spin rounded-full border-b-2"></div>
-                  <span>{loadingMessage}</span>
+            {/* 로딩 */}
+            {loading && (
+              <div className="mt-4" role="status" aria-label="로딩 중">
+                <div className="animate-pulse space-y-3">
+                  <div className="h-4 w-1/3 rounded bg-gray-200" />
+                  <div className="h-4 w-2/3 rounded bg-gray-200" />
+                  <div className="h-20 w-full rounded bg-gray-200" />
                 </div>
+                {loadingMessage && (
+                  <div className="mt-2 text-center text-sm text-gray-600">{loadingMessage}</div>
+                )}
               </div>
             )}
 

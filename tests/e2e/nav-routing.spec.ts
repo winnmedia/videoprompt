@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.PW_BASE_URL || 'http://localhost:3000';
+const BASE_URL = process.env.PW_BASE_URL || 'http://localhost:3100';
 
 test.describe('Global nav routing', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Run only on Chromium here');
@@ -8,10 +8,11 @@ test.describe('Global nav routing', () => {
   test('header nav links route to core pages', async ({ page }) => {
     // Home
     let resp = await page.goto(`${BASE_URL}/`);
+    await page.waitForLoadState('networkidle');
     expect(resp?.ok()).toBeTruthy();
     await expect(page.getByRole('navigation')).toBeVisible();
 
-    const nav = page.getByRole('navigation');
+    const nav = page.getByTestId('main-nav');
 
     // Scenario
     await nav.getByRole('link', { name: 'AI 영상 기획', exact: true }).click();

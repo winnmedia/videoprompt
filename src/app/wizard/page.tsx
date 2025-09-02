@@ -78,6 +78,7 @@ export default function SceneWizardPage() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [advancedTab, setAdvancedTab] = useState<'cinema' | 'light' | 'sfx' | 'basic'>('cinema');
   const [targetAudience, setTargetAudience] = useState('전체');
+  const [customAudience, setCustomAudience] = useState('');
   const [mood, setMood] = useState('밝음');
   const [camera, setCamera] = useState('와이드');
   const [weather, setWeather] = useState('맑음');
@@ -1026,7 +1027,7 @@ export default function SceneWizardPage() {
 
   return (
     <Suspense fallback={<div className="p-6 text-sm text-gray-500">로딩 중…</div>}>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50" aria-busy={isGenerating} aria-live="polite">
         {/* 헤더 */}
         <div className="border-b bg-white shadow-sm">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -2090,11 +2091,30 @@ export default function SceneWizardPage() {
                               >
                                 대상
                               </label>
-                              <input
-                                value={targetAudience}
-                                onChange={(e) => setTargetAudience(e.target.value)}
-                                className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                              />
+                              <div className="flex gap-2">
+                                <select
+                                  className="w-40 rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                  value={targetAudience}
+                                  onChange={(e) => setTargetAudience(e.target.value)}
+                                  aria-label="타겟 오디언스 선택"
+                                >
+                                  {['전체', '아동', '청소년', '성인', '전문가'].map((o) => (
+                                    <option key={o} value={o}>
+                                      {o}
+                                    </option>
+                                  ))}
+                                </select>
+                                <input
+                                  value={customAudience}
+                                  onChange={(e) => setCustomAudience(e.target.value)}
+                                  onBlur={() => {
+                                    if (customAudience.trim()) setTargetAudience(customAudience.trim());
+                                  }}
+                                  placeholder="직접 입력"
+                                  className="flex-1 rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                  aria-label="타겟 직접 입력"
+                                />
+                              </div>
                             </div>
                             <div>
                               <label

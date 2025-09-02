@@ -4,6 +4,7 @@ import Link from 'next/link';
 import './globals.css';
 import { assertEnvInitialized } from '@/shared/config/env';
 import { Logo } from '@/components/ui/Logo';
+import { MainNav } from '@/components/layout/MainNav';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -29,26 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </Link>
 
                 {/* 네비게이션 */}
-                <nav className="hidden space-x-6 text-sm md:flex" data-testid="main-nav">
-                  <Link href="/" className="px-2 py-2 text-gray-900 transition-colors hover:text-brand-600">
-                    홈
-                  </Link>
-                  <Link href="/scenario" className="px-2 py-2 text-gray-900 transition-colors hover:text-brand-600">
-                    AI 영상 기획
-                  </Link>
-                  <Link href="/prompt-generator" className="px-2 py-2 text-gray-900 transition-colors hover:text-brand-600">
-                    프롬프트 생성기
-                  </Link>
-                  <Link href="/wizard" className="px-2 py-2 text-gray-900 transition-colors hover:text-brand-600">
-                    AI 영상 생성
-                  </Link>
-                  <Link href="/feedback" className="px-2 py-2 text-gray-900 transition-colors hover:text-brand-600">
-                    영상 피드백
-                  </Link>
-                  <Link href="/planning" className="px-2 py-2 text-gray-900 transition-colors hover:text-brand-600">
-                    콘텐츠 관리
-                  </Link>
-                </nav>
+                <MainNav />
 
                 {/* 액션 */}
                 <div className="flex items-center gap-3">

@@ -1,12 +1,13 @@
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.PW_BASE_URL || 'http://localhost:3000';
+const BASE_URL = process.env.PW_BASE_URL || 'http://localhost:3100';
 
 test.describe('Header visual regression (smoke)', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Run only on Chromium here');
 
   test('header has vlanet logo and nav items', async ({ page }) => {
     await page.goto(`${BASE_URL}/`);
+    await page.waitForLoadState('networkidle');
     const header = page.locator('header');
     await expect(header).toBeVisible();
     // accept both VLANET/vlanet to handle case changes
