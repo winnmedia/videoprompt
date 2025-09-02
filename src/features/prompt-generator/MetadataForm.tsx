@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Button } from '@/shared/ui/Button';
 import { VIDEO_STYLES, SPATIAL_CONTEXT, CAMERA_SETTINGS, MATERIALS, type Metadata } from '@/types/video-prompt';
 import { cn } from '@/shared/lib/utils';
@@ -22,22 +22,33 @@ export const MetadataForm: React.FC<MetadataFormProps> = ({
 }) => {
   const [errors, setErrors] = useState<Record<string, string[]>>({});
 
-  // 모든 스타일 옵션을 하나의 배열로 통합
-  const allStyleOptions: StyleOption[] = [
-    ...VIDEO_STYLES.visual.map((style) => ({
-      label: style,
-      value: style,
-      category: 'Visual Style',
-    })),
-    ...VIDEO_STYLES.genre.map((style) => ({ label: style, value: style, category: 'Genre' })),
-    ...VIDEO_STYLES.mood.map((style) => ({ label: style, value: style, category: 'Mood' })),
-    ...VIDEO_STYLES.quality.map((style) => ({ label: style, value: style, category: 'Quality' })),
-    ...VIDEO_STYLES.director.map((style) => ({
-      label: style,
-      value: style,
-      category: 'Director Style',
-    })),
+  // 탭과 검색으로 분할해 복잡도 축소
+  const [activeTab, setActiveTab] = useState<'visual' | 'genre' | 'mood' | 'quality' | 'director'>('visual');
+  const [query, setQuery] = useState('');
+
+  const TABS: { key: typeof activeTab; label: string }[] = [
+    { key: 'visual', label: '영상미' },
+    { key: 'genre', label: '장르' },
+    { key: 'mood', label: '분위기' },
+    { key: 'quality', label: '화질' },
+    { key: 'director', label: '연출' },
   ];
+
+  const allStyleOptions: StyleOption[] = useMemo(
+    () => [
+      ...VIDEO_STYLES.visual.map((style) => ({ label: style, value: style, category: 'visual' })),
+      ...VIDEO_STYLES.genre.map((style) => ({ label: style, value: style, category: 'genre' })),
+      ...VIDEO_STYLES.mood.map((style) => ({ label: style, value: style, category: 'mood' })),
+      ...VIDEO_STYLES.quality.map((style) => ({ label: style, value: style, category: 'quality' })),
+      ...VIDEO_STYLES.director.map((style) => ({ label: style, value: style, category: 'director' })),
+    ],
+    [],
+  );
+
+  const visibleOptions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return allStyleOptions.filter((o) => o.category === activeTab && (!q || o.label.toLowerCase().includes(q)));
+  }, [allStyleOptions, activeTab, query]);
 
   const handleInputChange = (field: keyof Metadata, value: string | string[]) => {
     onMetadataChange({ ...metadata, [field]: value });
@@ -123,13 +134,56 @@ export const MetadataForm: React.FC<MetadataFormProps> = ({
           {errors.prompt_name && <p className="text-sm text-danger-600">{errors.prompt_name[0]}</p>}
         </div>
 
-        {/* 스타일 선택 */}
+        {/* 스타일 선택 (탭 + 검색 + 카테고리 그리드) */}
         <div className="space-y-3">
           <label className="block text-sm font-medium text-gray-700">
             기본 스타일 선택 * (최소 1개)
           </label>
+          {/* 탭 */}
+          <div className="flex items-center gap-2">
+            {TABS.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                data-testid={`style-tab-${t.key}`}
+                onClick={() => setActiveTab(t.key)}
+                className={cn(
+                  'rounded-md px-3 py-1 text-sm',
+                  activeTab === t.key ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+                )}
+              >
+                {t.label}
+              </button>
+            ))}
+            <div className="ml-auto">
+              <input
+                data-testid="style-search"
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="검색"
+                className="w-48 rounded-md border border-gray-300 px-3 py-1 text-sm focus:border-transparent focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+          </div>
+
+          {/* 선택 요약 (칩) */}
+          {!!(metadata.base_style?.length || 0) && (
+            <div className="flex flex-wrap gap-2 rounded-md bg-gray-50 p-2">
+              {(metadata.base_style || []).map((s) => (
+                <span key={s} className="inline-flex items-center gap-2 rounded-full bg-primary-100 px-3 py-1 text-xs text-primary-800">
+                  {s}
+                  <button type="button" aria-label={`${s} 제거`} className="text-primary-700 hover:text-primary-900" onClick={() => handleStyleToggle(s)}>
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* 현재 탭 옵션 그리드 */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {allStyleOptions.map((option) => (
+            {visibleOptions.map((option) => (
               <div key={option.value} className="relative">
                 <input
                   type="checkbox"
@@ -150,10 +204,17 @@ export const MetadataForm: React.FC<MetadataFormProps> = ({
                   )}
                 >
                   <div className="text-sm font-medium">{option.label}</div>
-                  <div className="mt-1 text-xs text-gray-500">{option.category}</div>
+                  <div className="mt-1 text-xs text-gray-500">
+                    {TABS.find((t) => t.key === (option as any).category)?.label}
+                  </div>
                 </label>
               </div>
             ))}
+            {visibleOptions.length === 0 && (
+              <div className="col-span-full rounded-md border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">
+                해당 카테고리에 검색 결과가 없습니다
+              </div>
+            )}
           </div>
           {errors.base_style && <p className="text-sm text-danger-600">{errors.base_style[0]}</p>}
           <p className="text-sm text-gray-500">

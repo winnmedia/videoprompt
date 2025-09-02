@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
+import { getUserIdFromRequest } from '@/shared/lib/auth';
 import { logger } from '@/shared/lib/logger';
 
 export const runtime = 'nodejs';
@@ -23,6 +24,7 @@ export async function POST(req: NextRequest) {
       await req.json(),
     );
 
+    const userId = getUserIdFromRequest(req);
     const created = await prisma.videoAsset.create({
       data: {
         promptId,
@@ -32,6 +34,7 @@ export async function POST(req: NextRequest) {
         codec: codec ?? null,
         duration: duration ?? null,
         version,
+        ...(userId ? { userId } : {}),
       },
     });
     logger.info(

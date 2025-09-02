@@ -91,6 +91,7 @@ model Scenario {
   pdfUrl      String?  @map("pdf_url")
   version     Int      @default(1)
   createdBy   String?
+  userId      String?  @db.Uuid @map("user_id")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
   prompts     Prompt[]
@@ -104,6 +105,7 @@ model Prompt {
   timeline     Json
   negative     Json?
   version      Int      @default(1)
+  userId       String?  @db.Uuid @map("user_id")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
   videoAssets  VideoAsset[]
@@ -119,6 +121,7 @@ model VideoAsset {
   codec      String?  
   duration   Int?     // seconds
   version    Int      @default(1)
+  userId     String?  @db.Uuid @map("user_id")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 }
@@ -131,6 +134,7 @@ model ShareToken {
   targetType String   // 'project' | 'scenario' | 'prompt' | 'video'
   targetId   String
   expiresAt  DateTime @map("expires_at")
+  userId     String?  @db.Uuid @map("user_id")
   createdAt  DateTime @default(now()) @map("created_at")
 }
 
@@ -139,6 +143,7 @@ model Comment {
   targetType String   // 'video' | 'project'
   targetId   String
   author     String?  // nickname or user id
+  userId     String?  @db.Uuid @map("user_id")
   text       String
   timecode   String?  // mmssfff
   createdAt  DateTime @default(now()) @map("created_at")

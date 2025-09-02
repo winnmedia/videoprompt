@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
+import { getUserIdFromRequest } from '@/shared/lib/auth';
 import { logger } from '@/shared/lib/logger';
 
 export const runtime = 'nodejs';
@@ -19,6 +20,7 @@ export async function POST(req: NextRequest) {
     });
     const { scenarioId, metadata, timeline, negative, version } = schema.parse(await req.json());
 
+    const userId = getUserIdFromRequest(req);
     const created = await prisma.prompt.create({
       data: {
         scenarioId,
@@ -26,6 +28,7 @@ export async function POST(req: NextRequest) {
         timeline,
         ...(typeof negative !== 'undefined' ? { negative } : {}),
         version,
+        ...(userId ? { userId } : {}),
       },
     });
 

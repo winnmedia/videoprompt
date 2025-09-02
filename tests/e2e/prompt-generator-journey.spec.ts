@@ -45,16 +45,18 @@ test.describe('FRD User Journey - Prompt Generator', () => {
     // Step 1: Metadata
     await page.getByLabel('프로젝트명 *').fill('Rooftop Deal Gone Wrong - Full SFX');
 
-    // Select a few styles by clicking their labels (checkbox is sr-only)
-    const selectStyle = async (value: string) => {
-      const label = page.locator(`label[for="${value}"]`);
-      await label.scrollIntoViewIfNeeded();
-      await label.click();
-    };
+    // Select styles using tabs + stable data-testid cards
+    await page.getByTestId('style-tab-visual').click();
+    await page.getByTestId('style-card-Cinematic').scrollIntoViewIfNeeded();
+    await page.getByTestId('style-card-Cinematic').click();
 
-    await selectStyle('Cinematic');
-    await selectStyle('Action-Thriller');
-    await selectStyle('HDR');
+    await page.getByTestId('style-tab-genre').click();
+    await page.getByTestId('style-card-Action-Thriller').scrollIntoViewIfNeeded();
+    await page.getByTestId('style-card-Action-Thriller').click();
+
+    await page.getByTestId('style-tab-quality').click();
+    await page.getByTestId('style-card-HDR').scrollIntoViewIfNeeded();
+    await page.getByTestId('style-card-HDR').click();
 
     // Aspect Ratio
     await page.getByLabel('종횡비 (Aspect Ratio)').selectOption('21:9');

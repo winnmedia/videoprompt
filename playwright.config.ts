@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const PORT = Number(process.env.PW_PORT || 3100);
+const BASE = process.env.PW_BASE_URL || `http://localhost:${PORT}`;
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
@@ -7,7 +10,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: [['list']],
   use: {
-    baseURL: process.env.PW_BASE_URL || 'http://localhost:3100',
+    baseURL: BASE,
     trace: 'on-first-retry',
     headless: true,
     screenshot: 'only-on-failure',
@@ -15,9 +18,9 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: 'bash -lc "pnpm prisma:generate && pnpm build && pnpm start -p 3100"',
-    url: process.env.PW_BASE_URL || 'http://localhost:3100',
-    reuseExistingServer: false,
+    command: `bash -lc "pnpm prisma:generate && pnpm build && pnpm start -p ${PORT}"`,
+    url: BASE,
+    reuseExistingServer: true,
     timeout: 180_000,
   },
 });

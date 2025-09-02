@@ -50,9 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
           <footer className="mt-16 border-t border-gray-200 bg-white">
             <div className="mx-auto max-w-7xl px-4 py-10 text-sm text-gray-600 sm:px-6 lg:px-8">
-              <div className="mb-4 flex items-center gap-3">
-                <Logo size="sm" />
-              </div>
+              {/* 로고 중복 방지: 푸터 로고 제거 */}
               <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
                 <div className="col-span-1 text-gray-600 md:col-span-2">
                   AI 시나리오 · 프롬프트 · 영상 생성 · 피드백까지 한 번에.
