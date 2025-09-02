@@ -1,11 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/shared/ui/Button';
-import {
-  VIDEO_STYLES,
-  SPATIAL_CONTEXT,
-  CAMERA_SETTINGS,
-  type Metadata,
-} from '@/types/video-prompt';
+import { VIDEO_STYLES, SPATIAL_CONTEXT, CAMERA_SETTINGS, MATERIALS, type Metadata } from '@/types/video-prompt';
 import { cn } from '@/shared/lib/utils';
 
 interface MetadataFormProps {
@@ -212,7 +207,7 @@ export const MetadataForm: React.FC<MetadataFormProps> = ({
           )}
         </div>
 
-        {/* 카메라 설정 */}
+        {/* 공간/카메라/재질 확장 선택 (FRD) */}
         <div className="space-y-3">
           <label htmlFor="camera_setup" className="block text-sm font-medium text-gray-700">
             카메라 설정 * (카메라 움직임과 앵글)
@@ -233,6 +228,99 @@ export const MetadataForm: React.FC<MetadataFormProps> = ({
           {errors.camera_setup && (
             <p className="text-sm text-danger-600">{errors.camera_setup[0]}</p>
           )}
+        </div>
+
+        {/* 날씨 */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">날씨 (선택)</label>
+            <select
+              data-testid="select-weather"
+              value={(metadata.weather as string) || ''}
+              onChange={(e) => handleInputChange('weather', e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 transition-colors focus:border-transparent focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="">선택 안함</option>
+              {SPATIAL_CONTEXT.weather.map((w) => (
+                <option key={w} value={w}>
+                  {w}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* 조명 */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">조명 (선택)</label>
+            <select
+              data-testid="select-lighting"
+              value={(metadata.lighting as string) || ''}
+              onChange={(e) => handleInputChange('lighting', e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 transition-colors focus:border-transparent focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="">선택 안함</option>
+              {SPATIAL_CONTEXT.lighting.map((l) => (
+                <option key={l} value={l}>
+                  {l}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* 렌즈/무빙 */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">기본 렌즈 (선택)</label>
+            <select
+              data-testid="select-primary-lens"
+              value={(metadata.primary_lens as string) || ''}
+              onChange={(e) => handleInputChange('primary_lens', e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 transition-colors focus:border-transparent focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="">선택 안함</option>
+              {CAMERA_SETTINGS.lens.map((lens) => (
+                <option key={lens} value={lens}>
+                  {lens}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">주요 무빙 (선택)</label>
+            <select
+              data-testid="select-dominant-movement"
+              value={(metadata.dominant_movement as string) || ''}
+              onChange={(e) => handleInputChange('dominant_movement', e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 transition-colors focus:border-transparent focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="">선택 안함</option>
+              {CAMERA_SETTINGS.movement.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* 재질 */}
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-gray-700">재질 (선택)</label>
+          <select
+            data-testid="select-material"
+            value={(metadata.material as string) || ''}
+            onChange={(e) => handleInputChange('material', e.target.value)}
+            className="w-full rounded-lg border border-gray-300 px-4 py-3 transition-colors focus:border-transparent focus:ring-2 focus:ring-primary-500"
+          >
+            <option value="">선택 안함</option>
+            {MATERIALS.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* 다음 단계 버튼 */}

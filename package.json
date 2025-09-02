@@ -40,6 +40,7 @@
   "dependencies": {
     "@playwright/mcp": "^0.0.34",
     "@prisma/client": "^5.18.0",
+    "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "google-auth-library": "^10.2.1",

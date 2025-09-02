@@ -160,7 +160,7 @@ export default function FeedbackPage() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl p-6">
+    <div className="mx-auto max-w-7xl p-6" aria-live="polite">
       <div className="mb-6 flex items-center justify-between">
         {/* Version Switcher */}
         <div className="flex items-center gap-2">
@@ -188,12 +188,15 @@ export default function FeedbackPage() {
       {/* Player: 빈 상태도 16:9 유지 */}
       <div className="overflow-hidden rounded-lg bg-black">
         <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
-          <video
-            ref={videoRef}
-            src={activeVersion.src}
-            controls
-            className="absolute inset-0 h-full w-full"
-          />
+          {activeVersion.src ? (
+            <video ref={videoRef} src={activeVersion.src} controls className="absolute inset-0 h-full w-full" aria-label="피드백 플레이어" />
+          ) : (
+            <div className="absolute inset-0 grid place-items-center">
+              <Button onClick={() => setUploadOpen(true)} className="bg-white text-gray-900 hover:bg-gray-100" aria-label="영상 업로드 열기">
+                영상 업로드
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -410,14 +413,15 @@ export default function FeedbackPage() {
                 <div className="font-medium">{label}</div>
                 <div className="text-xs text-gray-500">슬롯 {idx + 1}</div>
               </div>
-              <input type="file" accept="video/*" className="block w-full" />
+              <label className="mb-1 block text-sm text-gray-700" htmlFor={`upload-slot-${idx}`}>파일 선택</label>
+              <input id={`upload-slot-${idx}`} type="file" accept="video/*" className="block w-full" />
             </div>
           ))}
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setUploadOpen(false)}>
+            <Button variant="outline" onClick={() => setUploadOpen(false)} aria-label="업로드 닫기">
               닫기
             </Button>
-            <Button>업로드</Button>
+            <Button aria-busy={false}>업로드</Button>
           </div>
         </div>
       </Modal>

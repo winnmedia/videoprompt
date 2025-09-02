@@ -1,6 +1,7 @@
 "use client";
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSoftPrefetch } from '@/shared/lib/prefetch';
 
 const items = [
   { href: '/', label: '홈' },
@@ -17,11 +18,13 @@ export function MainNav() {
     <nav className="hidden space-x-6 text-sm md:flex" data-testid="main-nav" aria-label="주요 내비게이션">
       {items.map(({ href, label }) => {
         const active = pathname === href || (href !== '/' && pathname.startsWith(href));
+        const ref = useSoftPrefetch(href);
         return (
           <Link
             key={href}
             href={href}
             prefetch={false}
+            ref={ref}
             aria-current={active ? 'page' : undefined}
             className={`px-2 py-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
               active ? 'text-brand-700 underline underline-offset-4' : 'text-gray-900 hover:text-brand-600'

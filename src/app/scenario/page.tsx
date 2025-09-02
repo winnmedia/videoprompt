@@ -138,6 +138,19 @@ export default function ScenarioPage() {
         [field]: value,
       }));
     }
+    // FSD: entities 업데이트(스토어 동기화)
+    try {
+      const patch: any = {};
+      if (field === 'genre') patch.genre = value;
+      if (field === 'toneAndManner') patch.tone = Array.isArray(value) ? value : [value];
+      if (field === 'target') patch.target = value;
+      if (field === 'format') patch.format = value;
+      if (field === 'tempo') patch.tempo = value;
+      if (field === 'developmentMethod') patch.developmentMethod = value;
+      if (field === 'developmentIntensity') patch.developmentIntensity = value;
+      if (field === 'duration') patch.durationSec = parseInt(value, 10) || undefined;
+      if (Object.keys(patch).length) project.setScenario(patch);
+    } catch {}
   };
 
   // 2단계: 4단계 스토리 생성
@@ -244,26 +257,36 @@ export default function ScenarioPage() {
     setError(null);
     setLoadingMessage('숏트를 생성하고 있습니다...');
 
-    // 4단계를 12개 숏트로 분해
-    setTimeout(() => {
+    try {
+      const components = await extractSceneComponents({
+        scenario: storyInput.oneLineStory || storyInput.title || project.scenario.story || '',
+        theme: storyInput.title,
+        style: (project.scenario.tone as any)?.[0] || 'cinematic',
+        aspectRatio: project.scenario.format || '16:9',
+        durationSec: project.scenario.durationSec || 8,
+        mood: project.scenario.tempo || 'normal',
+        camera: 'wide',
+        weather: 'clear',
+      });
+
       const generatedShots: Shot[] = [];
       let shotId = 1;
 
-      storySteps.forEach((step, stepIndex) => {
+      storySteps.forEach((step) => {
         const shotsPerStep = 3; // 각 단계당 3개 숏트
-
         for (let i = 0; i < shotsPerStep; i++) {
+          const beat = components.timelineBeats?.[Math.min(shotId - 1, components.timelineBeats.length - 1)];
           generatedShots.push({
             id: `shot-${shotId}`,
             stepId: step.id,
             title: `${step.title} - 숏트 ${i + 1}`,
-            description: `${step.summary}에 대한 구체적인 묘사`,
+            description: beat?.action || `${step.summary}에 대한 구체적인 묘사`,
             shotType: '와이드',
             camera: '정적',
             composition: '중앙 정렬',
             length: storyInput.tempo === '빠르게' ? 4 : storyInput.tempo === '느리게' ? 10 : 6,
             dialogue: '',
-            subtitle: '',
+            subtitle: beat?.audio || '',
             transition: '컷',
             insertShots: [],
           });
@@ -273,9 +296,12 @@ export default function ScenarioPage() {
 
       setShots(generatedShots);
       setCurrentStep(3);
+    } catch (e) {
+      console.error(e);
+    } finally {
       setLoading(false);
       setLoadingMessage('');
-    }, 2000);
+    }
   };
 
   // 스토리 단계 편집

@@ -8,6 +8,14 @@ const EnvSchema = z.object({
   VEO_PROVIDER: z.enum(['google']).optional(),
   SEEDANCE_API_KEY: z.string().optional(),
   SEEDANCE_MODEL: z.string().optional(),
+  // 백엔드 마이그레이션: Prisma(PostgreSQL) 접속 문자열
+  DATABASE_URL: z
+    .string()
+    .optional()
+    .refine(
+      (v) => !v || v.startsWith('postgresql://') || v.startsWith('postgres://'),
+      'DATABASE_URL must start with postgresql:// or postgres://',
+    ),
 });
 
 type Env = z.infer<typeof EnvSchema>;

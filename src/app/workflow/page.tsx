@@ -519,7 +519,7 @@ export default function WorkflowPage() {
   }, [currentStep, workflowData, generatedVideo]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" aria-busy={isGenerating ? 'true' : 'false'} aria-live="polite">
       {/* Header */}
       <div className="border-b border-slate-200/50 bg-white/80 backdrop-blur-xl">
         <div className="mx-auto max-w-4xl px-6 lg:px-8">
