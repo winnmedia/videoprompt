@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const BASE = process.env.PW_BASE_URL || 'http://localhost:3000';
+const BASE = process.env.PW_BASE_URL || 'http://localhost:3100';
 
 test('워크플로우: 스토리→시나리오→프롬프트→영상→공유', async ({ page }) => {
   // API 모킹 상태 공유

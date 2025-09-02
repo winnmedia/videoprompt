@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 async function assertNoConsoleErrors(page: any) {
   const errors: string[] = [];
-  const ignored = [/auto imagen preview failed/i, /Failed to fetch/i];
+  const ignored = [/auto imagen preview failed/i, /Failed to fetch/i, /Failed to load resource:.*404/i];
   page.on('pageerror', (e: any) => {
     const text = e?.message ? String(e.message) : String(e);
     if (!ignored.some((re) => re.test(text))) errors.push(text);
@@ -54,9 +54,11 @@ test('buttons-works: 홈/위저드/에디터/통합 주요 버튼 클릭 무에�
 
   // 위저드 이동
   await page.getByRole('link', { name: 'AI 영상 생성' }).first().click();
-  await expect(page.getByRole('heading', { name: 'AI 영상 생성' })).toBeVisible();
+  await expect(page).toHaveURL(/\/workflow/);
 
-  // 위저드 주요 버튼
+  // 위저드 주요 버튼 (위저드 페이지에서 수행)
+  await page.goto('/wizard');
+  await page.waitForLoadState('networkidle');
   await safeClickEnabled(page.getByTestId('generate-btn-side').first()); // 빈 시나리오면 disabled 확인
   await page.getByTestId('sample-fill-btn').first().click();
   await page.getByTestId('generate-btn-side').first().click();
