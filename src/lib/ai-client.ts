@@ -112,19 +112,23 @@ class OpenAIClient {
             metadata: parsed.metadata || {},
           },
         });
-        if (safe.success) return safe.data;
-      } catch {}
-        // JSON 파싱 실패 시 일반 텍스트로 처리
-        return {
-          success: true,
-          data: {
-            prompt: request.prompt,
-            enhancedPrompt: content,
-            suggestions: [],
-            metadata: {},
-          },
-        };
+        if (safe.success) {
+          return safe.data;
+        }
+      } catch (e) {
+        // ignore parse errors
       }
+      // JSON 파싱 실패 시 일반 텍스트로 처리
+      return {
+        success: true,
+        data: {
+          prompt: request.prompt,
+          enhancedPrompt: content,
+          suggestions: [],
+          metadata: {},
+        },
+      };
+    }
     } catch (error) {
       console.error('OpenAI API error:', error);
       return {
@@ -249,19 +253,23 @@ class GeminiClient {
             metadata: parsed.metadata || {},
           },
         });
-        if (safe.success) return safe.data;
-      } catch {}
-        // JSON 파싱 실패 시 일반 텍스트로 처리
-        return {
-          success: true,
-          data: {
-            prompt: request.prompt,
-            enhancedPrompt: content,
-            suggestions: [],
-            metadata: {},
-          },
-        };
+        if (safe.success) {
+          return safe.data;
+        }
+      } catch (e) {
+        // ignore parse errors
       }
+      // JSON 파싱 실패 시 일반 텍스트로 처리
+      return {
+        success: true,
+        data: {
+          prompt: request.prompt,
+          enhancedPrompt: content,
+          suggestions: [],
+          metadata: {},
+        },
+      };
+    }
     } catch (error) {
       console.error('Gemini API error:', error);
       return {
