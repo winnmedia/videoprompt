@@ -16,6 +16,7 @@ import {
   rewritePromptForSeedance,
   transformPromptForTarget,
 } from '@/lib/ai-client';
+import { useProjectStore } from '@/entities/project';
 import { buildVeo3PromptFromScene } from '@/lib/veo3';
 import { buildVeo3PromptFromWizard } from '@/lib/veo3';
 import { buildImagenPrompt } from '@/lib/imagenPrompt';
@@ -30,6 +31,7 @@ import { SeedanceProgressPanel } from '@/widgets/seedance';
 import { ScenarioWorkflow } from '@/components/ScenarioWorkflow';
 
 export default function SceneWizardPage() {
+  const project = useProjectStore();
   const router = useRouter();
   const [scenario, setScenario] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);

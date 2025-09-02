@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { extractSceneComponents } from '@/lib/ai-client';
 import { Button } from '@/components/ui/Button';
 import { useProjectStore } from '@/entities/project';
 import { Icon } from '@/components/ui/Icon';
