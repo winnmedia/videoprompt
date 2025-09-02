@@ -104,6 +104,11 @@ export const LLMAssistant: React.FC<LLMAssistantProps> = ({
         aspect_ratio: metadata.aspect_ratio || '16:9',
         room_description: metadata.room_description,
         camera_setup: metadata.camera_setup,
+        weather: metadata.weather,
+        lighting: metadata.lighting,
+        primary_lens: metadata.primary_lens,
+        dominant_movement: metadata.dominant_movement,
+        material: metadata.material,
       },
       key_elements: keyElements,
       assembled_elements: assembledElements,
@@ -152,7 +157,7 @@ export const LLMAssistant: React.FC<LLMAssistantProps> = ({
   const finalPrompt = state.generatedPrompt || generateFinalPrompt();
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 p-6">
+    <div className="mx-auto max-w-6xl space-y-8 p-6" aria-busy={state.isGenerating ? 'true' : 'false'} aria-live="polite">
       <div className="space-y-4 text-center">
         <h1 className="text-3xl font-bold text-gray-900">AI 어시스턴트 및 최종화</h1>
         <p className="text-lg text-gray-600">

@@ -4,6 +4,11 @@ export interface ScenarioData {
   tone?: string | string[];
   target?: string;
   structure?: string[]; // 4단계 구조
+  format?: string;
+  tempo?: string;
+  developmentMethod?: string;
+  developmentIntensity?: string;
+  durationSec?: number;
   // 추가 메타(기획안 PDF 링크 등)는 필요 시 확장
 }
 

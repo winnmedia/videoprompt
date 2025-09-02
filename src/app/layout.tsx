@@ -20,13 +20,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko">
       <body className={`${inter.className} bg-white text-gray-900`}>
+        <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-brand-600 focus:px-3 focus:py-2 focus:text-white">본문으로 건너뛰기</a>
         <div className="min-h-screen">
           <header className="border-b border-gray-200 bg-white/80 backdrop-blur">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
               <div className="flex h-16 items-center justify-between">
                 {/* 로고 */}
                 <Link href="/" className="flex items-center" aria-label="VLANET Home">
-                  <Logo size="sm" />
+                  <Logo size="lg" />
                 </Link>
 
                 {/* 네비게이션 */}
@@ -45,7 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </header>
 
-          <main>{children}</main>
+          <main id="main" tabIndex={-1}>{children}</main>
 
           <footer className="mt-16 border-t border-gray-200 bg-white">
             <div className="mx-auto max-w-7xl px-4 py-10 text-sm text-gray-600 sm:px-6 lg:px-8">

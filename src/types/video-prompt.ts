@@ -299,6 +299,12 @@ export interface Metadata {
   aspect_ratio: string;
   room_description: string;
   camera_setup: string;
+  // 확장 필드 (FRD 기반 선택지)
+  weather?: (typeof SPATIAL_CONTEXT.weather)[number] | string;
+  lighting?: (typeof SPATIAL_CONTEXT.lighting)[number] | string;
+  primary_lens?: (typeof CAMERA_SETTINGS.lens)[number] | string;
+  dominant_movement?: (typeof CAMERA_SETTINGS.movement)[number] | string;
+  material?: (typeof MATERIALS)[number] | string;
 }
 
 // 요소 인터페이스

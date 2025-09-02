@@ -244,14 +244,16 @@ export default function SceneWizardPage() {
 
     try {
       const aiManager = createAIServiceManager();
+      // 스토어 시나리오 값을 기본으로 병합
+      const s = project.scenario || {};
       const response = await aiManager.generateScenePrompt({
         prompt: scenario,
         theme: selectedTheme,
         style: selectedStyle,
-        aspectRatio: selectedAspectRatio,
-        duration: selectedDuration,
-        targetAudience,
-        mood,
+        aspectRatio: s.format || selectedAspectRatio,
+        duration: s.durationSec || selectedDuration,
+        targetAudience: s.target || targetAudience,
+        mood: s.tempo || mood,
         camera,
         weather,
         characters,
@@ -2475,14 +2477,14 @@ export default function SceneWizardPage() {
                               <div>
                                 <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-gray-900">
                                   <span>{r.name}</span>
-                                  <span className="rounded border bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-700">
+                                  <span className="rounded border bg-gray-100 px-1.5 py-0.5 text-xs text-gray-700">
                                     {r.prompt?.metadata?.aspect_ratio || selectedAspectRatio}
                                   </span>
                                   <span className="rounded border bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-700">
                                     {getPromptDurationSec(r.prompt)}s
                                   </span>
                                   {r.prompt?.metadata?.base_style && (
-                                    <span className="rounded border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-700">
+                                    <span className="rounded border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700">
                                       {r.prompt.metadata.base_style}
                                     </span>
                                   )}

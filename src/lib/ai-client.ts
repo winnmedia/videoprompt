@@ -1,4 +1,5 @@
 import { ScenePrompt, Scene } from '@/types/api';
+import { z } from 'zod';
 
 // AI 서비스 타입 정의
 export interface AIServiceConfig {
@@ -40,6 +41,16 @@ export interface AIGenerationResponse {
   };
   error?: string;
 }
+
+const AIGenerationResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    prompt: z.string(),
+    enhancedPrompt: z.string(),
+    suggestions: z.array(z.string()).default([]),
+    metadata: z.record(z.any()).default({}),
+  }),
+});
 
 // OpenAI 클라이언트
 class OpenAIClient {
@@ -92,7 +103,7 @@ class OpenAIClient {
       // JSON 파싱 시도
       try {
         const parsed = JSON.parse(content);
-        return {
+        const safe = AIGenerationResponseSchema.safeParse({
           success: true,
           data: {
             prompt: request.prompt,
@@ -100,8 +111,9 @@ class OpenAIClient {
             suggestions: parsed.suggestions || [],
             metadata: parsed.metadata || {},
           },
-        };
-      } catch {
+        });
+        if (safe.success) return safe.data;
+      } catch {}
         // JSON 파싱 실패 시 일반 텍스트로 처리
         return {
           success: true,
@@ -228,7 +240,7 @@ class GeminiClient {
       // JSON 파싱 시도
       try {
         const parsed = JSON.parse(content);
-        return {
+        const safe = AIGenerationResponseSchema.safeParse({
           success: true,
           data: {
             prompt: request.prompt,
@@ -236,8 +248,9 @@ class GeminiClient {
             suggestions: parsed.suggestions || [],
             metadata: parsed.metadata || {},
           },
-        };
-      } catch {
+        });
+        if (safe.success) return safe.data;
+      } catch {}
         // JSON 파싱 실패 시 일반 텍스트로 처리
         return {
           success: true,

@@ -47,6 +47,28 @@ const PromptGeneratorPage: React.FC = () => {
     }
   };
 
+  // 3단계 진입 시: 스토어/12숏 beats로 타임라인 자동 프리필(최초 한 번)
+  useEffect(() => {
+    if (currentStep !== 3) return;
+    if (state.timeline && state.timeline.length > 0) return;
+    try {
+      const s = project.scenario || {};
+      // 간단한 프리필: 4 세그먼트 2초씩
+      const segments = Array.from({ length: 4 }).map((_, i) => ({
+        id: generateId(),
+        sequence: i + 1,
+        timestamp: `00:0${i * 2}-00:0${i * 2 + 2}`,
+        action: '',
+        audio: '',
+        camera_angle: undefined,
+        camera_movement: undefined,
+        pacing: undefined,
+        audio_quality: undefined,
+      }));
+      setState((prev) => ({ ...prev, timeline: segments }));
+    } catch {}
+  }, [currentStep]);
+
   const handleMetadataChange = (metadata: Partial<typeof state.metadata>) => {
     setState((prev) => ({ ...prev, metadata: { ...prev.metadata, ...metadata } }));
   };
@@ -73,6 +95,11 @@ const PromptGeneratorPage: React.FC = () => {
           aspect_ratio: state.metadata.aspect_ratio || '16:9',
           room_description: state.metadata.room_description || '',
           camera_setup: state.metadata.camera_setup || '',
+          weather: state.metadata.weather,
+          lighting: state.metadata.lighting,
+          primary_lens: state.metadata.primary_lens,
+          dominant_movement: state.metadata.dominant_movement,
+          material: state.metadata.material,
         },
         key_elements: [
           ...state.elements.characters.map((char) => char.description),
@@ -210,7 +237,7 @@ const PromptGeneratorPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50" aria-busy={state.isGenerating ? 'true' : 'false'} aria-live="polite">
       {renderStepIndicator()}
 
       <main className="py-8">{renderCurrentStep()}</main>

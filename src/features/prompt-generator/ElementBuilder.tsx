@@ -337,7 +337,7 @@ export const ElementBuilder: React.FC<ElementBuilderProps> = ({
                       </div>
 
                       <div className="space-y-2">
-                        <label className="textsm block font-medium text-gray-700">
+                        <label className="text-sm block font-medium text-gray-700">
                           레퍼런스 이미지
                         </label>
                         <div className="rounded-lg border-2 border-dashed border-gray-300 p-4 text-center">
