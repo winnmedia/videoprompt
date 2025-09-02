@@ -37,7 +37,8 @@ scripts/
 integrations-page/
 
 # 데이터베이스
-prisma/
+prisma/migrations/
+prisma/dev.db
 *.db
 *.sqlite
 
