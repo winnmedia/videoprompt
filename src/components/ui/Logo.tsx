@@ -67,7 +67,7 @@ export function Logo({ variant = 'icon', size = 'md', className }: LogoProps) {
 
   // default/compact/icon → icon-only
   return (
-    <div className={cn(iconSizes[size], className)} aria-label="VideoPlanet">
+    <div className={cn(iconSizes[size], className)} aria-label="VLANET">
       {LogoMark}
     </div>
   );
