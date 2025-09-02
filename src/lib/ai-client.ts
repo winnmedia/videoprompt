@@ -48,7 +48,7 @@ const AIGenerationResponseSchema = z.object({
     prompt: z.string(),
     enhancedPrompt: z.string(),
     suggestions: z.array(z.string()).default([]),
-    metadata: z.record(z.any()).default({}),
+    metadata: z.record(z.string(), z.any()).default({}),
   }),
 });
 
