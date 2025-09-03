@@ -24,9 +24,9 @@ export async function POST(req: NextRequest) {
     const created = await prisma.prompt.create({
       data: {
         scenarioId,
-        metadata,
-        timeline,
-        ...(typeof negative !== 'undefined' ? { negative } : {}),
+        metadata: typeof metadata === 'string' ? metadata : JSON.stringify(metadata),
+        timeline: typeof timeline === 'string' ? timeline : JSON.stringify(timeline),
+        ...(typeof negative !== 'undefined' ? { negative: typeof negative === 'string' ? negative : JSON.stringify(negative) } : {}),
         version,
         ...(userId ? { userId } : {}),
       },
