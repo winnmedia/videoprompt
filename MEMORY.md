@@ -1,5 +1,35 @@
 # 📚 MEMORY.md - 프로젝트 변경 이력
 
+## 🗓️ 2025-09-02
+
+### 🔐 인증/소유권 도입, FRD 기반 UX/UI/API 보강, E2E 통합 (v4.5.0)
+
+- **요청/배경:** Vercel 빌드 실패, 다수의 UX/UI 요구, 회원제·데이터 소유권, 이미지 생성 실패, E2E 안정화 필요.
+- **주요 구현:**
+  - **인증/세션:** `src/app/api/auth/register/route.ts`, `src/app/api/auth/login/route.ts` 추가. `src/shared/lib/auth.ts`에서 JWT HttpOnly 쿠키, `bcryptjs` 비밀번호 해시.
+  - **데이터 소유권:** `prisma/schema.prisma`의 `Scenario/Prompt/VideoAsset/ShareToken/Comment`에 `userId` 필드 추가 및 관계 정의. API 라우트(`/api/planning/(scenario|prompt|videos)`, `/api/shares`, `/api/comments`)에서 생성 시 `userId` 주입·조회 시 `userId` 필터.
+  - **DB/Prisma:** `.vercelignore` 조정으로 `prisma/schema.prisma` 포함, `package.json` 빌드 스크립트에 `prisma generate` 추가, `scripts/db-healthcheck.js` 도입, `src/shared/config/env.ts`에 `DATABASE_URL` 검증 추가.
+  - **브랜딩/레이아웃:** `src/app/layout.tsx` 라이트 테마(`bg-white text-gray-900`), `MainNav` 생성·재배치, 로고 크기/접근성 개선(`src/components/ui/Logo.tsx`), 스킵 링크 추가.
+  - **시나리오/스토어:** `ScenarioData` 확장(전개 방식/강도 등), `extractSceneComponents` 기반 12숏 매핑, `useProjectStore` 업데이트.
+  - **프롬프트 생성기:** `MetadataForm` 탭/검색/드롭다운 확장, `DynamicTimeline` 기본 분할 자동 채움, `LLMAssistant` 로딩 A11y, `ElementBuilder` 클래스 수정.
+  - **워크플로우/위저드:** 최근 프롬프트/가이드 표시, 타깃 오디언스 드롭다운+직접 입력, 로딩 `aria-busy/aria-live` 정비.
+  - **피드백:** 빈 상태 16:9 유지 컨테이너와 업로드 버튼, 모달 접근성 개선.
+  - **이미지 프리뷰:** `/api/imagen/preview`가 Railway 호출 + `x-trace-id` 전파, 기본 모델 `imagen-4.0-generate-preview-06-06`, E2E 빠른 폴백(`x-e2e-fast`) 및 SVG 데이터 URL 최종 폴백으로 빈 플레이스홀더 방지.
+  - **미들웨어/프리패치:** `src/middleware.ts`로 `x-trace-id/x-request-id` 주입, `useSoftPrefetch` 도입(`MainNav` 적용).
+  - **PDF 내보내기:** `pdfkit` 사용 구조화 콘텐츠, 실패 시 JSON Data URL 폴백.
+- **테스트/운영:**
+  - **Playwright:** `webServer` 3100 고정·재사용, 안정 셀렉터(`data-testid`), `auth-persist.spec.ts`(소유권), `frd-integrated-pipeline.spec.ts` 추가.
+  - **성능/안정성:** `fetchWithTimeout`(기본 20s), 경량 모델(`gpt-4o-mini`, `gemini-1.5-flash`) 사용.
+  - **운영 이슈 정리:** 포트 충돌(EADDRINUSE) 제거, `curl` JSON 페이로드 안전 처리.
+- **버그 수정:**
+  - TS 암시적 any 제거, `ai-client.ts` try/catch 구문 오류 수정, 누락 import/널 처리(`usePathname()`), `jsonwebtoken` 의존성 추가.
+  - API 응답 표준화(`src/shared/lib/api-response.ts`)와 Zod 입력 검증 적용으로 400/404/500 감소.
+- **영향/효과:**
+  - 가입/로그인 후 생성 리소스가 사용자에 귀속, 네비/테마/가독성 개선, 이미지 프리뷰 항상 시각적 피드백 제공, E2E 통과율 향상.
+- **리스크/후속:**
+  - `scenario-dev-fields` 세부 반영 및 4단계 간접 반영 규칙 검증 마무리.
+  - 잔여 라우트 표준 응답/로깅 일원화, a11y CI 통합, 중복 CSS 정적 분석 및 제거, Railway 관측성 대시보드에서 `traceId` 연계 확인.
+
 ## 🗓️ 2025-09-01
 
 ### 🧹 포맷팅/접근성/순환 검사 도입 & E2E 스펙 정비 (v4.4.3)

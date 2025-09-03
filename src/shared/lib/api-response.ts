@@ -41,3 +41,5 @@ export function getTraceId(req: NextRequest): string {
     (globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2))
   );
 }
+
+

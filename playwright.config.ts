@@ -18,7 +18,7 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: `bash -lc "pnpm prisma:generate && pnpm build && pnpm start -p ${PORT}"`,
+    command: `bash -lc "ADMIN_TOKEN=test-token pnpm prisma:generate && ADMIN_TOKEN=test-token pnpm build && ADMIN_TOKEN=test-token pnpm start -p ${PORT}"`,
     url: BASE,
     reuseExistingServer: true,
     timeout: 180_000,
