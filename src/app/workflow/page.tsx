@@ -261,7 +261,7 @@ export default function WorkflowPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep]);
 
-  // 최근 프롬프트 패널 (localStorage)
+  // 최근 프롬프트 패널 (localStorage + 서버 최신값 폴백)
   useEffect(() => {
     try {
       const raw = localStorage.getItem('vp:recentPrompts');
@@ -270,6 +270,44 @@ export default function WorkflowPage() {
         setRecentPrompts(Array.isArray(arr) ? arr.slice(0, 5) : []);
       }
     } catch {}
+
+    (async () => {
+      try {
+        const res = await fetch('/api/planning/prompt', { cache: 'no-store' });
+        const json = res.ok ? await res.json() : { ok: false };
+        if (json?.ok && Array.isArray(json.data) && json.data.length > 0) {
+          const latest = json.data[0];
+          setRecentPrompts((prev) => {
+            const next = [
+              { id: latest.id, savedAt: Date.now(), name: latest.metadata?.title || `V${latest.version}` },
+              ...prev,
+            ];
+            return next.slice(0, 5);
+          });
+          setWorkflowData((prev) => ({
+            ...prev,
+            prompt: {
+              ...prev.prompt,
+              visualStyle: latest.metadata?.visualStyle || prev.prompt.visualStyle || 'Cinematic',
+              genre: latest.metadata?.genre || prev.prompt.genre || 'Action-Thriller',
+              mood: latest.metadata?.mood || prev.prompt.mood || 'Tense',
+              quality: latest.metadata?.quality || prev.prompt.quality || 'HD',
+              directorStyle: latest.metadata?.directorStyle || prev.prompt.directorStyle || 'Christopher Nolan style',
+              angle: latest.metadata?.angle || prev.prompt.angle || 'eye-level',
+              move: latest.metadata?.move || prev.prompt.move || 'dolly',
+              pacing: latest.metadata?.pacing || prev.prompt.pacing || 'normal',
+              audioQuality: latest.metadata?.audioQuality || prev.prompt.audioQuality || 'standard',
+              aiGenerated: latest,
+              finalPrompt: latest.metadata?.finalPrompt || prev.prompt.finalPrompt,
+              negativePrompt: latest.negative ? JSON.stringify(latest.negative) : prev.prompt.negativePrompt,
+              keywords: Array.isArray(latest.metadata?.keywords) ? latest.metadata.keywords : prev.prompt.keywords,
+            },
+          }));
+        }
+      } catch {
+        // 서버 실패 시 localStorage만 사용
+      }
+    })();
   }, []);
 
   const goToNextStep = useCallback(() => {
