@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { AdminClient } from './AdminClient';
+import { StatCard } from '@/shared/ui/stat-card';
+import { AdminTablesClient } from './AdminTablesClient';
 
 export const revalidate = 0;
 
@@ -113,112 +115,19 @@ export default async function AdminPage() {
       <AdminClient />
 
       <section className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-lg border p-4">
-          <h2 className="mb-2 text-sm font-medium text-gray-500">사용자</h2>
-          <div className="text-2xl font-semibold">{overview.usersCount}</div>
-          <div className="mt-1 text-sm text-gray-500">관리자 {overview.adminsCount}</div>
-        </div>
-        <div className="rounded-lg border p-4">
-          <h2 className="mb-2 text-sm font-medium text-gray-500">프로젝트</h2>
-          <div className="text-2xl font-semibold">{overview.projectsCount}</div>
-        </div>
-        <div className="rounded-lg border p-4">
-          <h2 className="mb-2 text-sm font-medium text-gray-500">시나리오</h2>
-          <div className="text-2xl font-semibold">{overview.scenariosCount}</div>
-        </div>
-        <div className="rounded-lg border p-4">
-          <h2 className="mb-2 text-sm font-medium text-gray-500">프롬프트</h2>
-          <div className="text-2xl font-semibold">{overview.promptsCount}</div>
-        </div>
-        <div className="rounded-lg border p-4">
-          <h2 className="mb-2 text-sm font-medium text-gray-500">영상 자산</h2>
-          <div className="text-2xl font-semibold">{overview.videosCount}</div>
-          <div className="mt-1 text-sm text-red-600">실패 {overview.failedVideosCount}</div>
-        </div>
+        <StatCard title="사용자" value={overview.usersCount} sub={`관리자 ${overview.adminsCount}`} />
+        <StatCard title="프로젝트" value={overview.projectsCount} />
+        <StatCard title="시나리오" value={overview.scenariosCount} />
+        <StatCard title="프롬프트" value={overview.promptsCount} />
+        <StatCard title="영상 자산" value={overview.videosCount} sub={`실패 ${overview.failedVideosCount}`} />
       </section>
 
       <section className="space-y-6">
-        <div>
-          <h2 className="mb-3 text-lg font-semibold">최근 프로젝트</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 py-2 text-left font-medium text-gray-600">ID</th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-600">제목</th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-600">상태</th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-600">소유자</th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-600">생성일</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {recent.recentProjects.map((p) => (
-                  <tr key={p.id}>
-                    <td className="px-3 py-2 font-mono text-xs">{p.id}</td>
-                    <td className="px-3 py-2">{p.title}</td>
-                    <td className="px-3 py-2">{p.status}</td>
-                    <td className="px-3 py-2">{p.userEmail ?? '-'}</td>
-                    <td className="px-3 py-2">{new Date(p.createdAt).toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="mb-3 text-lg font-semibold">최근 시나리오</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 py-2 text-left font-medium text-gray-600">ID</th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-600">제목</th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-600">버전</th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-600">생성일</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {recent.recentScenarios.map((s) => (
-                  <tr key={s.id}>
-                    <td className="px-3 py-2 font-mono text-xs">{s.id}</td>
-                    <td className="px-3 py-2">{s.title}</td>
-                    <td className="px-3 py-2">{s.version}</td>
-                    <td className="px-3 py-2">{new Date(s.createdAt).toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="mb-3 text-lg font-semibold">최근 영상 자산</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 py-2 text-left font-medium text-gray-600">ID</th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-600">제공자</th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-600">상태</th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-600">버전</th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-600">생성일</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {recent.recentVideos.map((v) => (
-                  <tr key={v.id}>
-                    <td className="px-3 py-2 font-mono text-xs">{v.id}</td>
-                    <td className="px-3 py-2">{v.provider}</td>
-                    <td className="px-3 py-2">{v.status}</td>
-                    <td className="px-3 py-2">{v.version}</td>
-                    <td className="px-3 py-2">{new Date(v.createdAt).toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <AdminTablesClient
+          recentProjects={recent.recentProjects}
+          recentScenarios={recent.recentScenarios}
+          recentVideos={recent.recentVideos}
+        />
       </section>
     </main>
   );

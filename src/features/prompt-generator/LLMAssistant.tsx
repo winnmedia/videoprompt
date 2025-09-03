@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/shared/ui/Button';
+import { Button } from '@/shared/ui/button';
 import { Copy, Check, Sparkles, Download, Eye, EyeOff } from 'lucide-react';
 import {
   type VideoPrompt,

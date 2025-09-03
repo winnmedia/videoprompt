@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useRef, useState, useEffect } from 'react';
-import { Button } from '@/shared/ui/Button';
+import { Button } from '@/shared/ui/button';
 import { Modal } from '@/shared/ui/Modal';
 import { Camera, MessageSquare, Share2, Repeat, Upload } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';

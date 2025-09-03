@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/shared/ui/Button';
+import { Button } from '@/shared/ui/button';
 import { Plus, X, Clock, Video, Volume2, Camera, Move } from 'lucide-react';
 import {
   type TimelineSegment,
