@@ -664,18 +664,34 @@ export default function ScenarioPage() {
 
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-900">전개 방식</label>
-                  <select
-                    value={storyInput.developmentMethod}
-                    onChange={(e) => handleStoryInputChange('developmentMethod', e.target.value)}
-                    className="input-primary"
-                  >
-                    <option value="">전개 방식을 선택하세요</option>
-                    {developmentOptions.map((method) => (
-                      <option key={method} value={method}>
-                        {method}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {developmentOptions.map((method) => {
+                      const selected = storyInput.developmentMethod === method;
+                      return (
+                        <button
+                          key={method}
+                          type="button"
+                          onClick={() => handleStoryInputChange('developmentMethod', method)}
+                          className={`rounded-md border p-3 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
+                            selected
+                              ? 'border-primary-500 bg-primary-50 shadow'
+                              : 'border-gray-300 bg-white hover:border-gray-400'
+                          }`}
+                          aria-pressed={selected ? 'true' : 'false'}
+                        >
+                          <div className="font-medium text-gray-900">{method}</div>
+                          <div className="mt-1 text-xs text-gray-600">
+                            {method === '훅-몰입-반전-떡밥' && '시작에 강한 주목→빠른 몰입→반전→후속 기대' }
+                            {method === '클래식 기승전결' && '기-승-전-결의 안정적 구조'}
+                            {method === '귀납법' && '사례를 모아 결론에 도달'}
+                            {method === '연역법' && '결론을 먼저 제시하고 근거로 전개'}
+                            {method === '다큐(인터뷰식)' && '인터뷰/내레이션 중심의 전개'}
+                            {method === '픽사스토리' && '옛날 옛적에→매일→그러던 어느 날→때문에→결국'}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
