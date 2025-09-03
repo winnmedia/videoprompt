@@ -5,65 +5,65 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(uuid())
   email       String   @unique
   username    String   @unique
   passwordHash String   @map("password_hash")
   avatarUrl   String?  @map("avatar_url")
   role        String   // 'user' | 'admin' | 'moderator'
-  preferences Json?    
+  preferences String? // JSON as String for SQLite    
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
   projects    Project[]
 }
 
 model Project {
-  id           String   @id @default(uuid()) @db.Uuid
+  id           String   @id @default(uuid())
   title        String
   description  String?
   thumbnailUrl String?  @map("thumbnail_url")
   status       String   // 'draft' | 'in_progress' | 'completed' | 'archived'
-  tags         String[]
-  metadata     Json?
+  tags         String // JSON array as string for SQLite
+  metadata     String? // JSON as string for SQLite
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
-  userId       String   @db.Uuid @map("user_id")
+  userId       String   @map("user_id")
   user         User     @relation(fields: [userId], references: [id])
   scenes       Scene[]
   timeline     Timeline?
 }
 
 model Scene {
-  id           String   @id @default(uuid()) @db.Uuid
+  id           String   @id @default(uuid())
   title        String
   description  String
-  prompt       Json
+  prompt       String // JSON as string for SQLite
   thumbnailUrl String?  @map("thumbnail_url")
   duration     Int
   order        Int
   status       String   // 'pending' | 'generating' | 'completed' | 'failed'
   aiGenerated  Boolean  @default(false) @map("ai_generated")
-  projectId    String   @db.Uuid @map("project_id")
+  projectId    String   @map("project_id")
   project      Project  @relation(fields: [projectId], references: [id])
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 }
 
 model Preset {
-  id           String   @id @default(uuid()) @db.Uuid
+  id           String   @id @default(uuid())
   name         String
   description  String
   category     String
-  tags         String[]
+  tags         String // JSON array as string for SQLite
   thumbnailUrl String?  @map("thumbnail_url")
-  data         Json
+  data         String // JSON as string for SQLite
   isPublic     Boolean  @default(false) @map("is_public")
-  userId       String   @db.Uuid @map("user_id")
+  userId       String   @map("user_id")
   downloads    Int      @default(0)
   rating       Decimal  @default(0)
   createdAt    DateTime @default(now()) @map("created_at")
@@ -71,10 +71,10 @@ model Preset {
 }
 
 model Timeline {
-  id            String   @id @default(uuid()) @db.Uuid
-  projectId     String   @db.Uuid @map("project_id") @unique
+  id            String   @id @default(uuid())
+  projectId     String   @map("project_id") @unique
   project       Project  @relation(fields: [projectId], references: [id])
-  beads         Json[]   @default([])
+  beads         String   @default("[]") // JSON array as string for SQLite
   totalDuration Int      @default(0) @map("total_duration")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
@@ -83,37 +83,37 @@ model Timeline {
 // === Unified Pipeline Minimal Entities ===
 
 model Scenario {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(uuid())
   title       String
   logline     String?
-  structure4  Json?    // 4-step structure
-  shots12     Json?    // 12-shot breakdown
+  structure4  String?  // 4-step structure (JSON as string for SQLite)
+  shots12     String?  // 12-shot breakdown (JSON as string for SQLite)
   pdfUrl      String?  @map("pdf_url")
   version     Int      @default(1)
   createdBy   String?
-  userId      String?  @db.Uuid @map("user_id")
+  userId      String?  @map("user_id")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
   prompts     Prompt[]
 }
 
 model Prompt {
-  id           String   @id @default(uuid()) @db.Uuid
-  scenarioId   String   @db.Uuid @map("scenario_id")
+  id           String   @id @default(uuid())
+  scenarioId   String   @map("scenario_id")
   scenario     Scenario @relation(fields: [scenarioId], references: [id])
-  metadata     Json
-  timeline     Json
-  negative     Json?
+  metadata     String // JSON as string for SQLite
+  timeline     String // JSON as string for SQLite
+  negative     String? // JSON as string for SQLite
   version      Int      @default(1)
-  userId       String?  @db.Uuid @map("user_id")
+  userId       String?  @map("user_id")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
   videoAssets  VideoAsset[]
 }
 
 model VideoAsset {
-  id         String   @id @default(uuid()) @db.Uuid
-  promptId   String   @db.Uuid @map("prompt_id")
+  id         String   @id @default(uuid())
+  promptId   String   @map("prompt_id")
   prompt     Prompt   @relation(fields: [promptId], references: [id])
   provider   String   // 'seedance' | 'veo3'
   status     String   // 'queued' | 'processing' | 'completed' | 'failed'
@@ -121,29 +121,29 @@ model VideoAsset {
   codec      String?  
   duration   Int?     // seconds
   version    Int      @default(1)
-  userId     String?  @db.Uuid @map("user_id")
+  userId     String?  @map("user_id")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 }
 
 model ShareToken {
-  id         String   @id @default(uuid()) @db.Uuid
+  id         String   @id @default(uuid())
   token      String   @unique
   role       String   // 'viewer' | 'commenter'
   nickname   String?
   targetType String   // 'project' | 'scenario' | 'prompt' | 'video'
   targetId   String
   expiresAt  DateTime @map("expires_at")
-  userId     String?  @db.Uuid @map("user_id")
+  userId     String?  @map("user_id")
   createdAt  DateTime @default(now()) @map("created_at")
 }
 
 model Comment {
-  id         String   @id @default(uuid()) @db.Uuid
+  id         String   @id @default(uuid())
   targetType String   // 'video' | 'project'
   targetId   String
   author     String?  // nickname or user id
-  userId     String?  @db.Uuid @map("user_id")
+  userId     String?  @map("user_id")
   text       String
   timecode   String?  // mmssfff
   createdAt  DateTime @default(now()) @map("created_at")
