@@ -92,6 +92,12 @@ export default function HomePage() {
                   무료로 시작하기
                 </Button>
               </Link>
+              <Link href="/register">
+                <Button variant="outline" size="xl" className="px-8 py-4 text-lg">
+                  <ArrowRight className="mr-2 h-5 w-5" />
+                  회원가입
+                </Button>
+              </Link>
               <Link href="/manual">
                 <Button variant="outline" size="xl" className="px-8 py-4 text-lg">
                   <ArrowRight className="mr-2 h-5 w-5" />

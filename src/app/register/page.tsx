@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -79,6 +80,15 @@ export default function RegisterPage() {
         {message && <p className="text-sm text-success-700">{message}</p>}
         {error && <p className="text-sm text-danger-700">{error}</p>}
       </form>
+      
+      <div className="mt-6 text-center">
+        <p className="text-sm text-gray-600">
+          이미 계정이 있으신가요?{' '}
+          <Link href="/login" className="font-medium text-primary-600 hover:text-primary-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400">
+            로그인
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const [idOrEmail, setIdOrEmail] = useState('');
@@ -43,6 +44,15 @@ export default function LoginPage() {
         {message && <p className="text-sm text-success-700">{message}</p>}
         {error && <p className="text-sm text-danger-700">{error}</p>}
       </form>
+      
+      <div className="mt-6 text-center">
+        <p className="text-sm text-gray-600">
+          계정이 없으신가요?{' '}
+          <Link href="/register" className="font-medium text-primary-600 hover:text-primary-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400">
+            회원가입
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

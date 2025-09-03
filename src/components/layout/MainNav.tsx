@@ -34,7 +34,10 @@ export function MainNav() {
           </Link>
         );
       })}
-      <Link href="/login" prefetch={false} className="ml-4 rounded border px-3 py-1 text-gray-800 hover:text-brand-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400">로그인</Link>
+      <div className="ml-4 flex items-center gap-2">
+        <Link href="/register" prefetch={false} className="rounded border px-3 py-1 text-gray-800 hover:text-brand-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400">회원가입</Link>
+        <Link href="/login" prefetch={false} className="rounded border px-3 py-1 text-gray-800 hover:text-brand-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400">로그인</Link>
+      </div>
     </nav>
   );
 }
