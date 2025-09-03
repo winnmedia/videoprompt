@@ -5,7 +5,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -28,8 +28,8 @@ model Project {
   description  String?
   thumbnailUrl String?  @map("thumbnail_url")
   status       String   // 'draft' | 'in_progress' | 'completed' | 'archived'
-  tags         String // JSON array as string for SQLite
-  metadata     String? // JSON as string for SQLite
+  tags         String[]
+  metadata     Json?
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
   userId       String   @map("user_id")
@@ -42,7 +42,7 @@ model Scene {
   id           String   @id @default(uuid())
   title        String
   description  String
-  prompt       String // JSON as string for SQLite
+  prompt       Json
   thumbnailUrl String?  @map("thumbnail_url")
   duration     Int
   order        Int
@@ -59,9 +59,9 @@ model Preset {
   name         String
   description  String
   category     String
-  tags         String // JSON array as string for SQLite
+  tags         String[]
   thumbnailUrl String?  @map("thumbnail_url")
-  data         String // JSON as string for SQLite
+  data         Json
   isPublic     Boolean  @default(false) @map("is_public")
   userId       String   @map("user_id")
   downloads    Int      @default(0)
@@ -74,7 +74,7 @@ model Timeline {
   id            String   @id @default(uuid())
   projectId     String   @map("project_id") @unique
   project       Project  @relation(fields: [projectId], references: [id])
-  beads         String   @default("[]") // JSON array as string for SQLite
+  beads         Json[]   @default([])
   totalDuration Int      @default(0) @map("total_duration")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
@@ -101,9 +101,9 @@ model Prompt {
   id           String   @id @default(uuid())
   scenarioId   String   @map("scenario_id")
   scenario     Scenario @relation(fields: [scenarioId], references: [id])
-  metadata     String // JSON as string for SQLite
-  timeline     String // JSON as string for SQLite
-  negative     String? // JSON as string for SQLite
+  metadata     Json
+  timeline     Json
+  negative     Json?
   version      Int      @default(1)
   userId       String?  @map("user_id")
   createdAt    DateTime @default(now()) @map("created_at")
