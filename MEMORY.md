@@ -1,5 +1,32 @@
 # 📚 MEMORY.md - 프로젝트 변경 이력
 
+## 🗓️ 2025-09-03
+
+### 🎨 관리자 대시보드 UX/UI 개선 및 DataTable 통합 (v4.6.0)
+
+- **요청/배경:** 관리자 대시보드의 사용자 경험 개선, 테이블 기능 강화(정렬/페이지네이션), 접근성(A11y) 보강, 서버/클라이언트 컴포넌트 경계 문제 해결 필요.
+- **주요 구현:**
+  - **DataTable 컴포넌트:** `src/shared/ui/data-table.tsx` 추가. 정렬(asc/desc), 페이지네이션(10/25/50/100), 접근성 속성(aria-label, role) 포함. Tailwind CSS 기반 반응형 디자인.
+  - **관리자 테이블 교체:** `src/app/admin/page.tsx`의 기존 테이블을 DataTable로 교체. `AdminTablesClient.tsx` 컴포넌트로 서버/클라이언트 경계 문제 해결(함수 직렬화 오류 방지).
+  - **UI 컴포넌트 정리:** `src/shared/ui/card.tsx`, `src/shared/ui/stat-card.tsx` 추가. Button 컴포넌트 대소문자 충돌 해결(`Button.tsx` → `button.tsx`).
+  - **A11y 보강:** aria-label, role 속성 추가, 키보드 네비게이션 지원, 스크린 리더 호환성 개선.
+  - **타이포그래피/간격:** 일관된 간격 시스템 적용, Tailwind 디자인 토큰 활용.
+- **기술적 개선:**
+  - **서버/클라이언트 분리:** `AdminTablesClient.tsx`에서 DataTable의 columns 정의(accessor 함수 포함)를 클라이언트 사이드에서 처리.
+  - **타입 안정성:** TypeScript strict 모드 준수, 모든 컴포넌트에 적절한 타입 정의.
+  - **FSD 아키텍처:** shared/ui 레이어에 재사용 가능한 컴포넌트 배치, Public API 패턴 준수.
+- **테스트/품질:**
+  - E2E 테스트 무응답 이슈로 인해 테스트 실행 취소, 하지만 코드 품질 게이트는 통과.
+  - Prettier + Tailwind 플러그인으로 코드 포맷팅 자동화.
+- **영향/효과:**
+  - 관리자 대시보드의 사용자 경험 대폭 개선(정렬, 페이지네이션, 접근성).
+  - 재사용 가능한 DataTable 컴포넌트로 다른 페이지에서도 활용 가능.
+  - 서버/클라이언트 경계 문제 해결로 Next.js 15 호환성 확보.
+- **리스크/후속:**
+  - E2E 테스트 안정화 필요(무응답 이슈 해결).
+  - DataTable 컴포넌트의 추가 기능(필터링, 검색) 확장 검토.
+  - 다른 관리 페이지에도 DataTable 적용 확대.
+
 ## 🗓️ 2025-09-02
 
 ### 🔐 인증/소유권 도입, FRD 기반 UX/UI/API 보강, E2E 통합 (v4.5.0)
