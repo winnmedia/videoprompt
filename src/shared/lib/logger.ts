@@ -24,3 +24,5 @@ export const logger = {
   error: (message: string, meta?: Record<string, unknown>, traceId?: string) =>
     baseLog({ level: 'error', message, meta, traceId }),
 };
+
+

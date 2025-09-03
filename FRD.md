@@ -54,434 +54,6 @@
 
 ## ⚡ 주요 기능 요구사항
 
-### 1. AI 영상 제작 워크플로우 (Phase 1-4)
-
-#### 1.1 프로젝트 설정 및 메타데이터
-
-- **프롬프트 이름 관리**: 사용자 정의 프로젝트명 입력
-- **기본 스타일 선택**:
-  - **영상미**:
-    - Photorealistic, Hyperrealistic, Cinematic, Anamorphic, Vintage Film
-    - Documentary, Experimental, Abstract, Minimalist, Baroque, Neo-noir
-    - Cyberpunk, Steampunk, Retro-futuristic, Gothic, Art Deco
-  - **장르**:
-    - Action-Thriller, Sci-Fi Noir, Fantasy Epic, Modern Drama, Horror
-    - Romantic Comedy, Mystery, Western, War, Musical, Documentary
-    - Superhero, Martial Arts, Spy, Heist, Survival, Coming-of-age
-  - **분위기**:
-    - Tense, Moody, Gritty, Serene, Energetic, Nostalgic
-    - Mysterious, Whimsical, Melancholic, Euphoric, Suspenseful
-    - Peaceful, Chaotic, Dreamy, Nightmarish, Hopeful, Desperate
-  - **화질**:
-    - 4K, 8K, IMAX Quality, HD, Ultra HD, Cinema 4K
-    - HDR, Dolby Vision, Raw Footage, ProRes, Film Grain
-  - **연출 스타일**:
-    - Christopher Nolan, David Fincher, Wes Anderson
-    - Quentin Tarantino, Stanley Kubrick, Alfred Hitchcock
-    - Akira Kurosawa, Federico Fellini, Ingmar Bergman
-    - Denis Villeneuve, Bong Joon-ho, Park Chan-wook
-
-#### 1.2 공간적 배경 설정
-
-- **날씨**:
-  - Clear, Rain, Heavy Rain, Snow, Fog, Overcast
-  - Storm, Thunder, Lightning, Hail, Mist, Drizzle
-  - Blizzard, Sandstorm, Heatwave, Freezing Rain
-- **조명**:
-  - Daylight, Golden Hour, Blue Hour, Night, Studio Lighting, Flickering Light
-  - Sunrise, Sunset, Twilight, Moonlight, Candlelight, Neon
-  - Firelight, Starlight, Cloudy, Overcast, Harsh Sunlight
-  - Soft Diffused, Hard Shadows, Rim Lighting, Backlighting
-
-#### 1.3 카메라 설정
-
-- **렌즈**:
-  - 16mm Fisheye, 24mm Wide-angle, 50mm Standard, 85mm Portrait, 135mm Telephoto
-  - 35mm Wide, 70mm Medium Tele, 200mm Long Tele, 400mm Super Tele
-  - 8mm Ultra Wide, 12mm Super Wide, 100mm Macro, 300mm Wildlife
-- **움직임**:
-  - Static Shot, Shaky Handheld, Smooth Tracking, Crane Shot, Zoom
-  - Steadicam, Gimbal, Drone Shot, Helicopter Shot, Cable Cam
-  - Jib Movement, Slider, Car Mount, Shoulder Rig, Tripod Pan
-  - Dutch Angle, Low Angle, High Angle, Bird's Eye, Worm's Eye
-
-#### 1.4 핵심 사물 정의
-
-- **재질**:
-  - Brushed Metal, Polished Wood, Transparent Glass, Matte Plastic, Rough Fabric, Leather
-  - Chrome, Stainless Steel, Copper, Bronze, Gold, Silver
-  - Marble, Granite, Concrete, Brick, Ceramic, Porcelain
-  - Silk, Velvet, Denim, Canvas, Linen, Wool
-  - Carbon Fiber, Titanium, Aluminum, Iron, Stone, Crystal
-
-#### 1.5 타임라인 연출
-
-- **카메라 앵글**:
-  - Wide Shot, Medium Shot, Close Up, Extreme Close Up, Point of View
-  - Long Shot, Medium Long Shot, Medium Close Up, Big Close Up
-  - Two Shot, Group Shot, Over-the-Shoulder Shot, Reaction Shot
-- **카메라 무빙**:
-  - Pan, Tilt, Dolly, Tracking, Whip Pan
-  - Arc Shot, Spiral Shot, 360° Rotation, Vertical Rise, Horizontal Slide
-  - Push In, Pull Out, Rise Up, Drop Down, Circle Around
-- **템포**:
-  - Real-time, Slow-motion (0.5x/0.2x), Fast-motion (2x), Time-lapse, Freeze-frame
-  - Bullet Time, Matrix Effect, Ultra Slow (0.1x), Hyper Fast (5x), Variable Speed
-  - Reverse Motion, Stop Motion, Step Frame, Smooth Ramp
-- **음향 품질**:
-  - Clear, Muffled, Echoing, Distant, Crisp
-  - Bass Heavy, Treble Rich, Stereo Wide, Mono, Surround Sound
-  - Atmospheric, Ambient, Diegetic, Non-diegetic, Foley
-
-### 2. 장면 요소 정의
-
-#### 2.1 등장인물 관리
-
-- **캐릭터 추가**: + 버튼으로 새 캐릭터 생성
-- **설명 입력**: 텍스트 기반 캐릭터 설명
-- **이미지 업로드**: 레퍼런스 이미지 파일 선택 및 저장
-- **API 연동**: POST `/api/upload/image`로 이미지 업로드
-
-#### 2.2 핵심 사물 정의
-
-- **사물 설명**: 텍스트 기반 사물 설명
-- **이미지 참조**: 관련 이미지 업로드 및 관리
-
-### 3. 동적 타임라인 연출
-
-#### 3.1 타임스탬프 관리
-
-- **동적 생성**: + 버튼으로 TS-3, TS-4 등 새 블록 생성
-- **연출 패널**: 각 블록별 세부 연출 내용 입력
-- **실시간 업데이트**: 사용자 입력을 segments[] state에 즉시 반영
-- **영상 길이 제한**: 총 8초의 한계가 있는 영상 생성
-- **시간 분배 규칙**:
-  - TS-1, TS-2만 있을 때: 각각 4초씩 할당
-  - TS-1, TS-2, TS-3가 있을 때: 각각 3초, 2초, 3초 할당
-  - TS-1, TS-2, TS-3, TS-4까지 있을 때: 각각 2초씩 균등 할당
-
-### 4. AI 어시스턴트 및 최종화
-
-#### 4.1 LLM 자동 추천
-
-- **스마트 추천**: 현재 프롬프트 데이터를 종합하여 키워드 및 네거티브 프롬프트 자동 생성
-- **API 연동**: POST `/api/generate/suggestions`로 백엔드 연동
-- **응답 처리**: keywords와 negative_prompts 필드에 자동 업데이트
-
-#### 4.2 최종 코드 생성
-
-- **통합 생성**: 모든 state를 종합하여 최종 JSON 객체 생성
-- **표시 및 복사**: 생성된 코드를 화면에 표시하고 클립보드 복사 기능 제공
-- **출력 형식**: 최종 생성된 프롬프트는 JSON 형태로 구조화
-- **JSON 예시**:
-
-```json
-{
-  "metadata": {
-    "prompt_name": "Rooftop Deal Gone Wrong - Full SFX",
-    "base_style": "cinematic, photorealistic, action-thriller, 4K",
-    "aspect_ratio": "21:9",
-    "room_description": "Dimly lit urban rooftop at night, glistening wet from rain. Antennas blink red. Foggy city skyline glows in the distance, with distant lightning occasionally illuminating the scene.",
-    "camera_setup": "Starts with slow dolly-in on the deal, then transitions to shaky handheld-style cam as action explodes. Ends with quick pan up to helicopter light overhead."
-  },
-  "key_elements": [
-    "two opposing groups in tactical jackets",
-    "metal briefcase passed between them",
-    "sniper laser dot appears mid-chest",
-    "rain bouncing off slick surfaces",
-    "gunfire and flash eruptions",
-    "briefcase grab and rooftop sprint",
-    "masked gunmen chasing with drawn pistols",
-    "helicopter searchlight sweeping from above",
-    "dripping puddles, metal stair railings, fog"
-  ],
-  "assembled_elements": [
-    "reflective puddles and rooftop textures",
-    "briefcase with glowing lock panel",
-    "helicopter spotlight beam cutting through fog"
-  ],
-  "negative_prompts": [
-    "no blood",
-    "no supernatural elements",
-    "no text",
-    "no daytime or sun",
-    "no sci-fi weapons"
-  ],
-  "timeline": [
-    {
-      "sequence": 1,
-      "timestamp": "00:00-00:02",
-      "action": "Wide shot: Two teams approach under light rain. The briefcase is handed over and clicked open to inspect the contents.",
-      "audio": "Heavy rain hitting metal, low thunder rumble, faint city sirens in distance, zipper rustle, metal latch click"
-    },
-    {
-      "sequence": 2,
-      "timestamp": "00:02-00:04",
-      "action": "Sniper dot appears suddenly on a man's chest. Immediate panic. Someone shouts. A shot is fired — chaos erupts.",
-      "audio": "Laser whine, shout: 'DOWN!', sniper crack, echoing gunfire bursts, footsteps scatter, briefcase slams shut"
-    },
-    {
-      "sequence": 3,
-      "timestamp": "00:04-00:06",
-      "action": "Our protagonist snatches the case and sprints toward the fire escape. Gunmen chase as bullets ricochet nearby.",
-      "audio": "Fast footsteps on wet concrete, pistol shots echoing, metal clank of stairs, labored breathing, wind gusts"
-    },
-    {
-      "sequence": 4,
-      "timestamp": "00:06-00:08",
-      "action": "A helicopter spotlight sweeps over the rooftop as he vanishes down the staircase. The camera pans up slowly into fog.",
-      "audio": "Chopper blades overhead, spotlight hum, storm crackle, rising dramatic bass swell, echo of footsteps fading"
-    }
-  ],
-  "text": "none",
-  "keywords": [
-    "rooftop action",
-    "briefcase exchange",
-    "sniper ambush",
-    "gunfight escape",
-    "rain cinematic",
-    "helicopter chase",
-    "thriller SFX",
-    "Veo 3 movie trailer style"
-  ]
-}
-```
-
-## 🔄 사용자 워크플로우
-
-### 메인 페이지 → 기능 선택
-
-1. **간단한 영상 제작**: `/workflow` - 3단계 AI 영상 제작
-2. **AI 시나리오 개발**: `/scenario` - 체계적인 스토리 개발
-3. **콘텐츠 관리**: `/planning` - 생성된 영상과 기획안 관리
-
-### AI 시나리오 생성 프로세스
-
-1. **스토리 입력**: 기본 정보 (제목, 설명, 장르, 타겟)
-2. **4단계 구성**: AI가 생성한 기승전결 구조 검토 및 수정
-3. **숏트 분해**: 12개 숏트로 분해하여 콘티 및 인서트샷 생성
-
-### 영상 제작 프로세스
-
-1. **스토리 입력**: 간단한 텍스트로 시작
-2. **스타일 선택**: 드롭다운 메뉴를 통한 체계적 스타일링
-3. **영상 생성**: AI 서비스를 통한 자동 영상 제작
-
-## 📊 데이터 모델
-
-### 메타데이터 구조
-
-```typescript
-interface Metadata {
-  prompt_name: string;
-  base_style: string[]; // 쉼표로 구분된 문자열로 저장
-  spatial_context: string[];
-  camera_setting: string[];
-  core_object: string[];
-  timeline: string[];
-}
-```
-
-### 요소 구조
-
-```typescript
-interface Elements {
-  characters: Array<{
-    description: string;
-    reference_image_url: string;
-  }>;
-  core_objects: Array<{
-    description: string;
-    reference_image_url: string;
-  }>;
-}
-```
-
-### 타임라인 구조
-
-```typescript
-interface Timeline {
-  segments: Array<{
-    timestamp: string;
-    camera_angle: string;
-    camera_movement: string;
-    pacing: string;
-    audio_quality: string;
-    description: string;
-  }>;
-}
-```
-
-### 영상 상태 모델 [추가]
-
-```typescript
-interface VideoStatus {
-  id: string; // 내부 영상 ID (개발/데모용)
-  provider: 'seedance' | 'veo' | 'mock';
-  status: 'queued' | 'processing' | 'pending' | 'succeeded' | 'failed';
-  jobId?: string; // Seedance 작업 ID
-  operationId?: string; // Veo3 operation ID
-  videoUrl?: string; // 결과 영상 URL 또는 data URI(mock)
-  thumbnailUrl?: string; // 썸네일 경로(선택)
-  progress?: number; // 0~100 (가능 시)
-  duration?: number; // 초
-  aspectRatio?: string; // 예: '16:9'
-  createdAt?: string; // ISO
-  updatedAt?: string; // ISO
-  completedAt?: string; // ISO
-  error?: string; // 실패 사유
-}
-```
-
-### 스키마 검증 및 DTO→도메인 매핑 [추가]
-
-- 입력 검증: 모든 API 입력은 Zod로 런타임 검증(필수 필드/타입/허용 범위)
-- 변환 레이어: 외부 DTO → 내부 도메인으로 일원화. 예시(요약):
-  - Seedance 상태 DTO `{ status, video_url }` → `{ status, videoUrl }`
-  - Veo 상태 DTO `{ operationId, videoUrl, progress }` → 동일 필드 유지
-  - 공통 스키마는 `VideoStatus`에 맞춰 정규화
-
-## 🔌 API 엔드포인트
-
-### API 응답 규약 [추가]
-
-- 모든 API는 공통 응답 래퍼를 따른다.
-
-```typescript
-type ApiSuccess<T> = { ok: true; data: T };
-type ApiError = {
-  ok: false;
-  code:
-    | 'INVALID_PROMPT'
-    | 'INVALID_INPUT_FIELDS'
-    | 'MISSING_OPERATION_ID'
-    | 'PROVIDER_UNAVAILABLE'
-    | 'STATUS_CHECK_FAILED'
-    | 'RATE_LIMITED'
-    | 'TIMEOUT'
-    | 'FALLBACK_TO_MOCK'
-    | 'INVALID_URLS'
-    | 'SAVE_FAILED'
-    | 'PARTIAL_SAVE_FAILED'
-    | 'UNKNOWN';
-  error: string;
-  details?: string;
-};
-type ApiResponse<T> = ApiSuccess<T> | ApiError;
-```
-
-- 대표 오류 코드 매핑
-  - `/api/video/create`: `INVALID_PROMPT`, `PROVIDER_UNAVAILABLE(seedance|veo)`, `TIMEOUT`, `FALLBACK_TO_MOCK`
-  - `/api/video/status/[id]`: `MISSING_OPERATION_ID`, `STATUS_CHECK_FAILED`
-  - `/api/imagen/preview`: `INVALID_PROMPT`, `PROVIDER_UNAVAILABLE(imagen)`, `TIMEOUT`
-  - `/api/ai/generate-(story|prompt|planning)`: `INVALID_INPUT_FIELDS`, `MODEL_ERROR(=UNKNOWN)`, `PARSING_FAILED(=UNKNOWN)`
-  - `/api/files/save`: `INVALID_URLS`, `SAVE_FAILED`, `PARTIAL_SAVE_FAILED`
-
-### 1) 스토리/프롬프트/기획
-
-- `POST /api/ai/generate-story`: 4단계 스토리 구조 생성 (Gemini 사용, 실패 시 기본 템플릿 반환)
-- `POST /api/ai/generate-prompt`: 스타일/타임라인 포함 구조적 프롬프트 생성 (Gemini 사용)
-- `POST /api/ai/generate-planning`: 제작 기획안 생성 (요약/구조/비용/전략 등)
-- `POST /api/scenario/develop`: 시나리오 보강 + 이미지/Seedance용 리라이트 + 추천 반환
-
-### 2) 미디어(이미지/영상)
-
-- `POST /api/imagen/preview`: Imagen 프리뷰 생성(백엔드 Railway로 위임, 성공 시 비동기 파일 저장 시도)
-- `POST /api/video/create`: 통합 영상 생성 엔드포인트
-  - 동작: provider가 `auto`일 때 Seedance → 실패 시 Veo → 모두 실패 시 Mock SVG 비디오로 폴백
-  - 요청 예시:
-
-```json
-{ "prompt": "A cinematic rooftop chase", "duration": 8, "aspectRatio": "16:9", "provider": "auto" }
-```
-
-- 성공 응답 예시(Seedance):
-
-```json
-{ "ok": true, "provider": "seedance", "jobId": "job_123", "status": "queued" }
-```
-
-- 성공 응답 예시(Veo3):
-
-```json
-{ "ok": true, "provider": "veo3", "operationId": "operations/abc", "status": "processing" }
-```
-
-- 폴백(Mock) 예시:
-
-```json
-{
-  "ok": true,
-  "provider": "mock",
-  "videoUrl": "data:image/svg+xml;base64,...",
-  "message": "실제 API 실패로 Mock 생성"
-}
-```
-
-- `GET /api/video/status/[id]?provider=seedance|veo`: 통합 상태 조회 (동일 스키마로 `provider`, `status`, `progress`, `videoUrl` 반환)
-
-#### 영상 생성 상태 머신·폴링 정책 [추가]
-
-- 상태: `queued → processing → (succeeded | failed)` (+ 일부 통합 경로에서 `pending` 허용)
-- 폴링: 2초 간격, 최대 60초(30회). 미완료 시 사용자에게 재시도/나중에 확인 안내.
-- `provider=auto` 동작: Seedance 시도 실패 시 Veo로 자동 폴백. 둘 다 실패 시 Mock 생성(사용자에게 폴백 사실 알림).
-- 실패 분류: 4xx 입력 오류는 즉시 실패, 5xx/네트워크는 리트라이 전략 적용(아래 정책 참조).
-
-### 3) Provider별(직접 호출)
-
-- Seedance: `POST /api/seedance/create`, `GET /api/seedance/status/[id]`, `GET /api/seedance/status-debug/[id]`, `POST /api/seedance/webhook`, `GET /api/seedance/diagnose`
-- Veo3: `POST /api/veo/create`, `GET /api/veo/status/[id]`
-
-### 4) 파일 관리
-
-- `POST /api/upload/image`: 이미지 업로드(현재 Mock URL 반환)
-- `POST /api/files/save`: 원격 URL의 파일 저장
-  - 요청 예시:
-
-```json
-{ "urls": ["https://example.com/file.mp4"], "prefix": "seedance-", "subDirectory": "videos" }
-```
-
-### 5) 시스템/진단
-
-- `GET /api/health`: 애플리케이션 헬스
-- `GET /api/net/egress`: 외부 네트워크/지역/DNS 진단
-
-### 6) 내부/개발용
-
-- `GET|POST|PUT /api/videos/status`: 메모리 저장소 기반 상태 조회/업데이트(개발·데모용)
-
-참고: 배포 환경에서 `next.config.mjs`의 rewrites에 따라 `/api/(seedance|imagen|veo|scenario|video|net)/:path*` 요청은 기본적으로 Railway 백엔드로 프록시됩니다. 일부 라우트는 오케스트레이션/폴백을 위해 앱 내부 핸들러가 존재합니다.
-
-## 🎨 UI/UX 요구사항
-
-### 디자인 원칙
-
-- **모던한 인터페이스**: Tailwind CSS 기반의 깔끔한 디자인
-- **반응형 디자인**: 모바일부터 데스크톱까지 모든 디바이스 지원
-- **직관적 사용법**: 3단계로 단순화된 워크플로우
-- **시각적 피드백**: 호버 효과, 로딩 상태, 성공/실패 메시지
-
-### 접근성 수용 기준(A11y) [추가]
-
-- 키보드 완주 가능(모든 인터랙션 요소 Enter/Space 활성화), 포커스 트랩(모달)
-- 의미 기반 쿼리(role/name/label), form은 `id/htmlFor` 일치, 라이브 리전으로 로딩/오류 알림
-- 명도 대비 4.5:1 이상(텍스트/아이콘), 포커스 링 시각적 구분 유지
-
-### 상태별 UI 표준 [추가]
-
-- 로딩: 스켈레톤/스피너 + `aria-busy`/`aria-live="polite"`
-- 성공: 결과 스낵바/토스트, 핵심 메타 요약(길이, 제공자, 상태)
-- 오류: 사용자 원인/시스템 원인 구분 메시지, 재시도/지원 링크, 오류코드 표기
-
-### 컴포넌트 구조
-
-- **MetadataForm**: 기본 스타일 및 설정 입력
-- **ElementBuilder**: 장면 요소 정의
-- **DynamicTimeline**: 타임라인 연출 관리
-- **LLMAssistant**: AI 기반 자동 추천
-- **ImageUploader**: 이미지 업로드 및 관리
-
 ### 글로벌 헤더 & 브랜딩
 
 - **좌상단 로고**: `/w_logo.svg`(흰색 텍스트 VLANET 로고)를 사용하며, 헤더 바의 세로 높이에 맞춰 자동 맞춤(높이 100% 유지, 종횡비 보존). 로고 옆의 텍스트 라벨 `vlanet`는 표시하지 않음.
@@ -584,7 +156,7 @@ type ApiResponse<T> = ApiSuccess<T> | ApiError;
 - **목적**: 신규/기존 사용자가 전 기능을 빠르게 이해·활용하도록 단계별 가이드와 모범 사례 제공
 - **레이아웃**: 좌측 고정 목차(섹션 앵커), 우측 본문. 브레드크럼과 상단 검색 입력 제공.
 - **콘텐츠 섹션(앵커 포함)**:
-  1. 시작하기: 계정/프로젝트 생성, 전역 테마, 네비 구조
+cd /home/winnmedia/videoprompt && pnpm exec playwright install --with-deps chromium | cat && PW_BASE_URL=http://localhost:3100 pnpm exec playwright test -g "(header|nav|buttons|usability)" | cat  1. 시작하기: 계정/프로젝트 생성, 전역 테마, 네비 구조
   2. AI 시나리오 개발: 스토리 입력 → 4단계 구성 → 12숏 분해, PDF 내보내기(Marp 명세)
   3. 프롬프트 생성기: 4단계 구성 데이터를 로드해 키워드/타임라인 정제, JSON 출력
   4. 영상 생성: 최신 프롬프트 로드, 제공자(Seedance/Veo3) 선택, 상태 조회
@@ -597,6 +169,28 @@ type ApiResponse<T> = ApiSuccess<T> | ApiError;
   - 본문 내 관련 기능으로의 딥링크 버튼 제공(예: “프롬프트 생성기로 이동” → `/prompt-generator`)
   - 페이지 내 검색(제목/소제목/키워드) 지원, 키보드 포커스 이동 가능
   - CTA “워크플로우 보기”는 이 페이지(`/manual`)로 라우팅
+
+### 관리자 대시보드 (Admin) [New]
+
+- **위치**: `/admin`
+- **목적**: 운영/개발자가 백엔드 데이터의 상태를 가시화·점검하고, 문제 상황을 빠르게 진단
+- **접근 제어**: 초기에는 로컬/비공개 배포에서만 노출. 프로덕션은 IP/비밀 토큰 보호 예정
+- **데이터 소스**: Prisma(PostgreSQL), 백엔드 상태 API(`/api/health`, 외부 제공자 상태)
+- **핵심 위젯**:
+  1) 사용자(User) 개요: 총계, 최근 7일 증가, 관리자 수, 게스트 비율
+  2) 프로젝트/시나리오/프롬프트/영상 메트릭: 총계, 최근 생성 Top 5, 실패/보류 건수
+  3) 외부 제공자 상태: Seedance/Veo/Imagen 상태 핑, 평균 지연, 실패율
+  4) 큐/잡 상태: 영상 생성 상태 분포(`queued/processing/completed/failed`)
+  5) 최근 에러 로그 요약: 에러코드 Top, 최근 20개(PII 제외)
+- **테이블 뷰**:
+  - Users: id, email/username, role, createdAt, projectsCount(요약)
+  - Projects: id, title, status, createdAt, updatedAt, owner
+  - Scenarios/Prompts: id, version, updatedAt, owner
+  - VideoAssets: id, provider, status, duration, createdAt
+- **필터/검색**: 날짜 범위, 상태, 제공자, 키워드 검색
+- **액션**(안전모드): 재시도 트리거(영상 상태 `failed` → `queued`), 공유 토큰 만료 처리, 코멘트 삭제(PII/정책 위반)
+- **보안/감사**: 상태 변경 액션은 서버 로그에 `admin_action` 이벤트 기록(PII 제외)
+- **확장 계획**: RBAC 기반 접근 통제, 감사 로그 상세 뷰, CSV 내보내기
 
 ### 영상 기획 (Planning Wizard) [New Feature]
 
@@ -643,6 +237,18 @@ type ApiResponse<T> = ApiSuccess<T> | ApiError;
 - **API 키 관리**: 환경변수를 통한 안전한 API 키 관리
 - **CORS 설정**: 적절한 CORS 헤더로 보안 강화
 - **입력 검증**: Zod를 통한 런타임 데이터 검증
+
+#### 계정/인증 전략 [결정]
+- **기본**: 게스트 가입/세션(무인증). 이메일·소셜 인증(OAuth/매직링크)은 추후 도입
+- **가입**: 별도 폼 없이 첫 진입 시 게스트 계정 생성(브라우저/디바이스 바인딩)
+- **로그인/로그아웃**: 로그인 없음. [데이터 초기화] 기능으로 세션 리셋(영구 삭제 경고 표기)
+- **데이터 지속성**: 서버에 게스트 `userId` 저장, 장치 간 동기화 없음
+- **세션 보안**: HTTP-only Secure 쿠키, SameSite=Lax, 만료 30일(활동 시 갱신)
+- **보호 경로**: `/planning`, `/feedback`, `/workflow`, `/scenario` 등은 게스트 세션 보유 시 접근 허용
+- **제한**: 팀/공유/프로젝트 초대 등 협업 기능은 비활성화(후속 단계에서 활성화)
+- **레이트리밋**: 게스트 단위로 기존 정책 적용(분당 3회, 시간당 10회)
+- **업그레이드 경로(추후)**: OAuth 또는 이메일 매직링크로 계정 연결/승격. 자산(프로젝트/미디어/코멘트)은 동일 `userId`로 마이그레이션
+- **보안 주의**: CSRF 민감 작업은 SameSite 및 서버 측 Origin/Referrer 검증으로 완화. PII 로깅 금지. 환경변수 Zod 검증 유지
 
 ### 데이터 보호
 
