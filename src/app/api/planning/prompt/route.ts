@@ -14,8 +14,8 @@ export async function POST(req: NextRequest) {
     const schema = z.object({
       scenarioId: z.string().uuid(),
       metadata: z.any(),
-      timeline: z.array(z.any()),
-      negative: z.array(z.any()).optional(),
+      timeline: z.any(), // Changed from z.array(z.any()) to z.any() for SQLite compatibility
+      negative: z.any().optional(), // Changed from z.array(z.any()) to z.any() for SQLite compatibility
       version: z.number().int().min(1).default(1),
     });
     const { scenarioId, metadata, timeline, negative, version } = schema.parse(await req.json());
