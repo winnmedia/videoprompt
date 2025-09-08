@@ -35,7 +35,11 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
-    "dep:check": "madge --circular --extensions ts,tsx src"
+    "dep:check": "madge --circular --extensions ts,tsx src",
+    "migrate:v3": "tsx scripts/migrate-to-v3.ts migrate",
+    "migrate:v3:dry": "tsx scripts/migrate-to-v3.ts migrate --dry-run",
+    "migrate:v3:rollback": "tsx scripts/migrate-to-v3.ts rollback",
+    "migrate:v3:status": "tsx scripts/migrate-to-v3.ts status"
   },
   "dependencies": {
     "@playwright/mcp": "^0.0.34",
@@ -74,6 +78,7 @@
     "prettier-plugin-tailwindcss": "^0.5.14",
     "prisma": "^5.18.0",
     "tailwindcss": "^3.4.0",
+    "tsx": "^4.20.5",
     "typescript": "^5",
     "vitest": "^3.2.4"
   }

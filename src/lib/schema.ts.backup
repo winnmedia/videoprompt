@@ -1,12 +1,5 @@
 import { z } from 'zod';
 
-/**
- * Legacy Schema Definitions (v2.x)
- * 
- * CineGenius v3.1과의 호환성을 위해 기존 스키마 유지
- * 새로운 기능은 schema-v3.ts 참조
- */
-
 // ScenePrompt 스키마
 export const ScenePromptSchema = z.object({
   metadata: z.object({
