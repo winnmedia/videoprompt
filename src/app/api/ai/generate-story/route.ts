@@ -56,10 +56,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '스토리, 장르, 톤앤매너는 필수입니다.' }, { status: 400 });
     }
 
-    // Google Gemini API 키 확인
+    // Google Gemini API 키 확인 및 유효성 검증
     const geminiApiKey = process.env.GOOGLE_GEMINI_API_KEY;
+    console.log(`[LLM] API 키 상태: ${geminiApiKey ? `존재 (길이: ${geminiApiKey.length})` : '없음'}`);
+    console.log(`[LLM] 요청 파라미터: story="${story?.substring(0, 50)}...", genre="${genre}", method="${developmentMethod}"`);
 
-    if (geminiApiKey) {
+    // API 키 유효성 검증
+    const isValidApiKey = geminiApiKey && 
+                         geminiApiKey !== 'your-actual-gemini-key' && 
+                         geminiApiKey.startsWith('AIza') && 
+                         geminiApiKey.length >= 30;
+    
+    console.log(`[LLM] API 키 유효성: ${isValidApiKey ? '✅ 유효' : '❌ 무효'}`);
+
+    if (isValidApiKey) {
+      console.log('[LLM] Gemini API 호출 시작...');
       try {
         const response = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`,
@@ -140,31 +151,59 @@ developmentMethod === '픽사스토리' ? '- 옛날 옛적에: 평범한 일상�
           },
         );
 
+        console.log(`[LLM] API 응답 상태: ${response.status} ${response.statusText}`);
+        
         if (response.ok) {
           const data = await response.json();
+          console.log('[LLM] API 응답 받음:', { 
+            candidates: data.candidates?.length || 0,
+            hasContent: !!data.candidates?.[0]?.content 
+          });
+          
           const generatedText = data.candidates[0]?.content?.parts[0]?.text;
+          console.log(`[LLM] 생성된 텍스트 길이: ${generatedText?.length || 0}`);
 
           if (generatedText) {
             try {
               // JSON 파싱 시도
               const parsedResponse = JSON.parse(generatedText);
+              console.log('[LLM] ✅ JSON 파싱 성공 - LLM 개입 완료');
               return NextResponse.json(parsedResponse);
             } catch (parseError) {
-              console.error('JSON 파싱 실패:', parseError);
+              console.error('[LLM] ❌ JSON 파싱 실패:', parseError);
+              console.error('[LLM] 원본 텍스트:', generatedText?.substring(0, 500));
               // 파싱 실패 시 기본 구조 반환
               return NextResponse.json(generateDefaultStructure(story, genre, tone, target, developmentMethod));
             }
+          } else {
+            console.warn('[LLM] ⚠️ API 응답에 텍스트 없음');
           }
+        } else {
+          const errorText = await response.text();
+          console.error(`[LLM] ❌ API 오류 (${response.status}):`, errorText);
         }
       } catch (apiError) {
-        console.error('Gemini API 호출 실패:', apiError);
+        console.error('[LLM] ❌ Gemini API 호출 실패:', apiError);
+        console.error('[LLM] 네트워크 오류 또는 API 서버 문제');
       }
+    } else {
+      if (!geminiApiKey) {
+        console.log('[LLM] ⚠️ 환경변수 GOOGLE_GEMINI_API_KEY 없음');
+      } else if (geminiApiKey === 'your-actual-gemini-key') {
+        console.log('[LLM] ⚠️ 플레이스홀더 API 키 - 실제 키로 교체 필요');
+      } else if (!geminiApiKey.startsWith('AIza')) {
+        console.log('[LLM] ⚠️ 잘못된 API 키 형식 (AIza로 시작해야 함)');
+      } else {
+        console.log('[LLM] ⚠️ API 키 길이 부족 (최소 30자 필요)');
+      }
+      console.log('[LLM] → 기본 템플릿 사용');
     }
 
     // API 키가 없거나 실패 시 기본 구조 반환
+    console.log('[LLM] 🔄 기본 템플릿 반환 (LLM 개입 없음)');
     return NextResponse.json(generateDefaultStructure(story, genre, tone, target, developmentMethod));
   } catch (error) {
-    console.error('스토리 생성 오류:', error);
+    console.error('[LLM] ❌ 전체 오류:', error);
     return NextResponse.json({ error: '스토리 생성 중 오류가 발생했습니다.' }, { status: 500 });
   }
 }
