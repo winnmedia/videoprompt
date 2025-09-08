@@ -80,6 +80,21 @@ export default function ScenarioPage() {
   const [error, setError] = useState<string | null>(null);
   const [loadingMessage, setLoadingMessage] = useState('');
 
+  // API 응답을 StoryStep 형식으로 변환하는 함수
+  const convertStructureToSteps = (structure: any): StoryStep[] => {
+    if (!structure) return [];
+    
+    return Object.entries(structure).map(([key, act]: [string, any], index) => ({
+      id: (index + 1).toString(),
+      title: act.title || `${index + 1}단계`,
+      summary: act.description || '설명 없음',
+      content: act.description || '내용 없음',
+      goal: act.emotional_arc || '목표 없음',
+      lengthHint: `전체의 ${Math.round(100 / 4)}%`,
+      isEditing: false,
+    }));
+  };
+
   // 검색 및 필터링 상태
 
   // 톤앤매너 옵션
@@ -171,9 +186,9 @@ export default function ScenarioPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          prompt: storyInput.oneLineStory,
+          story: storyInput.oneLineStory,
           genre: storyInput.genre,
-          tone: storyInput.toneAndManner,
+          tone: storyInput.toneAndManner.join(', '),
           target: storyInput.target,
           duration: storyInput.duration,
           format: storyInput.format,
@@ -185,7 +200,8 @@ export default function ScenarioPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setStorySteps(data.steps);
+        const steps = convertStructureToSteps(data.structure);
+        setStorySteps(steps);
         setCurrentStep(2);
         setLoadingMessage('');
       } else {
@@ -215,48 +231,40 @@ export default function ScenarioPage() {
     const baseStory = storyInput.oneLineStory || '기본 스토리';
     const method = storyInput.developmentMethod;
     
-    let generatedSteps: StoryStep[] = [];
+    // API와 동일한 구조 객체 생성
+    let structure: any = {};
+    
+    const defaultActStructure = (title: string, description: string, emotional_arc: string) => ({
+      title,
+      description,
+      emotional_arc,
+      key_elements: ['핵심 요소1', '핵심 요소2', '핵심 요소3']
+    });
 
     switch (method) {
       case '훅-몰입-반전-떡밥':
-        generatedSteps = [
-          {
-            id: '1',
-            title: '훅 (강한 시작)',
-            summary: '시청자의 관심을 즉시 끄는 강렬한 오프닝',
-            content: `${baseStory}의 가장 흥미로운 순간으로 시작`,
-            goal: '첫 3초 안에 시청자의 완전한 주목을 끌기',
-            lengthHint: '전체의 15%',
-            isEditing: false,
-          },
-          {
-            id: '2',
-            title: '몰입 (빠른 전개)',
-            summary: '빠른 템포로 스토리 몰입도 극대화',
-            content: '핵심 갈등과 캐릭터 동기를 신속하게 제시',
-            goal: '시청자가 스토리에 완전히 몰입하도록 유도',
-            lengthHint: '전체의 35%',
-            isEditing: false,
-          },
-          {
-            id: '3',
-            title: '반전 (예상 밖 전개)',
-            summary: '예상과 다른 방향으로 스토리 전개',
-            content: '기존 예상을 뒤엎는 반전 요소 도입',
-            goal: '시청자에게 충격과 놀라움을 선사',
-            lengthHint: '전체의 35%',
-            isEditing: false,
-          },
-          {
-            id: '4',
-            title: '떡밥 (후속 기대)',
-            summary: '다음 이야기에 대한 기대감 조성',
-            content: '해결되지 않은 미스터리나 다음 에피소드 힌트',
-            goal: '시청자가 계속 시청하고 싶게 만들기',
-            lengthHint: '전체의 15%',
-            isEditing: false,
-          },
-        ];
+        structure = {
+          act1: defaultActStructure(
+            '훅 (강한 시작)',
+            `${baseStory}의 가장 흥미로운 순간으로 시작. 시청자의 관심을 즉시 끄는 강렬한 오프닝`,
+            '평온 → 강한 관심'
+          ),
+          act2: defaultActStructure(
+            '몰입 (빠른 전개)',
+            '핵심 갈등과 캐릭터 동기를 신속하게 제시. 빠른 템포로 스토리 몰입도 극대화',
+            '관심 → 몰입'
+          ),
+          act3: defaultActStructure(
+            '반전 (예상 밖 전개)',
+            '예상과 다른 방향으로 스토리 전개. 충격적 반전으로 시청자에게 새로운 관점 제시',
+            '몰입 → 충격'
+          ),
+          act4: defaultActStructure(
+            '떡밥 (후속 기대)',
+            '해결되지 않은 미스터리나 다음 에피소드 힌트. 다음 이야기에 대한 기대감 조성',
+            '충격 → 기대'
+          )
+        };
         break;
 
       case '클래식 기승전결':
@@ -503,10 +511,38 @@ export default function ScenarioPage() {
             lengthHint: '전체의 20%',
             isEditing: false,
           },
-        ];
+        };
+        break;
+        
+      default:
+        // 기본 기승전결 구조
+        structure = {
+          act1: defaultActStructure(
+            '기 (시작)',
+            `상황 설정과 캐릭터 소개. ${baseStory}`,
+            '평온 → 관심'
+          ),
+          act2: defaultActStructure(
+            '승 (전개)',
+            '갈등과 문제의 심화. 갈등이 점진적으로 심화되며 긴장감 조성',
+            '관심 → 긴장'
+          ),
+          act3: defaultActStructure(
+            '전 (위기)',
+            '절정과 최대 위기 상황. 갈등이 절정에 달하고 해결의 실마리 발견',
+            '긴장 → 절정'
+          ),
+          act4: defaultActStructure(
+            '결 (해결)',
+            '갈등 해결과 마무리. 모든 갈등이 해결되고 만족스러운 마무리',
+            '절정 → 만족'
+          )
+        };
     }
 
-    setStorySteps(generatedSteps);
+    // structure를 StoryStep 배열로 변환
+    const steps = convertStructureToSteps(structure);
+    setStorySteps(steps);
     setCurrentStep(2);
   };
 
