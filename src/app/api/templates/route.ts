@@ -76,8 +76,8 @@ const sampleTemplates = [
 ];
 
 export async function GET(req: NextRequest) {
+  const traceId = getTraceId(req);
   try {
-    const traceId = getTraceId(req);
     const { searchParams } = new URL(req.url);
     const category = searchParams.get('category') || 'all';
     const search = searchParams.get('search') || '';
@@ -110,8 +110,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const traceId = getTraceId(req);
   try {
-    const traceId = getTraceId(req);
     const userId = getUserIdFromRequest(req);
 
     if (!userId) {
