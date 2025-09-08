@@ -90,15 +90,9 @@ const UserInputSchema = z.object({
 // =============================================================================
 
 const ProjectConfigSchema = z.object({
-  creationMode: z.enum(['VISUAL_FIRST', 'SOUND_FIRST', 'STORY_FIRST'], {
-    errorMap: () => ({ message: '유효한 생성 모드를 선택하세요' }),
-  }),
-  frameworkType: z.enum(['EVENT_DRIVEN', 'DIRECTION_DRIVEN', 'HYBRID'], {
-    errorMap: () => ({ message: '유효한 프레임워크 타입을 선택하세요' }),
-  }),
-  aiAssistantPersona: z.enum(['ASSISTANT_DIRECTOR', 'CINEMATOGRAPHER', 'SCREENWRITER'], {
-    errorMap: () => ({ message: '유효한 AI 어시스턴트 페르소나를 선택하세요' }),
-  }),
+  creationMode: z.enum(['VISUAL_FIRST', 'SOUND_FIRST', 'STORY_FIRST']),
+  frameworkType: z.enum(['EVENT_DRIVEN', 'DIRECTION_DRIVEN', 'HYBRID']),
+  aiAssistantPersona: z.enum(['ASSISTANT_DIRECTOR', 'CINEMATOGRAPHER', 'SCREENWRITER']),
 });
 
 // =============================================================================
@@ -372,9 +366,9 @@ export const CineGeniusV3PromptSchema = z.object({
   projectConfig: ProjectConfigSchema,
   promptBlueprint: PromptBlueprintSchema,
   generationControl: GenerationControlSchema,
-  aiAnalysis: z.record(z.any()).optional(),
+  aiAnalysis: z.record(z.string(), z.any()).optional(),
   finalOutput: FinalOutputSchema,
-  uiHints: z.record(z.array(z.union([z.string(), z.number()]))).optional(),
+  uiHints: z.record(z.string(), z.array(z.union([z.string(), z.number()]))).optional(),
 }).refine(
   // 연속성 제어 규칙: noCuts = true일 때 편집 스타일 제한
   (data) => {
@@ -443,7 +437,7 @@ export function validatePrompt(data: unknown) {
     return UniversalPromptSchema.parse(data);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const friendlyErrors = error.errors.map(err => ({
+      const friendlyErrors = error.issues.map(err => ({
         path: err.path.join('.'),
         message: err.message,
         code: err.code,
@@ -463,7 +457,7 @@ export function validateV3Prompt(data: unknown) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('Zod validation error:', error);
-      const friendlyErrors = (error.errors || []).map(err => ({
+      const friendlyErrors = (error.issues || []).map(err => ({
         path: (err.path || []).join('.'),
         message: err.message,
         code: err.code,

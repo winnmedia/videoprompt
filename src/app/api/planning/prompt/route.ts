@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   
   try {
     const body = await req.json();
-    const userId = getUserIdFromRequest(req);
+    const userId = getUserIdFromRequest(req) ?? null;
     
     // 🔍 버전 자동 감지
     const promptVersion = detectPromptVersion(body);
@@ -80,12 +80,12 @@ async function handleV3Prompt(body: any, userId: string | null, traceId: string)
         version: 3, // v3.1을 나타내는 정수
         
         // 🆕 v3.1 새 필드들
-        project_id: validatedData.projectId,
-        cinegenius_version: validatedData.version,
-        user_input: validatedData.userInput,
-        project_config: validatedData.projectConfig,
-        generation_control: validatedData.generationControl,
-        ai_analysis: validatedData.aiAnalysis || {},
+        projectId: validatedData.projectId,
+        cinegeniusVersion: validatedData.version,
+        userInput: validatedData.userInput as any,
+        projectConfig: validatedData.projectConfig as any,
+        generationControl: validatedData.generationControl as any,
+        aiAnalysis: validatedData.aiAnalysis as any,
         
         // 사용자 정보
         ...(userId ? { userId } : {}),
@@ -102,7 +102,7 @@ async function handleV3Prompt(body: any, userId: string | null, traceId: string)
       id: created.id, 
       projectId: validatedData.projectId,
       version: created.version,
-      cinegenius_version: '3.1'
+      cinegeniusVersion: '3.1'
     }, 201, traceId);
     
   } catch (error: any) {
@@ -141,7 +141,7 @@ async function handleLegacyPrompt(body: any, userId: string | null, traceId: str
         version,
         
         // v2.x는 기본값 설정
-        cinegenius_version: '2.0',
+        cinegeniusVersion: '2.0',
         
         // 사용자 정보
         ...(userId ? { userId } : {}),
@@ -156,7 +156,7 @@ async function handleLegacyPrompt(body: any, userId: string | null, traceId: str
     return success({ 
       id: created.id, 
       version: created.version,
-      cinegenius_version: '2.0'
+      cinegeniusVersion: '2.0'
     }, 201, traceId);
     
   } catch (error: any) {
@@ -175,7 +175,7 @@ export async function GET(req: NextRequest) {
     const scenarioIdParam = req.nextUrl.searchParams.get('scenarioId');
     const versionParam = req.nextUrl.searchParams.get('version'); // v3.1, v2.x 필터링
     const includeV3 = req.nextUrl.searchParams.get('includeV3') === 'true';
-    const userId = getUserIdFromRequest(req);
+    const userId = getUserIdFromRequest(req) ?? null;
     
     // 🔍 쿼리 조건 구성
     const whereCondition: any = {
@@ -186,11 +186,11 @@ export async function GET(req: NextRequest) {
     // 버전별 필터링
     if (versionParam) {
       if (versionParam === '3.1') {
-        whereCondition.cinegenius_version = '3.1';
+        whereCondition.cinegeniusVersion = '3.1';
       } else if (versionParam === '2.x') {
         whereCondition.OR = [
-          { cinegenius_version: '2.0' },
-          { cinegenius_version: null }, // 마이그레이션 이전 데이터
+          { cinegeniusVersion: '2.0' },
+          { cinegeniusVersion: null }, // 마이그레이션 이전 데이터
         ];
       }
     }
@@ -210,31 +210,31 @@ export async function GET(req: NextRequest) {
         updatedAt: true,
         
         // 🆕 v3.1 필드들 (존재하는 경우에만)
-        project_id: true,
-        cinegenius_version: true,
-        user_input: true,
-        project_config: true,
-        generation_control: true,
-        ai_analysis: true,
+        projectId: true,
+        cinegeniusVersion: true,
+        userInput: true,
+        projectConfig: true,
+        generationControl: true,
+        aiAnalysis: true,
       },
     });
     
     // 🔄 응답 데이터 변환
     const transformedPrompts = prompts.map(prompt => {
-      const isV3 = prompt.cinegenius_version === '3.1';
+      const isV3 = prompt.cinegeniusVersion === '3.1';
       
       if (isV3 && includeV3) {
         // v3.1 전체 데이터 구조로 응답
         return {
           version: '3.1',
           id: prompt.id,
-          projectId: prompt.project_id,
+          projectId: prompt.projectId,
           createdAt: prompt.createdAt,
           updatedAt: prompt.updatedAt,
           
           // v3.1 구조 복원
-          userInput: prompt.user_input,
-          projectConfig: prompt.project_config,
+          userInput: prompt.userInput,
+          projectConfig: prompt.projectConfig,
           
           promptBlueprint: {
             metadata: (prompt.metadata as any)?.v3_metadata || convertLegacyMetadata(prompt.metadata),
@@ -242,8 +242,8 @@ export async function GET(req: NextRequest) {
             timeline: prompt.timeline,
           },
           
-          generationControl: prompt.generation_control,
-          aiAnalysis: prompt.ai_analysis,
+          generationControl: prompt.generationControl,
+          aiAnalysis: prompt.aiAnalysis,
           
           finalOutput: {
             finalPromptText: '', // 필요시 별도 필드로 저장
@@ -263,8 +263,8 @@ export async function GET(req: NextRequest) {
           createdAt: prompt.createdAt,
           
           // 추가 정보
-          cinegenius_version: prompt.cinegenius_version || '2.0',
-          ...(isV3 ? { projectId: prompt.project_id } : {}),
+          cinegeniusVersion: prompt.cinegeniusVersion || '2.0',
+          ...(isV3 ? { projectId: prompt.projectId } : {}),
         };
       }
     });
@@ -272,8 +272,8 @@ export async function GET(req: NextRequest) {
     // 📈 통계 정보 추가
     const stats = {
       total: transformedPrompts.length,
-      v3_count: transformedPrompts.filter((p: any) => p.version === '3.1' || p.cinegenius_version === '3.1').length,
-      v2_count: transformedPrompts.filter((p: any) => p.version !== '3.1' && p.cinegenius_version !== '3.1').length,
+      v3_count: transformedPrompts.filter((p: any) => p.version === '3.1' || p.cinegeniusVersion === '3.1').length,
+      v2_count: transformedPrompts.filter((p: any) => p.version !== '3.1' && p.cinegeniusVersion !== '3.1').length,
     };
     
     logger.info('prompt list retrieved', { 

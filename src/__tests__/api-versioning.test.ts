@@ -69,7 +69,7 @@ describe('API Versioning', () => {
       user_input: { oneLineScenario: 'Test scenario' },
       project_config: { creationMode: 'VISUAL_FIRST' },
       generation_control: { directorEmphasis: [] },
-      ai_analysis: {},
+      aiAnalysis: {},
     },
     {
       id: 'v2-prompt-1',
@@ -88,7 +88,7 @@ describe('API Versioning', () => {
       user_input: null,
       project_config: null,
       generation_control: null,
-      ai_analysis: null,
+      aiAnalysis: null,
     },
   ];
 
@@ -452,7 +452,7 @@ describe('API Versioning', () => {
         user_input: v3Data.userInput,
         project_config: v3Data.projectConfig,
         generation_control: v3Data.generationControl,
-        ai_analysis: v3Data.aiAnalysis || {},
+        aiAnalysis: v3Data.aiAnalysis || {},
       };
       (prisma.prompt.findMany as any).mockResolvedValue([mockRetrievedPrompt]);
 
