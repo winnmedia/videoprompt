@@ -5,9 +5,6 @@ import { prisma } from '@/lib/db';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-;
-}
-
 // 샘플 공유 데이터 (실제로는 데이터베이스에서 조회)
 const sampleSharedContent = {
   'demo-share-token-123': {
@@ -82,7 +79,7 @@ const sampleComments: Record<string, any[]> = {
   'demo-video-share-456': []
 };
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   try {
     const traceId = getTraceId(req);
     const { token } = await params;
