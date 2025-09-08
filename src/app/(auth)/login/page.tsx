@@ -20,7 +20,7 @@ export default function LoginPage() {
 
   // URL 파라미터에서 성공 메시지 확인
   useEffect(() => {
-    const message = searchParams.get('message');
+    const message = searchParams?.get('message');
     if (message) {
       setSuccessMessage(message);
     }
