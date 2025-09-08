@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
       timelineCount: suggestions.enhanced_timeline.length,
     });
 
-    return success(suggestions, { traceId });
+    return success(suggestions, 200, traceId);
 
   } catch (error) {
     logger.error('AI suggestions generation failed', {
@@ -106,9 +106,9 @@ export async function POST(request: NextRequest) {
     });
 
     if (error instanceof z.ZodError) {
-      return failure('VALIDATION_ERROR', 'Invalid request data', { traceId }, 400);
+      return failure('VALIDATION_ERROR', 'Invalid request data', 400, undefined, traceId);
     }
 
-    return failure('AI_GENERATION_ERROR', 'Failed to generate AI suggestions', { traceId }, 500);
+    return failure('AI_GENERATION_ERROR', 'Failed to generate AI suggestions', 500, undefined, traceId);
   }
 }
