@@ -1075,7 +1075,7 @@ export default function SceneWizardPage() {
         <div className="mx-auto max-w-7xl px-4 py-8 pb-28 sm:px-6 lg:px-8">
           {statusMsg && (
             <div
-              className={`mb-4 rounded-md p-3 text-sm ${statusKind === 'success' ? 'border border-green-100 bg-green-50 text-green-800' : statusKind === 'error' ? 'border border-red-100 bg-red-50 text-red-800' : 'border border-gray-100 bg-gray-50 text-gray-800'}`}
+              className={`mb-4 rounded-md p-3 text-sm ${statusKind === 'success' ? 'border border-green-100 bg-green-50 text-green-800' : statusKind === 'error' ? 'border border-danger-100 bg-danger-50 text-danger-800' : 'border border-gray-100 bg-gray-50 text-gray-800'}`}
               onAnimationEnd={() => {}}
             >
               <div className="flex items-center justify-between">
@@ -1482,7 +1482,7 @@ export default function SceneWizardPage() {
                             Enter 또는 포커스 아웃 시 적용
                           </p>
                           {validation.aspectError && (
-                            <p className="mt-1 text-xs text-red-600">{validation.aspectError}</p>
+                            <p className="mt-1 text-xs text-danger-600">{validation.aspectError}</p>
                           )}
                         </div>
                       )}
@@ -1548,7 +1548,7 @@ export default function SceneWizardPage() {
                             Enter 또는 포커스 아웃 시 적용
                           </p>
                           {validation.durationError && (
-                            <p className="mt-1 text-xs text-red-600">{validation.durationError}</p>
+                            <p className="mt-1 text-xs text-danger-600">{validation.durationError}</p>
                           )}
                         </div>
                       )}
@@ -2294,11 +2294,11 @@ export default function SceneWizardPage() {
                               </div>
                             )}
                             {!isImageLoading && imagePreviews.length > 0 && !imagePreviews[0] && (
-                              <div className="absolute inset-0 flex items-center justify-center bg-red-50">
+                              <div className="absolute inset-0 flex items-center justify-center bg-danger-50">
                                 <div className="flex flex-col items-center gap-2 p-4 text-center">
-                                  <Icon name="error" className="text-red-400" size="lg" />
-                                  <span className="text-sm text-red-500">이미지 생성 실패</span>
-                                  <span className="text-xs text-red-400">다시 시도해주세요</span>
+                                  <Icon name="error" className="text-danger-400" size="lg" />
+                                  <span className="text-sm text-danger-500">이미지 생성 실패</span>
+                                  <span className="text-xs text-danger-400">다시 시도해주세요</span>
                                 </div>
                               </div>
                             )}
@@ -2354,7 +2354,7 @@ export default function SceneWizardPage() {
                               statusKind === 'success'
                                 ? 'border border-green-200 bg-green-50 text-green-800'
                                 : statusKind === 'error'
-                                  ? 'border border-red-200 bg-red-50 text-red-800'
+                                  ? 'border border-danger-200 bg-danger-50 text-danger-800'
                                   : 'border border-blue-200 bg-blue-50 text-blue-800'
                             }`}
                           >
@@ -2372,7 +2372,7 @@ export default function SceneWizardPage() {
                                   statusKind === 'success'
                                     ? 'text-green-600'
                                     : statusKind === 'error'
-                                      ? 'text-red-600'
+                                      ? 'text-danger-600'
                                       : 'text-blue-600'
                                 }
                               />
@@ -2452,7 +2452,7 @@ export default function SceneWizardPage() {
                           localStorage.setItem('vp:recentPrompts', JSON.stringify(next));
                         }}
                         title="핀 제외 모두 삭제"
-                        className="text-red-600 hover:text-red-700"
+                        className="text-danger-600 hover:text-danger-700"
                       >
                         모두 삭제
                       </Button>
@@ -2552,7 +2552,7 @@ export default function SceneWizardPage() {
                                   title="삭제"
                                   aria-label="삭제"
                                   data-testid="recent-item-delete"
-                                  className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                  className="h-8 w-8 p-0 text-danger-600 hover:bg-danger-50 hover:text-danger-700"
                                 >
                                   <Icon name="delete" size="sm" />
                                 </Button>

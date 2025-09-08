@@ -51,10 +51,9 @@ interface WorkflowData {
 }
 
 const WORKFLOW_STEPS = [
-  { id: 1, name: '스토리 입력', description: '간단한 스토리 작성' },
-  { id: 2, name: '시나리오 개발', description: 'AI가 4단계 구성 생성' },
-  { id: 3, name: '프롬프트 생성', description: '시각적 스타일 설정' },
-  { id: 4, name: '영상 생성', description: 'AI가 영상 제작' },
+  { id: 1, name: '프롬프트 선택', description: '기존 프롬프트 선택 또는 새로 생성' },
+  { id: 2, name: '영상 설정', description: '영상 길이 및 모델 선택' },
+  { id: 3, name: '영상 생성', description: 'AI가 영상 제작' },
 ];
 
 // 기존 장르 옵션은 제거하고 INSTRUCTION.md 기반으로 통합
@@ -204,7 +203,8 @@ const MODEL_OPTIONS = [
 export default function WorkflowPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const project = useProjectStore();
-  const [recentPrompts, setRecentPrompts] = useState<Array<{ id: string; savedAt: number; name: string }>>([]);
+  const [recentPrompts, setRecentPrompts] = useState<Array<{ id: string; savedAt: number; name: string; metadata?: any; finalPrompt?: string }>>([]);
+  const [selectedPrompt, setSelectedPrompt] = useState<any>(null);
   const [workflowData, setWorkflowData] = useState<WorkflowData>({
     story: '',
     scenario: {
@@ -269,51 +269,26 @@ export default function WorkflowPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep]);
 
-  // 최근 프롬프트 패널 (localStorage + 서버 최신값 폴백)
+  // 프롬프트 목록 로드
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('vp:recentPrompts');
-      if (raw) {
-        const arr = JSON.parse(raw) as Array<{ id: string; savedAt: number; name: string }>;
-        setRecentPrompts(Array.isArray(arr) ? arr.slice(0, 5) : []);
-      }
-    } catch {}
-
     (async () => {
       try {
         const res = await fetch('/api/planning/prompt', { cache: 'no-store' });
         const json = res.ok ? await res.json() : { ok: false };
         if (json?.ok && Array.isArray(json.data) && json.data.length > 0) {
-          const latest = json.data[0];
-          setRecentPrompts((prev) => {
-            const next = [
-              { id: latest.id, savedAt: Date.now(), name: latest.metadata?.title || `V${latest.version}` },
-              ...prev,
-            ];
-            return next.slice(0, 5);
-          });
-          setWorkflowData((prev) => ({
-            ...prev,
-            prompt: {
-              ...prev.prompt,
-              visualStyle: latest.metadata?.visualStyle || prev.prompt.visualStyle || 'Cinematic',
-              genre: latest.metadata?.genre || prev.prompt.genre || 'Action-Thriller',
-              mood: latest.metadata?.mood || prev.prompt.mood || 'Tense',
-              quality: latest.metadata?.quality || prev.prompt.quality || 'HD',
-              directorStyle: latest.metadata?.directorStyle || prev.prompt.directorStyle || 'Christopher Nolan style',
-              angle: latest.metadata?.angle || prev.prompt.angle || 'eye-level',
-              move: latest.metadata?.move || prev.prompt.move || 'dolly',
-              pacing: latest.metadata?.pacing || prev.prompt.pacing || 'normal',
-              audioQuality: latest.metadata?.audioQuality || prev.prompt.audioQuality || 'standard',
-              aiGenerated: latest,
-              finalPrompt: latest.metadata?.finalPrompt || prev.prompt.finalPrompt,
-              negativePrompt: latest.negative ? JSON.stringify(latest.negative) : prev.prompt.negativePrompt,
-              keywords: Array.isArray(latest.metadata?.keywords) ? latest.metadata.keywords : prev.prompt.keywords,
-            },
+          const prompts = json.data.map((p: any) => ({
+            id: p.id,
+            savedAt: new Date(p.updatedAt).getTime(),
+            name: p.metadata?.title || `프롬프트 V${p.version}`,
+            metadata: p.metadata,
+            finalPrompt: p.metadata?.finalPrompt,
+            timeline: p.timeline,
+            negative: p.negative,
           }));
+          setRecentPrompts(prompts.slice(0, 10)); // 최대 10개까지 표시
         }
-      } catch {
-        // 서버 실패 시 localStorage만 사용
+      } catch (error) {
+        console.error('프롬프트 로드 실패:', error);
       }
     })();
   }, []);
@@ -492,14 +467,15 @@ export default function WorkflowPage() {
   }, [workflowData, goToNextStep]);
 
   const handleGenerateVideo = useCallback(async () => {
-    if (!workflowData.story.trim() || !workflowData.prompt.visualStyle) return;
+    if (!selectedPrompt?.finalPrompt) return;
 
     setIsGenerating(true);
     setVideoJobIds([]);
     setVideoProvider(null);
     
     try {
-      const prompt = `${workflowData.story} - ${workflowData.prompt.visualStyle} 스타일, ${workflowData.prompt.mood} 분위기, ${workflowData.prompt.quality} 화질, ${workflowData.prompt.directorStyle} 연출로 ${workflowData.video.duration}초 영상`;
+      // 선택된 프롬프트 사용
+      const prompt = `${selectedPrompt.finalPrompt} - ${workflowData.video.duration}초 영상`;
 
       const response = await fetch('/api/video/create', {
         method: 'POST',
@@ -564,7 +540,7 @@ export default function WorkflowPage() {
       console.error('영상 생성 실패:', error);
       setIsGenerating(false);
     }
-  }, [workflowData, project]);
+  }, [workflowData, project, selectedPrompt]);
 
   // Seedance 상태 변화 감지 및 완료된 영상 처리
   useEffect(() => {
@@ -644,33 +620,6 @@ export default function WorkflowPage() {
         </div>
       </div>
 
-      {/* 최근 프롬프트 / 가이드 */}
-      <div className="mx-auto max-w-4xl px-6 pt-6 lg:px-8">
-        {recentPrompts.length > 0 ? (
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-gray-800">최근 생성된 프롬프트</h2>
-              <a href="/wizard" className="text-sm text-brand-600 hover:underline">위저드로 이동</a>
-            </div>
-            <ul className="grid grid-cols-1 gap-2 md:grid-cols-2">
-              {recentPrompts.map((p) => (
-                <li key={p.id} className="rounded-md border border-gray-100 p-3 text-sm">
-                  <div className="line-clamp-1 font-medium text-gray-900" title={p.name}>{p.name}</div>
-                  <div className="text-xs text-gray-500">{new Date(p.savedAt).toLocaleString()}</div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : (
-          <div className="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-600">
-            아직 생성된 프롬프트가 없습니다. AI 영상 기획 또는 프롬프트 생성기를 먼저 사용해 주세요.
-            <div className="mt-3 flex justify-center gap-3">
-              <a href="/scenario" className="rounded-md bg-primary-600 px-4 py-2 text-white hover:bg-primary-700">AI 영상 기획</a>
-              <a href="/prompt-generator" className="rounded-md border px-4 py-2 text-gray-800 hover:text-brand-600">프롬프트 생성기</a>
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* Workflow Steps */}
       <div className="mx-auto max-w-4xl px-6 py-8 lg:px-8">
@@ -727,809 +676,192 @@ export default function WorkflowPage() {
 
         {/* Step Content */}
         <div className="rounded-2xl bg-white p-8 shadow-lg">
-          {/* Step 1: Story Input */}
+          {/* Step 1: Prompt Selection */}
           {currentStep === 1 && (
-            <div className="space-y-8 text-center">
-              <div>
+            <div className="space-y-8">
+              <div className="text-center">
                 <h2 className="mb-4 text-2xl font-bold text-slate-900">
-                  스토리를 간단히 작성해주세요
+                  영상 생성을 위한 프롬프트를 선택해주세요
                 </h2>
                 <p className="mb-6 text-slate-600">
-                  만들고 싶은 영상의 내용을 한 문장으로 설명해주세요
+                  기존에 생성된 프롬프트를 선택하거나 새로운 프롬프트를 생성하세요
                 </p>
+              </div>
 
-                <div className="mx-auto max-w-2xl space-y-6">
-                  <textarea
-                    data-testid="workflow-story-input"
-                    value={workflowData.story}
-                    onChange={(e) =>
-                      setWorkflowData((prev) => ({
-                        ...prev,
-                        story: e.target.value,
-                      }))
-                    }
-                    placeholder="예: 도시의 밤거리를 걷는 사람의 이야기"
-                    rows={4}
-                    className="w-full resize-none rounded-xl border border-slate-300 px-4 py-3 text-lg focus:border-transparent focus:ring-2 focus:ring-blue-500"
-                  />
-
+              {recentPrompts.length > 0 ? (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-slate-800">생성된 프롬프트 목록</h3>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div>
-                      <label
-                        htmlFor="wf-genre"
-                        className="mb-2 block text-sm font-medium text-slate-800"
+                    {recentPrompts.map((prompt) => (
+                      <div
+                        key={prompt.id}
+                        className={`cursor-pointer rounded-lg border p-4 transition-all ${
+                          selectedPrompt?.id === prompt.id
+                            ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-500 ring-opacity-20'
+                            : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-md'
+                        }`}
+                        onClick={() => setSelectedPrompt(prompt)}
                       >
-                        장르
-                      </label>
-                      <select
-                        id="wf-genre"
-                        value={workflowData.scenario.genre}
-                        onChange={(e) =>
-                          setWorkflowData((prev) => ({
-                            ...prev,
-                            scenario: { ...prev.scenario, genre: e.target.value },
-                          }))
-                        }
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-800 focus:border-transparent focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="">장르 선택</option>
-                        {GENRE_OPTIONS.map((genre) => (
-                          <option key={genre.value} value={genre.value}>
-                            {genre.label} - {genre.description}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label
-                        htmlFor="wf-tone"
-                        className="mb-2 block text-sm font-medium text-slate-800"
-                      >
-                        톤앤매너
-                      </label>
-                      <select
-                        id="wf-tone"
-                        value={workflowData.scenario.tone}
-                        onChange={(e) =>
-                          setWorkflowData((prev) => ({
-                            ...prev,
-                            scenario: { ...prev.scenario, tone: e.target.value },
-                          }))
-                        }
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-800 focus:border-transparent focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="">톤앤매너 선택</option>
-                        {TONE_OPTIONS.map((tone) => (
-                          <option key={tone.value} value={tone.value}>
-                            {tone.label} - {tone.description}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-gray-900">{prompt.name}</h4>
+                            <p className="mt-1 text-sm text-gray-500">
+                              {new Date(prompt.savedAt).toLocaleDateString()}
+                            </p>
+                            {prompt.finalPrompt && (
+                              <p className="mt-2 text-xs text-gray-600 line-clamp-2">
+                                {prompt.finalPrompt}
+                              </p>
+                            )}
+                          </div>
+                          <div className="ml-4">
+                            <div
+                              className={`h-4 w-4 rounded-full border-2 ${
+                                selectedPrompt?.id === prompt.id
+                                  ? 'border-blue-500 bg-blue-500'
+                                  : 'border-gray-300'
+                              }`}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
+                  <div className="mb-4 text-gray-600">
+                    <Icon name="projects" className="mx-auto h-12 w-12" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    아직 생성된 프롬프트가 없습니다
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    먼저 프롬프트를 생성해주세요
+                  </p>
+                </div>
+              )}
 
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-800">
-                      타겟 오디언스
-                    </label>
-                    <input
-                      type="text"
-                      value={workflowData.scenario.target}
-                      onChange={(e) =>
-                        setWorkflowData((prev) => ({
-                          ...prev,
-                          scenario: { ...prev.scenario, target: e.target.value },
-                        }))
-                      }
-                      placeholder="예: 20-30대 젊은 층"
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-800 focus:border-transparent focus:ring-2 focus:ring-blue-500"
-                    />
+              <div className="border-t border-gray-200 pt-6">
+                <div className="text-center">
+                  <p className="text-sm text-gray-600 mb-4">
+                    새로운 프롬프트가 필요하신가요?
+                  </p>
+                  <div className="flex justify-center gap-4">
+                    <a
+                      href="/scenario"
+                      className="rounded-lg bg-blue-600 px-6 py-3 text-white transition-colors hover:bg-blue-700"
+                    >
+                      AI 영상 기획하기
+                    </a>
+                    <a
+                      href="/prompt-generator"
+                      className="rounded-lg border border-gray-300 bg-white px-6 py-3 text-gray-700 transition-colors hover:bg-gray-50"
+                    >
+                      프롬프트 생성기
+                    </a>
                   </div>
                 </div>
               </div>
 
               <div className="flex justify-center">
                 <button
-                  onClick={handleGenerateScenario}
-                  disabled={
-                    !workflowData.story.trim() ||
-                    !workflowData.scenario.genre ||
-                    !workflowData.scenario.tone
-                  }
-                  className="rounded-lg bg-blue-600 px-8 py-3 text-lg text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+                  onClick={goToNextStep}
+                  disabled={!selectedPrompt}
+                  className="rounded-lg bg-green-600 px-8 py-3 text-lg text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-slate-400"
                 >
-                  다음 단계: 시나리오 개발
+                  선택한 프롬프트로 영상 생성하기
                 </button>
               </div>
             </div>
           )}
 
-          {/* Step 2: Scenario Development */}
+          {/* Step 2: Video Settings */}
           {currentStep === 2 && (
-            <div className="space-y-8 text-center">
-              <div>
-                <h2 className="mb-4 text-2xl font-bold text-slate-900">
-                  AI가 4단계 시나리오를 생성했습니다
-                </h2>
+            <div className="space-y-8">
+              <div className="text-center">
+                <h2 className="mb-4 text-2xl font-bold text-slate-900">영상 생성 설정</h2>
                 <p className="mb-6 text-slate-600">
-                  생성된 시나리오를 확인하고 필요시 수정해주세요
+                  선택한 프롬프트로 생성할 영상의 설정을 조정해주세요
                 </p>
+              </div>
 
-                <div className="mx-auto max-w-3xl">
-                  {workflowData.scenario.structure && workflowData.scenario.structure.length > 0 ? (
-                    <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
-                      {workflowData.scenario.structure.map((step, index) => (
-                        <div key={index} className="rounded-xl bg-slate-50 p-4">
-                          <div className="flex items-center space-x-3">
-                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
-                              {index + 1}
-                            </span>
-                            <div className="flex-1">
-                              <input
-                                type="text"
-                                value={step}
-                                onChange={(e) => {
-                                  const newStructure = [...workflowData.scenario.structure];
-                                  newStructure[index] = e.target.value;
-                                  setWorkflowData((prev) => ({
-                                    ...prev,
-                                    scenario: { ...prev.scenario, structure: newStructure },
-                                  }));
-                                }}
-                                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-center font-medium focus:border-transparent focus:ring-2 focus:ring-blue-500"
-                              />
-                            </div>
-                          </div>
-                        </div>
+              {/* Selected Prompt Preview */}
+              {selectedPrompt && (
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-6">
+                  <h3 className="mb-2 font-semibold text-blue-800">선택된 프롬프트</h3>
+                  <div className="space-y-2">
+                    <div className="font-medium text-blue-900">{selectedPrompt.name}</div>
+                    {selectedPrompt.finalPrompt && (
+                      <div className="text-sm text-blue-700 bg-white rounded p-3">
+                        {selectedPrompt.finalPrompt}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Video Settings */}
+              <div className="mx-auto max-w-2xl space-y-6">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      영상 길이
+                    </label>
+                    <select
+                      value={workflowData.video.duration}
+                      onChange={(e) =>
+                        setWorkflowData((prev) => ({
+                          ...prev,
+                          video: { ...prev.video, duration: parseInt(e.target.value) },
+                        }))
+                      }
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value={5}>5초 (빠른 생성)</option>
+                      <option value={10}>10초 (균형)</option>
+                      <option value={15}>15초 (고품질)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      AI 모델
+                    </label>
+                    <select
+                      value={workflowData.video.model}
+                      onChange={(e) =>
+                        setWorkflowData((prev) => ({
+                          ...prev,
+                          video: { ...prev.video, model: e.target.value },
+                        }))
+                      }
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+                    >
+                      {MODEL_OPTIONS.map((model) => (
+                        <option key={model.value} value={model.value}>
+                          {model.label} - {model.description}
+                        </option>
                       ))}
-                    </div>
-                  ) : (
-                    <div className="py-8 text-center">
-                      <div className="mx-auto max-w-md rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-6">
-                        <div className="mb-4 text-blue-600">
-                          <Icon name="wizard" className="mx-auto h-16 w-16" />
-                        </div>
-                        <h4 className="mb-2 text-lg font-semibold text-blue-800">
-                          AI 시나리오 생성
-                        </h4>
-                        <p className="mb-4 text-sm text-blue-700">
-                          입력한 스토리를 바탕으로 AI가 4단계 시나리오를 생성합니다
-                        </p>
-                        <button
-                          onClick={handleGenerateScenario}
-                          disabled={
-                            isGenerating ||
-                            !workflowData.story.trim() ||
-                            !workflowData.scenario.genre ||
-                            !workflowData.scenario.tone
-                          }
-                          className="w-full transform rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition-all hover:scale-105 hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
-                        >
-                          {isGenerating ? (
-                            <div className="flex items-center justify-center space-x-2">
-                              <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
-                              <span>AI 시나리오 생성 중...</span>
-                            </div>
-                          ) : (
-                            '🚀 AI 시나리오 생성하기'
-                          )}
-                        </button>
-                        <div className="mt-3 text-xs text-blue-600">
-                          <p>• 스토리, 장르, 톤앤매너가 설정되어야 합니다</p>
-                          <p>• 생성 후 프롬프트 설정 단계로 진행됩니다</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="rounded-xl bg-blue-50 p-4 text-left">
-                    <h4 className="mb-2 font-medium text-blue-800">생성된 시나리오 요약</h4>
-                    <div className="space-y-1 text-sm text-blue-700">
-                      <div>
-                        <strong>스토리:</strong> {workflowData.story}
-                      </div>
-                      <div>
-                        <strong>장르:</strong>{' '}
-                        {workflowData.scenario.genre
-                          ? GENRE_OPTIONS.find((g) => g.value === workflowData.scenario.genre)
-                              ?.label || workflowData.scenario.genre
-                          : '선택 안됨'}
-                      </div>
-                      <div>
-                        <strong>톤앤매너:</strong>{' '}
-                        {workflowData.scenario.tone
-                          ? TONE_OPTIONS.find((t) => t.value === workflowData.scenario.tone)
-                              ?.label || workflowData.scenario.tone
-                          : '선택 안됨'}
-                      </div>
-                      <div>
-                        <strong>타겟:</strong> {workflowData.scenario.target || '설정 안됨'}
-                      </div>
-                    </div>
+                    </select>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex justify-center space-x-4">
-                <button
-                  onClick={goToPreviousStep}
-                  className="px-6 py-3 text-slate-600 transition-colors hover:text-slate-800"
-                >
-                  이전 단계
-                </button>
-                <button
-                  onClick={goToNextStep}
-                  className="rounded-lg bg-blue-600 px-8 py-3 text-lg text-white transition-colors hover:bg-blue-700"
-                >
-                  다음 단계: 프롬프트 생성
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Prompt Generation */}
-          {currentStep === 3 && (
-            <div className="space-y-8 text-center">
-              <div>
-                <h2 className="mb-4 text-2xl font-bold text-slate-900">
-                  INSTRUCTION.md 기반 체계적 프롬프트 생성
-                </h2>
-                <p className="mb-6 text-slate-600">
-                  INSTRUCTION.md에 정의된 모든 선택지를 활용하여 AI가 최적화된 프롬프트를 생성합니다
-                </p>
-
-                <div className="mx-auto max-w-6xl space-y-8">
-                  {/* Base Style Section */}
-                  <div className="rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-6">
-                    <h3 className="mb-4 text-lg font-semibold text-blue-800">
-                      Base Style (기본 스타일)
-                    </h3>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">
-                          영상미 (Visual Style)
-                        </label>
-                        <select
-                          value={workflowData.prompt.visualStyle}
-                          onChange={(e) =>
-                            setWorkflowData((prev) => ({
-                              ...prev,
-                              prompt: { ...prev.prompt, visualStyle: e.target.value },
-                            }))
-                          }
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="">스타일 선택</option>
-                          {VISUAL_STYLE_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label} - {option.description}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">
-                          장르 (Genre)
-                        </label>
-                        <select
-                          value={workflowData.prompt.genre}
-                          onChange={(e) =>
-                            setWorkflowData((prev) => ({
-                              ...prev,
-                              prompt: { ...prev.prompt, genre: e.target.value },
-                            }))
-                          }
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="">장르 선택</option>
-                          {GENRE_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label} - {option.description}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">
-                          분위기 (Mood)
-                        </label>
-                        <select
-                          value={workflowData.prompt.mood}
-                          onChange={(e) =>
-                            setWorkflowData((prev) => ({
-                              ...prev,
-                              prompt: { ...prev.prompt, mood: e.target.value },
-                            }))
-                          }
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="">분위기 선택</option>
-                          {MOOD_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label} - {option.description}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">
-                          화질 (Quality)
-                        </label>
-                        <select
-                          value={workflowData.prompt.quality}
-                          onChange={(e) =>
-                            setWorkflowData((prev) => ({
-                              ...prev,
-                              prompt: { ...prev.prompt, quality: e.target.value },
-                            }))
-                          }
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="">화질 선택</option>
-                          {QUALITY_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label} - {option.description}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">
-                          연출 스타일 (Director Style)
-                        </label>
-                        <select
-                          value={workflowData.prompt.directorStyle}
-                          onChange={(e) =>
-                            setWorkflowData((prev) => ({
-                              ...prev,
-                              prompt: { ...prev.prompt, directorStyle: e.target.value },
-                            }))
-                          }
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="">연출 스타일 선택</option>
-                          {DIRECTOR_STYLE_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label} - {option.description}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Spatial Context Section */}
-                  <div className="rounded-xl border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-6">
-                    <h3 className="mb-4 text-lg font-semibold text-green-800">
-                      Spatial Context (공간적 배경)
-                    </h3>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">
-                          날씨 (Weather)
-                        </label>
-                        <select
-                          value={workflowData.prompt.weather}
-                          onChange={(e) =>
-                            setWorkflowData((prev) => ({
-                              ...prev,
-                              prompt: { ...prev.prompt, weather: e.target.value },
-                            }))
-                          }
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-green-500"
-                        >
-                          <option value="">날씨 선택</option>
-                          {WEATHER_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label} - {option.description}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">
-                          조명 (Lighting)
-                        </label>
-                        <select
-                          value={workflowData.prompt.lighting}
-                          onChange={(e) =>
-                            setWorkflowData((prev) => ({
-                              ...prev,
-                              prompt: { ...prev.prompt, lighting: e.target.value },
-                            }))
-                          }
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-green-500"
-                        >
-                          <option value="">조명 선택</option>
-                          {LIGHTING_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label} - {option.description}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Camera Setting Section */}
-                  <div className="rounded-xl border border-purple-200 bg-gradient-to-r from-purple-50 to-violet-50 p-6">
-                    <h3 className="mb-4 text-lg font-semibold text-purple-800">
-                      Camera Setting (카메라 설정)
-                    </h3>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">
-                          기본 렌즈 (Primary Lens)
-                        </label>
-                        <select
-                          value={workflowData.prompt.primaryLens}
-                          onChange={(e) =>
-                            setWorkflowData((prev) => ({
-                              ...prev,
-                              prompt: { ...prev.prompt, primaryLens: e.target.value },
-                            }))
-                          }
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-purple-500"
-                        >
-                          <option value="">렌즈 선택</option>
-                          {PRIMARY_LENS_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label} - {option.description}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">
-                          주요 움직임 (Dominant Movement)
-                        </label>
-                        <select
-                          value={workflowData.prompt.dominantMovement}
-                          onChange={(e) =>
-                            setWorkflowData((prev) => ({
-                              ...prev,
-                              prompt: { ...prev.prompt, dominantMovement: e.target.value },
-                            }))
-                          }
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-purple-500"
-                        >
-                          <option value="">움직임 선택</option>
-                          {DOMINANT_MOVEMENT_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label} - {option.description}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Core Object Section */}
-                  <div className="rounded-xl border border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50 p-6">
-                    <h3 className="mb-4 text-lg font-semibold text-orange-800">
-                      Core Object (핵심 사물)
-                    </h3>
+                {/* Settings Summary */}
+                <div className="rounded-lg bg-slate-50 p-4">
+                  <h4 className="mb-2 font-medium text-slate-800">설정 요약</h4>
+                  <div className="space-y-1 text-sm text-slate-600">
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-slate-700">
-                        재질 (Material)
-                      </label>
-                      <select
-                        value={workflowData.prompt.material}
-                        onChange={(e) =>
-                          setWorkflowData((prev) => ({
-                            ...prev,
-                            prompt: { ...prev.prompt, material: e.target.value },
-                          }))
-                        }
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-orange-500"
-                      >
-                        <option value="">재질 선택</option>
-                        {MATERIAL_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label} - {option.description}
-                          </option>
-                        ))}
-                      </select>
+                      <strong>프롬프트:</strong> {selectedPrompt?.name || '선택 안됨'}
+                    </div>
+                    <div>
+                      <strong>영상 길이:</strong> {workflowData.video.duration}초
+                    </div>
+                    <div>
+                      <strong>AI 모델:</strong>{' '}
+                      {MODEL_OPTIONS.find((m) => m.value === workflowData.video.model)?.label}
                     </div>
                   </div>
-
-                  {/* Timeline Section */}
-                  <div className="rounded-xl border border-red-200 bg-gradient-to-r from-red-50 to-pink-50 p-6">
-                    <h3 className="mb-4 text-lg font-semibold text-red-800">Timeline (타임라인)</h3>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">
-                          카메라 앵글 (Angle)
-                        </label>
-                        <select
-                          value={workflowData.prompt.angle}
-                          onChange={(e) =>
-                            setWorkflowData((prev) => ({
-                              ...prev,
-                              prompt: { ...prev.prompt, angle: e.target.value },
-                            }))
-                          }
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-red-500"
-                        >
-                          <option value="">앵글 선택</option>
-                          {ANGLE_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label} - {option.description}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">
-                          카메라 무빙 (Move)
-                        </label>
-                        <select
-                          value={workflowData.prompt.move}
-                          onChange={(e) =>
-                            setWorkflowData((prev) => ({
-                              ...prev,
-                              prompt: { ...prev.prompt, move: e.target.value },
-                            }))
-                          }
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-red-500"
-                        >
-                          <option value="">무빙 선택</option>
-                          {MOVE_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label} - {option.description}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">
-                          템포 (Pacing)
-                        </label>
-                        <select
-                          value={workflowData.prompt.pacing}
-                          onChange={(e) =>
-                            setWorkflowData((prev) => ({
-                              ...prev,
-                              prompt: { ...prev.prompt, pacing: e.target.value },
-                            }))
-                          }
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-red-500"
-                        >
-                          <option value="">템포 선택</option>
-                          {PACING_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label} - {option.description}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">
-                          음향 품질 (Audio Quality)
-                        </label>
-                        <select
-                          value={workflowData.prompt.audioQuality}
-                          onChange={(e) =>
-                            setWorkflowData((prev) => ({
-                              ...prev,
-                              prompt: { ...prev.prompt, audioQuality: e.target.value },
-                            }))
-                          }
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-red-500"
-                        >
-                          <option value="">음향 품질 선택</option>
-                          {AUDIO_QUALITY_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label} - {option.description}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 시나리오 생성 전 안내 메시지 */}
-                  {!workflowData.scenario.aiGenerated && (
-                    <div className="mt-8 rounded-xl border border-yellow-200 bg-gradient-to-r from-yellow-50 to-orange-50 p-6">
-                      <div className="text-center">
-                        <div className="mb-4 text-yellow-600">
-                          <Icon name="info" className="mx-auto h-12 w-12" />
-                        </div>
-                        <h4 className="mb-2 text-lg font-semibold text-yellow-800">
-                          시나리오를 먼저 생성해주세요
-                        </h4>
-                        <p className="mb-4 text-yellow-700">
-                          프롬프트 생성을 위해서는 먼저 시나리오 개발 단계에서 AI가 생성한 4단계
-                          시나리오가 필요합니다.
-                        </p>
-                        <div className="text-sm text-yellow-600">
-                          <p>
-                            • 시나리오 개발 단계로 돌아가서 "시나리오 생성하기" 버튼을 클릭하세요
-                          </p>
-                          <p>• 생성된 시나리오를 확인한 후 프롬프트 설정을 진행할 수 있습니다</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* AI 프롬프트 생성 버튼 - 시나리오 생성 후에만 표시 */}
-                  {workflowData.scenario.aiGenerated && (
-                    <div className="mt-8 space-y-6">
-                      {/* 프롬프트 설정 완료 안내 */}
-                      <div className="rounded-xl border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-4">
-                        <div className="text-center">
-                          <div className="mb-2 text-green-600">
-                            <Icon name="check" className="mx-auto h-8 w-8" />
-                          </div>
-                          <h4 className="mb-1 font-semibold text-green-800">시나리오 생성 완료!</h4>
-                          <p className="text-sm text-green-700">
-                            이제 위의 프롬프트 설정을 완료한 후 AI 프롬프트를 생성할 수 있습니다.
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* 필수 설정 안내 */}
-                      <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-                        <h5 className="mb-2 font-medium text-blue-800">필수 설정 항목</h5>
-                        <div className="grid grid-cols-1 gap-2 text-sm text-blue-700 md:grid-cols-3">
-                          <div
-                            className={`flex items-center space-x-2 ${workflowData.prompt.visualStyle ? 'text-green-600' : 'text-blue-600'}`}
-                          >
-                            <Icon
-                              name={workflowData.prompt.visualStyle ? 'check' : 'info'}
-                              className="h-4 w-4"
-                            />
-                            <span>영상미 스타일</span>
-                          </div>
-                          <div
-                            className={`flex items-center space-x-2 ${workflowData.prompt.mood ? 'text-green-600' : 'text-blue-600'}`}
-                          >
-                            <Icon
-                              name={workflowData.prompt.mood ? 'check' : 'info'}
-                              className="h-4 w-4"
-                            />
-                            <span>분위기</span>
-                          </div>
-                          <div
-                            className={`flex items-center space-x-2 ${workflowData.prompt.quality ? 'text-green-600' : 'text-blue-600'}`}
-                          >
-                            <Icon
-                              name={workflowData.prompt.quality ? 'check' : 'info'}
-                              className="h-4 w-4"
-                            />
-                            <span>화질</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 프롬프트 생성 버튼 */}
-                      <div className="text-center">
-                        <button
-                          onClick={handleGeneratePrompt}
-                          disabled={
-                            !workflowData.prompt.visualStyle ||
-                            !workflowData.prompt.mood ||
-                            !workflowData.prompt.quality ||
-                            isGenerating
-                          }
-                          className="transform rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 px-8 py-4 text-lg font-semibold text-white transition-all hover:scale-105 hover:from-purple-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
-                        >
-                          {isGenerating ? (
-                            <div className="flex items-center space-x-3">
-                              <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-white"></div>
-                              <span>AI 프롬프트 생성 중...</span>
-                            </div>
-                          ) : (
-                            'AI 프롬프트 생성하기'
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 생성된 프롬프트 표시 */}
-                  {workflowData.prompt.aiGenerated && (
-                    <div className="mt-8 space-y-6">
-                      <div className="rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50 p-6">
-                        <h4 className="mb-4 text-lg font-bold text-blue-800">
-                          AI가 생성한 최종 프롬프트
-                        </h4>
-                        <div className="mb-4 rounded-lg bg-white p-4">
-                          <p className="font-medium leading-relaxed text-slate-800">
-                            {workflowData.prompt.finalPrompt}
-                          </p>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
-                          <div>
-                            <h5 className="mb-2 font-semibold text-blue-700">포함할 요소</h5>
-                            <div className="flex flex-wrap gap-2">
-                              {workflowData.prompt.keywords &&
-                              workflowData.prompt.keywords.length > 0 ? (
-                                workflowData.prompt.keywords.map((keyword, index) => (
-                                  <span
-                                    key={index}
-                                    className="rounded-full bg-blue-100 px-2 py-1 text-xs text-blue-700"
-                                  >
-                                    {keyword}
-                                  </span>
-                                ))
-                              ) : (
-                                <span className="text-xs text-slate-500">
-                                  키워드가 생성되지 않았습니다
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div>
-                            <h5 className="mb-2 font-semibold text-red-700">제외할 요소</h5>
-                            <p className="text-xs text-slate-600">
-                              {workflowData.prompt.negativePrompt}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 상세 설정 표시 */}
-                      <div className="rounded-xl bg-slate-50 p-6">
-                        <h4 className="mb-4 font-semibold text-slate-800">상세 설정</h4>
-                        <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
-                          <div>
-                            <h5 className="mb-2 font-medium text-slate-700">Base Style</h5>
-                            <div className="space-y-1 text-slate-600">
-                              <div>
-                                <strong>Visual:</strong>{' '}
-                                {workflowData.prompt.aiGenerated?.base_style?.visual_style?.join(
-                                  ', ',
-                                )}
-                              </div>
-                              <div>
-                                <strong>Genre:</strong>{' '}
-                                {workflowData.prompt.aiGenerated?.base_style?.genre?.join(', ')}
-                              </div>
-                              <div>
-                                <strong>Quality:</strong>{' '}
-                                {workflowData.prompt.aiGenerated?.base_style?.quality?.join(', ')}
-                              </div>
-                            </div>
-                          </div>
-                          <div>
-                            <h5 className="mb-2 font-medium text-slate-700">Camera & Lighting</h5>
-                            <div className="space-y-1 text-slate-600">
-                              <div>
-                                <strong>Lens:</strong>{' '}
-                                {workflowData.prompt.aiGenerated?.camera_setting?.primary_lens?.join(
-                                  ', ',
-                                )}
-                              </div>
-                              <div>
-                                <strong>Movement:</strong>{' '}
-                                {workflowData.prompt.aiGenerated?.camera_setting?.dominant_movement?.join(
-                                  ', ',
-                                )}
-                              </div>
-                              <div>
-                                <strong>Lighting:</strong>{' '}
-                                {workflowData.prompt.aiGenerated?.spatial_context?.lighting?.join(
-                                  ', ',
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -1542,7 +874,7 @@ export default function WorkflowPage() {
                 </button>
                 <button
                   onClick={goToNextStep}
-                  disabled={!workflowData.prompt.aiGenerated}
+                  disabled={!selectedPrompt}
                   className="rounded-lg bg-blue-600 px-8 py-3 text-lg text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
                 >
                   다음 단계: 영상 생성
@@ -1551,95 +883,54 @@ export default function WorkflowPage() {
             </div>
           )}
 
-          {/* Step 4: Video Generation */}
-          {currentStep === 4 && (
+          {/* Step 3: Video Generation */}
+          {currentStep === 3 && (
             <div className="space-y-8 text-center">
               <div>
                 <h2 className="mb-4 text-2xl font-bold text-slate-900">영상을 생성합니다</h2>
-                <p className="mb-6 text-slate-600">선택한 설정으로 AI가 영상을 제작합니다</p>
+                <p className="mb-6 text-slate-600">선택한 프롬프트와 설정으로 AI가 영상을 제작합니다</p>
 
-                <div className="mx-auto max-w-2xl space-y-6">
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                {/* Final Settings Summary */}
+                <div className="mx-auto max-w-2xl rounded-lg bg-blue-50 p-6">
+                  <h4 className="mb-4 font-medium text-blue-800">최종 설정 요약</h4>
+                  <div className="space-y-2 text-sm text-blue-700">
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-slate-700">
-                        영상 길이
-                      </label>
-                      <select
-                        value={workflowData.video.duration}
-                        onChange={(e) =>
-                          setWorkflowData((prev) => ({
-                            ...prev,
-                            video: { ...prev.video, duration: parseInt(e.target.value) },
-                          }))
-                        }
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value={5}>5초 (빠른 생성)</option>
-                        <option value={10}>10초 (균형)</option>
-                        <option value={15}>15초 (고품질)</option>
-                      </select>
+                      <strong>선택된 프롬프트:</strong> {selectedPrompt?.name || '선택 안됨'}
                     </div>
-
+                    {selectedPrompt?.finalPrompt && (
+                      <div>
+                        <strong>프롬프트 내용:</strong>
+                        <div className="mt-1 rounded bg-white p-2 text-xs text-slate-700">
+                          {selectedPrompt.finalPrompt}
+                        </div>
+                      </div>
+                    )}
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-slate-700">
-                        AI 모델
-                      </label>
-                      <select
-                        value={workflowData.video.model}
-                        onChange={(e) =>
-                          setWorkflowData((prev) => ({
-                            ...prev,
-                            video: { ...prev.video, model: e.target.value },
-                          }))
-                        }
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
-                      >
-                        {MODEL_OPTIONS.map((model) => (
-                          <option key={model.value} value={model.value}>
-                            {model.label} - {model.description}
-                          </option>
-                        ))}
-                      </select>
+                      <strong>영상 길이:</strong> {workflowData.video.duration}초
                     </div>
-                  </div>
-
-                  {/* Final Settings Summary */}
-                  <div className="rounded-lg bg-blue-50 p-4 text-left">
-                    <h4 className="mb-2 font-medium text-blue-800">최종 설정 요약</h4>
-                    <div className="space-y-1 text-sm text-blue-700">
-                      <div>
-                        <strong>스토리:</strong> {workflowData.story}
-                      </div>
-                      <div>
-                        <strong>장르:</strong>{' '}
-                        {GENRE_OPTIONS.find((g) => g.value === workflowData.scenario.genre)?.label}
-                      </div>
-                      <div>
-                        <strong>톤앤매너:</strong>{' '}
-                        {TONE_OPTIONS.find((t) => t.value === workflowData.scenario.tone)?.label}
-                      </div>
-                      <div>
-                        <strong>시각적 스타일:</strong> {workflowData.prompt.visualStyle}
-                      </div>
-                      <div>
-                        <strong>분위기:</strong> {workflowData.prompt.mood}
-                      </div>
-                      <div>
-                        <strong>길이:</strong> {workflowData.video.duration}초
-                      </div>
-                      <div>
-                        <strong>모델:</strong>{' '}
-                        {MODEL_OPTIONS.find((m) => m.value === workflowData.video.model)?.label}
-                      </div>
+                    <div>
+                      <strong>AI 모델:</strong>{' '}
+                      {MODEL_OPTIONS.find((m) => m.value === workflowData.video.model)?.label}
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Video Generation Button */}
-                <div className="mt-8">
+              {/* Video Generation Button */}
+              <div className="mt-8">
+                <div className="flex justify-center space-x-4 mb-6">
+                  <button
+                    onClick={goToPreviousStep}
+                    className="px-6 py-3 text-slate-600 transition-colors hover:text-slate-800"
+                  >
+                    이전 단계
+                  </button>
+                </div>
+
+                <div className="text-center">
                   <button
                     onClick={handleGenerateVideo}
-                    disabled={isGenerating}
+                    disabled={isGenerating || !selectedPrompt}
                     className="transform rounded-lg bg-gradient-to-r from-green-600 to-blue-600 px-12 py-4 text-xl font-semibold text-white transition-all hover:scale-105 hover:from-green-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
                   >
                     {isGenerating ? (
@@ -1704,7 +995,7 @@ export default function WorkflowPage() {
                         )}
                         
                         {seedanceError && (
-                          <div className="mt-3 text-sm text-red-600">
+                          <div className="mt-3 text-sm text-danger-600">
                             오류: {seedanceError}
                           </div>
                         )}
@@ -1716,80 +1007,71 @@ export default function WorkflowPage() {
                     </div>
                   )}
                 </div>
+              </div>
 
-                {/* Generated Video Display */}
-                {generatedVideo && (
-                  <div className="mt-8 rounded-lg border border-green-200 bg-gradient-to-r from-green-50 to-blue-50 p-6">
-                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                      <Icon name="check" className="h-8 w-8 text-green-600" />
-                    </div>
-                    <h4 className="mb-4 text-lg font-semibold text-green-800">영상 생성 완료!</h4>
-
-                    <div className="mx-auto mb-4 max-w-2xl rounded-lg bg-slate-900 p-4">
-                      <video src={generatedVideo} controls className="w-full rounded">
-                        브라우저가 비디오를 지원하지 않습니다.
-                      </video>
-                    </div>
-
-                    <div className="flex justify-center space-x-4">
-                      <button
-                        onClick={() => window.open(generatedVideo, '_blank')}
-                        className="rounded-lg bg-blue-600 px-6 py-3 text-white transition-colors hover:bg-blue-700"
-                      >
-                        새 탭에서 보기
-                      </button>
-                      <button
-                        onClick={() => (window.location.href = '/planning')}
-                        className="rounded-lg bg-green-600 px-6 py-3 text-white transition-colors hover:bg-green-700"
-                      >
-                        기획안에 저장
-                      </button>
-                      <button
-                        onClick={async () => {
-                          try {
-                            // 영상 저장 후 받은 videoAssetId 사용, 없으면 현재 버전 id 사용
-                            const vid = (project as any).videoAssetId || project.versions[0]?.id;
-                            if (!vid) return alert('videoId를 찾을 수 없습니다');
-                            const res = await fetch('/api/shares', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                targetType: 'video',
-                                targetId: vid,
-                                role: 'commenter',
-                                expiresIn: 7 * 24 * 3600,
-                              }),
-                            });
-                            const js = await res.json();
-                            if (js?.ok && js?.data?.token) {
-                              const shareUrl = `${window.location.origin}/feedback?videoId=${encodeURIComponent(vid)}&token=${js.data.token}`;
-                              await navigator.clipboard.writeText(shareUrl);
-                              alert('피드백 링크가 클립보드에 복사되었습니다');
-                            } else {
-                              alert('공유 링크 발급 실패');
-                            }
-                          } catch (e) {
-                            console.error(e);
-                            alert('공유 링크 발급 중 오류');
-                          }
-                        }}
-                        className="rounded-lg bg-purple-600 px-6 py-3 text-white transition-colors hover:bg-purple-700"
-                      >
-                        피드백 공유 링크 복사
-                      </button>
-                    </div>
+              {/* Generated Video Display */}
+              {generatedVideo && (
+                <div className="mt-8 rounded-lg border border-green-200 bg-gradient-to-r from-green-50 to-blue-50 p-6">
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+                    <Icon name="check" className="h-8 w-8 text-green-600" />
                   </div>
-                )}
-              </div>
+                  <h4 className="mb-4 text-lg font-semibold text-green-800 text-center">영상 생성 완료!</h4>
 
-              <div className="flex justify-center">
-                <button
-                  onClick={goToPreviousStep}
-                  className="px-6 py-3 text-slate-600 transition-colors hover:text-slate-800"
-                >
-                  이전 단계
-                </button>
-              </div>
+                  <div className="mx-auto mb-4 max-w-2xl rounded-lg bg-slate-900 p-4">
+                    <video src={generatedVideo} controls className="w-full rounded">
+                      브라우저가 비디오를 지원하지 않습니다.
+                    </video>
+                  </div>
+
+                  <div className="flex justify-center space-x-4">
+                    <button
+                      onClick={() => window.open(generatedVideo, '_blank')}
+                      className="rounded-lg bg-blue-600 px-6 py-3 text-white transition-colors hover:bg-blue-700"
+                    >
+                      새 탭에서 보기
+                    </button>
+                    <button
+                      onClick={() => (window.location.href = '/planning')}
+                      className="rounded-lg bg-green-600 px-6 py-3 text-white transition-colors hover:bg-green-700"
+                    >
+                      기획안에 저장
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          // 영상 저장 후 받은 videoAssetId 사용, 없으면 현재 버전 id 사용
+                          const vid = (project as any).videoAssetId || project.versions[0]?.id;
+                          if (!vid) return alert('videoId를 찾을 수 없습니다');
+                          const res = await fetch('/api/shares', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              targetType: 'video',
+                              targetId: vid,
+                              role: 'commenter',
+                              expiresIn: 7 * 24 * 3600,
+                            }),
+                          });
+                          const js = await res.json();
+                          if (js?.ok && js?.data?.token) {
+                            const shareUrl = `${window.location.origin}/feedback?videoId=${encodeURIComponent(vid)}&token=${js.data.token}`;
+                            await navigator.clipboard.writeText(shareUrl);
+                            alert('피드백 링크가 클립보드에 복사되었습니다');
+                          } else {
+                            alert('공유 링크 발급 실패');
+                          }
+                        } catch (e) {
+                          console.error(e);
+                          alert('공유 링크 발급 중 오류');
+                        }
+                      }}
+                      className="rounded-lg bg-purple-600 px-6 py-3 text-white transition-colors hover:bg-purple-700"
+                    >
+                      피드백 공유 링크 복사
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

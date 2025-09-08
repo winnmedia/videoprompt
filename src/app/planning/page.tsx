@@ -260,7 +260,7 @@ export default function PlanningPage() {
       case 'processing':
         return 'text-blue-600 bg-blue-100';
       case 'failed':
-        return 'text-red-600 bg-red-100';
+        return 'text-danger-600 bg-danger-100';
       default:
         return 'text-gray-600 bg-gray-100';
     }
@@ -785,7 +785,7 @@ export default function PlanningPage() {
                         </button>
                         <button
                           onClick={() => handleBatchDelete()}
-                          className="w-full rounded-md px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                          className="w-full rounded-md px-3 py-2 text-left text-sm text-danger-600 hover:bg-danger-50"
                         >
                           <Icon name="Trash2" className="mr-2 inline h-4 w-4" />
                           삭제

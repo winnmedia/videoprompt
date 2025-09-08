@@ -10,7 +10,12 @@ type SessionPayload = {
 };
 
 const getSecret = (): string => {
-  return process.env.JWT_SECRET || 'dev-secret';
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    console.error('❌ JWT_SECRET environment variable is required');
+    throw new Error('JWT_SECRET is not configured');
+  }
+  return secret;
 };
 
 export function signSessionToken(payload: { userId: string; email?: string; username?: string }, maxAgeSec = 60 * 60 * 24 * 7): string {

@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/Button';
 import { useProjectStore } from '@/entities/project';
 import { Icon } from '@/components/ui/Icon';
 import { Logo } from '@/components/ui/Logo';
+import { Loading, Skeleton } from '@/shared/ui/Loading';
+import { FormError } from '@/shared/ui/FormError';
+import { StepProgress } from '@/shared/ui/Progress';
 
 interface StoryInput {
   title: string;
@@ -676,76 +679,28 @@ export default function ScenarioPage() {
 
         {/* 진행 단계 표시 */}
         <div className="mb-8">
-          <div className="flex items-center space-x-4">
-            <div
-              className={`flex items-center space-x-2 ${currentStep >= 1 ? 'text-primary-500' : 'text-gray-500'}`}
-            >
-              <div
-                className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
-                  currentStep >= 1 ? 'bg-primary-500 text-white' : 'bg-gray-50 text-gray-500'
-                }`}
-              >
-                {currentStep > 1 ? '✓' : '1'}
-              </div>
-              <span className="font-medium">스토리 입력</span>
-              {currentStep > 1 && (
-                <span className="rounded-full bg-green-100 px-2 py-1 text-xs text-green-600">
-                  완료
-                </span>
-              )}
-            </div>
-            <div className={`h-1 w-8 ${currentStep >= 2 ? 'bg-primary' : 'bg-gray-50'}`}></div>
-            <div
-              className={`flex items-center space-x-2 ${currentStep >= 2 ? 'text-primary-500' : 'text-gray-500'}`}
-            >
-              <div
-                className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
-                  currentStep >= 2 ? 'bg-primary-500 text-white' : 'bg-gray-50 text-gray-500'
-                }`}
-              >
-                {currentStep > 2 ? '✓' : '2'}
-              </div>
-              <span className="font-medium">4단계 구성</span>
-              {currentStep > 2 && (
-                <span className="rounded-full bg-green-100 px-2 py-1 text-xs text-green-600">
-                  완료
-                </span>
-              )}
-            </div>
-            <div className={`h-1 w-8 ${currentStep >= 3 ? 'bg-primary' : 'bg-gray-50'}`}></div>
-            <div
-              className={`flex items-center space-x-2 ${currentStep >= 3 ? 'text-primary-500' : 'text-gray-500'}`}
-            >
-              <div
-                className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
-                  currentStep >= 3 ? 'bg-primary-500 text-white' : 'bg-gray-50 text-gray-500'
-                }`}
-              >
-                {currentStep > 3 ? '✓' : '3'}
-              </div>
-              <span className="font-medium">숏트 분해</span>
-              {currentStep === 3 && (
-                <span className="rounded-full bg-blue-100 px-2 py-1 text-xs text-blue-600">
-                  진행중
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* 전체 진행률 바 */}
-          <div className="mt-4">
-            <div className="h-2 w-full rounded-full bg-gray-50">
-              <div
-                className="h-2 rounded-full bg-primary-500 transition-all duration-500 ease-in-out"
-                style={{ width: `${(currentStep - 1) * 50}%` }}
-              ></div>
-            </div>
-            <div className="mt-1 flex justify-between text-xs text-gray-500">
-              <span>0%</span>
-              <span>50%</span>
-              <span>100%</span>
-            </div>
-          </div>
+          <StepProgress
+            steps={[
+              {
+                id: 'story',
+                name: '스토리 입력',
+                description: '기본 스토리 내용 작성',
+                status: currentStep > 1 ? 'completed' : currentStep === 1 ? 'current' : 'pending'
+              },
+              {
+                id: 'structure',
+                name: '4단계 구성',
+                description: 'AI가 스토리를 4단계로 구성',
+                status: currentStep > 2 ? 'completed' : currentStep === 2 ? 'current' : 'pending'
+              },
+              {
+                id: 'shots',
+                name: '12샷 분해',
+                description: '각 단계를 3개의 샷으로 분해',
+                status: currentStep === 3 ? 'current' : 'pending'
+              }
+            ]}
+          />
         </div>
 
         {/* 1단계: 스토리 입력 */}
@@ -762,7 +717,7 @@ export default function ScenarioPage() {
                     type="text"
                     value={storyInput.title}
                     onChange={(e) => handleStoryInputChange('title', e.target.value)}
-                    className="w-full rounded-lg border-2 border-primary-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                    className="w-full rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
                     placeholder="시나리오 제목을 입력하세요"
                   />
                 </div>
@@ -775,7 +730,7 @@ export default function ScenarioPage() {
                     value={storyInput.oneLineStory}
                     onChange={(e) => handleStoryInputChange('oneLineStory', e.target.value)}
                     rows={3}
-                    className="w-full rounded-lg border-2 border-primary-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                    className="w-full rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
                     placeholder="스토리의 핵심을 한 줄로 요약하세요"
                   />
                 </div>
@@ -786,7 +741,7 @@ export default function ScenarioPage() {
                     type="text"
                     value={storyInput.target}
                     onChange={(e) => handleStoryInputChange('target', e.target.value)}
-                    className="w-full rounded-lg border-2 border-primary-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                    className="w-full rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
                     placeholder="타겟 시청자"
                   />
                 </div>
@@ -797,7 +752,7 @@ export default function ScenarioPage() {
                     type="text"
                     value={storyInput.duration}
                     onChange={(e) => handleStoryInputChange('duration', e.target.value)}
-                    className="w-full rounded-lg border-2 border-primary-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                    className="w-full rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
                     placeholder="예: 30초, 60초, 90초"
                   />
                 </div>
@@ -842,7 +797,7 @@ export default function ScenarioPage() {
                     <select
                       value={storyInput.genre}
                       onChange={(e) => handleStoryInputChange('genre', e.target.value)}
-                      className="w-full rounded-lg border-2 border-primary-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                      className="w-full rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
                     >
                       <option value="">장르를 선택하세요</option>
                       {genreOptions.map((genre) => (
@@ -858,7 +813,7 @@ export default function ScenarioPage() {
                     <select
                       value={storyInput.format}
                       onChange={(e) => handleStoryInputChange('format', e.target.value)}
-                      className="w-full rounded-lg border-2 border-primary-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                      className="w-full rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
                     >
                       <option value="">포맷을 선택하세요</option>
                       {formatOptions.map((format) => (
@@ -927,9 +882,9 @@ export default function ScenarioPage() {
                           key={method}
                           type="button"
                           onClick={() => handleStoryInputChange('developmentMethod', method)}
-                          className={`rounded-md border p-3 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
+                          className={`rounded-md border p-3 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
                             selected
-                              ? 'border-primary-500 bg-primary-50 shadow'
+                              ? 'border-brand-500 bg-primary-50 shadow'
                               : 'border-gray-300 bg-white hover:border-gray-400'
                           }`}
                           aria-pressed={selected ? 'true' : 'false'}
@@ -957,7 +912,7 @@ export default function ScenarioPage() {
               storyInput.tempo ||
               storyInput.developmentMethod ||
               storyInput.developmentIntensity) && (
-              <div className="mt-6 rounded-lg border border-primary-200 bg-primary-50 p-4">
+              <div className="mt-6 rounded-lg border border-brand-200 bg-primary-50 p-4">
                 <h3 className="mb-2 text-sm font-medium text-primary-800">선택된 설정 미리보기</h3>
                 <div className="grid grid-cols-1 gap-2 text-sm text-primary-700 sm:grid-cols-2">
                   {storyInput.toneAndManner.length > 0 && (
@@ -1004,24 +959,14 @@ export default function ScenarioPage() {
 
             {/* 로딩 */}
             {loading && (
-              <div className="mt-4" role="status" aria-label="로딩 중">
-                <div className="animate-pulse space-y-3">
-                  <div className="h-4 w-1/3 rounded bg-gray-200" />
-                  <div className="h-4 w-2/3 rounded bg-gray-200" />
-                  <div className="h-20 w-full rounded bg-gray-200" />
-                </div>
-                {loadingMessage && (
-                  <div className="mt-2 text-center text-sm text-gray-600">{loadingMessage}</div>
-                )}
+              <div className="mt-4">
+                <Loading size="md" message={loadingMessage} />
+                <Skeleton lines={3} className="mt-4" />
               </div>
             )}
 
             {/* 에러 메시지 */}
-            {error && (
-              <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3">
-                <p className="text-sm text-red-800">{error}</p>
-              </div>
-            )}
+            <FormError>{error}</FormError>
           </div>
         )}
 
@@ -1053,7 +998,7 @@ export default function ScenarioPage() {
                           type="text"
                           value={step.summary}
                           onChange={(e) => updateStep(step.id, 'summary', e.target.value)}
-                          className="w-full rounded-lg border-2 border-primary-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-500 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                          className="w-full rounded-lg border-2 border-brand-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
                         />
                       </div>
                       <div>
@@ -1062,7 +1007,7 @@ export default function ScenarioPage() {
                           value={step.content}
                           onChange={(e) => updateStep(step.id, 'content', e.target.value)}
                           rows={3}
-                          className="w-full rounded-lg border-2 border-primary-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-500 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                          className="w-full rounded-lg border-2 border-brand-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
                         />
                       </div>
                       <div>
@@ -1071,7 +1016,7 @@ export default function ScenarioPage() {
                           type="text"
                           value={step.goal}
                           onChange={(e) => updateStep(step.id, 'goal', e.target.value)}
-                          className="w-full rounded-lg border-2 border-primary-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-500 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                          className="w-full rounded-lg border-2 border-brand-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
                         />
                       </div>
                     </div>
@@ -1238,7 +1183,7 @@ export default function ScenarioPage() {
                         <select
                           value={shot.shotType}
                           onChange={(e) => updateShot(shot.id, 'shotType', e.target.value)}
-                          className="w-full rounded-lg border-2 border-primary-200 bg-white px-3 py-2 text-xs text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                          className="w-full rounded-lg border-2 border-brand-200 bg-white px-3 py-2 text-xs text-gray-900 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
                         >
                           <option value="와이드">와이드</option>
                           <option value="미디엄">미디엄</option>
@@ -1251,7 +1196,7 @@ export default function ScenarioPage() {
                         <select
                           value={shot.camera}
                           onChange={(e) => updateShot(shot.id, 'camera', e.target.value)}
-                          className="w-full rounded-lg border-2 border-primary-200 bg-white px-3 py-2 text-xs text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                          className="w-full rounded-lg border-2 border-brand-200 bg-white px-3 py-2 text-xs text-gray-900 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
                         >
                           <option value="정적">정적</option>
                           <option value="팬">팬</option>
@@ -1267,7 +1212,7 @@ export default function ScenarioPage() {
                       <select
                         value={shot.composition}
                         onChange={(e) => updateShot(shot.id, 'composition', e.target.value)}
-                        className="w-full rounded-lg border-2 border-primary-200 bg-white px-3 py-2 text-xs text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                        className="w-full rounded-lg border-2 border-brand-200 bg-white px-3 py-2 text-xs text-gray-900 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
                       >
                         <option value="중앙 정렬">중앙 정렬</option>
                         <option value="3분법">3분법</option>
@@ -1284,7 +1229,7 @@ export default function ScenarioPage() {
                         onChange={(e) => updateShot(shot.id, 'length', Number(e.target.value))}
                         min="1"
                         max="15"
-                        className="w-full rounded-lg border-2 border-primary-200 bg-white px-3 py-2 text-xs text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                        className="w-full rounded-lg border-2 border-brand-200 bg-white px-3 py-2 text-xs text-gray-900 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
                       />
                     </div>
 
@@ -1294,7 +1239,7 @@ export default function ScenarioPage() {
                         value={shot.dialogue}
                         onChange={(e) => updateShot(shot.id, 'dialogue', e.target.value)}
                         rows={2}
-                        className="w-full rounded-lg border-2 border-primary-200 bg-white px-3 py-2 text-xs text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                        className="w-full rounded-lg border-2 border-brand-200 bg-white px-3 py-2 text-xs text-gray-900 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
                         placeholder="대사를 입력하세요..."
                       />
                     </div>
@@ -1305,7 +1250,7 @@ export default function ScenarioPage() {
                         type="text"
                         value={shot.subtitle}
                         onChange={(e) => updateShot(shot.id, 'subtitle', e.target.value)}
-                        className="w-full rounded-lg border-2 border-primary-200 bg-white px-3 py-2 text-xs text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                        className="w-full rounded-lg border-2 border-brand-200 bg-white px-3 py-2 text-xs text-gray-900 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
                         placeholder="자막을 입력하세요..."
                       />
                     </div>
@@ -1315,7 +1260,7 @@ export default function ScenarioPage() {
                       <select
                         value={shot.transition}
                         onChange={(e) => updateShot(shot.id, 'transition', e.target.value)}
-                        className="w-full rounded-lg border-2 border-primary-200 bg-white px-3 py-2 text-xs text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                        className="w-full rounded-lg border-2 border-brand-200 bg-white px-3 py-2 text-xs text-gray-900 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
                       >
                         <option value="컷">컷</option>
                         <option value="페이드">페이드</option>

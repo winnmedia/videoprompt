@@ -108,7 +108,7 @@ function ProviderStatusSection() {
           {providers.map((p) => (
             <div key={p.key} className="rounded border p-3">
               <div className="text-sm text-gray-600">{p.name}</div>
-              <div className={`mt-1 text-lg font-semibold ${p.healthy ? 'text-green-700' : 'text-red-700'}`}>
+              <div className={`mt-1 text-lg font-semibold ${p.healthy ? 'text-green-700' : 'text-danger-700'}`}>
                 {p.healthy ? '정상' : '장애'}
               </div>
               <div className="mt-1 text-xs text-gray-500">지연 {p.latencyMs}ms · 실패율 {p.failureRate}%</div>

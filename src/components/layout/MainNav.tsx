@@ -74,7 +74,7 @@ export function MainNav() {
               )}
               <span className="text-gray-700 font-medium">{user.username}</span>
               {user.role === 'admin' && (
-                <span className="bg-red-100 text-red-600 px-2 py-1 rounded-full text-xs font-medium">
+                <span className="bg-danger-100 text-danger-600 px-2 py-1 rounded-full text-xs font-medium">
                   관리자
                 </span>
               )}
@@ -95,7 +95,7 @@ export function MainNav() {
             {/* 로그아웃 */}
             <button
               onClick={handleLogout}
-              className="rounded border px-3 py-1 text-gray-800 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+              className="rounded border px-3 py-1 text-gray-800 hover:text-danger-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-danger-400"
             >
               로그아웃
             </button>

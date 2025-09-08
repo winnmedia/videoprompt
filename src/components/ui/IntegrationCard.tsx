@@ -57,7 +57,7 @@ export function IntegrationCard({
               variant="outline"
               size="sm"
               onClick={() => onDisconnect?.(integration.id)}
-              className="text-red-600 hover:text-red-700"
+              className="text-danger-600 hover:text-danger-700"
             >
               <Icon name="delete" size="sm" className="mr-2" />
               연결 해제

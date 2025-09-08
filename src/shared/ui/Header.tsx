@@ -72,7 +72,7 @@ export function Header() {
                   )}
                   <span className="text-gray-700 font-medium">{user.username}</span>
                   {user.role === 'admin' && (
-                    <span className="bg-red-100 text-red-600 px-2 py-1 rounded-full text-xs font-medium">
+                    <span className="bg-danger-100 text-danger-600 px-2 py-1 rounded-full text-xs font-medium">
                       관리자
                     </span>
                   )}
