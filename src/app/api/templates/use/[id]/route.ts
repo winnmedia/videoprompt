@@ -5,13 +5,10 @@ import { getUserIdFromRequest } from '@/shared/lib/auth';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-interface RouteContext {
-  params: {
-    id: string;
-  };
+;
 }
 
-export async function POST(req: NextRequest, { params }: RouteContext) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const traceId = getTraceId(req);
     const userId = getUserIdFromRequest(req);
@@ -20,7 +17,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
       return failure('UNAUTHORIZED', '인증이 필요합니다.', 401, undefined, traceId);
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // 실제 구현에서는 데이터베이스에서 템플릿을 조회하고
     // 사용 횟수를 증가시키는 로직이 필요

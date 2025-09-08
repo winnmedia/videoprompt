@@ -5,10 +5,7 @@ import { prisma } from '@/lib/db';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-interface RouteContext {
-  params: {
-    token: string;
-  };
+;
 }
 
 // 샘플 공유 데이터 (실제로는 데이터베이스에서 조회)
@@ -85,10 +82,10 @@ const sampleComments: Record<string, any[]> = {
   'demo-video-share-456': []
 };
 
-export async function GET(req: NextRequest, { params }: RouteContext) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const traceId = getTraceId(req);
-    const { token } = params;
+    const { token } = await params;
 
     // 실제 구현에서는 ShareToken 테이블에서 조회
     // 현재는 샘플 데이터 사용
