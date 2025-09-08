@@ -24,6 +24,7 @@ interface IconProps {
     | 'user'
     | 'send'
     | 'search'
+    | 'Search'
     | 'copy'
     | 'info'
     | 'alert-circle'
@@ -32,7 +33,11 @@ interface IconProps {
     | 'video'
     | 'check-circle'
     | 'refresh-cw'
-    | 'error';
+    | 'error'
+    | 'ChevronDown'
+    | 'Download'
+    | 'FolderOpen'
+    | 'Trash2';
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
 }
@@ -351,6 +356,56 @@ export function Icon({ name, size = 'md', className }: IconProps) {
           strokeLinejoin="round"
           strokeWidth={2}
           d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+      </svg>
+    ),
+    Search: (
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+        />
+      </svg>
+    ),
+    ChevronDown: (
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M19 9l-7 7-7-7"
+        />
+      </svg>
+    ),
+    Download: (
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4m7-10l-4 4m0 0l4 4m-4-4h12"
+        />
+      </svg>
+    ),
+    FolderOpen: (
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+        />
+      </svg>
+    ),
+    Trash2: (
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M3 6h18m-2 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2m-6 4v6m4-6v6"
         />
       </svg>
     ),
