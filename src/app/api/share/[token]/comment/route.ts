@@ -5,16 +5,13 @@ import { prisma } from '@/lib/db';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-interface RouteContext {
-  params: {
-    token: string;
-  };
+;
 }
 
-export async function POST(req: NextRequest, { params }: RouteContext) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const traceId = getTraceId(req);
-    const { token } = params;
+    const { token } = await params;
     const body = await req.json();
     const { nickname, comment } = body;
 

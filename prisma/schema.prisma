@@ -5,7 +5,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -16,7 +16,7 @@ model User {
   passwordHash String   @map("password_hash")
   avatarUrl   String?  @map("avatar_url")
   role        String   // 'user' | 'admin' | 'moderator'
-  preferences String? // JSON as String for SQLite    
+  preferences Json? // JSON for PostgreSQL
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
   projects    Project[]
@@ -28,8 +28,8 @@ model Project {
   description  String?
   thumbnailUrl String?  @map("thumbnail_url")
   status       String   // 'draft' | 'in_progress' | 'completed' | 'archived'
-  tags         String  // JSON as String for SQLite
-  metadata     String? // JSON as String for SQLite
+  tags         Json // JSON for PostgreSQL
+  metadata     Json? // JSON for PostgreSQL
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
   userId       String   @map("user_id")
@@ -42,7 +42,7 @@ model Scene {
   id           String   @id @default(uuid())
   title        String
   description  String
-  prompt       String  // JSON as String for SQLite
+  prompt       Json // JSON for PostgreSQL
   thumbnailUrl String?  @map("thumbnail_url")
   duration     Int
   order        Int
@@ -59,9 +59,9 @@ model Preset {
   name         String
   description  String
   category     String
-  tags         String  // JSON as String for SQLite
+  tags         Json // JSON for PostgreSQL
   thumbnailUrl String?  @map("thumbnail_url")
-  data         String  // JSON as String for SQLite
+  data         Json // JSON for PostgreSQL
   isPublic     Boolean  @default(false) @map("is_public")
   userId       String   @map("user_id")
   downloads    Int      @default(0)
@@ -74,7 +74,7 @@ model Timeline {
   id            String   @id @default(uuid())
   projectId     String   @map("project_id") @unique
   project       Project  @relation(fields: [projectId], references: [id])
-  beads         String   @default("[]")  // JSON as String for SQLite
+  beads         Json     @default("[]")  // JSON for PostgreSQL
   totalDuration Int      @default(0) @map("total_duration")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
@@ -86,8 +86,8 @@ model Scenario {
   id          String   @id @default(uuid())
   title       String
   logline     String?
-  structure4  String?  // 4-step structure (JSON as string for SQLite)
-  shots12     String?  // 12-shot breakdown (JSON as string for SQLite)
+  structure4  Json?    // 4-step structure (JSON for PostgreSQL)
+  shots12     Json?    // 12-shot breakdown (JSON for PostgreSQL)
   pdfUrl      String?  @map("pdf_url")
   version     Int      @default(1)
   createdBy   String?
@@ -101,19 +101,19 @@ model Prompt {
   id           String   @id @default(uuid())
   scenarioId   String   @map("scenario_id")
   scenario     Scenario @relation(fields: [scenarioId], references: [id])
-  metadata     String   // JSON as String for SQLite
-  timeline     String   // JSON as String for SQLite
-  negative     String?  // JSON as String for SQLite
+  metadata     Json     // JSON for PostgreSQL
+  timeline     Json     // JSON for PostgreSQL
+  negative     Json?    // JSON for PostgreSQL
   version      Int      @default(1)
   userId       String?  @map("user_id")
   
   // CineGenius v3.1 support fields
   projectId        String? @map("project_id")
   cinegeniusVersion String? @map("cinegenius_version") // '2.0' | '3.1'
-  userInput        String? @map("user_input")  // JSON as String for SQLite
-  projectConfig    String? @map("project_config")  // JSON as String for SQLite  
-  generationControl String? @map("generation_control")  // JSON as String for SQLite
-  aiAnalysis       String? @map("ai_analysis")  // JSON as String for SQLite
+  userInput        Json? @map("user_input")  // JSON for PostgreSQL
+  projectConfig    Json? @map("project_config")  // JSON for PostgreSQL  
+  generationControl Json? @map("generation_control")  // JSON for PostgreSQL
+  aiAnalysis       Json? @map("ai_analysis")  // JSON for PostgreSQL
   
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
@@ -165,7 +165,7 @@ model Story {
   genre        String
   tone         String?
   target       String?
-  structure    String?  // JSON as String for SQLite
+  structure    Json?    // JSON for PostgreSQL
   userId       String?  @map("user_id")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")

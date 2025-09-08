@@ -6,13 +6,7 @@ import { prisma } from '@/lib/db';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-interface RouteContext {
-  params: {
-    id: string;
-  };
-}
-
-export async function POST(req: NextRequest, { params }: RouteContext) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const traceId = getTraceId(req);
     const userId = getUserIdFromRequest(req);
@@ -21,7 +15,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
       return failure('UNAUTHORIZED', '인증이 필요합니다.', 401, undefined, traceId);
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // VideoAsset 확인
     const videoAsset = await prisma.videoAsset.findFirst({
