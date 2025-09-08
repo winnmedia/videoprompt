@@ -558,7 +558,7 @@ export default function WorkflowPage() {
             provider: 'seedance',
             jobId: firstJobId,
             videoUrl: status.videoUrl,
-            status: 'completed',
+            status: 'succeeded',
           });
           
           // 버전 추가
