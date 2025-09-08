@@ -106,7 +106,7 @@ export default function SharePage({ params }: SharePageProps) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <Icon name="error" size="xl" className="mx-auto mb-4 text-red-400" />
+          <Icon name="error" size="xl" className="mx-auto mb-4 text-danger-400" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">접근할 수 없습니다</h1>
           <p className="text-gray-600 mb-4">{error}</p>
           <Button onClick={() => window.location.href = '/'}>홈으로 돌아가기</Button>

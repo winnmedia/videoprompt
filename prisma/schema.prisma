@@ -5,7 +5,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -28,8 +28,8 @@ model Project {
   description  String?
   thumbnailUrl String?  @map("thumbnail_url")
   status       String   // 'draft' | 'in_progress' | 'completed' | 'archived'
-  tags         String[]
-  metadata     Json?
+  tags         String  // JSON as String for SQLite
+  metadata     String? // JSON as String for SQLite
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
   userId       String   @map("user_id")
@@ -42,7 +42,7 @@ model Scene {
   id           String   @id @default(uuid())
   title        String
   description  String
-  prompt       Json
+  prompt       String  // JSON as String for SQLite
   thumbnailUrl String?  @map("thumbnail_url")
   duration     Int
   order        Int
@@ -59,13 +59,13 @@ model Preset {
   name         String
   description  String
   category     String
-  tags         String[]
+  tags         String  // JSON as String for SQLite
   thumbnailUrl String?  @map("thumbnail_url")
-  data         Json
+  data         String  // JSON as String for SQLite
   isPublic     Boolean  @default(false) @map("is_public")
   userId       String   @map("user_id")
   downloads    Int      @default(0)
-  rating       Decimal  @default(0)
+  rating       Float    @default(0)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 }
@@ -74,7 +74,7 @@ model Timeline {
   id            String   @id @default(uuid())
   projectId     String   @map("project_id") @unique
   project       Project  @relation(fields: [projectId], references: [id])
-  beads         Json[]   @default([])
+  beads         String   @default("[]")  // JSON as String for SQLite
   totalDuration Int      @default(0) @map("total_duration")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
@@ -101,19 +101,19 @@ model Prompt {
   id           String   @id @default(uuid())
   scenarioId   String   @map("scenario_id")
   scenario     Scenario @relation(fields: [scenarioId], references: [id])
-  metadata     Json
-  timeline     Json
-  negative     Json?
+  metadata     String   // JSON as String for SQLite
+  timeline     String   // JSON as String for SQLite
+  negative     String?  // JSON as String for SQLite
   version      Int      @default(1)
   userId       String?  @map("user_id")
   
   // CineGenius v3.1 support fields
   projectId        String? @map("project_id")
   cinegeniusVersion String? @map("cinegenius_version") // '2.0' | '3.1'
-  userInput        Json?   @map("user_input")
-  projectConfig    Json?   @map("project_config")  
-  generationControl Json?  @map("generation_control")
-  aiAnalysis       Json?   @map("ai_analysis")
+  userInput        String? @map("user_input")  // JSON as String for SQLite
+  projectConfig    String? @map("project_config")  // JSON as String for SQLite  
+  generationControl String? @map("generation_control")  // JSON as String for SQLite
+  aiAnalysis       String? @map("ai_analysis")  // JSON as String for SQLite
   
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
@@ -156,6 +156,31 @@ model Comment {
   text       String
   timecode   String?  // mmssfff
   createdAt  DateTime @default(now()) @map("created_at")
+}
+
+model Story {
+  id           String   @id @default(uuid())
+  title        String
+  oneLineStory String   @map("one_line_story")
+  genre        String
+  tone         String?
+  target       String?
+  structure    String?  // JSON as String for SQLite
+  userId       String?  @map("user_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+}
+
+model Upload {
+  id          String   @id @default(uuid())
+  filename    String
+  originalName String  @map("original_name")
+  path        String
+  mimetype    String
+  size        Int
+  userId      String?  @map("user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 }
 
 

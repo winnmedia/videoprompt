@@ -100,7 +100,7 @@ export default function QueuePage() {
       case 'completed':
         return 'bg-green-100 text-green-800';
       case 'failed':
-        return 'bg-red-100 text-red-800';
+        return 'bg-danger-100 text-danger-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -231,12 +231,12 @@ export default function QueuePage() {
             <div className="p-5">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <Icon name="error" className="h-8 w-8 text-red-400" />
+                  <Icon name="error" className="h-8 w-8 text-danger-400" />
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">실패</dt>
-                    <dd className="text-lg font-medium text-red-600">{stats.failed}</dd>
+                    <dd className="text-lg font-medium text-danger-600">{stats.failed}</dd>
                   </dl>
                 </div>
               </div>
@@ -312,7 +312,7 @@ export default function QueuePage() {
                         {/* 에러 메시지 */}
                         {item.status === 'failed' && item.error && (
                           <div className="mt-2">
-                            <p className="text-sm text-red-600">오류: {item.error}</p>
+                            <p className="text-sm text-danger-600">오류: {item.error}</p>
                           </div>
                         )}
 

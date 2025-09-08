@@ -11,7 +11,7 @@ export function SeedanceProgressPanel({ jobIds, statuses, error }: Props) {
   return (
     <div className="mt-4 rounded-lg border bg-gray-50 p-4">
       <div className="mb-2 text-sm font-medium text-gray-900">Seedance 생성 진행상황</div>
-      {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
+      {error && <div className="mb-3 text-sm text-danger-600">{error}</div>}
       {jobIds.length > 1 ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {jobIds.map((jid) => (

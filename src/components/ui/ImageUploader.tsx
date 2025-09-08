@@ -177,7 +177,7 @@ export function ImageUploader({
                 </button>
                 <button
                   onClick={handleRemove}
-                  className="rounded-md bg-red-600 px-3 py-2 text-sm text-white transition-colors hover:bg-red-700"
+                  className="rounded-md bg-danger-600 px-3 py-2 text-sm text-white transition-colors hover:bg-danger-700"
                 >
                   제거
                 </button>

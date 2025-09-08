@@ -165,10 +165,10 @@ export function ScenarioWorkflow({ onVideoCreated }: ScenarioWorkflowProps) {
 
       {/* 연출 중 발생한 문제 */}
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+        <div className="rounded-lg border border-danger-200 bg-danger-50 p-4">
           <div className="flex items-center gap-2">
-            <Icon name="alert-circle" className="text-red-600" />
-            <span className="text-red-700">{error}</span>
+            <Icon name="alert-circle" className="text-danger-600" />
+            <span className="text-danger-700">{error}</span>
           </div>
         </div>
       )}

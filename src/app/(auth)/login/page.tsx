@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Logo } from '@/components/ui/Logo';
 import { Button } from '@/components/ui/Button';
+import { FormError } from '@/shared/ui/FormError';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -70,7 +71,7 @@ export default function LoginPage() {
             {/* 이메일 입력 */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                이메일
+                이메일 <span className="text-danger-400">*</span>
               </label>
               <input
                 id="email"
@@ -78,7 +79,7 @@ export default function LoginPage() {
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                 placeholder="your@email.com"
               />
             </div>
@@ -86,7 +87,7 @@ export default function LoginPage() {
             {/* 비밀번호 입력 */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-                비밀번호
+                비밀번호 <span className="text-danger-400">*</span>
               </label>
               <input
                 id="password"
@@ -94,7 +95,7 @@ export default function LoginPage() {
                 required
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                 placeholder="••••••••"
               />
             </div>
@@ -107,11 +108,7 @@ export default function LoginPage() {
             )}
 
             {/* 에러 메시지 */}
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/50 rounded-lg px-4 py-3 text-red-400 text-sm">
-                {error}
-              </div>
-            )}
+            <FormError>{error}</FormError>
 
             {/* 로그인 버튼 */}
             <Button
@@ -138,7 +135,7 @@ export default function LoginPage() {
           <div className="text-center">
             <p className="text-gray-400 text-sm">
               아직 계정이 없으신가요?{' '}
-              <Link href="/register" className="text-primary-400 hover:text-primary-300 font-medium">
+              <Link href="/register" className="text-brand-400 hover:text-brand-300 font-medium">
                 회원가입
               </Link>
             </p>

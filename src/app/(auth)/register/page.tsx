@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Logo } from '@/components/ui/Logo';
 import { Button } from '@/components/ui/Button';
+import { FormError } from '@/shared/ui/FormError';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -78,7 +79,7 @@ export default function RegisterPage() {
             {/* 이메일 입력 */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                이메일
+                이메일 <span className="text-danger-400">*</span>
               </label>
               <input
                 id="email"
@@ -86,7 +87,7 @@ export default function RegisterPage() {
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                 placeholder="your@email.com"
               />
             </div>
@@ -94,7 +95,7 @@ export default function RegisterPage() {
             {/* 사용자명 입력 */}
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-2">
-                사용자명
+                사용자명 <span className="text-danger-400">*</span>
               </label>
               <input
                 id="username"
@@ -104,7 +105,7 @@ export default function RegisterPage() {
                 maxLength={32}
                 value={formData.username}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                 placeholder="username"
               />
               <p className="text-xs text-gray-400 mt-1">3-32자 사이로 입력해주세요</p>
@@ -113,7 +114,7 @@ export default function RegisterPage() {
             {/* 비밀번호 입력 */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-                비밀번호
+                비밀번호 <span className="text-danger-400">*</span>
               </label>
               <input
                 id="password"
@@ -122,7 +123,7 @@ export default function RegisterPage() {
                 minLength={8}
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                 placeholder="••••••••"
               />
               <p className="text-xs text-gray-400 mt-1">최소 8자 이상 입력해주세요</p>
@@ -131,7 +132,7 @@ export default function RegisterPage() {
             {/* 비밀번호 확인 */}
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
-                비밀번호 확인
+                비밀번호 확인 <span className="text-danger-400">*</span>
               </label>
               <input
                 id="confirmPassword"
@@ -139,17 +140,13 @@ export default function RegisterPage() {
                 required
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                 placeholder="••••••••"
               />
             </div>
 
             {/* 에러 메시지 */}
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/50 rounded-lg px-4 py-3 text-red-400 text-sm">
-                {error}
-              </div>
-            )}
+            <FormError>{error}</FormError>
 
             {/* 회원가입 버튼 */}
             <Button
@@ -176,7 +173,7 @@ export default function RegisterPage() {
           <div className="text-center">
             <p className="text-gray-400 text-sm">
               이미 계정이 있으신가요?{' '}
-              <Link href="/login" className="text-primary-400 hover:text-primary-300 font-medium">
+              <Link href="/login" className="text-brand-400 hover:text-brand-300 font-medium">
                 로그인
               </Link>
             </p>

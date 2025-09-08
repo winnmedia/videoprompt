@@ -40,8 +40,21 @@ export async function POST(req: NextRequest) {
       model,
     });
 
-    // Railway 백엔드로 직접 연결 (배포 환경 전용)
-    const railwayBackend = 'https://videoprompt-production.up.railway.app';
+    // Railway 백엔드 URL (환경변수에서 가져오기)
+    const railwayBackend = process.env.RAILWAY_BACKEND_URL || 'https://videoprompt-production.up.railway.app';
+
+    // Seedance API 키 확인
+    const seedanceApiKey = process.env.SEEDANCE_API_KEY;
+    if (!seedanceApiKey) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'SEEDANCE_API_KEY not configured',
+          message: '영상 생성 서비스가 설정되지 않았습니다.',
+        },
+        { status: 503, headers: corsHeaders },
+      );
+    }
 
     // AbortController를 사용한 타임아웃 설정 (60초 - 배포 환경 고려)
     const controller = new AbortController();
