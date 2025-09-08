@@ -102,7 +102,7 @@ async function migratePromptData(options: MigrationOptions): Promise<number> {
   // 마이그레이션이 필요한 프롬프트 조회
   const totalCount = await prisma.prompt.count({
     where: {
-      cinegenius_version: null, // 아직 마이그레이션되지 않은 것들
+      cinegeniusVersion: null, // 아직 마이그레이션되지 않은 것들
     },
   });
   
@@ -124,7 +124,7 @@ async function migratePromptData(options: MigrationOptions): Promise<number> {
   while (offset < totalCount) {
     const prompts = await prisma.prompt.findMany({
       where: {
-        cinegenius_version: null,
+        cinegeniusVersion: null,
       },
       take: options.batchSize,
       skip: offset,
@@ -168,24 +168,24 @@ async function migratePrompt(prompt: any) {
   
   // v3.1 구조로 변환
   const v3Data = {
-    project_id: generateUUID(),
-    cinegenius_version: '3.1',
+    projectId: generateUUID(),
+    cinegeniusVersion: '3.1',
     
     // User Input 구성
-    user_input: {
+    userInput: {
       oneLineScenario: metadata.scene_description || metadata.room_description || '',
       targetAudience: '',
     },
     
     // Project Config 구성
-    project_config: {
+    projectConfig: {
       creationMode: 'VISUAL_FIRST',
       frameworkType: 'HYBRID',
       aiAssistantPersona: 'ASSISTANT_DIRECTOR',
     },
     
     // Generation Control 구성
-    generation_control: {
+    generationControl: {
       directorEmphasis: [],
       shotByShot: {
         enabled: false,
@@ -194,7 +194,7 @@ async function migratePrompt(prompt: any) {
     },
     
     // AI Analysis는 비워둠
-    ai_analysis: {},
+    aiAnalysis: {},
   };
   
   // 기존 metadata를 v3.1 형식으로 확장
@@ -257,12 +257,12 @@ async function migratePrompt(prompt: any) {
     where: { id: prompt.id },
     data: {
       // v3.1 새 필드들
-      project_id: v3Data.project_id,
-      cinegenius_version: v3Data.cinegenius_version,
-      user_input: v3Data.user_input,
-      project_config: v3Data.project_config,
-      generation_control: v3Data.generation_control,
-      ai_analysis: v3Data.ai_analysis,
+      projectId: v3Data.projectId,
+      cinegeniusVersion: v3Data.cinegeniusVersion,
+      userInput: v3Data.userInput,
+      projectConfig: v3Data.projectConfig,
+      generationControl: v3Data.generationControl,
+      aiAnalysis: v3Data.aiAnalysis,
       
       // 기존 필드들 확장 업데이트
       metadata: extendedMetadata,
@@ -358,15 +358,15 @@ async function rollbackMigration(dryRun: boolean = false) {
     // v3.1 필드들을 NULL로 재설정
     await prisma.prompt.updateMany({
       where: {
-        cinegenius_version: '3.1',
+        cinegeniusVersion: '3.1',
       },
       data: {
-        project_id: null,
-        cinegenius_version: '2.0',
-        user_input: null,
-        project_config: null,
-        generation_control: null,
-        ai_analysis: null,
+        projectId: null,
+        cinegeniusVersion: '2.0',
+        userInput: undefined,
+        projectConfig: undefined,
+        generationControl: undefined,
+        aiAnalysis: undefined,
       },
     });
     
@@ -397,13 +397,13 @@ async function checkMigrationStatus() {
   console.log('🔍 Checking migration status...');
   
   const stats = await prisma.prompt.groupBy({
-    by: ['cinegenius_version'],
+    by: ['cinegeniusVersion'],
     _count: true,
   });
   
   console.log('📊 Migration Status:');
   stats.forEach(stat => {
-    const version = stat.cinegenius_version || '2.0 (legacy)';
+    const version = stat.cinegeniusVersion || '2.0 (legacy)';
     console.log(`  ${version}: ${stat._count} prompts`);
   });
   

@@ -57,20 +57,19 @@ export function isV2Prompt(prompt: UniversalPrompt): prompt is VideoPrompt {
 /**
  * 기본 V2 프롬프트 생성
  */
-export function createEmptyV2Prompt(): VideoPrompt {
+export function createEmptyV2Prompt(): import('./video-prompt').VideoPrompt {
   return {
     metadata: {
-      project_name: '',
-      scene_description: '',
-      base_style: '',
-      genre: '',
-      mood: '',
-      quality: '',
+      prompt_name: '',
+      base_style: [],
+      aspect_ratio: '16:9',
+      room_description: '',
+      camera_setup: 'Default',
       weather: '',
       lighting: '',
-      lens: '',
-      camera_movement: '',
-      aspect_ratio: '16:9',
+      primary_lens: '',
+      dominant_movement: '',
+      material: ''
     },
     key_elements: [],
     assembled_elements: [],
