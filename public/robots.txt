@@ -1,0 +1,35 @@
+# robots.txt for VLANET (vridge.kr)
+User-agent: *
+Allow: /
+Allow: /scenario
+Allow: /prompt-generator
+Allow: /workflow
+Allow: /feedback
+Allow: /planning
+Allow: /login
+Allow: /register
+Allow: /share/*
+
+# Disallow private/admin areas
+Disallow: /admin
+Disallow: /api/
+Disallow: /queue
+Disallow: /_next/
+Disallow: /.next/
+
+# Sitemap location
+Sitemap: https://vridge.kr/sitemap.xml
+Sitemap: https://www.vridge.kr/sitemap.xml
+
+# Allow specific crawlers
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: NaverBot
+Allow: /
+
+# Crawl-delay for general bots
+Crawl-delay: 1

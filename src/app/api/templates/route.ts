@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { success, failure, getTraceId } from '@/shared/lib/api-response';
+import { success, failure, getTraceId, standardErrors, ERROR_CODES } from '@/shared/lib/api-response';
 import { getUserIdFromRequest } from '@/shared/lib/auth';
 import { prisma } from '@/lib/db';
 
@@ -104,7 +104,8 @@ export async function GET(req: NextRequest) {
     return success(templates, 200, traceId);
 
   } catch (error: any) {
-    return failure('UNKNOWN', error?.message || 'Server error', 500);
+    console.error('❌ Templates GET API Error:', error);
+    return failure(ERROR_CODES.UNKNOWN, '템플릿 목록을 불러오는 중 오류가 발생했습니다.', 500, error.message, traceId);
   }
 }
 
@@ -114,14 +115,20 @@ export async function POST(req: NextRequest) {
     const userId = getUserIdFromRequest(req);
 
     if (!userId) {
-      return failure('UNAUTHORIZED', '인증이 필요합니다.', 401, undefined, traceId);
+      return standardErrors.unauthorized(traceId);
     }
 
     const body = await req.json();
     const { name, description, category, tags, data } = body;
 
-    if (!name || !description || !category) {
-      return failure('INVALID_INPUT', '필수 필드가 누락되었습니다.', 400, undefined, traceId);
+    if (!name) {
+      return standardErrors.invalidInput('템플릿 이름', traceId);
+    }
+    if (!description) {
+      return standardErrors.invalidInput('템플릿 설명', traceId);
+    }
+    if (!category) {
+      return standardErrors.invalidInput('카테고리', traceId);
     }
 
     // 실제 구현에서는 Prisma를 사용하여 데이터베이스에 저장
@@ -142,6 +149,7 @@ export async function POST(req: NextRequest) {
     return success(newTemplate, 201, traceId);
 
   } catch (error: any) {
-    return failure('UNKNOWN', error?.message || 'Server error', 500);
+    console.error('❌ Templates POST API Error:', error);
+    return failure(ERROR_CODES.UNKNOWN, '템플릿 생성 중 오류가 발생했습니다.', 500, error.message, traceId);
   }
 }
