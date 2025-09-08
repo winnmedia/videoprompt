@@ -2,11 +2,16 @@ import { PrismaClient } from '@prisma/client';
 
 declare global {
   // eslint-disable-next-line no-var
-  var prisma: PrismaClient | undefined;
+  var __prisma: PrismaClient | undefined;
 }
 
 // 연결 재시도 설정
 const createPrismaClient = () => {
+  // 빌드 시에는 DATABASE_URL이 없을 수 있으므로 체크
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL environment variable is not set');
+  }
+  
   return new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
     datasources: {
@@ -37,11 +42,32 @@ export const checkDatabaseConnection = async (client: PrismaClient, retries = 3)
   return false;
 };
 
-export const prisma: PrismaClient = global.prisma ?? createPrismaClient();
+// Lazy initialization으로 런타임에만 Prisma 클라이언트 생성
+export const getPrismaClient = (): PrismaClient => {
+  if (global.__prisma) {
+    return global.__prisma;
+  }
+  
+  const client = createPrismaClient();
+  
+  if (process.env.NODE_ENV !== 'production') {
+    global.__prisma = client;
+  }
+  
+  return client;
+};
 
-if (process.env.NODE_ENV !== 'production') global.prisma = prisma;
+// 편의성을 위한 prisma 인스턴스 (lazy evaluation)
+export const prisma = new Proxy({} as PrismaClient, {
+  get(target, prop) {
+    const client = getPrismaClient();
+    return client[prop as keyof PrismaClient];
+  }
+});
 
 // 프로세스 종료 시 연결 정리
 process.on('beforeExit', async () => {
-  await prisma.$disconnect();
+  if (global.__prisma) {
+    await global.__prisma.$disconnect();
+  }
 });
