@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
       console.log('[LLM] Gemini API 호출 시작...');
       try {
         const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
           {
             method: 'POST',
             headers: {
@@ -165,8 +165,17 @@ developmentMethod === '픽사스토리' ? '- 옛날 옛적에: 평범한 일상�
 
           if (generatedText) {
             try {
+              // JSON 마크다운 제거
+              let cleanText = generatedText.trim();
+              if (cleanText.startsWith('```json')) {
+                cleanText = cleanText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+              }
+              if (cleanText.startsWith('```')) {
+                cleanText = cleanText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+              }
+              
               // JSON 파싱 시도
-              const parsedResponse = JSON.parse(generatedText);
+              const parsedResponse = JSON.parse(cleanText);
               console.log('[LLM] ✅ JSON 파싱 성공 - LLM 개입 완료');
               return NextResponse.json(parsedResponse);
             } catch (parseError) {
