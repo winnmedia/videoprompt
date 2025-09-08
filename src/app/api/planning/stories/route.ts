@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
       genre: story.genre,
       tone: story.tone || 'Neutral',
       target: story.target || 'General',
-      structure: story.structure ? JSON.parse(story.structure) : null,
+      structure: story.structure || null,
       createdAt: story.createdAt.toISOString(),
       updatedAt: story.updatedAt.toISOString(),
     }));
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
         genre: genre || 'Drama',
         tone: tone || 'Neutral',
         target: target || 'General',
-        structure: structure ? JSON.stringify(structure) : null,
+        structure: structure || null,
         // 사용자 인증 추가 시 userId 설정
       },
     });
