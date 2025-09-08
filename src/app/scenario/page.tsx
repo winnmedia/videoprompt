@@ -268,254 +268,132 @@ export default function ScenarioPage() {
         break;
 
       case '클래식 기승전결':
-        generatedSteps = [
-          {
-            id: '1',
-            title: '기 (시작)',
-            summary: '상황 설정과 캐릭터 소개',
-            content: baseStory,
-            goal: '시청자의 관심을 끌고 기본 배경을 설정',
-            lengthHint: '전체의 20%',
-            isEditing: false,
-          },
-          {
-            id: '2',
-            title: '승 (전개)',
-            summary: '갈등과 문제의 심화',
-            content: '갈등이 점진적으로 심화되며 긴장감 조성',
-            goal: '스토리의 긴장감을 고조시키고 몰입도 증가',
-            lengthHint: '전체의 30%',
-            isEditing: false,
-          },
-          {
-            id: '3',
-            title: '전 (위기)',
-            summary: '절정과 최대 위기 상황',
-            content: '갈등이 절정에 달하고 해결의 실마리 발견',
-            goal: '극적인 순간을 연출하고 해결의 동기를 제공',
-            lengthHint: '전체의 30%',
-            isEditing: false,
-          },
-          {
-            id: '4',
-            title: '결 (해결)',
-            summary: '갈등 해결과 마무리',
-            content: '모든 갈등이 해결되고 만족스러운 마무리',
-            goal: '스토리를 완성하고 시청자에게 만족감 제공',
-            lengthHint: '전체의 20%',
-            isEditing: false,
-          },
-        ];
+        structure = {
+          act1: defaultActStructure(
+            '기 (시작)',
+            `상황 설정과 캐릭터 소개. ${baseStory}`,
+            '평온 → 관심'
+          ),
+          act2: defaultActStructure(
+            '승 (전개)',
+            '갈등과 문제의 심화. 갈등이 점진적으로 심화되며 긴장감 조성',
+            '관심 → 긴장'
+          ),
+          act3: defaultActStructure(
+            '전 (위기)',
+            '절정과 최대 위기 상황. 갈등이 절정에 달하고 해결의 실마리 발견',
+            '긴장 → 절정'
+          ),
+          act4: defaultActStructure(
+            '결 (해결)',
+            '갈등 해결과 마무리. 모든 갈등이 해결되고 만족스러운 마무리',
+            '절정 → 만족'
+          )
+        };
         break;
 
       case '귀납법':
-        generatedSteps = [
-          {
-            id: '1',
-            title: '사례 1',
-            summary: '첫 번째 구체적인 사례 제시',
-            content: `${baseStory}와 관련된 첫 번째 사례`,
-            goal: '구체적인 예시로 주제에 대한 관심 유발',
-            lengthHint: '전체의 25%',
-            isEditing: false,
-          },
-          {
-            id: '2',
-            title: '사례 2',
-            summary: '두 번째 사례로 패턴 강화',
-            content: '첫 번째와 유사하지만 다른 각도의 사례',
-            goal: '사례 간 공통점을 통해 패턴 인식 유도',
-            lengthHint: '전체의 25%',
-            isEditing: false,
-          },
-          {
-            id: '3',
-            title: '사례 3',
-            summary: '세 번째 사례로 결론 준비',
-            content: '앞의 사례들과 연결되는 마지막 사례',
-            goal: '결론 도출을 위한 충분한 근거 마련',
-            lengthHint: '전체의 25%',
-            isEditing: false,
-          },
-          {
-            id: '4',
-            title: '결론',
-            summary: '사례들을 종합한 일반적 결론',
-            content: '제시된 사례들로부터 도출되는 결론',
-            goal: '시청자가 스스로 결론에 도달하도록 유도',
-            lengthHint: '전체의 25%',
-            isEditing: false,
-          },
-        ];
+        structure = {
+          act1: defaultActStructure(
+            '사례 1',
+            `첫 번째 구체적인 사례 제시. ${baseStory}와 관련된 첫 번째 사례`,
+            '관심 → 호기심'
+          ),
+          act2: defaultActStructure(
+            '사례 2',
+            '두 번째 사례로 패턴 강화. 첫 번째와 유사하지만 다른 각도의 사례',
+            '호기심 → 패턴 인식'
+          ),
+          act3: defaultActStructure(
+            '사례 3',
+            '세 번째 사례로 결론 준비. 앞의 사례들과 연결되는 마지막 사례',
+            '패턴 인식 → 확신'
+          ),
+          act4: defaultActStructure(
+            '결론',
+            '사례들을 종합한 일반적 결론. 제시된 사례들로부터 도출되는 결론',
+            '확신 → 만족'
+          )
+        };
         break;
 
       case '연역법':
-        generatedSteps = [
-          {
-            id: '1',
-            title: '결론 제시',
-            summary: '먼저 결론이나 주장을 명확히 제시',
-            content: `${baseStory}에 대한 명확한 결론`,
-            goal: '시청자에게 명확한 방향성 제시',
-            lengthHint: '전체의 20%',
-            isEditing: false,
-          },
-          {
-            id: '2',
-            title: '근거 1',
-            summary: '첫 번째 근거와 논리적 설명',
-            content: '결론을 뒷받침하는 첫 번째 근거',
-            goal: '결론의 타당성을 논리적으로 입증',
-            lengthHint: '전체의 25%',
-            isEditing: false,
-          },
-          {
-            id: '3',
-            title: '근거 2',
-            summary: '두 번째 근거와 추가 설명',
-            content: '결론을 더욱 강화하는 두 번째 근거',
-            goal: '결론의 신뢰성과 설득력 강화',
-            lengthHint: '전체의 25%',
-            isEditing: false,
-          },
-          {
-            id: '4',
-            title: '재확인',
-            summary: '결론 재강조와 마무리',
-            content: '제시된 근거들을 종합하여 결론 재확인',
-            goal: '시청자가 결론을 확신하도록 마무리',
-            lengthHint: '전체의 30%',
-            isEditing: false,
-          },
-        ];
+        structure = {
+          act1: defaultActStructure(
+            '결론 제시',
+            `먼저 결론이나 주장을 명확히 제시. ${baseStory}에 대한 명확한 결론`,
+            '평온 → 관심'
+          ),
+          act2: defaultActStructure(
+            '근거 1',
+            '첫 번째 근거와 논리적 설명. 결론을 뒷받침하는 첫 번째 근거',
+            '관심 → 설득'
+          ),
+          act3: defaultActStructure(
+            '근거 2',
+            '두 번째 근거와 추가 설명. 결론을 더욱 강화하는 두 번째 근거',
+            '설득 → 확신'
+          ),
+          act4: defaultActStructure(
+            '재확인',
+            '결론 재강조와 마무리. 제시된 근거들을 종합하여 결론 재확인',
+            '확신 → 만족'
+          )
+        };
         break;
 
       case '다큐(인터뷰식)':
-        generatedSteps = [
-          {
-            id: '1',
-            title: '도입부',
-            summary: '주제 소개와 인터뷰 대상자 소개',
-            content: `${baseStory}에 대한 개요와 주요 인물 소개`,
-            goal: '다큐멘터리의 주제와 방향성 제시',
-            lengthHint: '전체의 20%',
-            isEditing: false,
-          },
-          {
-            id: '2',
-            title: '인터뷰 1',
-            summary: '첫 번째 핵심 인터뷰',
-            content: '주요 인물의 경험과 의견을 통한 스토리 전개',
-            goal: '실제 경험담을 통한 신뢰성 확보',
-            lengthHint: '전체의 30%',
-            isEditing: false,
-          },
-          {
-            id: '3',
-            title: '인터뷰 2',
-            summary: '두 번째 관점의 인터뷰',
-            content: '다른 관점에서의 의견과 경험 제시',
-            goal: '균형 잡힌 시각과 객관성 확보',
-            lengthHint: '전체의 30%',
-            isEditing: false,
-          },
-          {
-            id: '4',
-            title: '마무리',
-            summary: '내레이션과 결론',
-            content: '인터뷰 내용을 종합한 내레이션과 결론',
-            goal: '전체적인 메시지 전달과 여운 남기기',
-            lengthHint: '전체의 20%',
-            isEditing: false,
-          },
-        ];
+        structure = {
+          act1: defaultActStructure(
+            '도입부',
+            `주제 소개와 인터뷰 대상자 소개. ${baseStory}에 대한 개요와 주요 인물 소개`,
+            '평온 → 관심'
+          ),
+          act2: defaultActStructure(
+            '인터뷰 1',
+            '첫 번째 핵심 인터뷰. 주요 인물의 경험과 의견을 통한 스토리 전개',
+            '관심 → 몰입'
+          ),
+          act3: defaultActStructure(
+            '인터뷰 2',
+            '두 번째 관점의 인터뷰. 다른 관점에서의 의견과 경험 제시',
+            '몰입 → 이해'
+          ),
+          act4: defaultActStructure(
+            '마무리',
+            '내레이션과 결론. 인터뷰 내용을 종합한 내레이션과 결론',
+            '이해 → 여운'
+          )
+        };
         break;
 
       case '픽사스토리':
-        generatedSteps = [
-          {
-            id: '1',
-            title: '옛날 옛적에',
-            summary: '평범한 일상의 소개',
-            content: `${baseStory}의 주인공이 살던 평범한 일상`,
-            goal: '시청자가 공감할 수 있는 평범한 상황 설정',
-            lengthHint: '전체의 20%',
-            isEditing: false,
-          },
-          {
-            id: '2',
-            title: '매일',
-            summary: '반복되는 일상의 패턴',
-            content: '주인공의 일상적인 행동과 습관',
-            goal: '캐릭터의 성격과 일상을 자연스럽게 소개',
-            lengthHint: '전체의 20%',
-            isEditing: false,
-          },
-          {
-            id: '3',
-            title: '그러던 어느 날',
-            summary: '일상을 바꾸는 사건 발생',
-            content: '평범한 일상을 뒤바꾸는 특별한 사건',
-            goal: '스토리의 전환점과 갈등의 시작',
-            lengthHint: '전체의 30%',
-            isEditing: false,
-          },
-          {
-            id: '4',
-            title: '때문에',
-            summary: '사건의 결과와 변화',
-            content: '사건으로 인한 변화와 성장',
-            goal: '캐릭터의 변화와 스토리의 완성',
-            lengthHint: '전체의 30%',
-            isEditing: false,
-          },
-        ];
+        structure = {
+          act1: defaultActStructure(
+            '옛날 옛적에',
+            `평범한 일상의 소개. ${baseStory}의 주인공이 살던 평범한 일상`,
+            '평온 → 안정감'
+          ),
+          act2: defaultActStructure(
+            '매일',
+            '반복되는 일상의 패턴. 주인공의 일상적인 행동과 습관',
+            '안정감 → 친숙함'
+          ),
+          act3: defaultActStructure(
+            '그러던 어느 날',
+            '일상을 바꾸는 사건 발생. 평범한 일상을 뒤바꾸는 특별한 사건',
+            '친숙함 → 변화'
+          ),
+          act4: defaultActStructure(
+            '때문에',
+            '사건의 결과와 변화. 사건으로 인한 변화와 성장',
+            '변화 → 성장'
+          )
+        };
         break;
 
       default:
-        // 기본 기승전결 구조
-        generatedSteps = [
-          {
-            id: '1',
-            title: '기 (시작)',
-            summary: '상황 설정과 캐릭터 소개',
-            content: baseStory,
-            goal: '시청자의 관심을 끌고 기본 배경을 설정',
-            lengthHint: '전체의 20%',
-            isEditing: false,
-          },
-          {
-            id: '2',
-            title: '승 (전개)',
-            summary: '갈등과 문제의 심화',
-            content: '갈등이 점진적으로 심화되며 긴장감 조성',
-            goal: '스토리의 긴장감을 고조시키고 몰입도 증가',
-            lengthHint: '전체의 30%',
-            isEditing: false,
-          },
-          {
-            id: '3',
-            title: '전 (위기)',
-            summary: '절정과 최대 위기 상황',
-            content: '갈등이 절정에 달하고 해결의 실마리 발견',
-            goal: '극적인 순간을 연출하고 해결의 동기를 제공',
-            lengthHint: '전체의 30%',
-            isEditing: false,
-          },
-          {
-            id: '4',
-            title: '결 (해결)',
-            summary: '갈등 해결과 마무리',
-            content: '모든 갈등이 해결되고 만족스러운 마무리',
-            goal: '스토리를 완성하고 시청자에게 만족감 제공',
-            lengthHint: '전체의 20%',
-            isEditing: false,
-          },
-        };
-        break;
-        
-      default:
-        // 기본 기승전결 구조
+        // 기본 기승전결 구조 (모든 다른 케이스에 대해)
         structure = {
           act1: defaultActStructure(
             '기 (시작)',
