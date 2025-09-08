@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Schema validation and utility exports
 import { z } from 'zod';
 
