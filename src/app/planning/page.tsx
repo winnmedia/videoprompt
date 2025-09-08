@@ -76,6 +76,14 @@ export default function PlanningPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [providerFilter, setProviderFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<string>('all'); // all, today, week, month
+  const [sortBy, setSortBy] = useState<string>('date-desc'); // date-desc, date-asc, title-asc, title-desc
+
+  // 배치 작업 상태
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [batchMode, setBatchMode] = useState(false);
+  const [showBatchMenu, setShowBatchMenu] = useState(false);
 
   // 편집/보기 모드 상태
   const [editingItem, setEditingItem] = useState<PlanningItem | null>(null);
@@ -396,15 +404,224 @@ export default function PlanningPage() {
     }
   };
 
-  // 필터링된 기획안 목록 계산
+  // 항목 선택 핸들러
+  const handleItemSelect = (itemId: string, checked: boolean) => {
+    const newSelection = new Set(selectedItems);
+    if (checked) {
+      newSelection.add(itemId);
+    } else {
+      newSelection.delete(itemId);
+    }
+    setSelectedItems(newSelection);
+  };
+
+  // 전체 선택/해제
+  const handleSelectAll = (items: any[], checked: boolean) => {
+    const newSelection = new Set(selectedItems);
+    items.forEach(item => {
+      if (checked) {
+        newSelection.add(item.id);
+      } else {
+        newSelection.delete(item.id);
+      }
+    });
+    setSelectedItems(newSelection);
+  };
+
+  // 배치 작업 핸들러들
+  const handleBatchDelete = async () => {
+    if (selectedItems.size === 0) return;
+    
+    const confirmMsg = `선택된 ${selectedItems.size}개 항목을 삭제하시겠습니까?`;
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      // API 호출로 실제 삭제 구현 예정
+      console.log('Deleting items:', Array.from(selectedItems));
+      
+      // 임시로 로컬 상태에서 제거
+      setScenarioItems(prev => prev.filter(item => !selectedItems.has(item.id)));
+      setPromptItems(prev => prev.filter(item => !selectedItems.has(item.id)));
+      setImageItems(prev => prev.filter(item => !selectedItems.has(item.id)));
+      setVideoItems(prev => prev.filter(item => !selectedItems.has(item.id)));
+      setPlanningItems(prev => prev.filter(item => !selectedItems.has(item.id)));
+      
+      setSelectedItems(new Set());
+      setShowBatchMenu(false);
+      
+      // 성공 알림
+      alert(`${selectedItems.size}개 항목이 삭제되었습니다.`);
+    } catch (error) {
+      console.error('Batch delete error:', error);
+      alert('삭제 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleBatchExport = async () => {
+    if (selectedItems.size === 0) return;
+    
+    try {
+      // 선택된 항목들의 데이터 수집
+      const selectedData = {
+        scenarios: scenarioItems.filter(item => selectedItems.has(item.id)),
+        prompts: promptItems.filter(item => selectedItems.has(item.id)),
+        images: imageItems.filter(item => selectedItems.has(item.id)),
+        videos: videoItems.filter(item => selectedItems.has(item.id)),
+        exportDate: new Date().toISOString(),
+        totalItems: selectedItems.size
+      };
+      
+      // JSON 파일로 다운로드
+      const dataStr = JSON.stringify(selectedData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `videoprompt-export-${new Date().toISOString().split('T')[0]}.json`;
+      link.click();
+      
+      URL.revokeObjectURL(url);
+      setShowBatchMenu(false);
+      
+      alert(`${selectedItems.size}개 항목이 내보내졌습니다.`);
+    } catch (error) {
+      console.error('Batch export error:', error);
+      alert('내보내기 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleBatchMove = async () => {
+    if (selectedItems.size === 0) return;
+    
+    // 이동 기능은 향후 폴더/카테고리 기능과 함께 구현
+    alert('이동 기능은 향후 폴더 기능과 함께 제공될 예정입니다.');
+    setShowBatchMenu(false);
+  };
+
+  // 공유 링크 생성
+  const handleShare = async (itemType: string, itemId: string, itemTitle: string) => {
+    try {
+      const response = await fetch('/api/share/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetType: itemType,
+          targetId: itemId,
+          role: 'commenter', // 기본값: 댓글 가능
+          expiresInDays: 7,
+        }),
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.ok) {
+          // 클립보드에 복사
+          await navigator.clipboard.writeText(data.data.shareLink.url);
+          alert(`공유 링크가 클립보드에 복사되었습니다!\n\n"${itemTitle}"에 대한 링크:\n${data.data.shareLink.url}\n\n만료일: ${new Date(data.data.shareLink.expiresAt).toLocaleDateString('ko-KR')}`);
+        }
+      } else {
+        alert('공유 링크 생성에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Share error:', error);
+      alert('공유 링크 생성 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 날짜 필터링 함수
+  const matchesDateFilter = (dateString: string) => {
+    if (dateFilter === 'all') return true;
+    
+    const itemDate = new Date(dateString);
+    const now = new Date();
+    
+    switch (dateFilter) {
+      case 'today':
+        return itemDate.toDateString() === now.toDateString();
+      case 'week':
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        return itemDate >= weekAgo;
+      case 'month':
+        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        return itemDate >= monthAgo;
+      default:
+        return true;
+    }
+  };
+
+  // 정렬 함수
+  const applySorting = (items: any[]) => {
+    return [...items].sort((a, b) => {
+      switch (sortBy) {
+        case 'date-asc':
+          return new Date(a.createdAt || a.updatedAt || a.uploadedAt).getTime() - 
+                 new Date(b.createdAt || b.updatedAt || b.uploadedAt).getTime();
+        case 'date-desc':
+          return new Date(b.createdAt || b.updatedAt || b.uploadedAt).getTime() - 
+                 new Date(a.createdAt || a.updatedAt || a.uploadedAt).getTime();
+        case 'title-asc':
+          return (a.title || a.scenarioTitle || '').localeCompare(b.title || b.scenarioTitle || '');
+        case 'title-desc':
+          return (b.title || b.scenarioTitle || '').localeCompare(a.title || a.scenarioTitle || '');
+        default:
+          return 0;
+      }
+    });
+  };
+
+  // 검색 함수 (여러 필드에서 검색)
+  const matchesSearch = (item: any) => {
+    if (!searchTerm) return true;
+    
+    const searchLower = searchTerm.toLowerCase();
+    const searchFields = [
+      item.title,
+      item.description,
+      item.prompt,
+      item.scenarioTitle,
+      item.tags?.join(' '),
+    ].filter(Boolean);
+    
+    return searchFields.some(field => 
+      field.toLowerCase().includes(searchLower)
+    );
+  };
+
+  // 필터링된 목록들
+  const filteredScenarioItems = applySorting(scenarioItems.filter(item => {
+    return matchesSearch(item) &&
+           (statusFilter === 'all' || (item as any).status === statusFilter) &&
+           matchesDateFilter(item.updatedAt);
+  }));
+
+  const filteredPromptItems = applySorting(promptItems.filter(item => {
+    return matchesSearch(item) &&
+           matchesDateFilter(item.updatedAt);
+  }));
+
+  const filteredImageItems = applySorting(imageItems.filter(item => {
+    return matchesSearch(item) &&
+           matchesDateFilter(item.uploadedAt);
+  }));
+
+  const filteredVideoItems = applySorting(videoItems.filter(item => {
+    return matchesSearch(item) &&
+           (statusFilter === 'all' || item.status === statusFilter) &&
+           (providerFilter === 'all' || item.provider === providerFilter) &&
+           matchesDateFilter(item.createdAt);
+  }));
+
+  // 필터링된 기획안 목록 계산 (레거시)
   const filteredPlanningItems = planningItems.filter((item) => {
-    const matchesSearch =
+    const matchesSearchLegacy =
       item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
     const matchesType = typeFilter === 'all' || item.type === typeFilter;
 
-    return matchesSearch && matchesStatus && matchesType;
+    return matchesSearchLegacy && matchesStatus && matchesType;
   });
 
   return (
@@ -438,6 +655,197 @@ export default function PlanningPage() {
           <p className="mt-2 text-gray-600">AI로 생성된 기획안과 영상을 관리하고 확인하세요</p>
         </div>
 
+        {/* 검색 및 필터 바 */}
+        <div className="mb-6 space-y-4 rounded-lg bg-white p-6 shadow">
+          <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:space-x-4 lg:space-y-0">
+            {/* 검색 입력 */}
+            <div className="flex-1">
+              <div className="relative">
+                <Icon name="Search" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="제목, 설명, 프롬프트에서 검색..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 pl-10 pr-4 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                />
+              </div>
+            </div>
+
+            {/* 필터 드롭다운들 */}
+            <div className="flex flex-wrap gap-2 lg:flex-nowrap">
+              {/* 상태 필터 */}
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              >
+                <option value="all">모든 상태</option>
+                <option value="draft">초안</option>
+                <option value="in-progress">진행중</option>
+                <option value="completed">완료</option>
+                <option value="queued">대기중</option>
+                <option value="processing">처리중</option>
+                <option value="failed">실패</option>
+              </select>
+
+              {/* 타입 필터 */}
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              >
+                <option value="all">모든 타입</option>
+                <option value="scenario">시나리오</option>
+                <option value="prompt">프롬프트</option>
+                <option value="image">이미지</option>
+                <option value="video">영상</option>
+              </select>
+
+              {/* 제공자 필터 (영상 탭에서만 의미있음) */}
+              {activeTab === 'video' && (
+                <select
+                  value={providerFilter}
+                  onChange={(e) => setProviderFilter(e.target.value)}
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                >
+                  <option value="all">모든 제공자</option>
+                  <option value="seedance">Seedance</option>
+                  <option value="veo3">Veo3</option>
+                  <option value="mock">Mock</option>
+                </select>
+              )}
+
+              {/* 날짜 필터 */}
+              <select
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              >
+                <option value="all">모든 날짜</option>
+                <option value="today">오늘</option>
+                <option value="week">이번 주</option>
+                <option value="month">이번 달</option>
+              </select>
+
+              {/* 정렬 */}
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              >
+                <option value="date-desc">최신순</option>
+                <option value="date-asc">오래된순</option>
+                <option value="title-asc">제목 A-Z</option>
+                <option value="title-desc">제목 Z-A</option>
+              </select>
+            </div>
+
+            {/* 배치 작업 토글 */}
+            <div className="flex items-center space-x-2">
+              <Button
+                variant={batchMode ? 'primary' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  setBatchMode(!batchMode);
+                  setSelectedItems(new Set());
+                  setShowBatchMenu(false);
+                }}
+              >
+                {batchMode ? '배치 모드 해제' : '배치 선택'}
+              </Button>
+
+              {batchMode && selectedItems.size > 0 && (
+                <div className="relative">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowBatchMenu(!showBatchMenu)}
+                  >
+                    선택된 {selectedItems.size}개 항목
+                    <Icon name="ChevronDown" className="ml-1 h-4 w-4" />
+                  </Button>
+
+                  {showBatchMenu && (
+                    <div className="absolute right-0 top-full z-10 mt-2 w-48 rounded-lg border border-gray-200 bg-white shadow-lg">
+                      <div className="p-1">
+                        <button
+                          onClick={() => handleBatchExport()}
+                          className="w-full rounded-md px-3 py-2 text-left text-sm hover:bg-gray-100"
+                        >
+                          <Icon name="Download" className="mr-2 inline h-4 w-4" />
+                          내보내기
+                        </button>
+                        <button
+                          onClick={() => handleBatchMove()}
+                          className="w-full rounded-md px-3 py-2 text-left text-sm hover:bg-gray-100"
+                        >
+                          <Icon name="FolderOpen" className="mr-2 inline h-4 w-4" />
+                          이동
+                        </button>
+                        <button
+                          onClick={() => handleBatchDelete()}
+                          className="w-full rounded-md px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                        >
+                          <Icon name="Trash2" className="mr-2 inline h-4 w-4" />
+                          삭제
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 검색 결과 요약 */}
+          {(searchTerm || statusFilter !== 'all' || typeFilter !== 'all' || providerFilter !== 'all' || dateFilter !== 'all') && (
+            <div className="flex items-center justify-between border-t border-gray-200 pt-4">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
+                <span>필터 적용:</span>
+                {searchTerm && (
+                  <span className="rounded-full bg-primary-100 px-2 py-1 text-primary-700">
+                    검색: "{searchTerm}"
+                  </span>
+                )}
+                {statusFilter !== 'all' && (
+                  <span className="rounded-full bg-blue-100 px-2 py-1 text-blue-700">
+                    상태: {getStatusText(statusFilter)}
+                  </span>
+                )}
+                {typeFilter !== 'all' && (
+                  <span className="rounded-full bg-green-100 px-2 py-1 text-green-700">
+                    타입: {typeFilter}
+                  </span>
+                )}
+                {providerFilter !== 'all' && (
+                  <span className="rounded-full bg-purple-100 px-2 py-1 text-purple-700">
+                    제공자: {providerFilter}
+                  </span>
+                )}
+                {dateFilter !== 'all' && (
+                  <span className="rounded-full bg-orange-100 px-2 py-1 text-orange-700">
+                    기간: {dateFilter === 'today' ? '오늘' : dateFilter === 'week' ? '이번 주' : '이번 달'}
+                  </span>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearchTerm('');
+                  setStatusFilter('all');
+                  setTypeFilter('all');
+                  setProviderFilter('all');
+                  setDateFilter('all');
+                }}
+              >
+                필터 초기화
+              </Button>
+            </div>
+          )}
+        </div>
+
         {/* 탭 네비게이션 */}
         <div className="mb-8 border-b border-gray-200">
           <nav className="-mb-px flex space-x-8" role="tablist">
@@ -450,7 +858,7 @@ export default function PlanningPage() {
                   : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
               }`}
             >
-              AI 시나리오 ({scenarioItems.length})
+              AI 시나리오 ({filteredScenarioItems.length})
             </button>
             <button
               data-testid="tab-prompt"
@@ -461,7 +869,7 @@ export default function PlanningPage() {
                   : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
               }`}
             >
-              프롬프트 ({promptItems.length})
+              프롬프트 ({filteredPromptItems.length})
             </button>
             <button
               data-testid="tab-image"
@@ -472,7 +880,7 @@ export default function PlanningPage() {
                   : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
               }`}
             >
-              이미지 ({imageItems.length})
+              이미지 ({filteredImageItems.length})
             </button>
             <button
               data-testid="tab-video"
@@ -483,7 +891,7 @@ export default function PlanningPage() {
                   : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
               }`}
             >
-              영상 ({videoItems.length})
+              영상 ({filteredVideoItems.length})
             </button>
           </nav>
         </div>
@@ -498,6 +906,16 @@ export default function PlanningPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    {batchMode && (
+                      <th className="px-6 py-3">
+                        <input
+                          type="checkbox"
+                          checked={filteredScenarioItems.length > 0 && filteredScenarioItems.every(item => selectedItems.has(item.id))}
+                          onChange={(e) => handleSelectAll(filteredScenarioItems, e.target.checked)}
+                          className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                        />
+                      </th>
+                    )}
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                       제목
                     </th>
@@ -517,8 +935,18 @@ export default function PlanningPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {scenarioItems.map((s) => (
-                    <tr key={s.id}>
+                  {filteredScenarioItems.map((s) => (
+                    <tr key={s.id} className={batchMode ? 'hover:bg-gray-50' : ''}>
+                      {batchMode && (
+                        <td className="px-6 py-4">
+                          <input
+                            type="checkbox"
+                            checked={selectedItems.has(s.id)}
+                            onChange={(e) => handleItemSelect(s.id, e.target.checked)}
+                            className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                          />
+                        </td>
+                      )}
                       <td className="px-6 py-4 text-sm text-gray-900">{s.title}</td>
                       <td className="px-6 py-4 text-sm text-gray-700">{s.version}</td>
                       <td className="px-6 py-4 text-sm text-gray-700">{s.author}</td>
@@ -540,8 +968,13 @@ export default function PlanningPage() {
                   ))}
                 </tbody>
               </table>
-              {scenarioItems.length === 0 && (
-                <div className="p-6 text-center text-gray-500">시나리오가 없습니다</div>
+              {filteredScenarioItems.length === 0 && (
+                <div className="p-6 text-center text-gray-500">
+                  {scenarioItems.length === 0 
+                    ? '시나리오가 없습니다' 
+                    : '필터 조건에 맞는 시나리오가 없습니다'
+                  }
+                </div>
               )}
             </div>
           </div>
@@ -557,6 +990,16 @@ export default function PlanningPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    {batchMode && (
+                      <th className="px-6 py-3">
+                        <input
+                          type="checkbox"
+                          checked={filteredPromptItems.length > 0 && filteredPromptItems.every(item => selectedItems.has(item.id))}
+                          onChange={(e) => handleSelectAll(filteredPromptItems, e.target.checked)}
+                          className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                        />
+                      </th>
+                    )}
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                       참조 시나리오
                     </th>
@@ -575,8 +1018,18 @@ export default function PlanningPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {promptItems.map((p) => (
-                    <tr key={p.id}>
+                  {filteredPromptItems.map((p) => (
+                    <tr key={p.id} className={batchMode ? 'hover:bg-gray-50' : ''}>
+                      {batchMode && (
+                        <td className="px-6 py-4">
+                          <input
+                            type="checkbox"
+                            checked={selectedItems.has(p.id)}
+                            onChange={(e) => handleItemSelect(p.id, e.target.checked)}
+                            className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                          />
+                        </td>
+                      )}
                       <td className="px-6 py-4 text-sm text-gray-900">{p.scenarioTitle}</td>
                       <td className="px-6 py-4 text-sm text-gray-700">{p.version}</td>
                       <td className="px-6 py-4 text-sm text-gray-700">{p.keywordCount}</td>
@@ -586,8 +1039,13 @@ export default function PlanningPage() {
                   ))}
                 </tbody>
               </table>
-              {promptItems.length === 0 && (
-                <div className="p-6 text-center text-gray-500">프롬프트가 없습니다</div>
+              {filteredPromptItems.length === 0 && (
+                <div className="p-6 text-center text-gray-500">
+                  {promptItems.length === 0 
+                    ? '프롬프트가 없습니다' 
+                    : '필터 조건에 맞는 프롬프트가 없습니다'
+                  }
+                </div>
               )}
             </div>
           </div>
@@ -603,6 +1061,16 @@ export default function PlanningPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    {batchMode && (
+                      <th className="px-6 py-3">
+                        <input
+                          type="checkbox"
+                          checked={filteredImageItems.length > 0 && filteredImageItems.every(item => selectedItems.has(item.id))}
+                          onChange={(e) => handleSelectAll(filteredImageItems, e.target.checked)}
+                          className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                        />
+                      </th>
+                    )}
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                       타입
                     </th>
@@ -621,8 +1089,18 @@ export default function PlanningPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {imageItems.map((img) => (
-                    <tr key={img.id}>
+                  {filteredImageItems.map((img) => (
+                    <tr key={img.id} className={batchMode ? 'hover:bg-gray-50' : ''}>
+                      {batchMode && (
+                        <td className="px-6 py-4">
+                          <input
+                            type="checkbox"
+                            checked={selectedItems.has(img.id)}
+                            onChange={(e) => handleItemSelect(img.id, e.target.checked)}
+                            className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                          />
+                        </td>
+                      )}
                       <td className="px-6 py-4 text-sm text-gray-900">{img.type}</td>
                       <td className="px-6 py-4 text-sm text-gray-700">{img.tags.join(', ')}</td>
                       <td className="px-6 py-4 text-sm text-gray-700">{img.resolution}</td>
@@ -634,8 +1112,13 @@ export default function PlanningPage() {
                   ))}
                 </tbody>
               </table>
-              {imageItems.length === 0 && (
-                <div className="p-6 text-center text-gray-500">이미지가 없습니다</div>
+              {filteredImageItems.length === 0 && (
+                <div className="p-6 text-center text-gray-500">
+                  {imageItems.length === 0 
+                    ? '이미지가 없습니다' 
+                    : '필터 조건에 맞는 이미지가 없습니다'
+                  }
+                </div>
               )}
             </div>
           </div>
@@ -652,6 +1135,16 @@ export default function PlanningPage() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
+                      {batchMode && (
+                        <th className="px-6 py-3">
+                          <input
+                            type="checkbox"
+                            checked={filteredVideoItems.length > 0 && filteredVideoItems.every(item => selectedItems.has(item.id))}
+                            onChange={(e) => handleSelectAll(filteredVideoItems, e.target.checked)}
+                            className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                          />
+                        </th>
+                      )}
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                         버전
                       </th>
@@ -680,8 +1173,18 @@ export default function PlanningPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 bg-white">
-                    {videoItems.map((v) => (
-                      <tr key={v.id} className="hover:bg-gray-50">
+                    {filteredVideoItems.map((v) => (
+                      <tr key={v.id} className={batchMode ? 'hover:bg-blue-50' : 'hover:bg-gray-50'}>
+                        {batchMode && (
+                          <td className="px-6 py-4">
+                            <input
+                              type="checkbox"
+                              checked={selectedItems.has(v.id)}
+                              onChange={(e) => handleItemSelect(v.id, e.target.checked)}
+                              className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                          </td>
+                        )}
                         <td className="px-6 py-4 text-sm text-gray-700">{v.version || '-'}</td>
                         <td className="px-6 py-4 text-sm text-gray-900">{v.title}</td>
                         <td className="px-6 py-4 text-sm text-gray-700">{v.duration}s</td>
@@ -713,6 +1216,14 @@ export default function PlanningPage() {
                           <Button
                             variant="outline"
                             size="sm"
+                            onClick={() => handleShare('video', v.id, v.title)}
+                            title="공유 링크 생성"
+                          >
+                            공유
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => handleDownloadVideo(v)}
                             disabled={!v.videoUrl || v.status !== 'completed'}
                           >
@@ -723,8 +1234,13 @@ export default function PlanningPage() {
                     ))}
                   </tbody>
                 </table>
-                {videoItems.length === 0 && (
-                  <div className="p-6 text-center text-gray-500">영상이 없습니다</div>
+                {filteredVideoItems.length === 0 && (
+                  <div className="p-6 text-center text-gray-500">
+                    {videoItems.length === 0 
+                      ? '영상이 없습니다' 
+                      : '필터 조건에 맞는 영상이 없습니다'
+                    }
+                  </div>
                 )}
               </div>
             </div>

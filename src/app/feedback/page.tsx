@@ -108,15 +108,30 @@ export default function FeedbackPage() {
   const [uploadOpen, setUploadOpen] = useState(false);
 
   const [comment, setComment] = useState('');
+  const [showVersionComparison, setShowVersionComparison] = useState(false);
+  const [compareVersionId, setCompareVersionId] = useState<string | null>(null);
 
   const getCurrentTc = (): string => {
-    const sec = Math.floor(videoRef.current?.currentTime ?? 0);
-    const mm = Math.floor(sec / 60)
-      .toString()
-      .padStart(2, '0');
-    const ss = (sec % 60).toString().padStart(2, '0');
-    const fff = '000';
-    return `${mm}${ss}${fff}`; // mmssfff
+    const time = videoRef.current?.currentTime ?? 0;
+    const mm = Math.floor(time / 60).toString().padStart(2, '0');
+    const ss = Math.floor(time % 60).toString().padStart(2, '0');
+    const fff = Math.floor((time % 1) * 1000).toString().padStart(3, '0');
+    return `${mm}:${ss}.${fff}`; // mm:ss.fff 형식으로 변경
+  };
+
+  // 타임코드 파싱 및 점프 기능
+  const parseTimecode = (tc: string): number => {
+    const match = tc.match(/(\d{1,2}):(\d{1,2})\.(\d{3})/);
+    if (!match) return 0;
+    const [, mm, ss, fff] = match;
+    return parseInt(mm) * 60 + parseInt(ss) + parseInt(fff) / 1000;
+  };
+
+  const jumpToTimecode = (timecode: string) => {
+    if (!videoRef.current) return;
+    const time = parseTimecode(timecode);
+    videoRef.current.currentTime = time;
+    videoRef.current.play();
   };
 
   const formatScreenshotName = (): string => {
@@ -156,28 +171,112 @@ export default function FeedbackPage() {
   const focusFeedbackAtCurrentTime = () => {
     const tc = getCurrentTc();
     setComment((prev) => (prev ? `${prev} \n@TC${tc} ` : `@TC${tc} `));
-    // scroll/focus handled by input ref if needed
+    // 댓글 입력창에 포커스
+    const textarea = document.querySelector('textarea[data-testid="feedback-textarea"]') as HTMLTextAreaElement;
+    if (textarea) {
+      textarea.focus();
+      textarea.scrollTop = textarea.scrollHeight;
+    }
+  };
+
+  // T 키 단축키 처리
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // T 키를 눌렀을 때 (입력창에 포커스가 없을 때만)
+      if (e.key === 'T' && 
+          document.activeElement?.tagName !== 'INPUT' && 
+          document.activeElement?.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        focusFeedbackAtCurrentTime();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyPress);
+    return () => document.removeEventListener('keydown', handleKeyPress);
+  }, []);
+
+  // 댓글 텍스트에서 타임코드를 찾아서 클릭 가능한 링크로 변환
+  const renderCommentWithTimecodes = (text: string) => {
+    const timecodeRegex = /@TC(\d{1,2}:\d{1,2}\.\d{3})/g;
+    const parts = text.split(timecodeRegex);
+    
+    return parts.map((part, index) => {
+      if (timecodeRegex.test(`@TC${part}`)) {
+        // 타임코드 부분
+        return (
+          <button
+            key={index}
+            onClick={() => jumpToTimecode(part)}
+            className="text-blue-600 hover:text-blue-800 hover:underline font-mono text-sm bg-blue-50 px-1 rounded"
+            title={`${part}로 이동`}
+          >
+            @TC{part}
+          </button>
+        );
+      } else if (index > 0 && parts[index - 1] && timecodeRegex.test(`@TC${parts[index - 1]}`)) {
+        // 타임코드 다음 부분은 그냥 텍스트
+        return part;
+      } else {
+        // 일반 텍스트 부분
+        return part;
+      }
+    });
   };
 
   return (
     <div className="mx-auto max-w-7xl p-6" aria-live="polite">
       <div className="mb-6 flex items-center justify-between">
         {/* Version Switcher */}
-        <div className="flex items-center gap-2">
-          <span className="text-gray-600">버전</span>
-          <div className="relative">
-            <select
-              className="rounded-md border bg-white px-3 py-2"
-              value={activeVersionId}
-              onChange={(e) => setActiveVersionId(e.target.value)}
-            >
-              {versions.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.label}
-                </option>
-              ))}
-            </select>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-gray-600">버전</span>
+            <div className="relative">
+              <select
+                className="rounded-md border bg-white px-3 py-2"
+                value={activeVersionId}
+                onChange={(e) => setActiveVersionId(e.target.value)}
+              >
+                {versions.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
+
+          {/* Version Comparison Toggle */}
+          {versions.length > 1 && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant={showVersionComparison ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowVersionComparison(!showVersionComparison)}
+              >
+                {showVersionComparison ? '비교 모드 해제' : '버전 비교'}
+              </Button>
+              
+              {showVersionComparison && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">vs</span>
+                  <select
+                    className="rounded-md border bg-white px-2 py-1 text-sm"
+                    value={compareVersionId || ''}
+                    onChange={(e) => setCompareVersionId(e.target.value || null)}
+                  >
+                    <option value="">비교 버전 선택</option>
+                    {versions
+                      .filter((v) => v.id !== activeVersionId)
+                      .map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.label}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="text-sm text-gray-500">
@@ -185,19 +284,74 @@ export default function FeedbackPage() {
         </div>
       </div>
 
-      {/* Player: 빈 상태도 16:9 유지 */}
-      <div className="overflow-hidden rounded-lg bg-black">
-        <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
-          {activeVersion.src ? (
-            <video ref={videoRef} src={activeVersion.src} controls className="absolute inset-0 h-full w-full" aria-label="피드백 플레이어" />
-          ) : (
-            <div className="absolute inset-0 grid place-items-center">
-              <Button onClick={() => setUploadOpen(true)} className="bg-white text-gray-900 hover:bg-gray-100" aria-label="영상 업로드 열기">
-                영상 업로드
-              </Button>
+      {/* Player: 버전 비교 모드 지원 */}
+      <div className={cn(
+        "overflow-hidden rounded-lg bg-black",
+        showVersionComparison && compareVersionId ? "grid grid-cols-2 gap-2" : ""
+      )}>
+        {showVersionComparison && compareVersionId ? (
+          // 비교 모드: 두 비디오 나란히 표시
+          <>
+            <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+              <div className="absolute inset-x-0 top-2 z-10 text-center">
+                <span className="bg-black/50 px-2 py-1 text-xs text-white rounded">
+                  {activeVersion.label}
+                </span>
+              </div>
+              {activeVersion.src ? (
+                <video
+                  ref={videoRef}
+                  src={activeVersion.src}
+                  controls
+                  className="absolute inset-0 h-full w-full"
+                  aria-label={`${activeVersion.label} 플레이어`}
+                />
+              ) : (
+                <div className="absolute inset-0 grid place-items-center">
+                  <Button onClick={() => setUploadOpen(true)} size="sm" className="bg-white text-gray-900 hover:bg-gray-100">
+                    영상 업로드
+                  </Button>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+            
+            <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+              <div className="absolute inset-x-0 top-2 z-10 text-center">
+                <span className="bg-black/50 px-2 py-1 text-xs text-white rounded">
+                  {versions.find(v => v.id === compareVersionId)?.label}
+                </span>
+              </div>
+              {(() => {
+                const compareVersion = versions.find(v => v.id === compareVersionId);
+                return compareVersion?.src ? (
+                  <video
+                    src={compareVersion.src}
+                    controls
+                    className="absolute inset-0 h-full w-full"
+                    aria-label={`${compareVersion.label} 비교 플레이어`}
+                  />
+                ) : (
+                  <div className="absolute inset-0 grid place-items-center">
+                    <span className="text-white text-sm">영상 없음</span>
+                  </div>
+                );
+              })()}
+            </div>
+          </>
+        ) : (
+          // 일반 모드: 단일 비디오
+          <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+            {activeVersion.src ? (
+              <video ref={videoRef} src={activeVersion.src} controls className="absolute inset-0 h-full w-full" aria-label="피드백 플레이어" />
+            ) : (
+              <div className="absolute inset-0 grid place-items-center">
+                <Button onClick={() => setUploadOpen(true)} className="bg-white text-gray-900 hover:bg-gray-100" aria-label="영상 업로드 열기">
+                  영상 업로드
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Toolbar */}
@@ -286,17 +440,31 @@ export default function FeedbackPage() {
             <h4 className="mb-3 font-medium">댓글 목록</h4>
             <ul className="space-y-3">
               {comments.map((c) => (
-                <li key={c.id} className="rounded-md border p-3">
-                  <div className="whitespace-pre-wrap text-sm text-gray-700">{c.text}</div>
-                  <div className="mt-1 text-xs text-gray-500">
-                    {c.author ? `${c.author} · ` : ''}
-                    {new Date(c.createdAt).toLocaleString()}{' '}
-                    {c.timecode ? `· @TC${c.timecode}` : ''}
+                <li key={c.id} className="rounded-md border p-3 hover:bg-gray-50 transition-colors">
+                  <div className="whitespace-pre-wrap text-sm text-gray-700">
+                    {renderCommentWithTimecodes(c.text)}
+                  </div>
+                  <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                    {c.author && (
+                      <span className="font-medium">{c.author}</span>
+                    )}
+                    <span>{new Date(c.createdAt).toLocaleString()}</span>
+                    {c.timecode && (
+                      <button
+                        onClick={() => jumpToTimecode(c.timecode!)}
+                        className="text-blue-600 hover:text-blue-800 hover:underline font-mono bg-blue-50 px-1 rounded"
+                        title={`${c.timecode}로 이동`}
+                      >
+                        @TC{c.timecode}
+                      </button>
+                    )}
                   </div>
                 </li>
               ))}
               {comments.length === 0 && (
-                <li className="text-sm text-gray-500">아직 댓글이 없습니다</li>
+                <li className="text-sm text-gray-500 text-center py-6">
+                  아직 댓글이 없습니다. 첫 댓글을 작성해보세요!
+                </li>
               )}
             </ul>
           </div>

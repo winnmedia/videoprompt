@@ -81,6 +81,14 @@ const PromptGeneratorPage: React.FC = () => {
     setState((prev) => ({ ...prev, timeline }));
   };
 
+  const handleUpdateKeywords = (keywords: string[]) => {
+    setState((prev) => ({ ...prev, keywords }));
+  };
+
+  const handleUpdateNegativePrompts = (negative_prompts: string[]) => {
+    setState((prev) => ({ ...prev, negative_prompts }));
+  };
+
   const handleGeneratePrompt = async () => {
     setState((prev) => ({ ...prev, isGenerating: true }));
 
@@ -228,6 +236,8 @@ const PromptGeneratorPage: React.FC = () => {
             state={state}
             onGeneratePrompt={handleGeneratePrompt}
             onPrevious={previousStep}
+            onUpdateKeywords={handleUpdateKeywords}
+            onUpdateNegativePrompts={handleUpdateNegativePrompts}
           />
         );
 

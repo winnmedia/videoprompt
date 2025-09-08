@@ -12,12 +12,16 @@ interface LLMAssistantProps {
   state: PromptGenerationState;
   onGeneratePrompt: () => void;
   onPrevious: () => void;
+  onUpdateKeywords?: (keywords: string[]) => void;
+  onUpdateNegativePrompts?: (negatives: string[]) => void;
 }
 
 export const LLMAssistant: React.FC<LLMAssistantProps> = ({
   state,
   onGeneratePrompt,
   onPrevious,
+  onUpdateKeywords,
+  onUpdateNegativePrompts,
 }) => {
   const [copied, setCopied] = useState(false);
   const [showRawData, setShowRawData] = useState(false);
@@ -29,40 +33,48 @@ export const LLMAssistant: React.FC<LLMAssistantProps> = ({
     setIsGeneratingSuggestions(true);
 
     try {
-      // 실제 구현에서는 API 호출
-      // const response = await fetch('/api/generate/suggestions', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(state)
-      // });
-      // const data = await response.json();
+      const response = await fetch('/api/generate/suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(state)
+      });
 
-      // 임시 데이터 (실제로는 API 응답)
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      if (!response.ok) {
+        throw new Error(`API 호출 실패: ${response.status}`);
+      }
 
-      const mockSuggestions: AIResponse = {
-        keywords: [
-          'rooftop action',
-          'briefcase exchange',
-          'sniper ambush',
-          'gunfight escape',
-          'rain cinematic',
-          'helicopter chase',
-          'thriller SFX',
-          'Veo 3 movie trailer style',
-        ],
-        negative_prompts: [
-          'no blood',
-          'no supernatural elements',
-          'no text',
-          'no daytime or sun',
-          'no sci-fi weapons',
-        ],
+      const data = await response.json();
+      
+      if (!data.ok) {
+        throw new Error(data.error || 'AI 추천 생성에 실패했습니다');
+      }
+
+      const suggestions: AIResponse = {
+        keywords: data.data.keywords || [],
+        negative_prompts: data.data.negative_prompts || [],
       };
 
-      setAiSuggestions(mockSuggestions);
+      setAiSuggestions(suggestions);
     } catch (error) {
       console.error('AI 추천 생성 실패:', error);
+      
+      // 실패 시 기본 추천값 제공
+      const fallbackSuggestions: AIResponse = {
+        keywords: [
+          'cinematic lighting',
+          'dramatic composition',
+          'professional quality',
+          'dynamic movement',
+          'atmospheric mood',
+        ],
+        negative_prompts: [
+          'no text',
+          'no watermarks',
+          'no blurry quality',
+          'no distorted faces',
+        ],
+      };
+      setAiSuggestions(fallbackSuggestions);
     } finally {
       setIsGeneratingSuggestions(false);
     }
@@ -183,30 +195,80 @@ export const LLMAssistant: React.FC<LLMAssistantProps> = ({
               <div className="space-y-4">
                 {/* 키워드 */}
                 <div>
-                  <h3 className="mb-2 font-medium text-gray-900">추천 키워드</h3>
+                  <div className="mb-2 flex items-center justify-between">
+                    <h3 className="font-medium text-gray-900">추천 키워드</h3>
+                    <Button
+                      onClick={() => {
+                        if (onUpdateKeywords && aiSuggestions.keywords.length > 0) {
+                          const newKeywords = [...new Set([...state.keywords, ...aiSuggestions.keywords])];
+                          onUpdateKeywords(newKeywords);
+                        }
+                      }}
+                      variant="ghost"
+                      size="sm"
+                      className="text-primary-600"
+                    >
+                      모두 적용
+                    </Button>
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {aiSuggestions.keywords.map((keyword, index) => (
-                      <span
+                      <button
                         key={index}
-                        className="rounded-full bg-primary-100 px-3 py-1 text-sm font-medium text-primary-800"
+                        onClick={() => {
+                          if (onUpdateKeywords && !state.keywords.includes(keyword)) {
+                            onUpdateKeywords([...state.keywords, keyword]);
+                          }
+                        }}
+                        className={cn(
+                          "rounded-full px-3 py-1 text-sm font-medium transition-colors",
+                          state.keywords.includes(keyword)
+                            ? "bg-primary-600 text-white"
+                            : "bg-primary-100 text-primary-800 hover:bg-primary-200"
+                        )}
                       >
                         {keyword}
-                      </span>
+                      </button>
                     ))}
                   </div>
                 </div>
 
                 {/* 네거티브 프롬프트 */}
                 <div>
-                  <h3 className="mb-2 font-medium text-gray-900">네거티브 프롬프트</h3>
+                  <div className="mb-2 flex items-center justify-between">
+                    <h3 className="font-medium text-gray-900">네거티브 프롬프트</h3>
+                    <Button
+                      onClick={() => {
+                        if (onUpdateNegativePrompts && aiSuggestions.negative_prompts.length > 0) {
+                          const newNegatives = [...new Set([...state.negative_prompts, ...aiSuggestions.negative_prompts])];
+                          onUpdateNegativePrompts(newNegatives);
+                        }
+                      }}
+                      variant="ghost"
+                      size="sm"
+                      className="text-danger-600"
+                    >
+                      모두 적용
+                    </Button>
+                  </div>
                   <div className="space-y-2">
                     {aiSuggestions.negative_prompts.map((prompt, index) => (
-                      <div
+                      <button
                         key={index}
-                        className="rounded-md bg-danger-50 px-3 py-2 text-sm text-danger-800"
+                        onClick={() => {
+                          if (onUpdateNegativePrompts && !state.negative_prompts.includes(prompt)) {
+                            onUpdateNegativePrompts([...state.negative_prompts, prompt]);
+                          }
+                        }}
+                        className={cn(
+                          "block w-full rounded-md px-3 py-2 text-left text-sm transition-colors",
+                          state.negative_prompts.includes(prompt)
+                            ? "bg-danger-600 text-white"
+                            : "bg-danger-50 text-danger-800 hover:bg-danger-100"
+                        )}
                       >
                         {prompt}
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>

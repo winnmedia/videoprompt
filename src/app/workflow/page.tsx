@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useProjectStore } from '@/entities/project';
 import { Icon } from '@/components/ui/Icon';
+import { useSeedancePolling } from '@/features/seedance/status';
 
 interface WorkflowData {
   story: string;
@@ -245,6 +246,13 @@ export default function WorkflowPage() {
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
+  const [videoJobIds, setVideoJobIds] = useState<string[]>([]);
+  const [videoProvider, setVideoProvider] = useState<'seedance' | 'veo3' | 'mock' | null>(null);
+  
+  // Seedance 작업 상태 폴링
+  const { statuses: seedanceStatuses, error: seedanceError } = useSeedancePolling(
+    videoProvider === 'seedance' ? videoJobIds : []
+  );
 
   // Step3 기본값 자동 설정: 필수 프롬프트 값이 비어있으면 합리적 기본값을 채워 버튼 활성화
   useEffect(() => {
@@ -487,6 +495,9 @@ export default function WorkflowPage() {
     if (!workflowData.story.trim() || !workflowData.prompt.visualStyle) return;
 
     setIsGenerating(true);
+    setVideoJobIds([]);
+    setVideoProvider(null);
+    
     try {
       const prompt = `${workflowData.story} - ${workflowData.prompt.visualStyle} 스타일, ${workflowData.prompt.mood} 분위기, ${workflowData.prompt.quality} 화질, ${workflowData.prompt.directorStyle} 연출로 ${workflowData.video.duration}초 영상`;
 
@@ -495,16 +506,29 @@ export default function WorkflowPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt,
-          model: workflowData.video.model,
+          provider: workflowData.video.model,
           duration: workflowData.video.duration,
+          aspectRatio: '16:9',
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        setGeneratedVideo(
-          data.videoUrl || 'https://via.placeholder.com/400x300/6366f1/ffffff?text=생성된+영상',
-        );
+        
+        // 제공자별로 상태 추적 설정
+        setVideoProvider(data.provider);
+        
+        if (data.provider === 'seedance' && data.jobId) {
+          setVideoJobIds([data.jobId]);
+        } else if (data.provider === 'veo3' && data.operationId) {
+          // Veo3의 경우 operationId로 상태 추적 (추후 구현)
+          console.log('Veo3 operation started:', data.operationId);
+        } else if (data.provider === 'mock' && data.videoUrl) {
+          // Mock 영상은 즉시 완료
+          setGeneratedVideo(data.videoUrl);
+          setIsGenerating(false);
+        }
+
         project.setVideo({
           provider: (data.provider as any) || undefined,
           jobId: data.jobId,
@@ -512,15 +536,8 @@ export default function WorkflowPage() {
           videoUrl: data.videoUrl,
           status: data.status,
         });
-        if (data.videoUrl) {
-          project.addVersion({
-            id: crypto.randomUUID(),
-            label: 'v1',
-            src: data.videoUrl,
-            uploadedAt: new Date().toISOString(),
-          });
-        }
-        // 영속 저장(MVP): promptId가 있다면 저장(현재는 샘플, 추후 실제 promptId 전달)
+
+        // 영속 저장
         try {
           const res = await fetch('/api/planning/videos', {
             method: 'POST',
@@ -528,7 +545,7 @@ export default function WorkflowPage() {
             body: JSON.stringify({
               promptId: (project as any).promptId || '00000000-0000-0000-0000-000000000000',
               provider: data.provider || 'mock',
-              status: data.status || 'completed',
+              status: data.status || (data.videoUrl ? 'completed' : 'processing'),
               url: data.videoUrl || null,
               version: 1,
             }),
@@ -540,13 +557,48 @@ export default function WorkflowPage() {
         } catch (e) {
           console.error('영상 메타 저장 실패(무시):', e);
         }
+      } else {
+        throw new Error('영상 생성 API 호출 실패');
       }
     } catch (error) {
       console.error('영상 생성 실패:', error);
-    } finally {
       setIsGenerating(false);
     }
-  }, [workflowData]);
+  }, [workflowData, project]);
+
+  // Seedance 상태 변화 감지 및 완료된 영상 처리
+  useEffect(() => {
+    if (videoProvider === 'seedance' && videoJobIds.length > 0) {
+      const firstJobId = videoJobIds[0];
+      const status = seedanceStatuses[firstJobId];
+      
+      if (status) {
+        if (status.status === 'completed' && status.videoUrl) {
+          setGeneratedVideo(status.videoUrl);
+          setIsGenerating(false);
+          
+          // 프로젝트 스토어 업데이트
+          project.setVideo({
+            provider: 'seedance',
+            jobId: firstJobId,
+            videoUrl: status.videoUrl,
+            status: 'completed',
+          });
+          
+          // 버전 추가
+          project.addVersion({
+            id: crypto.randomUUID(),
+            label: 'v1',
+            src: status.videoUrl,
+            uploadedAt: new Date().toISOString(),
+          });
+        } else if (status.status === 'failed') {
+          console.error('Seedance 영상 생성 실패');
+          setIsGenerating(false);
+        }
+      }
+    }
+  }, [seedanceStatuses, videoJobIds, videoProvider, project]);
 
   // 초기 프로젝트 ID 생성
   useEffect(() => {
@@ -1599,6 +1651,70 @@ export default function WorkflowPage() {
                       '영상 생성 시작'
                     )}
                   </button>
+
+                  {/* Real-time Status Display */}
+                  {isGenerating && (
+                    <div className="mt-6 rounded-lg bg-blue-50 p-4">
+                      <div className="text-center">
+                        <h4 className="mb-2 font-semibold text-blue-800">
+                          {videoProvider === 'seedance' ? 'Seedance' : 
+                           videoProvider === 'veo3' ? 'Google Veo3' : 
+                           videoProvider === 'mock' ? 'Mock Generator' : 'AI'} 영상 생성 중
+                        </h4>
+                        
+                        {videoProvider === 'seedance' && videoJobIds.length > 0 && (
+                          <div className="mt-3">
+                            {videoJobIds.map(jobId => {
+                              const status = seedanceStatuses[jobId];
+                              return (
+                                <div key={jobId} className="mb-2">
+                                  <div className="text-sm text-blue-700">
+                                    작업 ID: <code className="bg-blue-100 px-2 py-1 rounded">{jobId}</code>
+                                  </div>
+                                  {status && (
+                                    <div className="mt-2 space-y-1">
+                                      <div className="text-sm">
+                                        상태: <span className="font-medium">{
+                                          status.status === 'processing' ? '처리 중' :
+                                          status.status === 'completed' ? '완료' :
+                                          status.status === 'failed' ? '실패' :
+                                          status.status === 'queued' ? '대기 중' : status.status
+                                        }</span>
+                                      </div>
+                                      {status.progress !== undefined && (
+                                        <div>
+                                          <div className="flex justify-between text-sm text-blue-600">
+                                            <span>진행률</span>
+                                            <span>{Math.round(status.progress * 100)}%</span>
+                                          </div>
+                                          <div className="mt-1 w-full bg-blue-200 rounded-full h-2">
+                                            <div 
+                                              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                              style={{ width: `${status.progress * 100}%` }}
+                                            />
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        
+                        {seedanceError && (
+                          <div className="mt-3 text-sm text-red-600">
+                            오류: {seedanceError}
+                          </div>
+                        )}
+                        
+                        <div className="mt-4 text-xs text-blue-600">
+                          영상 생성에는 보통 1-3분이 소요됩니다. 페이지를 새로고침하지 마세요.
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Generated Video Display */}
