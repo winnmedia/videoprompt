@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import Link from 'next/link';
 import './globals.css';
-import { assertEnvInitialized } from '@/shared/config/env';
 import { Logo, ToastProvider } from '@/shared/ui';
 import { MainNav } from '@/components/layout/MainNav';
 
