@@ -8,9 +8,7 @@ import { Icon } from '@/shared/ui';
 import { Logo } from '@/shared/ui';
 import { Loading, Skeleton } from '@/shared/ui/Loading';
 import { useToast } from '@/shared/lib/hooks';
-import { AutoSaveStatus } from '@/shared/ui';
 import { StepProgress } from '@/shared/ui/Progress';
-import { useAutoSave } from '@/shared/lib/hooks/useAutoSave';
 import { 
   generateConsistentPrompt, 
   extractStoryboardConfig,
@@ -107,40 +105,42 @@ export default function ScenarioPage() {
     shots
   }), [storyInput, storySteps, shots]);
 
-  // 자동 저장 기능
-  const { isSaving, lastSaved, saveNow } = useAutoSave(
-    autoSaveData,
-    async (data) => {
+  // 수동 저장 기능
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  
+  const saveManually = async () => {
+    if (isSaving) return;
+    
+    try {
+      setIsSaving(true);
+      
       // 프로젝트 스토어에 저장
       project.setScenario({
-        title: data.title,
-        story: data.oneLineStory,
-        tone: data.toneAndManner,
-        genre: data.genre,
-        target: data.target,
-        format: data.format,
-        tempo: data.tempo,
-        developmentMethod: data.developmentMethod,
-        developmentIntensity: data.developmentIntensity,
-        durationSec: parseInt(data.duration, 10) || undefined,
+        title: autoSaveData.title,
+        story: autoSaveData.oneLineStory,
+        tone: autoSaveData.toneAndManner,
+        genre: autoSaveData.genre,
+        target: autoSaveData.target,
+        format: autoSaveData.format,
+        tempo: autoSaveData.tempo,
+        developmentMethod: autoSaveData.developmentMethod,
+        developmentIntensity: autoSaveData.developmentIntensity,
+        durationSec: parseInt(autoSaveData.duration, 10) || undefined,
       });
-    },
-    {
-      delay: 2000,
-      onSuccess: () => {
-        toast.success('시나리오 데이터가 자동으로 저장되었습니다.', '자동 저장 완료', { duration: 3000 });
-      },
-      onError: (error) => {
-        toast.error(error.message, '자동 저장 실패', { 
-          duration: 5000,
-          action: {
-            label: '다시 시도',
-            onClick: saveNow,
-          },
-        });
-      },
+      
+      setLastSaved(new Date());
+      toast.success('시나리오가 임시 저장되었습니다.', '저장 완료', { duration: 3000 });
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : '저장 중 오류가 발생했습니다.',
+        '저장 실패',
+        { duration: 5000 }
+      );
+    } finally {
+      setIsSaving(false);
     }
-  );
+  };
 
   // 에러 상태 추가
   const [error, setError] = useState<string | null>(null);
@@ -762,39 +762,40 @@ export default function ScenarioPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* 헤더 */}
-      <header className="border-b bg-white shadow-sm">
+      {/* 임시저장 상태바 */}
+      <div className="bg-white border-b">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            <Logo size="lg" />
-            <nav className="hidden items-center space-x-8 md:flex">
-              <a href="/" className="font-medium text-gray-700 hover:text-primary-600">
-                홈
-              </a>
-              <a href="/planning" className="font-medium text-gray-700 hover:text-primary-600">
-                기획안 관리
-              </a>
-            </nav>
-            <div className="flex items-center space-x-4">
-              <AutoSaveStatus
-                isSaving={isSaving}
-                lastSaved={lastSaved}
-                className="hidden sm:flex"
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  saveNow();
-                  toast.info('수동 저장을 실행했습니다.', undefined, { duration: 2000 });
-                }}
-              >
-                저장
-              </Button>
-            </div>
+          <div className="flex h-12 items-center justify-end space-x-4">
+            {lastSaved && (
+              <div className="hidden sm:flex items-center space-x-2 text-sm" role="status" aria-label="저장 상태">
+                <div className="h-2 w-2 rounded-full bg-success-500" aria-hidden="true" />
+                <span className="text-gray-600">
+                  마지막 저장: {lastSaved.toLocaleTimeString('ko-KR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+              </div>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={saveManually}
+              disabled={isSaving}
+              aria-label={isSaving ? '저장 중' : '임시저장 실행'}
+            >
+              {isSaving ? (
+                <>
+                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" aria-hidden="true" />
+                  저장 중...
+                </>
+              ) : (
+                '임시저장'
+              )}
+            </Button>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* 메인 콘텐츠 */}
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
