@@ -3,6 +3,7 @@ const nextConfig = {
   // Next.js 15.4.6 Vercel 호환성을 위한 최소 설정
   // Next.js 15: serverExternalPackages supersedes experimental.serverComponentsExternalPackages
   serverExternalPackages: ['@prisma/client'],
+
   
   // 번들 크기 최적화 - Vercel 250MB 제한 해결
   outputFileTracingExcludes: {
