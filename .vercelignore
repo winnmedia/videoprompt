@@ -26,7 +26,6 @@ playwright.config.*
 eslint.config.*
 prettier.config.*
 tailwind.config.*
-tsconfig*.json
 
 # Git 히스토리 (배포 시 불필요)
 .git/
