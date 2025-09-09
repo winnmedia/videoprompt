@@ -50,16 +50,41 @@ const baseStyles = `
     
     /* Header styles */
     .email-header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
       color: #ffffff;
       padding: 40px 30px;
       text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .email-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="80" cy="40" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="40" cy="80" r="1.5" fill="rgba(255,255,255,0.1)"/></svg>');
+      opacity: 0.3;
+      z-index: 0;
     }
     
     .email-header h1 {
       margin: 0;
       font-size: 28px;
-      font-weight: 600;
+      font-weight: 700;
+      position: relative;
+      z-index: 1;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .logo-icon {
+      display: inline-block;
+      margin-bottom: 10px;
+      font-size: 32px;
+      position: relative;
+      z-index: 1;
     }
     
     /* Content styles */
@@ -83,19 +108,76 @@ const baseStyles = `
     /* Button styles */
     .button {
       display: inline-block;
-      padding: 14px 30px;
-      margin: 20px 0;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 16px 32px;
+      margin: 25px 0;
+      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
       color: #ffffff !important;
       text-decoration: none;
-      border-radius: 5px;
+      border-radius: 8px;
       font-weight: 600;
       font-size: 16px;
-      transition: opacity 0.3s;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      transition: all 0.3s ease;
+      letter-spacing: 0.5px;
     }
     
     .button:hover {
-      opacity: 0.9;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    }
+    
+    /* Code block styles */
+    .code-block {
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      border: 2px solid #3b82f6;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 25px auto;
+      max-width: 200px;
+      text-align: center;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 4px;
+      color: #1d4ed8;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      position: relative;
+    }
+    
+    .code-block::before {
+      content: '🔒';
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ffffff;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 14px;
+    }
+    
+    .highlight-box {
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      border-left: 4px solid #3b82f6;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      position: relative;
+    }
+    
+    .highlight-box::before {
+      content: 'ℹ️';
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      font-size: 16px;
+    }
+    
+    .highlight-box p {
+      margin-left: 30px;
+      margin-bottom: 0;
+      color: #1e40af;
+      font-weight: 500;
     }
     
     .button-secondary {
@@ -220,33 +302,59 @@ export function generateVerificationTemplate(
   
   const html = wrapTemplate(`
     <div class="email-header">
-      <h1>${validatedData.appName}</h1>
+      <div class="logo-icon">🎬</div>
+      <h1>VLANET</h1>
+      <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">AI 영상 제작 플랫폼</p>
     </div>
     
     <div class="email-content">
-      <h2>이메일 인증</h2>
+      <h2 style="color: #1d4ed8; margin-bottom: 10px;">🎉 회원가입을 환영합니다!</h2>
       
-      <p>안녕하세요, ${validatedData.recipientName}님!</p>
+      <p>안녕하세요, <strong>${validatedData.recipientName}</strong>님!</p>
       
-      <p>${validatedData.appName} 가입을 환영합니다. 아래 버튼을 클릭하여 이메일 주소를 인증해주세요.</p>
+      <p>VLANET에 가입해주셔서 감사합니다. AI로 멋진 영상을 만들 준비가 거의 끝났어요!</p>
+      
+      <div class="highlight-box">
+        <p><strong>이메일 인증을 완료하시면 모든 기능을 이용하실 수 있습니다.</strong></p>
+      </div>
+      
+      <p style="text-align: center; margin: 30px 0 10px 0; font-weight: 600; color: #374151;">
+        👇 아래 버튼을 클릭하여 인증을 완료하세요
+      </p>
       
       <div style="text-align: center;">
-        <a href="${validatedData.verificationLink}" class="button">이메일 인증하기</a>
+        <a href="${validatedData.verificationLink}" class="button">✨ 이메일 인증하기 ✨</a>
       </div>
       
-      <p>또는 아래 인증 코드를 입력하세요:</p>
-      
-      <div class="code-block">
-        ${validatedData.verificationCode}
+      <div style="text-align: center; margin: 30px 0;">
+        <p style="margin-bottom: 10px; color: #6b7280; font-weight: 500;">또는 6자리 인증 코드를 입력하세요</p>
+        <div class="code-block">
+          ${validatedData.verificationCode}
+        </div>
       </div>
       
-      <p style="color: #999999; font-size: 14px;">
-        이 링크는 ${validatedData.expiresIn} 동안 유효합니다.
-      </p>
+      <div style="background: #fef3c7; border-radius: 8px; padding: 20px; margin: 25px 0; border-left: 4px solid #f59e0b;">
+        <p style="margin: 0; color: #92400e; font-size: 14px;">
+          ⏰ <strong>중요:</strong> 이 인증 링크는 <strong>${validatedData.expiresIn}</strong> 동안만 유효합니다.
+        </p>
+      </div>
       
-      <p style="color: #999999; font-size: 14px;">
-        본인이 가입 신청을 하지 않으셨다면, 이 이메일을 무시하셔도 됩니다.
-      </p>
+      <div style="border-top: 1px solid #e5e7eb; padding-top: 25px; margin-top: 30px;">
+        <h3 style="color: #374151; font-size: 18px; margin-bottom: 15px;">🚀 VLANET에서 할 수 있는 일들:</h3>
+        <ul style="color: #6b7280; line-height: 1.8;">
+          <li>📝 <strong>AI 시나리오 생성:</strong> 아이디어만 입력하면 완성된 시나리오를 받아보세요</li>
+          <li>🎥 <strong>프롬프트 최적화:</strong> 영상 생성에 최적화된 프롬프트를 AI가 만들어 드려요</li>
+          <li>⚡ <strong>빠른 영상 생성:</strong> 몇 분 만에 전문가급 영상을 만들 수 있어요</li>
+          <li>📊 <strong>피드백 분석:</strong> 생성된 영상의 품질을 자동으로 분석해 드려요</li>
+        </ul>
+      </div>
+      
+      <div style="background: #f3f4f6; border-radius: 8px; padding: 20px; margin: 25px 0; text-align: center;">
+        <p style="margin: 0; color: #6b7280; font-size: 14px;">
+          🤔 <strong>회원가입을 하신 적이 없으신가요?</strong><br>
+          이 이메일을 무시하시면 자동으로 계정이 삭제됩니다.
+        </p>
+      </div>
     </div>
     
     <div class="email-footer">
@@ -259,23 +367,34 @@ export function generateVerificationTemplate(
   `, '이메일 인증 - ' + validatedData.appName);
   
   const text = `
-${validatedData.appName} - 이메일 인증
+🎬 VLANET - AI 영상 제작 플랫폼
+
+🎉 회원가입을 환영합니다!
 
 안녕하세요, ${validatedData.recipientName}님!
 
-${validatedData.appName} 가입을 환영합니다. 아래 링크를 클릭하여 이메일 주소를 인증해주세요.
+VLANET에 가입해주셔서 감사합니다. AI로 멋진 영상을 만들 준비가 거의 끝났어요!
 
-인증 링크: ${validatedData.verificationLink}
+이메일 인증을 완료하시면 모든 기능을 이용하실 수 있습니다.
 
-또는 아래 인증 코드를 입력하세요:
-${validatedData.verificationCode}
+✨ 이메일 인증하기: ${validatedData.verificationLink}
 
-이 링크는 ${validatedData.expiresIn} 동안 유효합니다.
+또는 6자리 인증 코드를 입력하세요:
+🔒 인증 코드: ${validatedData.verificationCode}
 
-본인이 가입 신청을 하지 않으셨다면, 이 이메일을 무시하셔도 됩니다.
+⏰ 중요: 이 인증 링크는 ${validatedData.expiresIn} 동안만 유효합니다.
+
+🚀 VLANET에서 할 수 있는 일들:
+📝 AI 시나리오 생성: 아이디어만 입력하면 완성된 시나리오를 받아보세요
+🎥 프롬프트 최적화: 영상 생성에 최적화된 프롬프트를 AI가 만들어 드려요  
+⚡ 빠른 영상 생성: 몇 분 만에 전문가급 영상을 만들 수 있어요
+📊 피드백 분석: 생성된 영상의 품질을 자동으로 분석해 드려요
+
+🤔 회원가입을 하신 적이 없으신가요?
+이 이메일을 무시하시면 자동으로 계정이 삭제됩니다.
 
 ---
-${validatedData.year} ${validatedData.appName}. All rights reserved.
+${validatedData.year} VLANET. All rights reserved.
 웹사이트: ${validatedData.appUrl}
 지원팀: ${validatedData.supportEmail}
   `.trim();
@@ -283,7 +402,7 @@ ${validatedData.year} ${validatedData.appName}. All rights reserved.
   return {
     html,
     text,
-    subject: `[${validatedData.appName}] 이메일 인증을 완료해주세요`,
+    subject: `🎬 [VLANET] 이메일 인증으로 AI 영상 제작을 시작하세요! (${validatedData.verificationCode})`,
   };
 }
 

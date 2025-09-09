@@ -9,6 +9,18 @@ import { sendVerificationEmail } from '@/lib/email/sender';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+// CORS preflight 처리
+export async function OPTIONS(req: NextRequest) {
+  return new Response(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+}
+
 const RegisterSchema = z.object({
   email: z.string().email(),
   username: z.string().min(3).max(32),
@@ -124,7 +136,9 @@ export async function POST(req: NextRequest) {
     });
 
     return success({
-      ...result,
+      ok: true,
+      data: result,
+      requireEmailVerification: true,
       message: '회원가입이 완료되었습니다. 이메일을 확인하여 계정을 인증해주세요.',
     }, 201, traceId);
   } catch (e: any) {
