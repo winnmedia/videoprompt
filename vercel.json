@@ -16,27 +16,22 @@
   },
   "functions": {
     "src/app/api/**/*.ts": {
-      "runtime": "nodejs20.x",
       "maxDuration": 30,
       "memory": 1024
     },
     "src/app/api/auth/**/*.ts": {
-      "runtime": "nodejs20.x",
       "maxDuration": 15,
       "memory": 512
     },
     "src/app/api/ai/**/*.ts": {
-      "runtime": "nodejs20.x",
       "maxDuration": 60,
       "memory": 1024
     },
     "src/app/api/seedance/**/*.ts": {
-      "runtime": "nodejs20.x",
       "maxDuration": 120,
       "memory": 1024
     },
     "src/app/api/veo/**/*.ts": {
-      "runtime": "nodejs20.x",
       "maxDuration": 120,
       "memory": 1024
     }
