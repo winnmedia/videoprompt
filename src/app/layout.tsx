@@ -15,14 +15,8 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  // 런타임 환경변수 스키마 검증 (서버에서만 실행)
-  if (typeof window === 'undefined') {
-    try {
-      assertEnvInitialized();
-    } catch (error) {
-      console.warn('Environment validation failed during static generation:', error);
-    }
-  }
+  // 환경변수 검증은 API 라우트에서 개별적으로 처리
+  // Static generation 중에는 환경변수가 없을 수 있으므로 여기서는 체크하지 않음
   return (
     <html lang="ko">
       <body className={`${inter.className} bg-white text-gray-900`}>
