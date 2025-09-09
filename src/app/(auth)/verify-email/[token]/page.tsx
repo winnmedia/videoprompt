@@ -7,9 +7,9 @@ import { Logo } from '@/components/ui/Logo';
 import { Button } from '@/components/ui/Button';
 
 interface VerifyEmailTokenPageProps {
-  params: {
+  params: Promise<{
     token: string;
-  };
+  }>;
 }
 
 export default function VerifyEmailTokenPage({ params }: VerifyEmailTokenPageProps) {
@@ -17,15 +17,28 @@ export default function VerifyEmailTokenPage({ params }: VerifyEmailTokenPagePro
   const [verificationStatus, setVerificationStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
   const [errorMessage, setErrorMessage] = useState('');
   const [countdown, setCountdown] = useState(5);
+  const [token, setToken] = useState<string>('');
 
   useEffect(() => {
+    // params Promise 처리
+    const handleParams = async () => {
+      const resolvedParams = await params;
+      setToken(resolvedParams.token);
+    };
+    
+    handleParams();
+  }, [params]);
+
+  useEffect(() => {
+    if (!token) return;
+    
     // 토큰 검증 API 호출
     const verifyEmail = async () => {
       try {
         const response = await fetch('/api/auth/verify-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: params.token }),
+          body: JSON.stringify({ token }),
         });
 
         const data = await response.json();
@@ -45,7 +58,7 @@ export default function VerifyEmailTokenPage({ params }: VerifyEmailTokenPagePro
     };
 
     verifyEmail();
-  }, [params.token]);
+  }, [token]);
 
   // 성공 시 자동 리다이렉트 카운트다운
   useEffect(() => {
