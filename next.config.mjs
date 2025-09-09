@@ -93,17 +93,21 @@ const nextConfig = {
     // optimizePackageImports: ['@/components/ui', '@/lib/providers'],
   },
   
-  // API 라우팅 설정 - 강제로 Railway 백엔드 사용
+  // API 라우팅 설정 - 하이브리드 접근: 인증은 Next.js, 나머지는 Railway
   async rewrites() {
     const apiBase = 'https://videoprompt-production.up.railway.app';
-    console.log('🚀 Using Railway backend API proxy for all API calls');
+    console.log('🚀 Using Railway backend API proxy for business logic APIs (auth handled by Next.js)');
 
     return [
-      // Authentication API
-      { source: '/api/auth/:path*', destination: `${apiBase}/api/auth/:path*` },
+      // Authentication API는 Next.js에서 직접 처리 (프록시하지 않음)
+      // - /api/auth/register: Next.js에서 처리
+      // - /api/auth/send-verification: Next.js에서 처리  
+      // - /api/auth/verify-code: Next.js에서 처리
+      // - /api/auth/login: Next.js에서 처리 (추후 구현 시)
+      
       // User API
       { source: '/api/user/:path*', destination: `${apiBase}/api/user/:path*` },
-      // Email API
+      // Email API (SendGrid 관련만 Railway로)
       { source: '/api/email/:path*', destination: `${apiBase}/api/email/:path*` },
       // Health API
       { source: '/api/health/:path*', destination: `${apiBase}/api/health/:path*` },

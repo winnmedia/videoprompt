@@ -10,12 +10,28 @@
   "env": {
     "NODE_ENV": "production",
     "NEXT_TELEMETRY_DISABLED": "1",
-    "FORCE_REBUILD": "2025-09-09-TAILWIND-CSS-EMERGENCY-FIX"
+    "FORCE_REBUILD": "2025-09-09-API-ROUTING-FIX"
   },
   "functions": {
     "src/app/api/**/route.ts": {
       "maxDuration": 30,
       "memory": 512
+    },
+    "src/app/api/auth/**/route.ts": {
+      "maxDuration": 15,
+      "memory": 256
+    },
+    "src/app/api/auth/register/route.ts": {
+      "maxDuration": 20,
+      "memory": 512
+    },
+    "src/app/api/auth/send-verification/route.ts": {
+      "maxDuration": 15,
+      "memory": 256
+    },
+    "src/app/api/auth/verify-code/route.ts": {
+      "maxDuration": 10,
+      "memory": 256
     }
   },
   "headers": [
