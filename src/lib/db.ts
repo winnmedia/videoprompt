@@ -7,13 +7,19 @@ declare global {
 
 // 연결 재시도 설정
 const createPrismaClient = () => {
-  // 빌드 시에는 DATABASE_URL이 없을 수 있으므로 체크를 런타임으로 미룸
   const databaseUrl = process.env.DATABASE_URL;
   
-  // 런타임에만 에러를 발생시킴 (빌드 타임에는 체크하지 않음)
+  // 프로덕션에서 DATABASE_URL이 없으면 명시적으로 에러 발생
   if (typeof window === 'undefined' && !databaseUrl && process.env.NODE_ENV === 'production') {
-    console.error('DATABASE_URL environment variable is not set in production');
-    // Graceful degradation - 빌드는 계속 진행
+    const error = new Error('DATABASE_URL environment variable is not set in production environment');
+    console.error('❌ Prisma Client Creation Error:', error.message);
+    console.error('Available environment variables:', Object.keys(process.env).filter(key => key.includes('DATABASE')));
+    throw error;
+  }
+  
+  // 개발환경에서도 DATABASE_URL 체크
+  if (!databaseUrl) {
+    console.warn('⚠️ DATABASE_URL not found, using placeholder URL for development');
   }
   
   return new PrismaClient({
