@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { signSessionToken } from '@/shared/lib/auth';
+import { setCorsHeaders } from '@/shared/lib/cors-utils';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -16,6 +17,13 @@ const LoginSchema = z.object({
 }).refine((d) => !!(d.email || d.username || d.id), {
   message: 'Provide email or username or id',
 });
+
+// ✅ CORS OPTIONS 핸들러 - 프리플라이트 요청 처리
+export async function OPTIONS(req: NextRequest) {
+  const response = new NextResponse(null, { status: 200 });
+  setCorsHeaders(response);
+  return response;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,10 +40,18 @@ export async function POST(req: NextRequest) {
       },
       select: { id: true, email: true, username: true, passwordHash: true, createdAt: true },
     });
-    if (!user) return failure('NOT_FOUND', '사용자를 찾을 수 없습니다.', 404, undefined, traceId);
+    if (!user) {
+      const response = failure('NOT_FOUND', '사용자를 찾을 수 없습니다.', 404, undefined, traceId);
+      setCorsHeaders(response);
+      return response;
+    }
 
     const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) return failure('UNAUTHORIZED', '비밀번호가 올바르지 않습니다.', 401, undefined, traceId);
+    if (!ok) {
+      const response = failure('UNAUTHORIZED', '비밀번호가 올바르지 않습니다.', 401, undefined, traceId);
+      setCorsHeaders(response);
+      return response;
+    }
 
     // 세션 쿠키 발급 (HttpOnly)
     const token = signSessionToken({ userId: user.id, email: user.email, username: user.username });
@@ -47,10 +63,14 @@ export async function POST(req: NextRequest) {
       path: '/',
       maxAge: 60 * 60 * 24 * 7,
     });
+    setCorsHeaders(res);
     return res;
   } catch (e: any) {
-    if (e instanceof z.ZodError) return failure('INVALID_INPUT_FIELDS', e.message, 400);
-    return failure('UNKNOWN', e?.message || 'Server error', 500);
+    const response = e instanceof z.ZodError 
+      ? failure('INVALID_INPUT_FIELDS', e.message, 400)
+      : failure('UNKNOWN', e?.message || 'Server error', 500);
+    setCorsHeaders(response);
+    return response;
   }
 }
 
