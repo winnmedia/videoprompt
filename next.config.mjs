@@ -1,7 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 배포 최적화를 위한 standalone 모드
-  output: 'standalone',
+  // ⚠️ VERCEL CRITICAL: standalone 모드는 API Routes를 Functions로 빌드하지 않음
+  // Vercel에서는 기본 모드를 사용해야 API Routes가 Serverless Functions로 처리됨
+  // output: 'standalone', // <- Vercel 배포 시 제거
   
   // 압축 및 헤더 최적화
   compress: true,
