@@ -20,17 +20,6 @@ const prismaClientSingleton = () => {
       ? ['query', 'error', 'warn'] 
       : ['error'],
     
-    // 프로덕션 환경 최적화
-    __internal: {
-      engine: {
-        // 연결 타임아웃 설정 (Vercel Functions 제한 고려)
-        connectTimeout: 10000,
-        pool: {
-          timeout: 10000,
-        }
-      }
-    },
-
     // 에러 포맷팅
     errorFormat: 'pretty',
   });

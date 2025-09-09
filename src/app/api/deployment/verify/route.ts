@@ -44,6 +44,12 @@ export async function GET() {
       nodeVersion: process.version,
       platform: process.platform,
       arch: process.arch,
+    },
+    // 데이터베이스 상태
+    database: {
+      prismaClientAvailable: false,
+      status: 'unknown',
+      error: undefined as string | undefined
     }
   };
 
@@ -78,7 +84,8 @@ export async function GET() {
     const { PrismaClient } = require('@prisma/client');
     deploymentInfo.database = {
       prismaClientAvailable: true,
-      status: 'client_initialized'
+      status: 'client_initialized',
+      error: undefined
     };
   } catch (error) {
     deploymentInfo.database = {

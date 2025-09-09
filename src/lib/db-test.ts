@@ -40,16 +40,7 @@ export const testDatabaseConnection = async (
           url: config.url
         }
       },
-      log: ['error'],
-      // 프로덕션 환경 최적화
-      __internal: {
-        engine: {
-          connectTimeout: config.timeout || 10000,
-          pool: {
-            timeout: config.timeout || 10000
-          }
-        }
-      }
+      log: ['error']
     });
 
     // 기본 연결 테스트
