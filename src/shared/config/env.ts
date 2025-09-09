@@ -15,8 +15,7 @@ const EnvSchema = z.object({
     .refine(
       (v) => v.startsWith('postgresql://') || v.startsWith('postgres://') || v.startsWith('file:'),
       'DATABASE_URL must start with postgresql://, postgres://, or file:',
-    )
-    .optional(),
+    ),
   
   // JWT 인증 토큰
   JWT_SECRET: z

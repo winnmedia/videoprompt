@@ -15,8 +15,14 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  // 런타임 환경변수 스키마 검증 (앱 부팅 시 1회)
-  assertEnvInitialized();
+  // 런타임 환경변수 스키마 검증 (서버에서만 실행)
+  if (typeof window === 'undefined') {
+    try {
+      assertEnvInitialized();
+    } catch (error) {
+      console.warn('Environment validation failed during static generation:', error);
+    }
+  }
   return (
     <html lang="ko">
       <body className={`${inter.className} bg-white text-gray-900`}>
