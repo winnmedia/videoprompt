@@ -3,9 +3,10 @@ import { PrismaClient } from '@prisma/client';
 // 환경 변수 검증
 const validateDatabaseUrl = (url?: string): string => {
   if (!url) {
-    console.warn('⚠️  DATABASE_URL 환경 변수가 설정되지 않았습니다. 기본값 사용.');
-    // 임시 기본값 (프로덕션에서는 실제 환경 변수 설정 필요)
-    return 'postgresql://postgres:temp@localhost:5432/temp_db';
+    console.warn('⚠️  DATABASE_URL 환경 변수가 설정되지 않았습니다.');
+    console.warn('⚠️  데이터베이스 기능이 제한됩니다. 환경 변수를 설정하세요.');
+    // 프로덕션에서도 placeholder URL 반환
+    return 'postgresql://placeholder:placeholder@placeholder:5432/placeholder';
   }
   if (!url.startsWith('postgresql://') && !url.startsWith('postgres://')) {
     console.warn('⚠️  유효하지 않은 DATABASE_URL 형식입니다. 원본 URL 사용:', url);
