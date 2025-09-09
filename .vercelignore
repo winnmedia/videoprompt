@@ -39,8 +39,13 @@ build/
 node_modules/.pnpm/
 .pnpm-debug.log
 
-# 의존성 - 세밀한 제어
-node_modules/
+# 의존성 - 세밀한 제어 (Prisma Client 포함을 위해 주석 처리)
+# node_modules/
+
+# Prisma Client와 필수 의존성은 반드시 포함
+!node_modules/.prisma/
+!node_modules/@prisma/client/
+!node_modules/@prisma/engines/
 
 # Prisma 엔진 최적화 (사용하지 않는 플랫폼 엔진 제외)
 node_modules/@prisma/engines/
