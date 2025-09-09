@@ -5,6 +5,8 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/db';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { sendVerificationEmail } from '@/lib/email/sender';
+import { safeParseRequestBody } from '@/lib/json-utils';
+import { executeDatabaseOperation, createDatabaseErrorResponse } from '@/lib/database-middleware';
 
 
 // CORS preflight 처리
@@ -36,128 +38,120 @@ export async function POST(req: NextRequest) {
   });
   
   try {
-    // Request body 파싱
-    let body;
-    try {
-      const rawBody = await req.text();
-      console.log(`[Register ${traceId}] Raw body:`, rawBody);
-      body = JSON.parse(rawBody);
-      console.log(`[Register ${traceId}] Parsed body:`, body);
-    } catch (e) {
-      console.error(`[Register ${traceId}] Failed to parse request body:`, e);
-      const errorMessage = e instanceof Error ? e.message : String(e);
-      return failure('INVALID_REQUEST', '잘못된 요청 형식입니다. JSON 파싱 실패.', 400, `Error: ${errorMessage}`, traceId);
+    // Request body 안전 파싱
+    const parseResult = await safeParseRequestBody(req, RegisterSchema);
+    if (!parseResult.success) {
+      console.error(`[Register ${traceId}] JSON 파싱 실패:`, parseResult.error);
+      return failure('INVALID_REQUEST', '잘못된 요청 형식입니다.', 400, parseResult.error, traceId);
     }
     
-    // 입력값 검증
-    let email, username, password;
-    try {
-      const validatedData = RegisterSchema.parse(body);
-      email = validatedData.email;
-      username = validatedData.username;
-      password = validatedData.password;
-      console.log(`[Register ${traceId}] ✅ 입력값 검증 성공:`, { email, username, passwordLength: password.length });
-    } catch (validationError) {
-      console.error(`[Register ${traceId}] ❌ 입력값 검증 실패:`, validationError);
-      if (validationError instanceof z.ZodError) {
-        const errorMessage = validationError.issues.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
-        return failure('INVALID_INPUT_FIELDS', errorMessage, 400, undefined, traceId);
-      }
-      return failure('INVALID_INPUT', '입력값이 올바르지 않습니다.', 400, undefined, traceId);
-    }
+    const { email, username, password } = parseResult.data;
+    console.log(`[Register ${traceId}] ✅ 입력값 파싱 및 검증 성공:`, { email, username, passwordLength: password.length });
+    
+    // 중복 사용자 확인 및 사용자 생성을 데이터베이스 작업으로 래핑
 
-    const existing = await prisma.user.findFirst({
-      where: { OR: [{ email }, { username }] },
-      select: { id: true },
-    });
-    if (existing) {
-      return failure('DUPLICATE_USER', '이미 사용 중인 이메일 또는 사용자명입니다.', 409, undefined, traceId);
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    // Create user in a transaction with email verification record
-    const result = await prisma.$transaction(async (tx) => {
-      // Create the user
-      const user = await tx.user.create({
-        data: {
-          email,
-          username,
-          passwordHash,
-          role: 'user',
-          emailVerified: false,
-        },
-        select: { id: true, email: true, username: true, createdAt: true },
+    // 1단계: 데이터베이스 작업 (트랜잭션 내에서 수행)
+    const { user, verificationData } = await executeDatabaseOperation(async () => {
+      // 중복 사용자 확인
+      const existing = await prisma.user.findFirst({
+        where: { OR: [{ email }, { username }] },
+        select: { id: true },
       });
+      if (existing) {
+        throw new Error('DUPLICATE_USER');
+      }
+
+      const passwordHash = await bcrypt.hash(password, 10);
 
       // Generate secure verification token and 6-digit code
       const verificationToken = crypto.randomBytes(32).toString('hex');
       const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
       
-      // Create email verification record (expires in 24 hours)
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-      
-      await tx.emailVerification.create({
-        data: {
-          email,
-          token: verificationToken,
-          code: verificationCode,
-          userId: user.id,
-          expiresAt,
-        },
+      // Create user in a transaction with email verification record (이메일 전송 제외)
+      const result = await prisma.$transaction(async (tx) => {
+        // Create the user
+        const user = await tx.user.create({
+          data: {
+            email,
+            username,
+            passwordHash,
+            role: 'user',
+            emailVerified: false,
+          },
+          select: { id: true, email: true, username: true, createdAt: true },
+        });
+
+        // Create email verification record (expires in 24 hours)
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        
+        await tx.emailVerification.create({
+          data: {
+            email,
+            token: verificationToken,
+            code: verificationCode,
+            userId: user.id,
+            expiresAt,
+          },
+        });
+
+        return { user, verificationToken, verificationCode };
       });
 
-      // Send verification email
-      try {
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                       process.env.NEXT_PUBLIC_API_URL || 
-                       'http://localhost:3000';
-        const verificationLink = `${baseUrl}/verify-email/${verificationToken}`;
-        
-        console.log(`[Register ${traceId}] Sending verification email to ${email}`);
-        
-        await sendVerificationEmail(
-          email,
-          username,
-          verificationLink,
-          verificationCode
-        );
-        
-        console.log(`[Register ${traceId}] Verification email sent successfully`);
-      } catch (emailError) {
-        console.error(`[Register ${traceId}] Failed to send verification email:`, emailError);
-        // Continue with registration even if email fails
-        // User can request resend later
-      }
-
-      return user;
+      return {
+        user: result.user,
+        verificationData: {
+          token: result.verificationToken,
+          code: result.verificationCode
+        }
+      };
+    }, {
+      retries: 2,
+      timeout: 10000, // 이메일 제외하여 타임아웃 단축
+      fallbackMessage: '회원가입 처리 중 오류가 발생했습니다.'
     });
+
+    // 2단계: 이메일 전송 (비동기, 실패해도 회원가입은 완료)
+    let emailSent = false;
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                     process.env.NEXT_PUBLIC_API_URL || 
+                     'http://localhost:3000';
+      const verificationLink = `${baseUrl}/verify-email/${verificationData.token}`;
+      
+      console.log(`[Register ${traceId}] Sending verification email to ${email}`);
+      
+      await sendVerificationEmail(
+        email,
+        username,
+        verificationLink,
+        verificationData.code
+      );
+      
+      console.log(`[Register ${traceId}] Verification email sent successfully`);
+      emailSent = true;
+    } catch (emailError) {
+      console.error(`[Register ${traceId}] Failed to send verification email:`, emailError);
+      // 이메일 전송 실패해도 사용자 등록은 성공으로 간주
+    }
 
     return success({
       ok: true,
-      data: result,
+      data: user,
       requireEmailVerification: true,
-      message: '회원가입이 완료되었습니다. 이메일을 확인하여 계정을 인증해주세요.',
+      emailSent,
+      message: emailSent ? 
+        '회원가입이 완료되었습니다. 이메일을 확인하여 계정을 인증해주세요.' :
+        '회원가입이 완료되었습니다. 이메일 전송에 실패하여 인증 메일을 다시 요청해주세요.',
     }, 201, traceId);
   } catch (e: any) {
     console.error(`[Register ${traceId}] Error:`, e);
     
-    if (e instanceof z.ZodError) {
-      const errorMessage = e.issues.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
-      return failure('INVALID_INPUT_FIELDS', errorMessage, 400, undefined, traceId);
-    }
-    
-    if (e.code === 'P2002') {
-      // Prisma unique constraint violation
+    // 커스텀 중복 사용자 오류 처리
+    if (e.message === 'DUPLICATE_USER') {
       return failure('DUPLICATE_USER', '이미 사용 중인 이메일 또는 사용자명입니다.', 409, undefined, traceId);
     }
     
-    if (e.code === 'P2003') {
-      // Prisma foreign key constraint violation
-      return failure('DATABASE_ERROR', '데이터베이스 제약 조건 오류', 400, undefined, traceId);
-    }
-    
-    // 일반적인 서버 에러
-    return failure('INTERNAL_SERVER_ERROR', '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', 500, e?.message, traceId);
+    // 데이터베이스 오류는 middleware에서 처리
+    return createDatabaseErrorResponse(e, traceId);
   }
 }

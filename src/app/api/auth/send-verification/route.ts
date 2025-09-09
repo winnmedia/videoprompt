@@ -4,6 +4,8 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/db';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { sendVerificationEmail } from '@/lib/email/sender';
+import { safeParseRequestBody } from '@/lib/json-utils';
+import { executeDatabaseOperation, createDatabaseErrorResponse } from '@/lib/database-middleware';
 
 
 // CORS preflight 처리
@@ -28,64 +30,55 @@ export async function POST(req: NextRequest) {
   console.log(`[SendVerification ${traceId}] 🚀 이메일 인증 요청 시작`);
   
   try {
-    // Request body 파싱
-    let body;
-    try {
-      const rawBody = await req.text();
-      console.log(`[SendVerification ${traceId}] Raw body:`, rawBody);
-      body = JSON.parse(rawBody);
-      console.log(`[SendVerification ${traceId}] Parsed body:`, body);
-    } catch (e) {
-      console.error(`[SendVerification ${traceId}] Failed to parse request body:`, e);
-      const errorMessage = e instanceof Error ? e.message : String(e);
-      return failure('INVALID_REQUEST', '잘못된 요청 형식입니다. JSON 파싱 실패.', 400, `Error: ${errorMessage}`, traceId);
+    // Request body 안전 파싱
+    const parseResult = await safeParseRequestBody(req, SendVerificationSchema);
+    if (!parseResult.success) {
+      console.error(`[SendVerification ${traceId}] JSON 파싱 실패:`, parseResult.error);
+      return failure('INVALID_REQUEST', '잘못된 요청 형식입니다.', 400, parseResult.error, traceId);
     }
     
-    // 입력값 검증
-    let email;
-    try {
-      const validatedData = SendVerificationSchema.parse(body);
-      email = validatedData.email;
-      console.log(`[SendVerification ${traceId}] ✅ 입력값 검증 성공:`, { email });
-    } catch (validationError) {
-      console.error(`[SendVerification ${traceId}] ❌ 입력값 검증 실패:`, validationError);
-      if (validationError instanceof z.ZodError) {
-        const errorMessage = validationError.issues.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
-        return failure('INVALID_INPUT_FIELDS', errorMessage, 400, undefined, traceId);
+    const { email } = parseResult.data;
+    console.log(`[SendVerification ${traceId}] ✅ 입력값 파싱 및 검증 성공:`, { email });
+
+    // 데이터베이스 작업을 안전하게 실행
+    const { existingUser, verificationToken, verificationCode } = await executeDatabaseOperation(async () => {
+      // 이메일이 이미 사용 중인지 확인
+      const existingUser = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true, emailVerified: true },
+      });
+
+      if (existingUser && existingUser.emailVerified) {
+        throw new Error('EMAIL_ALREADY_VERIFIED');
       }
-      return failure('INVALID_INPUT', '입력값이 올바르지 않습니다.', 400, undefined, traceId);
-    }
 
-    // 이메일이 이미 사용 중인지 확인
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-      select: { id: true, emailVerified: true },
-    });
+      // 기존 인증 토큰 삭제
+      await prisma.emailVerification.deleteMany({
+        where: { email },
+      });
 
-    if (existingUser && existingUser.emailVerified) {
-      return failure('EMAIL_ALREADY_VERIFIED', '이미 인증된 이메일입니다.', 409, undefined, traceId);
-    }
+      // 새 인증 토큰 및 코드 생성
+      const verificationToken = crypto.randomBytes(32).toString('hex');
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      // 인증 레코드 생성 (24시간 유효)
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      
+      await prisma.emailVerification.create({
+        data: {
+          email,
+          token: verificationToken,
+          code: verificationCode,
+          userId: existingUser?.id || null,
+          expiresAt,
+        },
+      });
 
-    // 기존 인증 토큰 삭제
-    await prisma.emailVerification.deleteMany({
-      where: { email },
-    });
-
-    // 새 인증 토큰 및 코드 생성
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // 인증 레코드 생성 (24시간 유효)
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    
-    await prisma.emailVerification.create({
-      data: {
-        email,
-        token: verificationToken,
-        code: verificationCode,
-        userId: existingUser?.id || null,
-        expiresAt,
-      },
+      return { existingUser, verificationToken, verificationCode };
+    }, {
+      retries: 2,
+      timeout: 10000,
+      fallbackMessage: '인증 코드 생성 중 오류가 발생했습니다.'
     });
 
     // 인증 이메일 발송
@@ -123,12 +116,12 @@ export async function POST(req: NextRequest) {
   } catch (e: any) {
     console.error(`[SendVerification ${traceId}] Error:`, e);
     
-    if (e instanceof z.ZodError) {
-      const errorMessage = e.issues.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
-      return failure('INVALID_INPUT_FIELDS', errorMessage, 400, undefined, traceId);
+    // 커스텀 오류 처리
+    if (e.message === 'EMAIL_ALREADY_VERIFIED') {
+      return failure('EMAIL_ALREADY_VERIFIED', '이미 인증된 이메일입니다.', 409, undefined, traceId);
     }
     
-    // 일반적인 서버 에러
-    return failure('INTERNAL_SERVER_ERROR', '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', 500, e?.message, traceId);
+    // 데이터베이스 오류는 middleware에서 처리
+    return createDatabaseErrorResponse(e, traceId);
   }
 }

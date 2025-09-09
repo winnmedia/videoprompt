@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
+import { safeParseRequestBody } from '@/lib/json-utils';
+import { executeDatabaseOperation, createDatabaseErrorResponse } from '@/lib/database-middleware';
 
 
 // CORS preflight 처리
@@ -27,72 +29,62 @@ export async function POST(req: NextRequest) {
   console.log(`[VerifyCode ${traceId}] 🚀 인증 코드 확인 요청 시작`);
   
   try {
-    // Request body 파싱
-    let body;
-    try {
-      const rawBody = await req.text();
-      console.log(`[VerifyCode ${traceId}] Raw body:`, rawBody);
-      body = JSON.parse(rawBody);
-      console.log(`[VerifyCode ${traceId}] Parsed body:`, body);
-    } catch (e) {
-      console.error(`[VerifyCode ${traceId}] Failed to parse request body:`, e);
-      const errorMessage = e instanceof Error ? e.message : String(e);
-      return failure('INVALID_REQUEST', '잘못된 요청 형식입니다. JSON 파싱 실패.', 400, `Error: ${errorMessage}`, traceId);
+    // Request body 안전 파싱
+    const parseResult = await safeParseRequestBody(req, VerifyCodeSchema);
+    if (!parseResult.success) {
+      console.error(`[VerifyCode ${traceId}] JSON 파싱 실패:`, parseResult.error);
+      return failure('INVALID_REQUEST', '잘못된 요청 형식입니다.', 400, parseResult.error, traceId);
     }
     
-    // 입력값 검증
-    let email, code;
-    try {
-      const validatedData = VerifyCodeSchema.parse(body);
-      email = validatedData.email;
-      code = validatedData.code;
-      console.log(`[VerifyCode ${traceId}] ✅ 입력값 검증 성공:`, { email, code });
-    } catch (validationError) {
-      console.error(`[VerifyCode ${traceId}] ❌ 입력값 검증 실패:`, validationError);
-      if (validationError instanceof z.ZodError) {
-        const errorMessage = validationError.issues.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
-        return failure('INVALID_INPUT_FIELDS', errorMessage, 400, undefined, traceId);
-      }
-      return failure('INVALID_INPUT', '입력값이 올바르지 않습니다.', 400, undefined, traceId);
-    }
+    const { email, code } = parseResult.data;
+    console.log(`[VerifyCode ${traceId}] ✅ 입력값 파싱 및 검증 성공:`, { email, code });
 
-    // 인증 레코드 조회
-    const verification = await prisma.emailVerification.findFirst({
-      where: {
-        email,
-        code,
-        expiresAt: {
-          gt: new Date(), // 만료되지 않은 것만
-        },
-      },
-    });
-
-    if (!verification) {
-      console.log(`[VerifyCode ${traceId}] ❌ 인증 코드가 유효하지 않음`);
-      return failure('INVALID_CODE', '인증 코드가 올바르지 않거나 만료되었습니다.', 400, undefined, traceId);
-    }
-
-    console.log(`[VerifyCode ${traceId}] ✅ 인증 코드 확인 성공`);
-
-    // 사용된 인증 레코드 삭제
-    await prisma.emailVerification.delete({
-      where: {
-        id: verification.id,
-      },
-    });
-
-    // 사용자가 존재하면 이메일 인증 상태 업데이트
-    if (verification.userId) {
-      await prisma.user.update({
+    // 데이터베이스 작업을 안전하게 실행
+    const result = await executeDatabaseOperation(async () => {
+      // 인증 레코드 조회
+      const verification = await prisma.emailVerification.findFirst({
         where: {
-          id: verification.userId,
-        },
-        data: {
-          emailVerified: true,
-          verifiedAt: new Date(),
+          email,
+          code,
+          expiresAt: {
+            gt: new Date(), // 만료되지 않은 것만
+          },
         },
       });
-    }
+
+      if (!verification) {
+        console.log(`[VerifyCode ${traceId}] ❌ 인증 코드가 유효하지 않음`);
+        throw new Error('INVALID_CODE');
+      }
+
+      console.log(`[VerifyCode ${traceId}] ✅ 인증 코드 확인 성공`);
+
+      // 사용된 인증 레코드 삭제
+      await prisma.emailVerification.delete({
+        where: {
+          id: verification.id,
+        },
+      });
+
+      // 사용자가 존재하면 이메일 인증 상태 업데이트
+      if (verification.userId) {
+        await prisma.user.update({
+          where: {
+            id: verification.userId,
+          },
+          data: {
+            emailVerified: true,
+            verifiedAt: new Date(),
+          },
+        });
+      }
+
+      return { verified: true };
+    }, {
+      retries: 2,
+      timeout: 10000,
+      fallbackMessage: '인증 코드 확인 중 오류가 발생했습니다.'
+    });
 
     return success({
       ok: true,
@@ -102,12 +94,12 @@ export async function POST(req: NextRequest) {
   } catch (e: any) {
     console.error(`[VerifyCode ${traceId}] Error:`, e);
     
-    if (e instanceof z.ZodError) {
-      const errorMessage = e.issues.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
-      return failure('INVALID_INPUT_FIELDS', errorMessage, 400, undefined, traceId);
+    // 커스텀 오류 처리
+    if (e.message === 'INVALID_CODE') {
+      return failure('INVALID_CODE', '인증 코드가 올바르지 않거나 만료되었습니다.', 400, undefined, traceId);
     }
     
-    // 일반적인 서버 에러
-    return failure('INTERNAL_SERVER_ERROR', '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', 500, e?.message, traceId);
+    // 데이터베이스 오류는 middleware에서 처리
+    return createDatabaseErrorResponse(e, traceId);
   }
 }
