@@ -12,7 +12,7 @@
   "env": {
     "NODE_ENV": "production",
     "NEXT_TELEMETRY_DISABLED": "1",
-    "FORCE_REBUILD": "2025-09-09-FINAL-FIX"
+    "FORCE_REBUILD": "2025-09-09-DOCS-FIX"
   },
   "functions": {
     "src/app/api/**/*.ts": {
