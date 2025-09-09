@@ -326,9 +326,9 @@ export const CineGeniusV31Schema = z.object({
   projectConfig: ProjectConfigSchema,
   promptBlueprint: PromptBlueprintSchema,
   generationControl: GenerationControlSchema,
-  aiAnalysis: z.record(z.any()).optional(),
+  aiAnalysis: z.record(z.string(), z.any()).optional(),
   finalOutput: FinalOutputSchema,
-  uiHints: z.record(z.array(z.union([z.string(), z.number()]))).optional(),
+  uiHints: z.record(z.string(), z.array(z.union([z.string(), z.number()]))).optional(),
 })
 .refine(
   (data) => {

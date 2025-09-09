@@ -77,7 +77,7 @@ class SendGridClient {
       const env = this.validateEnvironment();
       
       // Build configuration
-      this.config = this.buildConfiguration(env);
+      this.config = this.buildConfiguration(env as z.infer<typeof EnvSchema>);
       
       // Initialize SendGrid client
       this.initializeClient();
@@ -96,8 +96,8 @@ class SendGridClient {
           SENDGRID_API_KEY: 'development-placeholder-key',
           SENDGRID_FROM_EMAIL: process.env.DEFAULT_FROM_EMAIL || 'dev@example.com',
           SENDGRID_FROM_NAME: 'Development',
-          SENDGRID_SANDBOX_MODE: 'true',
-          NODE_ENV: 'development',
+          SENDGRID_SANDBOX_MODE: 'true' as const,
+          NODE_ENV: 'development' as const,
         };
       }
       
@@ -105,8 +105,8 @@ class SendGridClient {
         SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
         SENDGRID_FROM_EMAIL: process.env.SENDGRID_FROM_EMAIL || process.env.DEFAULT_FROM_EMAIL,
         SENDGRID_FROM_NAME: process.env.SENDGRID_FROM_NAME,
-        SENDGRID_SANDBOX_MODE: process.env.SENDGRID_SANDBOX_MODE,
-        NODE_ENV: process.env.NODE_ENV,
+        SENDGRID_SANDBOX_MODE: process.env.SENDGRID_SANDBOX_MODE === 'true' ? 'true' : process.env.SENDGRID_SANDBOX_MODE === 'false' ? 'false' : undefined,
+        NODE_ENV: process.env.NODE_ENV as 'development' | 'production' | 'test' | undefined,
       });
     } catch (error) {
       console.error('[SendGrid] Environment validation failed:', error);

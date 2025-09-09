@@ -264,21 +264,31 @@ export async function sendBatchEmails(request: BatchEmailRequest): Promise<Batch
     
     if (Array.isArray(responses)) {
       responses.forEach((response, index) => {
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          accepted++;
+        if (response && typeof response === 'object' && 'statusCode' in response) {
+          if (response.statusCode >= 200 && response.statusCode < 300) {
+            accepted++;
+          } else {
+            rejected++;
+            errors.push({
+              code: 'UNKNOWN_ERROR',
+              message: `Failed to send email ${index}`,
+              details: { statusCode: response.statusCode },
+              timestamp: new Date().toISOString(),
+            });
+          }
         } else {
           rejected++;
           errors.push({
             code: 'UNKNOWN_ERROR',
-            message: `Failed to send email ${index}`,
-            details: { statusCode: response.statusCode },
+            message: `Invalid response format for email ${index}`,
+            details: { response },
             timestamp: new Date().toISOString(),
           });
         }
       });
     } else {
       // Single response for batch
-      if (responses[0].statusCode >= 200 && responses[0].statusCode < 300) {
+      if (responses[0] && typeof responses[0] === 'object' && 'statusCode' in responses[0] && (responses[0] as any).statusCode >= 200 && (responses[0] as any).statusCode < 300) {
         accepted = messages.length;
       } else {
         rejected = messages.length;
@@ -343,7 +353,7 @@ export async function sendTemplateEmail(
       throw new EmailServiceError(
         'TEMPLATE_RENDER_ERROR',
         'Failed to render email template',
-        { errors: error.errors }
+        { errors: error.issues }
       );
     }
     throw error;

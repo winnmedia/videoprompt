@@ -102,7 +102,8 @@ export { server, setupTestServer } from './mocks/server';
 // =============================================================================
 
 export { cn } from './utils';
-export { prefetch } from './prefetch';
+export { useSoftPrefetch } from './prefetch';
 export { logger } from './logger';
-export { createApiResponse, ApiError } from './api-response';
+export { success, failure } from './api-response';
+export type { ApiError } from './api-response';
 export * from './auth';
