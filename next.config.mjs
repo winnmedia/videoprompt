@@ -7,20 +7,90 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   
-  // 실험적 기능: 파일 추적에서 제외할 항목들
+  // 실험적 기능 및 최적화 설정 통합
   experimental: {
+    // 번들 크기 최적화를 위한 파일 제외 목록 대폭 확장
     outputFileTracingExcludes: {
       '*': [
+        // 캐시 및 빌드 아티팩트
         '.next/cache/**/*',
-        'node_modules/@swc/core-linux-x64-gnu',
-        'node_modules/@swc/core-linux-x64-musl', 
-        'node_modules/@esbuild/linux-x64',
-        'node_modules/webpack/**/*',
+        'out/**/*',
+        'dist/**/*',
+        'build/**/*',
+        
+        // Git 및 문서
         '.git/**/*',
-        '*.md',
-        'tests/**/*'
+        '**/*.md',
+        'docs/**/*',
+        
+        // 테스트 관련 (개발 도구)
+        'tests/**/*',
+        '__tests__/**/*',
+        'test-results/**/*',
+        'playwright-report/**/*',
+        '**/*.test.ts',
+        '**/*.test.tsx',
+        '**/*.spec.ts',
+        '**/*.spec.tsx',
+        'vitest.config.*',
+        'playwright.config.*',
+        
+        // 개발 도구 및 설정
+        'scripts/**/*',
+        '.vscode/**/*',
+        '.cursor/**/*',
+        '.idea/**/*',
+        '.husky/**/*',
+        'eslint.config.*',
+        'prettier.config.*',
+        'tailwind.config.*',
+        
+        // 플랫폼별 네이티브 바이너리 (대폭 확장)
+        'node_modules/@swc/core-*',
+        'node_modules/@esbuild/*',
+        'node_modules/@next/swc-*',
+        'node_modules/webpack/**/*',
+        
+        // Prisma 엔진 최적화 (사용하지 않는 엔진 제외)
+        'node_modules/@prisma/engines/**/*',
+        'node_modules/.prisma/client/libquery_engine-*',
+        '!node_modules/.prisma/client/libquery_engine-linux-x64-openssl-3.0.x.so.node',
+        'node_modules/.prisma/client/query_engine-*',
+        '!node_modules/.prisma/client/query_engine-linux-x64-openssl-3.0.x',
+        
+        // Playwright 관련 (프로덕션 불필요)
+        'node_modules/@playwright/**/*',
+        'node_modules/playwright/**/*',
+        'node_modules/playwright-core/**/*',
+        
+        // 기타 네이티브 바이너리
+        '**/*.wasm',
+        '**/*.node',
+        '!node_modules/.prisma/client/*.node',
+        
+        // pnpm 관련
+        'node_modules/.pnpm/**/*',
+        '.pnpm-debug.log',
+        
+        // 개발 환경 파일
+        '.env.local',
+        '.env.development',
+        '.env.test',
+        '*.log',
+        
+        // TypeScript 관련 (중복 버전 제외)
+        'node_modules/typescript/**/*',
+        'node_modules/@types/**/*',
+        'tsconfig*.json',
+        
+        // 기타 대용량 개발 도구
+        'node_modules/madge/**/*',
+        'node_modules/tsx/**/*',
       ],
     },
+    
+    // 패키지 import 최적화
+    optimizePackageImports: ['@/components/ui', '@/lib/providers'],
   },
   
   // API 라우팅 설정 - 강제로 Railway 백엔드 사용
@@ -55,39 +125,76 @@ const nextConfig = {
   // 배포 안정성 우선: 린트 에러로 빌드 실패 방지
   eslint: { ignoreDuringBuilds: true },
 
-  // 성능 최적화 설정
-  experimental: {
-    // Link Preload 경고 해결 - 더 구체적인 경로 지정
-    optimizePackageImports: ['@/components/ui', '@/lib/providers'],
-  },
-
-  // 웹팩 최적화
+  // 웹팩 최적화 강화
   webpack: (config, { dev, isServer }) => {
     if (!dev && !isServer) {
-      // 프로덕션 빌드 최적화
+      // 프로덕션 빌드 최적화 강화
       config.optimization.splitChunks = {
         chunks: 'all',
+        maxSize: 244000, // 250KB 청크 크기 제한
         cacheGroups: {
+          // 프레임워크 청크 (React, Next.js)
+          framework: {
+            test: /[\\/]node_modules[\\/](react|react-dom|next)[\\/]/,
+            name: 'framework',
+            priority: 40,
+            chunks: 'all',
+            reuseExistingChunk: true,
+          },
+          // Prisma 청크 분리
+          prisma: {
+            test: /[\\/]node_modules[\\/](@prisma|\.prisma)[\\/]/,
+            name: 'prisma',
+            priority: 30,
+            chunks: 'all',
+            reuseExistingChunk: true,
+          },
+          // 일반 vendor 청크
           vendor: {
             test: /[\\/]node_modules[\\/]/,
             name: 'vendors',
+            priority: 20,
             chunks: 'all',
+            reuseExistingChunk: true,
+          },
+          // 공통 청크
+          common: {
+            name: 'common',
+            minChunks: 2,
+            priority: 10,
+            chunks: 'all',
+            reuseExistingChunk: true,
           },
         },
       };
+      
+      // Tree shaking 강화
+      config.optimization.usedExports = true;
+      config.optimization.sideEffects = false;
     }
 
-    // Playwright 관련 파일 접근 차단
+    // Node.js 모듈 폴백 설정 강화
     config.resolve.fallback = {
       ...config.resolve.fallback,
       fs: false,
       path: false,
+      crypto: false,
+      stream: false,
+      util: false,
+      os: false,
+      url: false,
+      assert: false,
     };
 
-    // E2E 테스트 파일 접근 차단
+    // 테스트 및 개발 파일 제외
     config.module.rules.push({
-      test: /\.(spec|test)\.(js|ts)$/,
-      exclude: /tests\/e2e/,
+      test: /\.(spec|test)\.(js|ts|tsx)$/,
+      use: 'ignore-loader',
+    });
+
+    // Playwright 관련 파일 제외
+    config.module.rules.push({
+      test: /[\\/]@playwright[\\/]/,
       use: 'ignore-loader',
     });
 

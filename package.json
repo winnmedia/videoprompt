@@ -42,7 +42,6 @@
     "migrate:v3:status": "tsx scripts/migrate-to-v3.ts status"
   },
   "dependencies": {
-    "@playwright/mcp": "^0.0.34",
     "@prisma/client": "^5.18.0",
     "@reduxjs/toolkit": "^2.9.0",
     "@sendgrid/mail": "^8.1.5",
@@ -62,6 +61,7 @@
     "zustand": "^5.0.7"
   },
   "devDependencies": {
+    "@playwright/mcp": "^0.0.34",
     "@axe-core/playwright": "^4.10.2",
     "@eslint/eslintrc": "^3",
     "@playwright/test": "^1.55.0",
