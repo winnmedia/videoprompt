@@ -1,0 +1,287 @@
+/**
+ * SendGrid Client Module
+ * Manages SendGrid API client initialization and configuration
+ * 
+ * @module email/sendgrid
+ * @layer shared/lib
+ */
+
+import sgMail from '@sendgrid/mail';
+import { z } from 'zod';
+import { EmailServiceConfigSchema, type EmailServiceConfig } from './contracts/email.schema';
+
+// ============================================================================
+// Configuration
+// ============================================================================
+
+/**
+ * SendGrid service configuration with validation
+ */
+const DEFAULT_CONFIG: Partial<EmailServiceConfig> = {
+  defaultFrom: {
+    email: 'service@vlanet.net',
+    name: 'VideoPlanet Service',
+  },
+  sandboxMode: process.env.NODE_ENV !== 'production',
+  maxRetries: 3,
+  retryDelay: 1000,
+  timeout: 10000,
+  rateLimits: {
+    perSecond: 10,
+    perDay: 10000,
+  },
+};
+
+/**
+ * Environment validation schema
+ */
+const EnvSchema = z.object({
+  SENDGRID_API_KEY: z.string().min(1),
+  SENDGRID_FROM_EMAIL: z.string().email().optional(),
+  SENDGRID_FROM_NAME: z.string().optional(),
+  SENDGRID_SANDBOX_MODE: z.enum(['true', 'false']).optional(),
+  NODE_ENV: z.enum(['development', 'production', 'test']).optional(),
+});
+
+// ============================================================================
+// Client Singleton
+// ============================================================================
+
+class SendGridClient {
+  private static instance: SendGridClient | null = null;
+  private config: EmailServiceConfig | null = null;
+  private initialized: boolean = false;
+  private requestCount: Map<string, number> = new Map();
+  private lastRequestTime: number = 0;
+
+  private constructor() {
+    // Lazy initialization - don't initialize in constructor
+  }
+
+  /**
+   * Get singleton instance
+   */
+  public static getInstance(): SendGridClient {
+    if (!SendGridClient.instance) {
+      SendGridClient.instance = new SendGridClient();
+    }
+    return SendGridClient.instance;
+  }
+
+  /**
+   * Initialize the client (lazy)
+   */
+  private ensureInitialized(): void {
+    if (!this.initialized) {
+      // Validate environment variables
+      const env = this.validateEnvironment();
+      
+      // Build configuration
+      this.config = this.buildConfiguration(env);
+      
+      // Initialize SendGrid client
+      this.initializeClient();
+    }
+  }
+
+  /**
+   * Validate environment variables
+   */
+  private validateEnvironment() {
+    try {
+      return EnvSchema.parse({
+        SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
+        SENDGRID_FROM_EMAIL: process.env.SENDGRID_FROM_EMAIL,
+        SENDGRID_FROM_NAME: process.env.SENDGRID_FROM_NAME,
+        SENDGRID_SANDBOX_MODE: process.env.SENDGRID_SANDBOX_MODE,
+        NODE_ENV: process.env.NODE_ENV,
+      });
+    } catch (error) {
+      console.error('[SendGrid] Environment validation failed:', error);
+      throw new Error('SendGrid configuration error: Missing or invalid environment variables');
+    }
+  }
+
+  /**
+   * Build configuration from environment and defaults
+   */
+  private buildConfiguration(env: z.infer<typeof EnvSchema>): EmailServiceConfig {
+    const config: EmailServiceConfig = {
+      ...DEFAULT_CONFIG,
+      apiKey: env.SENDGRID_API_KEY,
+      defaultFrom: {
+        email: env.SENDGRID_FROM_EMAIL || DEFAULT_CONFIG.defaultFrom!.email,
+        name: env.SENDGRID_FROM_NAME || DEFAULT_CONFIG.defaultFrom!.name,
+      },
+      sandboxMode: env.SENDGRID_SANDBOX_MODE === 'true' || 
+                   (env.NODE_ENV !== 'production' && env.SENDGRID_SANDBOX_MODE !== 'false'),
+    } as EmailServiceConfig;
+
+    // Validate final configuration
+    return EmailServiceConfigSchema.parse(config);
+  }
+
+  /**
+   * Initialize SendGrid client
+   */
+  private initializeClient(): void {
+    if (!this.config) {
+      throw new Error('Configuration not set');
+    }
+    
+    try {
+      sgMail.setApiKey(this.config.apiKey);
+      
+      // Set default timeout
+      sgMail.setTimeout(this.config.timeout);
+      
+      this.initialized = true;
+      
+      console.log('[SendGrid] Client initialized successfully', {
+        sandboxMode: this.config.sandboxMode,
+        defaultFrom: this.config.defaultFrom.email,
+      });
+    } catch (error) {
+      console.error('[SendGrid] Client initialization failed:', error);
+      throw new Error('Failed to initialize SendGrid client');
+    }
+  }
+
+  /**
+   * Check rate limits
+   */
+  private checkRateLimit(): void {
+    if (!this.config || !this.config.rateLimits) return;
+
+    const now = Date.now();
+    const secondKey = Math.floor(now / 1000).toString();
+    const dayKey = new Date().toISOString().split('T')[0];
+
+    // Check per-second limit
+    const secondCount = this.requestCount.get(secondKey) || 0;
+    if (secondCount >= this.config.rateLimits.perSecond) {
+      throw new Error(`Rate limit exceeded: ${this.config.rateLimits.perSecond} requests per second`);
+    }
+
+    // Check per-day limit
+    const dayCount = this.requestCount.get(dayKey) || 0;
+    if (dayCount >= this.config.rateLimits.perDay) {
+      throw new Error(`Daily rate limit exceeded: ${this.config.rateLimits.perDay} requests per day`);
+    }
+
+    // Update counters
+    this.requestCount.set(secondKey, secondCount + 1);
+    this.requestCount.set(dayKey, dayCount + 1);
+
+    // Clean up old entries
+    this.cleanupRateLimitCounters();
+  }
+
+  /**
+   * Clean up old rate limit counters
+   */
+  private cleanupRateLimitCounters(): void {
+    const now = Date.now();
+    const oneMinuteAgo = Math.floor((now - 60000) / 1000).toString();
+    const yesterday = new Date(now - 86400000).toISOString().split('T')[0];
+
+    for (const [key, _] of this.requestCount) {
+      if (key.length === 10) { // Second keys
+        if (key < oneMinuteAgo) {
+          this.requestCount.delete(key);
+        }
+      } else if (key.length === 10 && key.includes('-')) { // Day keys
+        if (key < yesterday) {
+          this.requestCount.delete(key);
+        }
+      }
+    }
+  }
+
+  /**
+   * Get SendGrid client
+   */
+  public getClient() {
+    this.ensureInitialized();
+    
+    if (!this.initialized) {
+      throw new Error('SendGrid client not initialized');
+    }
+    
+    // Check rate limits before returning client
+    this.checkRateLimit();
+    
+    return sgMail;
+  }
+
+  /**
+   * Get configuration
+   */
+  public getConfig(): Readonly<EmailServiceConfig> {
+    this.ensureInitialized();
+    
+    if (!this.config) {
+      throw new Error('Configuration not initialized');
+    }
+    
+    return Object.freeze({ ...this.config });
+  }
+
+  /**
+   * Update configuration (for testing)
+   */
+  public updateConfig(partial: Partial<EmailServiceConfig>): void {
+    this.ensureInitialized();
+    
+    if (!this.config) {
+      throw new Error('Configuration not initialized');
+    }
+    
+    this.config = EmailServiceConfigSchema.parse({
+      ...this.config,
+      ...partial,
+    });
+    
+    // Re-initialize if API key changed
+    if (partial.apiKey) {
+      this.initialized = false;
+      this.initializeClient();
+    }
+  }
+
+  /**
+   * Reset client (for testing)
+   */
+  public reset(): void {
+    this.initialized = false;
+    this.config = null;
+    this.requestCount.clear();
+    this.lastRequestTime = 0;
+    SendGridClient.instance = null;
+  }
+}
+
+// ============================================================================
+// Exports
+// ============================================================================
+
+/**
+ * Get SendGrid client instance
+ */
+export function getSendGridClient() {
+  return SendGridClient.getInstance().getClient();
+}
+
+/**
+ * Get SendGrid configuration
+ */
+export function getSendGridConfig() {
+  return SendGridClient.getInstance().getConfig();
+}
+
+/**
+ * Get singleton instance (lazy initialization)
+ */
+export function getSendGridInstance() {
+  return SendGridClient.getInstance();
+}

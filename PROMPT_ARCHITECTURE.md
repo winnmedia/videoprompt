@@ -1,9 +1,8 @@
-
-1. videoplanet ai prompt json 
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://cinegenius.app/schemas/cinegenius-v3.1.final.json",
-  "title": "CineGenius v3.1 Canonical Model (with UI Hints)",
+  "$id": "https://cinegenius.app/schemas/cinegenius-v3.1.veo-optimized.json",
+  "title": "CineGenius v3.1 Canonical Model (Veo 3 Optimized)",
+  "description": "CineGenius 프로젝트 데이터 모델 v3.1. Veo 3 최적화 컴파일러 로직 지원을 위해 보강된 버전.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -60,6 +59,7 @@
       "properties": {
         "metadata": {
           "type": "object",
+          "description": "전역 설정. 영상 전체의 기본 스타일 및 환경 정의. timeline의 개별 설정에 의해 오버라이드될 수 있음.",
           "additionalProperties": false,
           "required": ["promptName", "baseStyle", "spatialContext", "cameraSetting", "deliverySpec"],
           "properties": {
@@ -67,6 +67,7 @@
 
             "baseStyle": {
               "type": "object",
+              "description": "시각적 미학 정의. 컴파일 시 [스타일/미학] 섹션의 기반이 됨 (Priority 3).",
               "additionalProperties": false,
               "required": ["visualStyle", "genre", "mood", "quality", "styleFusion"],
               "properties": {
@@ -89,26 +90,29 @@
 
             "spatialContext": {
               "type": "object",
+              "description": "장면 및 환경 정의. 컴파일 시 [장면/환경] 섹션의 기반이 됨 (Priority 2).",
               "additionalProperties": false,
               "required": ["placeDescription", "weather", "lighting"],
               "properties": {
                 "placeDescription": { "type": "string", "minLength": 1, "maxLength": 300 },
                 "weather": { "type": "string", "minLength": 1, "maxLength": 40 },
-                "lighting": { "type": "string", "minLength": 1, "maxLength": 60 }
+                "lighting": { "type": "string", "minLength": 1, "maxLength": 60, "description": "조명 설정 (예: Golden Hour, Neon Glow). Veo가 민감하게 반응하는 중요 요소." }
               }
             },
 
             "cameraSetting": {
               "type": "object",
+              "description": "기본 카메라 설정. 컴파일 시 [카메라 연출] 섹션의 기반이 됨 (Priority 4).",
               "additionalProperties": false,
               "required": ["primaryLens", "dominantMovement", "colorGrade"],
               "properties": {
-                "primaryLens": { "type": "string", "minLength": 1, "maxLength": 60 },
+                "primaryLens": { "type": "string", "minLength": 1, "maxLength": 60, "description": "기본 렌즈 화각 (예: 50mm, 85mm)." },
                 "dominantMovement": { "type": "string", "minLength": 1, "maxLength": 60 },
                 "colorGrade": { "type": "string", "minLength": 0, "maxLength": 120 },
                 "physical": {
                   "type": "object",
                   "additionalProperties": false,
+                  "description": "물리적 카메라 설정값. 컴파일러는 프롬프트 희석을 방지하기 위해 시각적 영향이 큰 요소만 선별적으로 포함하거나 대부분 생략해야 함.",
                   "properties": {
                     "aperture": { "type": "string", "minLength": 0, "maxLength": 10 },
                     "shutter": { "type": "string", "minLength": 0, "maxLength": 10 },
@@ -147,6 +151,7 @@
 
             "lookDev": {
               "type": "object",
+              "description": "룩 개발 및 텍스처 설정. baseStyle과 함께 [스타일/미학] 섹션에 포함됨.",
               "additionalProperties": false,
               "properties": {
                 "grade": { "type": "string", "minLength": 0, "maxLength": 120 },
@@ -177,6 +182,7 @@
 
         "elements": {
           "type": "object",
+          "description": "피사체 정의. 컴파일러는 이 정보를 '요소 사전(Element Dictionary)'으로 구축하여 샷 간의 일관성을 유지하고, [행동/피사체] 섹션에서 참조함.",
           "additionalProperties": false,
           "required": ["characters", "coreObjects"],
           "properties": {
@@ -189,7 +195,7 @@
                 "required": ["id", "description"],
                 "properties": {
                   "id": { "type": "string", "minLength": 1, "maxLength": 60 },
-                  "description": { "type": "string", "minLength": 1, "maxLength": 300 },
+                  "description": { "type": "string", "minLength": 1, "maxLength": 300, "description": "간결하고 시각적인 설명. 예) A grizzled detective (50s) in a long, worn trench coat." },
                   "reference_image_url": { "type": "string", "format": "uri" }
                 }
               }
@@ -248,6 +254,7 @@
 
         "timeline": {
           "type": "array",
+          "description": "샷 리스트. 컴파일러는 이 배열을 순회하며 각 샷을 처리함. 개별 설정은 metadata보다 우선함.",
           "minItems": 1,
           "maxItems": 500,
           "items": {
@@ -276,10 +283,16 @@
                   "smpteEnd": { "type": "string", "minLength": 0, "maxLength": 12 }
                 }
               },
-              "visualDirecting": { "type": "string", "minLength": 1, "maxLength": 600 },
+              "visualDirecting": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600,
+                "description": "핵심 행동 묘사. 컴파일 시 프롬프트의 가장 앞부분([행동/피사체])에 위치함 (Priority 1). '요소 사전'을 참조해야 함."
+              },
 
               "cameraWork": {
                 "type": "object",
+                "description": "개별 샷 카메라 연출. 컴파일 시 [카메라 연출] 섹션에 포함됨 (Priority 4).",
                 "additionalProperties": false,
                 "required": ["angle", "move", "focus"],
                 "properties": {
@@ -291,6 +304,7 @@
 
               "pacingFX": {
                 "type": "object",
+                "description": "속도감 및 시각 효과. 컴파일 시 [페이싱/효과] 섹션에 포함됨 (Priority 5).",
                 "additionalProperties": false,
                 "required": ["pacing", "editingStyle", "visualEffect"],
                 "properties": {
@@ -302,12 +316,28 @@
 
               "audioLayers": {
                 "type": "object",
+                "description": "오디오 통합 레이어. Veo 3의 오디오 생성을 위해 특정 문법을 적용해야 함. 컴파일 시 [오디오 신호] 섹션에 포함됨.",
                 "additionalProperties": false,
                 "required": ["diegetic", "non_diegetic", "voice", "concept"],
                 "properties": {
-                  "diegetic": { "type": "string", "minLength": 0, "maxLength": 200 },
-                  "non_diegetic": { "type": "string", "minLength": 0, "maxLength": 200 },
-                  "voice": { "type": "string", "minLength": 0, "maxLength": 200 },
+                  "diegetic": {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 200,
+                    "description": "현장음(SFX). [Veo 문법] 컴파일러는 대괄호([])를 사용해야 함. 예) [SFX: Creaking floorboards], [SFX: Heavy rain]"
+                  },
+                  "non_diegetic": {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 200,
+                    "description": "비현장음(음악 등). [Veo 문법] 컴파일러는 대괄호([])를 사용해야 함. 예) [Music: Tense synthesizer music swells]"
+                  },
+                  "voice": {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 200,
+                    "description": "[매우 중요] 대사. [Veo 문법] 컴파일러는 '화자: 대사 내용.' 형식을 엄수해야 함. 따옴표(\") 사용 금지. 예) Anna: I remember this song."
+                  },
                   "concept": { "type": "string", "minLength": 0, "maxLength": 120 }
                 }
               },
@@ -323,11 +353,13 @@
 
     "generationControl": {
       "type": "object",
+      "description": "생성 제어 및 컴파일 방식 설정.",
       "additionalProperties": false,
       "required": ["directorEmphasis", "shotByShot", "seed"],
       "properties": {
         "directorEmphasis": {
           "type": "array",
+          "description": "연출 강조. 컴파일러는 가중치 문법(예: (term:1.2))을 적용하거나 해당 용어를 프롬프트 앞쪽으로 재배치하여 강조할 수 있음.",
           "maxItems": 50,
           "items": {
             "type": "object",
@@ -339,8 +371,20 @@
             }
           }
         },
+
+        "initializationImage": {
+            "type": "object",
+            "description": "[Veo 기능 지원] 첫 번째 샷 생성을 위한 초기화 이미지 (Image-to-Video). 선택 사항.",
+            "additionalProperties": false,
+            "properties": {
+              "imageUrl": { "type": "string", "format": "uri" },
+              "strength": { "type": "number", "minimum": 0.1, "maximum": 1.0, "description": "초기화 이미지의 영향력 강도." }
+            }
+        },
+
         "shotByShot": {
           "type": "object",
+          "description": "반복적 생성(Iterative Generation) 및 연속성 관리 설정.",
           "additionalProperties": false,
           "required": ["enabled"],
           "properties": {
@@ -353,6 +397,7 @@
             },
             "lastFrameData": {
               "type": "object",
+              "description": "이전 샷의 마지막 프레임 정보. Veo의 Image-to-Video (Continuation) 모드 호출 시 입력으로 사용되어 샷 간의 시각적 연결을 지원함.",
               "additionalProperties": false,
               "required": ["imageUrl", "description"],
               "properties": {
@@ -366,6 +411,11 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
+            "disableTextOverlays": {
+                "type": "boolean",
+                "default": true,
+                "description": "[Veo 최적화] true일 경우, 컴파일러는 최종 프롬프트 마지막([제어 신호])에 '(no subtitles), (no text overlay), (no captions)'를 자동으로 추가함. 특히 대사가 있을 때 강력 권장."
+            },
             "brandName": { "type": "string", "minLength": 0, "maxLength": 80 },
             "logoVisibility": { "type": "string", "minLength": 0, "maxLength": 80 },
             "legalRestrictions": {
@@ -393,10 +443,16 @@
 
     "finalOutput": {
       "type": "object",
+      "description": "컴파일러의 최종 결과물.",
       "additionalProperties": false,
       "required": ["finalPromptText", "keywords", "negativePrompts"],
       "properties": {
-        "finalPromptText": { "type": "string", "minLength": 1, "maxLength": 5000 },
+        "finalPromptText": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 5000,
+          "description": "컴파일된 최종 Veo 프롬프트. Veo 최적화 구조 준수: [행동/피사체] > [장면/환경] > [스타일/미학] > [카메라 연출] > [오디오 신호(Veo 문법)] > [제어 신호]."
+        },
         "keywords": {
           "type": "array",
           "maxItems": 200,
@@ -716,475 +772,3 @@
     }
   ]
 }
-
-
-
-2. 스키마 증분 패치
-
-아래 패치는 기존 스키마에 병합하는 증분이다. 본문에 제시된 경로에 그대로 추가하거나 대체한다. 표기 방식은 JSON Schema 2020-12이며, 기존 키의 값 일부를 교체하는 경우 동일 경로에 대입한다.
-
-2.1 공용 정의 추가
-{
-  "$defs": {
-    "SMPTETimecode": {
-      "type": "string",
-      "pattern": "^[0-9]{2}:[0-9]{2}:[0-9]{2}([:;][0-9]{2})$",
-      "description": "HH:MM:SS:FF 또는 HH:MM:SS;FF"
-    },
-    "AspectRatio": {
-      "type": "string",
-      "pattern": "^(\\d+(?:\\.\\d+)?):(\\d+(?:\\.\\d+)?)$",
-      "description": "예시 16:9, 9:16, 2.39:1"
-    },
-    "Resolution": {
-      "type": "string",
-      "pattern": "^((HD|FHD|4K|8K)|([1-9]\\d{2,4}x[1-9]\\d{2,4}))$",
-      "description": "명칭 또는 WxH 픽셀 표기"
-    },
-    "Aperture": {
-      "type": "string",
-      "pattern": "^f\\/(\\d+(?:\\.\\d+)?)$",
-      "description": "예시 f/1.4, f/5.6"
-    },
-    "Shutter": {
-      "type": "string",
-      "pattern": "^(1\\/[1-9]\\d{1,5}|[0-9]+(?:\\.[0-9]+)?s)$",
-      "description": "예시 1/50, 1/1000, 0.5s"
-    },
-    "NDFilter": {
-      "type": "string",
-      "pattern": "^(ND\\d+(?:\\.\\d+)?|\\d+(?:\\.\\d+)?\\s*stops)$",
-      "description": "예시 ND8, ND0.9, 3 stops"
-    }
-  }
-}
-
-2.2 타임라인 시간 존재 보장
-
-promptBlueprint.properties.timeline.items 내부에 다음을 추가한다.
-
-{
-  "anyOf": [
-    { "required": ["timestamp"] },
-    { "required": ["timecode"] }
-  ]
-}
-
-2.3 SMPTE 정규식 적용
-
-timecode.smpteStart, timecode.smpteEnd 정의를 다음과 같이 교체한다.
-
-{
-  "smpteStart": { "$ref": "#/$defs/SMPTETimecode" },
-  "smpteEnd":   { "$ref": "#/$defs/SMPTETimecode" }
-}
-
-2.4 화면비·해상도 패턴 적용
-
-metadata.deliverySpec.properties.aspectRatio와 resolution을 다음과 같이 교체한다.
-
-{
-  "aspectRatio": { "$ref": "#/$defs/AspectRatio" },
-  "resolution":  { "$ref": "#/$defs/Resolution" }
-}
-
-
-fps는 23.976 등 비정수 프레임을 위해 number 유지가 타당하다.
-
-2.5 물리 카메라 파라미터 패턴 적용
-
-metadata.cameraSetting.physical.properties를 다음과 같이 교체한다.
-
-{
-  "aperture": { "$ref": "#/$defs/Aperture" },
-  "shutter":  { "$ref": "#/$defs/Shutter" },
-  "iso":      { "type": "integer", "minimum": 25, "maximum": 204800 },
-  "ndFilter": { "$ref": "#/$defs/NDFilter" }
-}
-
-2.6 무컷 연속성과 페이싱의 연동
-
-스키마 하단 allOf 블록을 아래와 같이 확장한다. noCuts = true이면서 transitionPolicy가 명시되지 않았거나 None인 경우, 시간 왜곡 페이싱을 금지한다. 반대로 Only-internal time ramp인 경우에는 허용한다.
-
-{
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "promptBlueprint": {
-            "properties": {
-              "metadata": {
-                "properties": {
-                  "continuity": {
-                    "properties": { "noCuts": { "const": true } }
-                  }
-                },
-                "required": ["continuity"]
-              }
-            }
-          }
-        },
-        "required": ["promptBlueprint"]
-      },
-      "then": {
-        "properties": {
-          "promptBlueprint": {
-            "properties": {
-              "timeline": {
-                "items": {
-                  "properties": {
-                    "pacingFX": {
-                      "properties": {
-                        "editingStyle": {
-                          "not": { "enum": ["Jump Cut", "Cross-dissolve", "Wipe", "Split Screen"] }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "promptBlueprint": {
-            "properties": {
-              "metadata": {
-                "properties": {
-                  "continuity": {
-                    "properties": {
-                      "noCuts": { "const": true },
-                      "transitionPolicy": { "enum": ["None"] }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "promptBlueprint": {
-            "properties": {
-              "timeline": {
-                "items": {
-                  "properties": {
-                    "pacingFX": {
-                      "properties": {
-                        "pacing": {
-                          "not": { "enum": ["Time-lapse", "Freeze-frame"] }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  ]
-}
-
-2.7 UI 힌트 확장성 확보
-
-uiHints에 patternProperties를 추가하여 임의의 JSON Pointer 키를 안전하게 수용하도록 한다. 기존 properties에 둔 기본값 목록은 유지해도 무방하다.
-
-{
-  "uiHints": {
-    "type": "object",
-    "writeOnly": true,
-    "patternProperties": {
-      "^\\/.*$": {
-        "type": "array",
-        "items": {
-          "oneOf": [
-            { "type": "string" },
-            { "type": "number" }
-          ]
-        }
-      }
-    },
-    "additionalProperties": false,
-    "properties": {
-      "... 기존 기본값 나열부 유지 ..."
-    }
-  }
-}
-
-1. 필수 보강 사항
-
-타임라인 각 항목의 시간 존재 보장
-현재 timestamp와 timecode가 모두 선택 항목이므로, 실제 시간 정보 없이 저장될 위험이 있다. 최소 하나는 필수임을 강제하는 규칙이 필요하다.
-
-무컷 연속성 규칙의 정밀화
-continuity.noCuts = true일 때 이미 편집 전환을 금지하고 있으나, 시간 왜곡류 페이싱 값의 허용 범위를 transitionPolicy와 연동해야 한다.
-
-화면비와 해상도의 정규 패턴
-aspectRatio, resolution을 자유 텍스트로 두면 파이프라인 매핑이 불안정해진다. SMPTE 스타일 정규식과 함께 권장 패턴을 추가한다.
-
-SMPTE 타임코드 정규식
-timecode.smpteStart, smpteEnd의 형식을 엄격히 제한하여 파싱 오류를 방지한다.
-
-물리 카메라 파라미터의 형식 규정
-aperture, shutter, ndFilter는 문자열로 개방되어 있다. 사진·영화 표기 규약 기반 패턴을 부여한다. iso는 정수 범위로 충분하다.
-
-컬러 그레이드 중복 정의의 우선순위
-cameraSetting.colorGrade와 lookDev.grade가 중복될 수 있다. 충돌 시 우선순위를 명시한다. 스키마 주석과 운영 규칙에 포함할 것을 권고한다.
-
-타임라인 순차성 및 구간 유효성
-JSON Schema 자체로는 교차 필드 비교가 어려우므로 서비스 계층 규칙으로 강제한다. sequence의 유일성, startMs < endMs, 구간 겹침 금지를 포함한다.
-
-잠금 세그먼트 참조 무결성
-generationControl.shotByShot.lockedSegments가 실제 타임라인 시퀀스만 가리키도록 서비스 계층에서 교차 검증을 추가한다.
-
-요소 식별자의 유일성
-elements.characters[].id, elements.coreObjects[].id의 유일성은 데이터베이스 또는 서비스 계층에서 강제한다.
-
-uiHints 구조의 범용성
-현재 uiHints.properties에 JSON Pointer 키를 명시적으로 열거하였다. 유지보수성과 확장성을 위해 patternProperties를 병행하여 임의의 포인터 키를 안전하게 수용하도록 한다.
-
-주의 사항. 기존 스키마의 uiHints.additionalProperties는 임의 키 허용이었으나, 포인터 키만 허용하도록 강화하는 편이 안전하다. 필드명 오탈자 유입을 줄일 수 있다.
-
-
-2. 스키마 증분 패치
-
-아래 패치는 기존 스키마에 병합하는 증분이다. 본문에 제시된 경로에 그대로 추가하거나 대체한다. 표기 방식은 JSON Schema 2020-12이며, 기존 키의 값 일부를 교체하는 경우 동일 경로에 대입한다.
-
-2.1 공용 정의 추가
-{
-  "$defs": {
-    "SMPTETimecode": {
-      "type": "string",
-      "pattern": "^[0-9]{2}:[0-9]{2}:[0-9]{2}([:;][0-9]{2})$",
-      "description": "HH:MM:SS:FF 또는 HH:MM:SS;FF"
-    },
-    "AspectRatio": {
-      "type": "string",
-      "pattern": "^(\\d+(?:\\.\\d+)?):(\\d+(?:\\.\\d+)?)$",
-      "description": "예시 16:9, 9:16, 2.39:1"
-    },
-    "Resolution": {
-      "type": "string",
-      "pattern": "^((HD|FHD|4K|8K)|([1-9]\\d{2,4}x[1-9]\\d{2,4}))$",
-      "description": "명칭 또는 WxH 픽셀 표기"
-    },
-    "Aperture": {
-      "type": "string",
-      "pattern": "^f\\/(\\d+(?:\\.\\d+)?)$",
-      "description": "예시 f/1.4, f/5.6"
-    },
-    "Shutter": {
-      "type": "string",
-      "pattern": "^(1\\/[1-9]\\d{1,5}|[0-9]+(?:\\.[0-9]+)?s)$",
-      "description": "예시 1/50, 1/1000, 0.5s"
-    },
-    "NDFilter": {
-      "type": "string",
-      "pattern": "^(ND\\d+(?:\\.\\d+)?|\\d+(?:\\.\\d+)?\\s*stops)$",
-      "description": "예시 ND8, ND0.9, 3 stops"
-    }
-  }
-}
-
-2.2 타임라인 시간 존재 보장
-
-promptBlueprint.properties.timeline.items 내부에 다음을 추가한다.
-
-{
-  "anyOf": [
-    { "required": ["timestamp"] },
-    { "required": ["timecode"] }
-  ]
-}
-
-2.3 SMPTE 정규식 적용
-
-timecode.smpteStart, timecode.smpteEnd 정의를 다음과 같이 교체한다.
-
-{
-  "smpteStart": { "$ref": "#/$defs/SMPTETimecode" },
-  "smpteEnd":   { "$ref": "#/$defs/SMPTETimecode" }
-}
-
-2.4 화면비·해상도 패턴 적용
-
-metadata.deliverySpec.properties.aspectRatio와 resolution을 다음과 같이 교체한다.
-
-{
-  "aspectRatio": { "$ref": "#/$defs/AspectRatio" },
-  "resolution":  { "$ref": "#/$defs/Resolution" }
-}
-
-
-fps는 23.976 등 비정수 프레임을 위해 number 유지가 타당하다.
-
-2.5 물리 카메라 파라미터 패턴 적용
-
-metadata.cameraSetting.physical.properties를 다음과 같이 교체한다.
-
-{
-  "aperture": { "$ref": "#/$defs/Aperture" },
-  "shutter":  { "$ref": "#/$defs/Shutter" },
-  "iso":      { "type": "integer", "minimum": 25, "maximum": 204800 },
-  "ndFilter": { "$ref": "#/$defs/NDFilter" }
-}
-
-2.6 무컷 연속성과 페이싱의 연동
-
-스키마 하단 allOf 블록을 아래와 같이 확장한다. noCuts = true이면서 transitionPolicy가 명시되지 않았거나 None인 경우, 시간 왜곡 페이싱을 금지한다. 반대로 Only-internal time ramp인 경우에는 허용한다.
-
-{
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "promptBlueprint": {
-            "properties": {
-              "metadata": {
-                "properties": {
-                  "continuity": {
-                    "properties": { "noCuts": { "const": true } }
-                  }
-                },
-                "required": ["continuity"]
-              }
-            }
-          }
-        },
-        "required": ["promptBlueprint"]
-      },
-      "then": {
-        "properties": {
-          "promptBlueprint": {
-            "properties": {
-              "timeline": {
-                "items": {
-                  "properties": {
-                    "pacingFX": {
-                      "properties": {
-                        "editingStyle": {
-                          "not": { "enum": ["Jump Cut", "Cross-dissolve", "Wipe", "Split Screen"] }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "promptBlueprint": {
-            "properties": {
-              "metadata": {
-                "properties": {
-                  "continuity": {
-                    "properties": {
-                      "noCuts": { "const": true },
-                      "transitionPolicy": { "enum": ["None"] }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "promptBlueprint": {
-            "properties": {
-              "timeline": {
-                "items": {
-                  "properties": {
-                    "pacingFX": {
-                      "properties": {
-                        "pacing": {
-                          "not": { "enum": ["Time-lapse", "Freeze-frame"] }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  ]
-}
-
-2.7 UI 힌트 확장성 확보
-
-uiHints에 patternProperties를 추가하여 임의의 JSON Pointer 키를 안전하게 수용하도록 한다. 기존 properties에 둔 기본값 목록은 유지해도 무방하다.
-
-{
-  "uiHints": {
-    "type": "object",
-    "writeOnly": true,
-    "patternProperties": {
-      "^\\/.*$": {
-        "type": "array",
-        "items": {
-          "oneOf": [
-            { "type": "string" },
-            { "type": "number" }
-          ]
-        }
-      }
-    },
-    "additionalProperties": false,
-    "properties": {
-      "... 기존 기본값 나열부 유지 ..."
-    }
-  }
-}
-
-
-주의 사항. 기존 스키마의 uiHints.additionalProperties는 임의 키 허용이었으나, 포인터 키만 허용하도록 강화하는 편이 안전하다. 필드명 오탈자 유입을 줄일 수 있다.
-
-3. 서비스 계층 검증 규칙 권고
-
-JSON Schema로 표현하기 어려운 교차 제약은 서비스 계층에서 강제한다.
-
-타임라인 정합성
-sequence 엄격 오름차순, 유일성 보장.
-timecode.startMs < endMs.
-인접 구간의 시간 중복 금지.
-마지막 구간의 endMs가 deliverySpec.durationMs와 일치.
-
-연속성 제약 전파
-noCuts = true이면 timeline.pacingFX.editingStyle은 컷류 금지.
-transitionPolicy = Only-internal time ramp일 때만 Time-lapse, Freeze-frame 허용.
-
-잠금 세그먼트 참조 무결성
-lockedSegments는 존재하는 sequence만 포함. 편집 시 해당 항목 불변성 유지.
-
-컬러 그레이드 우선순위
-충돌 시 lookDev.grade가 cameraSetting.colorGrade를 우선한다. 서버 저장 시 병합 로직 적용.
-
-요소 식별자 유일성
-characters[].id, coreObjects[].id는 각 배열 내 유일해야 하며, 타 엔티티와의 충돌 방지.
-
-컴플라이언스 자동 주입
-generationControl.compliance.negativeOverlays의 값은 finalOutput.negativePrompts에 동의어를 포함하여 자동 병합.
-
-4. 회귀 위험 및 호환성 메모
-
-기존 페이로드 중 자유 형식 화면비, 해상도, SMPTE 표기가 새 패턴과 충돌할 수 있다. 마이그레이션 단계에서 표준화 변환 함수를 제공해야 한다.
-
-uiHints.additionalProperties를 false로 강화하는 경우, 과거에 저장된 임의 키는 거부될 수 있다. 읽기 시 허용, 쓰기 시 차단의 점진적 전략을 권한다.
-
-anyOf 추가에 따라 시간 필드가 하나도 없는 타임라인 항목은 거절된다. 에디터에서 저장 전 자동 보정 로직을 제공해야 한다.

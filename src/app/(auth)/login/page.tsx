@@ -76,9 +76,17 @@ function LoginForm() {
 
         {/* 비밀번호 입력 */}
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-            비밀번호 <span className="text-danger-400">*</span>
-          </label>
+          <div className="flex justify-between items-center mb-2">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+              비밀번호 <span className="text-danger-400">*</span>
+            </label>
+            <Link 
+              href="/forgot-password" 
+              className="text-sm text-brand-400 hover:text-brand-300 transition-colors"
+            >
+              비밀번호를 잊으셨나요?
+            </Link>
+          </div>
           <input
             id="password"
             type="password"
