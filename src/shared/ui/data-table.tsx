@@ -30,9 +30,9 @@ export function DataTable<T extends { id?: string }>(props: DataTableProps<T>) {
   const sorted = useMemo(() => {
     if (!sortKey) return data;
     const copy = [...data];
-    copy.sort((a: any, b: any) => {
-      const av = (a as any)[sortKey];
-      const bv = (b as any)[sortKey];
+    copy.sort((a: T, b: T) => {
+      const av = (a as Record<string, unknown>)[sortKey];
+      const bv = (b as Record<string, unknown>)[sortKey];
       if (av === bv) return 0;
       if (av == null) return 1;
       if (bv == null) return -1;
@@ -98,7 +98,7 @@ export function DataTable<T extends { id?: string }>(props: DataTableProps<T>) {
               <tr key={(row.id as string) ?? idx} role="row">
                 {columns.map((col) => (
                   <td key={String(col.key)} role="cell" className={cn('px-3 py-2', col.className)}>
-                    {col.accessor ? col.accessor(row) : (row as any)[col.key as string]}
+                    {col.accessor ? col.accessor(row) : String((row as Record<string, unknown>)[col.key as string] ?? '')}
                   </td>
                 ))}
               </tr>

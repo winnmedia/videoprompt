@@ -6,12 +6,8 @@
 import { setupServer } from 'msw/node';
 import { handlers } from './handlers';
 
-// Jest globals - only available in test environment
-declare global {
-  var beforeAll: (fn: () => void) => void;
-  var afterEach: (fn: () => void) => void;  
-  var afterAll: (fn: () => void) => void;
-}
+// Vitest globals - these are already declared in vitest.d.ts
+// No need to declare them here as they are global
 
 // 테스트 서버 설정
 export const server = setupServer(...handlers);

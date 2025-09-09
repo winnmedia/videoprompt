@@ -20,7 +20,6 @@ export function ResendEmailButton({
 }: ResendEmailButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [remainingTime, setRemainingTime] = useState(0);
-  const [lastResendTime, setLastResendTime] = useState<number | null>(null);
 
   useEffect(() => {
     // 로컬 스토리지에서 마지막 전송 시간 확인
@@ -30,7 +29,6 @@ export function ResendEmailButton({
       const elapsed = Math.floor((Date.now() - lastTime) / 1000);
       if (elapsed < cooldownSeconds) {
         setRemainingTime(cooldownSeconds - elapsed);
-        setLastResendTime(lastTime);
       }
     }
   }, [cooldownSeconds]);
@@ -54,7 +52,6 @@ export function ResendEmailButton({
       // 성공 시 쿨다운 시작
       const now = Date.now();
       localStorage.setItem('lastEmailResendTime', now.toString());
-      setLastResendTime(now);
       setRemainingTime(cooldownSeconds);
     } catch (error) {
       console.error('Failed to resend email:', error);
