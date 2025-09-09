@@ -35,7 +35,8 @@ export async function POST(req: NextRequest) {
       console.log(`[Register ${traceId}] Parsed body:`, body);
     } catch (e) {
       console.error(`[Register ${traceId}] Failed to parse request body:`, e);
-      return failure('INVALID_REQUEST', '잘못된 요청 형식입니다. JSON 파싱 실패.', 400, `Error: ${e.message}`, traceId);
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      return failure('INVALID_REQUEST', '잘못된 요청 형식입니다. JSON 파싱 실패.', 400, `Error: ${errorMessage}`, traceId);
     }
     
     // 입력값 검증
