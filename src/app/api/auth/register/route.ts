@@ -18,18 +18,42 @@ const RegisterSchema = z.object({
 export async function POST(req: NextRequest) {
   const traceId = getTraceId(req);
   
+  console.log(`[Register ${traceId}] 🚀 회원가입 요청 시작`);
+  console.log(`[Register ${traceId}] Headers:`, {
+    'content-type': req.headers.get('content-type'),
+    'user-agent': req.headers.get('user-agent'),
+    'origin': req.headers.get('origin'),
+  });
+  
   try {
     // Request body 파싱
     let body;
     try {
-      body = await req.json();
+      const rawBody = await req.text();
+      console.log(`[Register ${traceId}] Raw body:`, rawBody);
+      body = JSON.parse(rawBody);
+      console.log(`[Register ${traceId}] Parsed body:`, body);
     } catch (e) {
       console.error(`[Register ${traceId}] Failed to parse request body:`, e);
-      return failure('INVALID_REQUEST', '잘못된 요청 형식입니다.', 400, undefined, traceId);
+      return failure('INVALID_REQUEST', '잘못된 요청 형식입니다. JSON 파싱 실패.', 400, `Error: ${e.message}`, traceId);
     }
     
     // 입력값 검증
-    const { email, username, password } = RegisterSchema.parse(body);
+    let email, username, password;
+    try {
+      const validatedData = RegisterSchema.parse(body);
+      email = validatedData.email;
+      username = validatedData.username;
+      password = validatedData.password;
+      console.log(`[Register ${traceId}] ✅ 입력값 검증 성공:`, { email, username, passwordLength: password.length });
+    } catch (validationError) {
+      console.error(`[Register ${traceId}] ❌ 입력값 검증 실패:`, validationError);
+      if (validationError instanceof z.ZodError) {
+        const errorMessage = validationError.issues.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
+        return failure('INVALID_INPUT_FIELDS', errorMessage, 400, undefined, traceId);
+      }
+      return failure('INVALID_INPUT', '입력값이 올바르지 않습니다.', 400, undefined, traceId);
+    }
 
     const existing = await prisma.user.findFirst({
       where: { OR: [{ email }, { username }] },
