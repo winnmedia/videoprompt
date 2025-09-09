@@ -43,8 +43,12 @@ export const prisma = (() => {
   try {
     return globalThis.prisma ?? prismaClientSingleton();
   } catch (error) {
-    console.error('Prisma 클라이언트 초기화 실패:', error);
-    throw error;
+    console.error('❌ Prisma 클라이언트 초기화 실패:', error);
+    console.warn('⚠️  서버는 시작되지만 데이터베이스 기능이 제한됩니다. 환경 변수 확인 필요.');
+    
+    // 프로덕션에서 초기화 실패 시 임시 null 클라이언트 반환
+    // 이렇게 하면 서버는 시작되지만 DB 작업 시 명시적 에러 처리 필요
+    return null as any as PrismaClient;
   }
 })();
 
