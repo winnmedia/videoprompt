@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Logo, Button, FormError } from '@/shared/ui';
+import { Logo, Button, FormError, Input } from '@/shared/ui';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -19,6 +19,7 @@ export default function RegisterPage() {
   const [emailVerified, setEmailVerified] = useState(false);
   const [emailVerificationSent, setEmailVerificationSent] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
+  const [verificationSuccess, setVerificationSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,6 +125,7 @@ export default function RegisterPage() {
 
       if (data.ok) {
         setEmailVerified(true);
+        setVerificationSuccess(true);
         setError('');
       } else {
         setError(data.message || '인증 코드가 올바르지 않습니다.');
@@ -148,7 +150,7 @@ export default function RegisterPage() {
           </div>
 
           {/* 이메일 인증 안내 */}
-          <div className="bg-gray-800/50 backdrop-blur-lg rounded-xl p-8 shadow-2xl border border-gray-700">
+          <div className="bg-gray-800/50 backdrop-blur-lg rounded-xl p-8 shadow-2xl border border-gray-700" data-testid="email-verification-notice">
             <div className="text-center space-y-6">
               {/* 이메일 아이콘 */}
               <div className="mx-auto w-20 h-20 bg-brand-500/10 rounded-full flex items-center justify-center">
@@ -241,23 +243,27 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* 이메일 입력 */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 이메일 <span className="text-danger-400">*</span>
                 {emailVerified && (
                   <span className="text-success-400 text-xs ml-2">✓ 인증완료</span>
                 )}
               </label>
               <div className="flex gap-3">
-                <input
-                  id="email"
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="flex-1 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                  placeholder="your@email.com"
-                  disabled={emailVerified}
-                />
+                <div className="flex-1">
+                  <Input
+                    id="email"
+                    type="email"
+                    required
+                    variant="dark"
+                    size="lg"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="your@email.com"
+                    disabled={emailVerified}
+                    testId="email-input"
+                  />
+                </div>
                 <Button
                   type="button"
                   variant="secondary"
@@ -273,25 +279,31 @@ export default function RegisterPage() {
               {/* 인증 코드 입력 */}
               {emailVerificationSent && !emailVerified && (
                 <div className="mt-3">
-                  <label htmlFor="verificationCode" className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     인증 코드 (6자리)
                   </label>
                   <div className="flex gap-3">
-                    <input
-                      id="verificationCode"
-                      type="text"
-                      maxLength={6}
-                      value={verificationCode}
-                      onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                      className="flex-1 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-center text-xl tracking-widest"
-                      placeholder="000000"
-                    />
+                    <div className="flex-1">
+                      <Input
+                        id="verificationCode"
+                        type="text"
+                        maxLength={6}
+                        variant="dark"
+                        size="lg"
+                        value={verificationCode}
+                        onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+                        className="text-center text-xl tracking-widest"
+                        placeholder="000000"
+                        testId="verification-code-input"
+                      />
+                    </div>
                     <Button
                       type="button"
                       size="sm"
                       onClick={handleVerificationCodeSubmit}
                       disabled={loading || !verificationCode || verificationCode.length !== 6}
                       className="px-4 py-3"
+                      testId="verify-code-button"
                     >
                       인증확인
                     </Button>
@@ -303,61 +315,62 @@ export default function RegisterPage() {
               )}
             </div>
 
+            {/* 인증 성공 메시지 */}
+            {verificationSuccess && (
+              <div className="bg-green-500/10 border border-green-500/50 rounded-lg px-4 py-3 text-green-400 text-sm" data-testid="verification-success-message">
+                이메일 인증이 완료되었습니다! 이제 회원가입을 완료할 수 있습니다.
+              </div>
+            )}
+
             {/* 사용자명 입력 */}
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-2">
-                사용자명 <span className="text-danger-400">*</span>
-              </label>
-              <input
-                id="username"
-                type="text"
-                required
-                minLength={3}
-                maxLength={32}
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                placeholder="username"
-              />
-              <p className="text-xs text-gray-400 mt-1">3-32자 사이로 입력해주세요</p>
-            </div>
+            <Input
+              id="username"
+              type="text"
+              required
+              minLength={3}
+              maxLength={32}
+              variant="dark"
+              size="lg"
+              label="사용자명"
+              value={formData.username}
+              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              placeholder="username"
+              helperText="3-32자 사이로 입력해주세요"
+              testId="username-input"
+            />
 
             {/* 비밀번호 입력 */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-                비밀번호 <span className="text-danger-400">*</span>
-              </label>
-              <input
-                id="password"
-                type="password"
-                required
-                minLength={8}
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                placeholder="••••••••"
-              />
-              <p className="text-xs text-gray-400 mt-1">최소 8자 이상 입력해주세요</p>
-            </div>
+            <Input
+              id="password"
+              type="password"
+              required
+              minLength={8}
+              variant="dark"
+              size="lg"
+              label="비밀번호"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              placeholder="••••••••"
+              helperText="최소 8자 이상 입력해주세요"
+              testId="password-input"
+            />
 
             {/* 비밀번호 확인 */}
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
-                비밀번호 확인 <span className="text-danger-400">*</span>
-              </label>
-              <input
-                id="confirmPassword"
-                type="password"
-                required
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                placeholder="••••••••"
-              />
-            </div>
+            <Input
+              id="confirmPassword"
+              type="password"
+              required
+              variant="dark"
+              size="lg"
+              label="비밀번호 확인"
+              value={formData.confirmPassword}
+              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+              placeholder="••••••••"
+              testId="confirm-password-input"
+            />
 
             {/* 에러 메시지 */}
-            <FormError>{error}</FormError>
+            <FormError data-testid="error-message">{error}</FormError>
 
             {/* 회원가입 버튼 */}
             <Button
@@ -365,6 +378,7 @@ export default function RegisterPage() {
               className="w-full"
               size="lg"
               disabled={loading}
+              testId="register-button"
             >
               {loading ? '회원가입 중...' : '회원가입'}
             </Button>

@@ -1,4 +1,5 @@
 "use client";
+import React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/shared/lib/utils';
 import type { ButtonHTMLAttributes } from 'react';
@@ -42,15 +43,17 @@ export interface ButtonProps
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   active?: boolean;
+  testId?: string;
 }
 
-export function Button({ className, variant, size, loading, leftIcon, rightIcon, children, disabled, active, ...props }: ButtonProps) {
+export function Button({ className, variant, size, loading, leftIcon, rightIcon, children, disabled, active, testId, ...props }: ButtonProps) {
   const isDisabled = disabled || loading;
   return (
     <button 
       className={cn(buttonVariants({ variant, size }), className)} 
       disabled={isDisabled}
       data-active={active}
+      data-testid={testId}
       {...props}
     >
       {loading && (

@@ -16,6 +16,8 @@ module.exports = {
       '**/node_modules/**',
       'playwright-report/**',
       'test-results/**',
+      // 기존 목업 테스트 비활성화 (새로운 통합 테스트로 대체)
+      'src/__tests__/auth-api.test.ts',
     ],
     environmentOptions: {
       jsdom: {

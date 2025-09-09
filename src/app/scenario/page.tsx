@@ -1,13 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { extractSceneComponents } from '@/lib/ai-client';
 import { Button } from '@/shared/ui';
 import { useProjectStore } from '@/entities/project';
 import { Icon } from '@/shared/ui';
 import { Logo } from '@/shared/ui';
 import { Loading, Skeleton } from '@/shared/ui/Loading';
+import { useToast } from '@/shared/lib/hooks';
+import { AutoSaveStatus } from '@/shared/ui';
 import { StepProgress } from '@/shared/ui/Progress';
+import { useAutoSave } from '@/shared/lib/hooks/useAutoSave';
 import { 
   generateConsistentPrompt, 
   extractStoryboardConfig,
@@ -69,6 +72,7 @@ interface InsertShot {
 
 export default function ScenarioPage() {
   const project = useProjectStore();
+  const toast = useToast();
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [storyInput, setStoryInput] = useState<StoryInput>({
     title: '',
@@ -86,6 +90,57 @@ export default function ScenarioPage() {
   const [storySteps, setStorySteps] = useState<StoryStep[]>([]);
   const [shots, setShots] = useState<Shot[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // 자동 저장을 위한 데이터 통합
+  const autoSaveData = useMemo(() => ({
+    title: storyInput.title,
+    oneLineStory: storyInput.oneLineStory,
+    toneAndManner: storyInput.toneAndManner,
+    genre: storyInput.genre,
+    target: storyInput.target,
+    duration: storyInput.duration,
+    format: storyInput.format,
+    tempo: storyInput.tempo,
+    developmentMethod: storyInput.developmentMethod,
+    developmentIntensity: storyInput.developmentIntensity,
+    storySteps,
+    shots
+  }), [storyInput, storySteps, shots]);
+
+  // 자동 저장 기능
+  const { isSaving, lastSaved, saveNow } = useAutoSave(
+    autoSaveData,
+    async (data) => {
+      // 프로젝트 스토어에 저장
+      project.setScenario({
+        title: data.title,
+        story: data.oneLineStory,
+        tone: data.toneAndManner,
+        genre: data.genre,
+        target: data.target,
+        format: data.format,
+        tempo: data.tempo,
+        developmentMethod: data.developmentMethod,
+        developmentIntensity: data.developmentIntensity,
+        durationSec: parseInt(data.duration, 10) || undefined,
+      });
+    },
+    {
+      delay: 2000,
+      onSuccess: () => {
+        toast.success('시나리오 데이터가 자동으로 저장되었습니다.', '자동 저장 완료', { duration: 3000 });
+      },
+      onError: (error) => {
+        toast.error(error.message, '자동 저장 실패', { 
+          duration: 5000,
+          action: {
+            label: '다시 시도',
+            onClick: saveNow,
+          },
+        });
+      },
+    }
+  );
 
   // 에러 상태 추가
   const [error, setError] = useState<string | null>(null);
@@ -219,18 +274,25 @@ export default function ScenarioPage() {
         setCurrentStep(2);
         setLoadingMessage('');
         setRetryCount(0); // 성공 시 재시도 카운트 리셋
+        toast.success('4단계 스토리가 성공적으로 생성되었습니다!', '생성 완료');
       } else {
         // API 실패 시 에러 상태 설정
         const status = response.status;
         if (status === 400) {
-          setError('필수 정보가 누락되었습니다. 모든 필드를 입력했는지 확인해주세요.');
+          const errorMsg = '필수 정보가 누락되었습니다. 모든 필드를 입력했는지 확인해주세요.';
+          setError(errorMsg);
           setErrorType('client');
+          toast.error(errorMsg, '요청 오류');
         } else if (status >= 500) {
-          setError('AI 서버에 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+          const errorMsg = 'AI 서버에 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+          setError(errorMsg);
           setErrorType('server');
+          toast.error(errorMsg, '서버 오류');
         } else {
-          setError(`요청 처리 중 오류가 발생했습니다. (오류 코드: ${status})`);
+          const errorMsg = `요청 처리 중 오류가 발생했습니다. (오류 코드: ${status})`;
+          setError(errorMsg);
           setErrorType('server');
+          toast.error(errorMsg, 'API 오류');
         }
       }
     } catch (error) {
@@ -240,11 +302,15 @@ export default function ScenarioPage() {
       
       // 네트워크 에러 처리
       if (errorMessage.includes('fetch') || errorMessage.includes('network')) {
-        setError('네트워크 연결을 확인해주세요. 인터넷 연결이 불안정할 수 있습니다.');
+        const errorMsg = '네트워크 연결을 확인해주세요. 인터넷 연결이 불안정할 수 있습니다.';
+        setError(errorMsg);
         setErrorType('network');
+        toast.error(errorMsg, '네트워크 오류');
       } else {
-        setError('AI 서비스 연결에 실패했습니다. 잠시 후 다시 시도해주세요.');
+        const errorMsg = 'AI 서비스 연결에 실패했습니다. 잠시 후 다시 시도해주세요.';
+        setError(errorMsg);
         setErrorType('server');
+        toast.error(errorMsg, '연결 실패');
       }
     } finally {
       setLoading(false);
@@ -321,8 +387,10 @@ export default function ScenarioPage() {
       setShots(generatedShots);
       setStoryboardShots(generatedStoryboardShots);
       setCurrentStep(3);
+      toast.success(`${generatedShots.length}개의 숏트가 성공적으로 생성되었습니다!`, '숏트 생성 완료');
     } catch (e) {
       console.error(e);
+      toast.error('숏트 생성 중 오류가 발생했습니다.', '숏트 생성 실패');
     } finally {
       setLoading(false);
       setLoadingMessage('');
@@ -390,6 +458,7 @@ export default function ScenarioPage() {
       message: '완료' 
     })));
     
+    toast.success(`${shotsToGenerate.length}개의 스토리보드 이미지가 모두 생성되었습니다!`, '배치 생성 완료');
     setIsBatchGenerating(false);
   };
   
@@ -450,9 +519,11 @@ export default function ScenarioPage() {
         a.href = data.data.jsonUrl;
         a.download = `${storyInput.title || 'scenario'}.json`;
         a.click();
+        toast.success('기획안이 성공적으로 다운로드되었습니다.', '다운로드 완료');
       }
     } catch (e) {
       console.error('기획안 다운로드 실패:', e);
+      toast.error('기획안 다운로드에 실패했습니다.', '다운로드 실패');
     }
   };
   
@@ -526,11 +597,16 @@ export default function ScenarioPage() {
             ? { ...s, contiImage: data.imageUrl } 
             : s
         ));
+        
+        const shot = storyboardShots.find(s => s.id === shotId);
+        toast.success(`"${shot?.title || '이미지'}" 콘티 이미지가 생성되었습니다.`, '이미지 생성 완료');
       } else {
         throw new Error('No image URL received');
       }
     } catch (error) {
       console.error('Image generation error:', error);
+      const shot = storyboardShots.find(s => s.id === shotId);
+      toast.error(`"${shot?.title || '이미지'}" 콘티 이미지 생성에 실패했습니다.`, '이미지 생성 실패');
       
       const errorPlaceholder = `data:image/svg+xml;base64,${btoa(`
         <svg xmlns="http://www.w3.org/2000/svg" width="160" height="90">
@@ -700,29 +776,17 @@ export default function ScenarioPage() {
               </a>
             </nav>
             <div className="flex items-center space-x-4">
+              <AutoSaveStatus
+                isSaving={isSaving}
+                lastSaved={lastSaved}
+                className="hidden sm:flex"
+              />
               <Button
                 variant="outline"
                 size="sm"
-                onClick={async () => {
-                  try {
-                    const res = await fetch('/api/planning/scenario', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        title: storyInput.title || 'Untitled',
-                        logline: storyInput.oneLineStory,
-                        structure4: storySteps,
-                        shots12: shots,
-                      }),
-                    });
-                    if (!res.ok) throw new Error('scenario save failed');
-                    const data = await res.json();
-                    if (data?.ok && data?.data?.id) {
-                      project.setScenarioId(data.data.id);
-                    }
-                  } catch (e) {
-                    console.error('시나리오 저장 실패:', e);
-                  }
+                onClick={() => {
+                  saveNow();
+                  toast.info('수동 저장을 실행했습니다.', undefined, { duration: 2000 });
                 }}
               >
                 저장
@@ -1274,9 +1338,11 @@ export default function ScenarioPage() {
                       a.href = data.data.jsonUrl;
                       a.download = `${storyInput.title || 'scenario'}.json`;
                       a.click();
+                      toast.success('기획안이 성공적으로 다운로드되었습니다.', '다운로드 완료');
                     }
                   } catch (e) {
                     console.error('기획안 다운로드 실패:', e);
+                    toast.error('기획안 다운로드에 실패했습니다.', '다운로드 실패');
                   }
                 }}
               >

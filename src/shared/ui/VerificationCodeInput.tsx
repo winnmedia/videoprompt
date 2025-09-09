@@ -10,6 +10,7 @@ interface VerificationCodeInputProps {
   disabled?: boolean;
   error?: boolean;
   className?: string;
+  testId?: string;
 }
 
 export function VerificationCodeInput({
@@ -19,6 +20,7 @@ export function VerificationCodeInput({
   disabled = false,
   error = false,
   className,
+  testId,
 }: VerificationCodeInputProps) {
   const [values, setValues] = useState<string[]>(Array(length).fill(''));
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -82,7 +84,7 @@ export function VerificationCodeInput({
   };
 
   return (
-    <div className={clsx('flex gap-2 justify-center', className)}>
+    <div className={clsx('flex gap-2 justify-center', className)} data-testid={testId}>
       {values.map((value, index) => (
         <input
           key={index}
@@ -98,6 +100,7 @@ export function VerificationCodeInput({
           onKeyDown={(e) => handleKeyDown(index, e)}
           onPaste={handlePaste}
           disabled={disabled}
+          data-testid={testId ? `${testId}-input-${index}` : undefined}
           className={clsx(
             'w-12 h-14 text-center text-xl font-semibold rounded-lg transition-all',
             'bg-gray-700/50 border text-white placeholder-gray-400',

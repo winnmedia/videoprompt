@@ -1,4 +1,5 @@
 export interface ScenarioData {
+  title?: string;
   story?: string;
   genre?: string;
   tone?: string | string[];

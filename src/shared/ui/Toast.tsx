@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, useEffect, createContext, useContext } from 'react';
 import { cn } from '@/shared/lib/utils';
 
 export interface ToastData {
@@ -21,7 +21,7 @@ interface ToastContextType {
   clearAll: () => void;
 }
 
-const ToastContext = createContext<ToastContextType | null>(null);
+export const ToastContext = createContext<ToastContextType | null>(null);
 
 export function useToast() {
   const context = useContext(ToastContext);

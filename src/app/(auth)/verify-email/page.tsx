@@ -147,10 +147,11 @@ function VerifyEmailForm() {
             onComplete={handleCodeComplete}
             disabled={loading}
             error={!!error}
+            testId="verification-code-input"
           />
 
           {/* 에러 메시지 */}
-          <FormError>{error}</FormError>
+          <FormError data-testid="error-message">{error}</FormError>
 
           {/* 재전송 버튼 */}
           <div className="pt-4 border-t border-gray-700">
@@ -206,7 +207,7 @@ function VerifyEmailForm() {
           </div>
 
           {/* 에러 메시지 */}
-          <FormError>{error}</FormError>
+          <FormError data-testid="error-message">{error}</FormError>
 
           <Button
             type="submit"
