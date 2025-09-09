@@ -7,7 +7,6 @@ import { useProjectStore } from '@/entities/project';
 import { Icon } from '@/components/ui/Icon';
 import { Logo } from '@/components/ui/Logo';
 import { Loading, Skeleton } from '@/shared/ui/Loading';
-import { FormError } from '@/shared/ui/FormError';
 import { StepProgress } from '@/shared/ui/Progress';
 import { 
   generateConsistentPrompt, 
@@ -84,7 +83,9 @@ export default function ScenarioPage() {
 
   // 에러 상태 추가
   const [error, setError] = useState<string | null>(null);
+  const [errorType, setErrorType] = useState<'network' | 'server' | 'client' | null>(null);
   const [loadingMessage, setLoadingMessage] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
 
   // API 응답을 StoryStep 형식으로 변환하는 함수
   const convertStructureToSteps = (structure: any): StoryStep[] => {
@@ -182,6 +183,7 @@ export default function ScenarioPage() {
   const generateStorySteps = async () => {
     setLoading(true);
     setError(null);
+    setErrorType(null);
     setLoadingMessage('AI가 스토리를 생성하고 있습니다...');
 
     try {
@@ -210,224 +212,44 @@ export default function ScenarioPage() {
         setStorySteps(steps);
         setCurrentStep(2);
         setLoadingMessage('');
+        setRetryCount(0); // 성공 시 재시도 카운트 리셋
       } else {
-        // API 실패 시 기본 템플릿 사용
-        setLoadingMessage('AI API 호출에 실패하여 기본 템플릿을 사용합니다...');
-        setTimeout(() => {
-          generateDefaultStorySteps();
-        }, 1000);
+        // API 실패 시 에러 상태 설정
+        const status = response.status;
+        if (status === 400) {
+          setError('필수 정보가 누락되었습니다. 모든 필드를 입력했는지 확인해주세요.');
+          setErrorType('client');
+        } else if (status >= 500) {
+          setError('AI 서버에 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+          setErrorType('server');
+        } else {
+          setError(`요청 처리 중 오류가 발생했습니다. (오류 코드: ${status})`);
+          setErrorType('server');
+        }
       }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다';
       console.error('AI API 호출 실패:', errorMessage);
-      setError('AI 서비스 연결에 실패했습니다. 기본 템플릿을 사용합니다.');
-      // 에러 시 기본 템플릿 사용
-      setTimeout(() => {
-        generateDefaultStorySteps();
-      }, 1000);
+      
+      // 네트워크 에러 처리
+      if (errorMessage.includes('fetch') || errorMessage.includes('network')) {
+        setError('네트워크 연결을 확인해주세요. 인터넷 연결이 불안정할 수 있습니다.');
+        setErrorType('network');
+      } else {
+        setError('AI 서비스 연결에 실패했습니다. 잠시 후 다시 시도해주세요.');
+        setErrorType('server');
+      }
     } finally {
       setLoading(false);
       setLoadingMessage('');
     }
   };
 
-  // 전개 방식별 로컬 스토리 생성 로직 (LLM 실패 시 폴백)
-  const generateDefaultStorySteps = () => {
-    const baseStory = storyInput.oneLineStory || '기본 스토리';
-    const method = storyInput.developmentMethod;
-    
-    // API와 동일한 구조 객체 생성
-    let structure: any = {};
-    
-    const defaultActStructure = (title: string, description: string, emotional_arc: string) => ({
-      title,
-      description,
-      emotional_arc,
-      key_elements: ['핵심 요소1', '핵심 요소2', '핵심 요소3']
-    });
-
-    switch (method) {
-      case '훅-몰입-반전-떡밥':
-        structure = {
-          act1: defaultActStructure(
-            '훅 (강한 시작)',
-            `${baseStory}의 가장 흥미로운 순간으로 시작. 시청자의 관심을 즉시 끄는 강렬한 오프닝`,
-            '평온 → 강한 관심'
-          ),
-          act2: defaultActStructure(
-            '몰입 (빠른 전개)',
-            '핵심 갈등과 캐릭터 동기를 신속하게 제시. 빠른 템포로 스토리 몰입도 극대화',
-            '관심 → 몰입'
-          ),
-          act3: defaultActStructure(
-            '반전 (예상 밖 전개)',
-            '예상과 다른 방향으로 스토리 전개. 충격적 반전으로 시청자에게 새로운 관점 제시',
-            '몰입 → 충격'
-          ),
-          act4: defaultActStructure(
-            '떡밥 (후속 기대)',
-            '해결되지 않은 미스터리나 다음 에피소드 힌트. 다음 이야기에 대한 기대감 조성',
-            '충격 → 기대'
-          )
-        };
-        break;
-
-      case '클래식 기승전결':
-        structure = {
-          act1: defaultActStructure(
-            '기 (시작)',
-            `상황 설정과 캐릭터 소개. ${baseStory}`,
-            '평온 → 관심'
-          ),
-          act2: defaultActStructure(
-            '승 (전개)',
-            '갈등과 문제의 심화. 갈등이 점진적으로 심화되며 긴장감 조성',
-            '관심 → 긴장'
-          ),
-          act3: defaultActStructure(
-            '전 (위기)',
-            '절정과 최대 위기 상황. 갈등이 절정에 달하고 해결의 실마리 발견',
-            '긴장 → 절정'
-          ),
-          act4: defaultActStructure(
-            '결 (해결)',
-            '갈등 해결과 마무리. 모든 갈등이 해결되고 만족스러운 마무리',
-            '절정 → 만족'
-          )
-        };
-        break;
-
-      case '귀납법':
-        structure = {
-          act1: defaultActStructure(
-            '사례 1',
-            `첫 번째 구체적인 사례 제시. ${baseStory}와 관련된 첫 번째 사례`,
-            '관심 → 호기심'
-          ),
-          act2: defaultActStructure(
-            '사례 2',
-            '두 번째 사례로 패턴 강화. 첫 번째와 유사하지만 다른 각도의 사례',
-            '호기심 → 패턴 인식'
-          ),
-          act3: defaultActStructure(
-            '사례 3',
-            '세 번째 사례로 결론 준비. 앞의 사례들과 연결되는 마지막 사례',
-            '패턴 인식 → 확신'
-          ),
-          act4: defaultActStructure(
-            '결론',
-            '사례들을 종합한 일반적 결론. 제시된 사례들로부터 도출되는 결론',
-            '확신 → 만족'
-          )
-        };
-        break;
-
-      case '연역법':
-        structure = {
-          act1: defaultActStructure(
-            '결론 제시',
-            `먼저 결론이나 주장을 명확히 제시. ${baseStory}에 대한 명확한 결론`,
-            '평온 → 관심'
-          ),
-          act2: defaultActStructure(
-            '근거 1',
-            '첫 번째 근거와 논리적 설명. 결론을 뒷받침하는 첫 번째 근거',
-            '관심 → 설득'
-          ),
-          act3: defaultActStructure(
-            '근거 2',
-            '두 번째 근거와 추가 설명. 결론을 더욱 강화하는 두 번째 근거',
-            '설득 → 확신'
-          ),
-          act4: defaultActStructure(
-            '재확인',
-            '결론 재강조와 마무리. 제시된 근거들을 종합하여 결론 재확인',
-            '확신 → 만족'
-          )
-        };
-        break;
-
-      case '다큐(인터뷰식)':
-        structure = {
-          act1: defaultActStructure(
-            '도입부',
-            `주제 소개와 인터뷰 대상자 소개. ${baseStory}에 대한 개요와 주요 인물 소개`,
-            '평온 → 관심'
-          ),
-          act2: defaultActStructure(
-            '인터뷰 1',
-            '첫 번째 핵심 인터뷰. 주요 인물의 경험과 의견을 통한 스토리 전개',
-            '관심 → 몰입'
-          ),
-          act3: defaultActStructure(
-            '인터뷰 2',
-            '두 번째 관점의 인터뷰. 다른 관점에서의 의견과 경험 제시',
-            '몰입 → 이해'
-          ),
-          act4: defaultActStructure(
-            '마무리',
-            '내레이션과 결론. 인터뷰 내용을 종합한 내레이션과 결론',
-            '이해 → 여운'
-          )
-        };
-        break;
-
-      case '픽사스토리':
-        structure = {
-          act1: defaultActStructure(
-            '옛날 옛적에',
-            `평범한 일상의 소개. ${baseStory}의 주인공이 살던 평범한 일상`,
-            '평온 → 안정감'
-          ),
-          act2: defaultActStructure(
-            '매일',
-            '반복되는 일상의 패턴. 주인공의 일상적인 행동과 습관',
-            '안정감 → 친숙함'
-          ),
-          act3: defaultActStructure(
-            '그러던 어느 날',
-            '일상을 바꾸는 사건 발생. 평범한 일상을 뒤바꾸는 특별한 사건',
-            '친숙함 → 변화'
-          ),
-          act4: defaultActStructure(
-            '때문에',
-            '사건의 결과와 변화. 사건으로 인한 변화와 성장',
-            '변화 → 성장'
-          )
-        };
-        break;
-
-      default:
-        // 기본 기승전결 구조 (모든 다른 케이스에 대해)
-        structure = {
-          act1: defaultActStructure(
-            '기 (시작)',
-            `상황 설정과 캐릭터 소개. ${baseStory}`,
-            '평온 → 관심'
-          ),
-          act2: defaultActStructure(
-            '승 (전개)',
-            '갈등과 문제의 심화. 갈등이 점진적으로 심화되며 긴장감 조성',
-            '관심 → 긴장'
-          ),
-          act3: defaultActStructure(
-            '전 (위기)',
-            '절정과 최대 위기 상황. 갈등이 절정에 달하고 해결의 실마리 발견',
-            '긴장 → 절정'
-          ),
-          act4: defaultActStructure(
-            '결 (해결)',
-            '갈등 해결과 마무리. 모든 갈등이 해결되고 만족스러운 마무리',
-            '절정 → 만족'
-          )
-        };
-    }
-
-    // structure를 StoryStep 배열로 변환
-    const steps = convertStructureToSteps(structure);
-    setStorySteps(steps);
-    setCurrentStep(2);
+  // 재시도 함수
+  const handleRetry = async () => {
+    setRetryCount(prev => prev + 1);
+    await generateStorySteps();
   };
 
   // 3단계: 12개 숏트 생성
@@ -978,8 +800,79 @@ export default function ScenarioPage() {
               </div>
             )}
 
-            {/* 에러 메시지 */}
-            <FormError>{error}</FormError>
+            {/* 에러 메시지 및 재시도 */}
+            {error && !loading && (
+              <div className="mt-6 rounded-lg border border-danger-200 bg-danger-50 p-4">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    <svg
+                      className="h-5 w-5 text-danger-400"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <h3 className="text-sm font-medium text-danger-800">스토리 생성 실패</h3>
+                    <div className="mt-2 text-sm text-danger-700">
+                      <p>{error}</p>
+                    </div>
+                    <div className="mt-4 flex items-center gap-3">
+                      <Button
+                        onClick={handleRetry}
+                        size="sm"
+                        className="bg-danger-600 text-white hover:bg-danger-700 focus:ring-danger-500"
+                      >
+                        <svg
+                          className="-ml-1 mr-2 h-4 w-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                          />
+                        </svg>
+                        다시 시도
+                      </Button>
+                      {retryCount > 0 && (
+                        <span className="text-xs text-danger-600">
+                          재시도 {retryCount}회
+                        </span>
+                      )}
+                    </div>
+                    {errorType === 'network' && (
+                      <div className="mt-3 rounded-md bg-danger-100 p-2">
+                        <p className="text-xs text-danger-700">
+                          💡 해결 방법:
+                          <br />• 인터넷 연결을 확인해주세요
+                          <br />• VPN을 사용 중이라면 잠시 끄고 시도해보세요
+                          <br />• 브라우저를 새로고침(F5) 후 다시 시도해주세요
+                        </p>
+                      </div>
+                    )}
+                    {errorType === 'server' && retryCount >= 2 && (
+                      <div className="mt-3 rounded-md bg-danger-100 p-2">
+                        <p className="text-xs text-danger-700">
+                          💡 AI 서버가 일시적으로 과부하 상태입니다.
+                          <br />• 1-2분 후에 다시 시도해주세요
+                          <br />• 계속 문제가 발생하면 고객센터로 문의해주세요
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
