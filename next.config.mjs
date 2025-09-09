@@ -7,12 +7,10 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   
-  // ✅ API Routes 강제 빌드 설정
+  // ✅ API Routes 강제 빌드 설정  
   // Vercel에서 API Routes가 Functions로 빌드되도록 보장
-  experimental: {
-    // API Routes가 Serverless Functions로 빌드되도록 강제
-    serverComponentsExternalPackages: ['@prisma/client'],
-  },
+  // Next.js 15.4.6+ 호환: serverExternalPackages로 이동
+  serverExternalPackages: ['@prisma/client'],
   
   // 번들 크기 최적화를 위한 파일 제외 목록 (Next.js 15.4.6+)
   outputFileTracingExcludes: {
