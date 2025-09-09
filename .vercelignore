@@ -23,9 +23,6 @@ playwright.config.*
 .cursor/
 .vscode/
 .idea/
-eslint.config.*
-prettier.config.*
-tailwind.config.*
 
 # Git 히스토리 (배포 시 불필요)
 .git/
