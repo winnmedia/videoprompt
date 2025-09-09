@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { signSessionToken } from '@/shared/lib/auth';
-import { setCorsHeaders } from '@/shared/lib/cors-utils';
+import { addCorsHeaders } from '@/shared/lib/cors-utils';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -21,8 +21,7 @@ const LoginSchema = z.object({
 // ✅ CORS OPTIONS 핸들러 - 프리플라이트 요청 처리
 export async function OPTIONS(req: NextRequest) {
   const response = new NextResponse(null, { status: 200 });
-  setCorsHeaders(response);
-  return response;
+  return addCorsHeaders(response);
 }
 
 export async function POST(req: NextRequest) {
@@ -42,15 +41,13 @@ export async function POST(req: NextRequest) {
     });
     if (!user) {
       const response = failure('NOT_FOUND', '사용자를 찾을 수 없습니다.', 404, undefined, traceId);
-      setCorsHeaders(response);
-      return response;
+      return addCorsHeaders(response);
     }
 
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) {
       const response = failure('UNAUTHORIZED', '비밀번호가 올바르지 않습니다.', 401, undefined, traceId);
-      setCorsHeaders(response);
-      return response;
+      return addCorsHeaders(response);
     }
 
     // 세션 쿠키 발급 (HttpOnly)
@@ -63,14 +60,12 @@ export async function POST(req: NextRequest) {
       path: '/',
       maxAge: 60 * 60 * 24 * 7,
     });
-    setCorsHeaders(res);
-    return res;
+    return addCorsHeaders(res);
   } catch (e: any) {
     const response = e instanceof z.ZodError 
       ? failure('INVALID_INPUT_FIELDS', e.message, 400)
       : failure('UNKNOWN', e?.message || 'Server error', 500);
-    setCorsHeaders(response);
-    return response;
+    return addCorsHeaders(response);
   }
 }
 
