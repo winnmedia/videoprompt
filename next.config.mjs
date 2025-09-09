@@ -4,6 +4,19 @@ const nextConfig = {
   // Next.js 15: serverExternalPackages supersedes experimental.serverComponentsExternalPackages
   serverExternalPackages: ['@prisma/client'],
   
+  // 번들 크기 최적화 - Vercel 250MB 제한 해결
+  outputFileTracingExcludes: {
+    '**/*': [
+      'node_modules/@swc/core-linux-x64-gnu',
+      'node_modules/@swc/core-linux-x64-musl',
+      'node_modules/@esbuild/linux-x64',
+      'node_modules/sharp',
+      'node_modules/canvas',
+      'node_modules/puppeteer',
+      'node_modules/playwright',
+    ],
+  },
+  
   // 빌드 시 ESLint 및 TypeScript 오류 무시 (프로덕션 배포 우선)
   eslint: {
     ignoreDuringBuilds: true,
