@@ -39,7 +39,7 @@ export function SeedanceProgressPanel({ jobIds, statuses, error }: Props) {
                     />
                     <div className="mt-2 flex items-center gap-2">
                       <a
-                        href={statuses[jid]?.videoUrl!}
+                        href={statuses[jid]?.videoUrl || ''}
                         target="_blank"
                         rel="noreferrer"
                         className="text-xs text-primary-600 hover:underline"
@@ -47,7 +47,7 @@ export function SeedanceProgressPanel({ jobIds, statuses, error }: Props) {
                         새 탭에서 열기
                       </a>
                       <a
-                        href={statuses[jid]?.videoUrl!}
+                        href={statuses[jid]?.videoUrl || ''}
                         download
                         className="text-xs text-secondary-700 hover:underline"
                       >

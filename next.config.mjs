@@ -4,6 +4,12 @@ const nextConfig = {
   // Next.js 15: serverExternalPackages supersedes experimental.serverComponentsExternalPackages
   serverExternalPackages: ['@prisma/client'],
 
+  // ESLint 오류를 무시하고 빌드 성공시키기
+  eslint: {
+    // 프로덕션 빌드 시 ESLint 오류 무시
+    ignoreDuringBuilds: true,
+  },
+
   
   // 번들 크기 최적화 - Vercel 250MB 제한 해결
   outputFileTracingExcludes: {
@@ -18,13 +24,6 @@ const nextConfig = {
     ],
   },
   
-  // 빌드 시 ESLint 및 TypeScript 오류 무시 (프로덕션 배포 우선)
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   
   // API 라우팅 설정 - Railway 프록시
   async rewrites() {

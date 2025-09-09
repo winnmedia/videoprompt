@@ -51,10 +51,11 @@ node_modules/.pnpm/
 !node_modules/@prisma/client/
 !node_modules/@prisma/engines/
 
-# Prisma 엔진 최적화 (사용하지 않는 플랫폼 엔진 제외)
+# Prisma 엔진 최적화 (필요한 엔진만 포함)
+# 버전별로 파일명이 달라질 수 있으므로 와일드카드 사용
 node_modules/@prisma/engines/
-!node_modules/@prisma/engines/libquery_engine-linux-x64-openssl-3.0.x.so.node
-!node_modules/@prisma/engines/query_engine-linux-x64-openssl-3.0.x
+!node_modules/@prisma/engines/*linux-x64*.so.node
+!node_modules/@prisma/engines/*linux-x64*
 
 # 플랫폼별 네이티브 바이너리 제외
 node_modules/@swc/core-*

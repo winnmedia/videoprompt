@@ -8,7 +8,7 @@
  * @compatibility 기존 VideoPrompt와 호환
  */
 
-import type { VideoPrompt, Metadata } from './video-prompt';
+import type { VideoPrompt } from './video-prompt';
 
 // =============================================================================
 // 🎬 CineGenius v3.1 Core Types
