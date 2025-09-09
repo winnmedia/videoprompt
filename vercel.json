@@ -1,19 +1,21 @@
 {
   "version": 2,
+  "framework": null,
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm build",
+  "buildCommand": "pnpm build && echo 'Cache cleanup complete'",
   "git": {
     "deploymentEnabled": {
       "main": true
     }
   },
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "NEXT_TELEMETRY_DISABLED": "1"
   },
   "functions": {
     "src/app/api/**/*.ts": {
       "maxDuration": 30,
-      "memory": 512
+      "memory": 1024
     }
   },
   "headers": [

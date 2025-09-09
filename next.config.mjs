@@ -3,6 +3,26 @@ const nextConfig = {
   // 배포 최적화를 위한 standalone 모드
   output: 'standalone',
   
+  // 압축 및 헤더 최적화
+  compress: true,
+  poweredByHeader: false,
+  
+  // 실험적 기능: 파일 추적에서 제외할 항목들
+  experimental: {
+    outputFileTracingExcludes: {
+      '*': [
+        '.next/cache/**/*',
+        'node_modules/@swc/core-linux-x64-gnu',
+        'node_modules/@swc/core-linux-x64-musl', 
+        'node_modules/@esbuild/linux-x64',
+        'node_modules/webpack/**/*',
+        '.git/**/*',
+        '*.md',
+        'tests/**/*'
+      ],
+    },
+  },
+  
   // API 라우팅 설정 - 강제로 Railway 백엔드 사용
   async rewrites() {
     const apiBase = 'https://videoprompt-production.up.railway.app';
