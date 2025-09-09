@@ -6,6 +6,14 @@ const nextConfig = {
     console.log('🚀 Using Railway backend API proxy for all API calls');
 
     return [
+      // Authentication API
+      { source: '/api/auth/:path*', destination: `${apiBase}/api/auth/:path*` },
+      // User API
+      { source: '/api/user/:path*', destination: `${apiBase}/api/user/:path*` },
+      // Email API
+      { source: '/api/email/:path*', destination: `${apiBase}/api/email/:path*` },
+      // Health API
+      { source: '/api/health/:path*', destination: `${apiBase}/api/health/:path*` },
       // Seedance API
       { source: '/api/seedance/:path*', destination: `${apiBase}/api/seedance/:path*` },
       // Imagen API
