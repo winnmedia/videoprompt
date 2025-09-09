@@ -1,7 +1,7 @@
 {
   "version": 2,
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm build && echo 'Cache cleanup complete'",
+  "buildCommand": "pnpm build",
   "git": {
     "deploymentEnabled": {
       "main": true
