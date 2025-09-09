@@ -14,6 +14,12 @@ import {
   type StoryboardConfig,
   type ShotPromptOptions 
 } from '@/lib/utils/prompt-consistency';
+import {
+  StoryboardGallery,
+  GenerateStoryboardButton,
+  StoryboardProgress,
+  type Shot as StoryboardShot
+} from '@/components/storyboard';
 
 interface StoryInput {
   title: string;
@@ -271,13 +277,14 @@ export default function ScenarioPage() {
       });
 
       const generatedShots: Shot[] = [];
+      const generatedStoryboardShots: StoryboardShot[] = [];
       let shotId = 1;
 
       storySteps.forEach((step) => {
         const shotsPerStep = 3; // 각 단계당 3개 숏트
         for (let i = 0; i < shotsPerStep; i++) {
           const beat = components.timelineBeats?.[Math.min(shotId - 1, components.timelineBeats.length - 1)];
-          generatedShots.push({
+          const shotData = {
             id: `shot-${shotId}`,
             stepId: step.id,
             title: `${step.title} - 숏트 ${i + 1}`,
@@ -290,12 +297,29 @@ export default function ScenarioPage() {
             subtitle: beat?.audio || '',
             transition: '컷',
             insertShots: [],
+          };
+          
+          generatedShots.push(shotData);
+          
+          // StoryboardShot 형식으로도 변환
+          generatedStoryboardShots.push({
+            id: shotData.id,
+            title: shotData.title,
+            description: shotData.description,
+            imageUrl: undefined,
+            prompt: undefined,
+            shotType: shotData.shotType,
+            camera: shotData.camera,
+            duration: shotData.length,
+            index: shotId,
           });
+          
           shotId++;
         }
       });
 
       setShots(generatedShots);
+      setStoryboardShots(generatedStoryboardShots);
       setCurrentStep(3);
     } catch (e) {
       console.error(e);
@@ -321,7 +345,210 @@ export default function ScenarioPage() {
   // Storyboard configuration for consistency
   const [storyboardConfig, setStoryboardConfig] = useState<StoryboardConfig | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState<Record<string, boolean>>({});
+  const [storyboardShots, setStoryboardShots] = useState<StoryboardShot[]>([]);
+  const [storyboardProgress, setStoryboardProgress] = useState<any[]>([]);
+  const [isBatchGenerating, setIsBatchGenerating] = useState(false);
+  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
 
+  // 스토리보드 관련 핸들러들
+  const handleBatchGenerate = async (mode: 'all' | 'selected') => {
+    setIsBatchGenerating(true);
+    const shotsToGenerate = mode === 'all' 
+      ? storyboardShots.filter(s => !s.imageUrl)
+      : storyboardShots.filter(s => !s.imageUrl).slice(0, 3); // 예시로 처음 3개만
+    
+    setBatchProgress({ current: 0, total: shotsToGenerate.length });
+    
+    // 진행 상태 초기화
+    const progressSteps = shotsToGenerate.map((shot, index) => ({
+      id: `step-${shot.id}`,
+      label: `${shot.title} 이미지 생성`,
+      status: 'pending' as const,
+      message: '대기 중',
+    }));
+    setStoryboardProgress(progressSteps);
+    
+    for (let i = 0; i < shotsToGenerate.length; i++) {
+      const shot = shotsToGenerate[i];
+      
+      // 진행 상태 업데이트
+      setStoryboardProgress(prev => prev.map((step, idx) => 
+        idx === i ? { ...step, status: 'processing', message: '생성 중...' } : 
+        idx < i ? { ...step, status: 'completed', message: '완료' } : 
+        step
+      ));
+      
+      await generateContiImageForStoryboard(shot.id);
+      
+      setBatchProgress(prev => ({ ...prev, current: i + 1 }));
+    }
+    
+    // 모든 진행 완료
+    setStoryboardProgress(prev => prev.map(step => ({ 
+      ...step, 
+      status: 'completed', 
+      message: '완료' 
+    })));
+    
+    setIsBatchGenerating(false);
+  };
+  
+  const handleRegenerateShot = async (shotId: string) => {
+    await generateContiImageForStoryboard(shotId);
+  };
+  
+  const handleEditStoryboardShot = (shotId: string, updates: Partial<StoryboardShot>) => {
+    setStoryboardShots(prev => prev.map(shot => 
+      shot.id === shotId ? { ...shot, ...updates } : shot
+    ));
+    
+    // 기존 shots도 동기화
+    if (updates.title || updates.description) {
+      updateShot(shotId, 'title', updates.title || '');
+      updateShot(shotId, 'description', updates.description || '');
+    }
+  };
+  
+  const handleDownloadShot = (shotId: string, imageUrl?: string) => {
+    if (!imageUrl) return;
+    
+    const link = document.createElement('a');
+    link.href = imageUrl;
+    link.download = `storyboard-${shotId}.png`;
+    link.click();
+  };
+  
+  const handleDownloadAllShots = async (shots: StoryboardShot[]) => {
+    // 모든 이미지를 ZIP으로 다운로드하는 로직 구현
+    // 예시로 개별 다운로드
+    for (const shot of shots) {
+      if (shot.imageUrl) {
+        handleDownloadShot(shot.id, shot.imageUrl);
+        await new Promise(resolve => setTimeout(resolve, 500)); // 지연
+      }
+    }
+  };
+  
+  const handleExportPlan = async () => {
+    try {
+      const res = await fetch('/api/planning/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scenario: {
+            title: storyInput.title,
+            oneLine: storyInput.oneLineStory,
+            structure4: storySteps,
+          },
+          shots,
+        }),
+      });
+      if (!res.ok) throw new Error('export failed');
+      const data = await res.json();
+      if (data?.ok && data?.data?.jsonUrl) {
+        const a = document.createElement('a');
+        a.href = data.data.jsonUrl;
+        a.download = `${storyInput.title || 'scenario'}.json`;
+        a.click();
+      }
+    } catch (e) {
+      console.error('기획안 다운로드 실패:', e);
+    }
+  };
+  
+  // 스토리보드용 콘티 이미지 생성
+  const generateContiImageForStoryboard = async (shotId: string) => {
+    try {
+      setIsGeneratingImage(prev => ({ ...prev, [shotId]: true }));
+      
+      const shot = storyboardShots.find(s => s.id === shotId);
+      if (!shot) {
+        throw new Error('Shot not found');
+      }
+
+      let config = storyboardConfig;
+      if (!config) {
+        const storyContext = `${storyInput.title} ${storyInput.oneLineStory}`;
+        config = extractStoryboardConfig(storyContext, storyInput.genre);
+        setStoryboardConfig(config);
+      }
+
+      const shotTypeMap: Record<string, ShotPromptOptions['type']> = {
+        '와이드': 'wide',
+        '미디엄': 'medium',
+        '클로즈업': 'close-up',
+        '오버숙c더': 'over-shoulder',
+        '투샷': 'two-shot',
+        '인서트': 'insert',
+        '디테일': 'detail',
+        '전체': 'establishing'
+      };
+
+      const shotType: ShotPromptOptions['type'] = 
+        shotTypeMap[shot.shotType || ''] || 'medium';
+
+      const prompt = generateConsistentPrompt(config, {
+        type: shotType,
+        action: shot.description || '',
+        cameraAngle: shot.camera,
+        additionalDetails: ''
+      });
+
+      const response = await fetch('/api/imagen/preview', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt,
+          aspectRatio: '16:9',
+          quality: 'standard'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Image generation failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.ok && data.imageUrl) {
+        // 스토리보드 샷 업데이트
+        setStoryboardShots(prev => prev.map(s => 
+          s.id === shotId 
+            ? { ...s, imageUrl: data.imageUrl, prompt } 
+            : s
+        ));
+        
+        // 기존 shots도 업데이트
+        setShots(prev => prev.map(s => 
+          s.id === shotId 
+            ? { ...s, contiImage: data.imageUrl } 
+            : s
+        ));
+      } else {
+        throw new Error('No image URL received');
+      }
+    } catch (error) {
+      console.error('Image generation error:', error);
+      
+      const errorPlaceholder = `data:image/svg+xml;base64,${btoa(`
+        <svg xmlns="http://www.w3.org/2000/svg" width="160" height="90">
+          <rect width="100%" height="100%" fill="#f0f0f0"/>
+          <text x="80" y="45" text-anchor="middle" fill="#666">Generation Failed</text>
+        </svg>
+      `)}`;
+      
+      setStoryboardShots(prev => prev.map(s => 
+        s.id === shotId 
+          ? { ...s, imageUrl: errorPlaceholder } 
+          : s
+      ));
+    } finally {
+      setIsGeneratingImage(prev => ({ ...prev, [shotId]: false }));
+    }
+  };
+  
   // 콘티 이미지 생성 (Real API with consistency)
   const generateContiImage = async (shotId: string) => {
     try {
@@ -969,12 +1196,61 @@ export default function ScenarioPage() {
           </div>
         )}
 
-        {/* 3단계: 12개 숏트 편집 */}
+        {/* 3단계: 12개 숏트 편집 및 스토리보드 생성 */}
         {currentStep === 3 && (
-          <div className="card p-4 sm:p-6">
-            <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-text text-xl font-semibold">12개 숏트 편집</h2>
-              <Button
+          <div className="space-y-8">
+            {/* 스토리보드 진행 상태 */}
+            {isBatchGenerating && (
+              <StoryboardProgress
+                steps={storyboardProgress}
+                className="mb-6"
+              />
+            )}
+            
+            {/* 스토리보드 갤러리 섹션 */}
+            <div className="card p-4 sm:p-6">
+              <div className="mb-6 flex items-center justify-between">
+                <h2 className="text-2xl font-semibold text-gray-900">스토리보드 갤러리</h2>
+                <div className="flex gap-2">
+                  <GenerateStoryboardButton
+                    onGenerate={() => handleBatchGenerate('all')}
+                    onBatchGenerate={handleBatchGenerate}
+                    isLoading={isBatchGenerating}
+                    showBatchOption={true}
+                    progress={batchProgress.current}
+                    total={batchProgress.total}
+                    text="모든 이미지 생성"
+                    loadingText="이미지 생성 중"
+                  />
+                  <Button
+                    size="lg"
+                    className="btn-primary px-6"
+                    onClick={handleExportPlan}
+                  >
+                    기획안 다운로드
+                  </Button>
+                </div>
+              </div>
+              
+              <StoryboardGallery
+                shots={storyboardShots}
+                isLoading={false}
+                onRegenerateShot={handleRegenerateShot}
+                onEditShot={handleEditStoryboardShot}
+                onDownloadShot={handleDownloadShot}
+                onDownloadAll={handleDownloadAllShots}
+              />
+            </div>
+            
+            {/* 기존 숏트 편집 섹션 (숨김 처리 가능) */}
+            <details className="card p-4 sm:p-6">
+              <summary className="cursor-pointer text-lg font-semibold text-gray-900 hover:text-primary-600">
+                상세 숏트 편집 (레거시 뷰)
+              </summary>
+              <div className="mt-6">
+                <div className="mb-6 flex items-center justify-between">
+                  <h2 className="text-text text-xl font-semibold">12개 숏트 편집</h2>
+                  <Button
                 size="lg"
                 className="btn-primary px-6"
                 onClick={async () => {
@@ -1211,21 +1487,23 @@ export default function ScenarioPage() {
                   )}
                 </div>
               ))}
-            </div>
+                </div>
 
-            <div className="mt-8 flex justify-center space-x-4">
-              <Button
-                variant="outline"
-                onClick={() => setCurrentStep(2)}
-                size="lg"
-                className="btn-secondary"
-              >
-                이전 단계
-              </Button>
-              <Button size="lg" className="btn-primary px-8">
-                기획안 다운로드
-              </Button>
-            </div>
+                <div className="mt-8 flex justify-center space-x-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentStep(2)}
+                    size="lg"
+                    className="btn-secondary"
+                  >
+                    이전 단계
+                  </Button>
+                  <Button size="lg" className="btn-primary px-8">
+                    기획안 다운로드
+                  </Button>
+                </div>
+              </div>
+            </details>
           </div>
         )}
       </main>
