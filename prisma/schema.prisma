@@ -10,16 +10,20 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(uuid())
-  email       String   @unique
-  username    String   @unique
-  passwordHash String   @map("password_hash")
-  avatarUrl   String?  @map("avatar_url")
-  role        String   // 'user' | 'admin' | 'moderator'
-  preferences Json? // JSON for PostgreSQL
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  projects    Project[]
+  id             String   @id @default(uuid())
+  email          String   @unique
+  username       String   @unique
+  passwordHash   String   @map("password_hash")
+  avatarUrl      String?  @map("avatar_url")
+  role           String   // 'user' | 'admin' | 'moderator'
+  preferences    Json? // JSON for PostgreSQL
+  emailVerified  Boolean  @default(false) @map("email_verified")
+  verifiedAt     DateTime? @map("verified_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  projects       Project[]
+  emailVerifications EmailVerification[]
+  passwordResets     PasswordReset[]
 }
 
 model Project {
@@ -181,6 +185,34 @@ model Upload {
   userId      String?  @map("user_id")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
+}
+
+model EmailVerification {
+  id        String   @id @default(uuid())
+  email     String
+  token     String   @unique
+  code      String?  // Optional 6-digit verification code
+  userId    String?  @map("user_id")
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@index([email])
+  @@index([token])
+}
+
+model PasswordReset {
+  id        String   @id @default(uuid())
+  email     String
+  token     String   @unique
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@index([email])
+  @@index([token])
 }
 
 

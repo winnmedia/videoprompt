@@ -1,0 +1,337 @@
+openapi: 3.0.3
+info:
+  title: VideoPlanet Authentication API
+  version: 1.0.0
+  description: Authentication endpoints with email verification for VideoPlanet
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://api.videoplanet.com/api
+    description: Production server
+
+paths:
+  /auth/register:
+    post:
+      summary: Register new user
+      description: Creates a new user account and sends verification email
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - username
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                username:
+                  type: string
+                  minLength: 3
+                  maxLength: 32
+                  example: johndoe
+                password:
+                  type: string
+                  minLength: 8
+                  maxLength: 128
+                  example: SecurePass123!
+      responses:
+        '201':
+          description: User successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              example:
+                status: success
+                data:
+                  id: 123e4567-e89b-12d3-a456-426614174000
+                  email: user@example.com
+                  username: johndoe
+                  createdAt: 2024-01-01T00:00:00Z
+                  message: 회원가입이 완료되었습니다. 이메일을 확인하여 계정을 인증해주세요.
+                traceId: trace_123
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /auth/verify-email:
+    post:
+      summary: Verify email with token or code
+      description: Verifies user email using token or code
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  required:
+                    - token
+                  properties:
+                    token:
+                      type: string
+                      example: abc123def456...
+                - type: object
+                  required:
+                    - code
+                    - email
+                  properties:
+                    code:
+                      type: string
+                      pattern: '^\d{6}$'
+                      example: '123456'
+                    email:
+                      type: string
+                      format: email
+      responses:
+        '200':
+          description: Email successfully verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    
+    get:
+      summary: Verify email via link
+      description: Verifies user email using link with token parameter
+      tags:
+        - Authentication
+      parameters:
+        - in: query
+          name: token
+          required: true
+          schema:
+            type: string
+          description: Verification token from email link
+      responses:
+        '200':
+          description: Returns HTML page with verification result
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /auth/resend-verification:
+    post:
+      summary: Resend verification email
+      description: Resends verification email to unverified users
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Verification email resent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /auth/forgot-password:
+    post:
+      summary: Request password reset
+      description: Creates password reset token and sends reset email
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Password reset email sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /auth/reset-password:
+    get:
+      summary: Validate reset token
+      description: Validates password reset token
+      tags:
+        - Authentication
+      parameters:
+        - in: query
+          name: token
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Token is valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    
+    post:
+      summary: Reset password
+      description: Resets user password using valid token
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - password
+                - confirmPassword
+              properties:
+                token:
+                  type: string
+                password:
+                  type: string
+                  minLength: 8
+                  maxLength: 128
+                confirmPassword:
+                  type: string
+      responses:
+        '200':
+          description: Password successfully reset
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    
+    put:
+      summary: Validate token (for frontend)
+      description: Validates reset token without resetting password
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+              properties:
+                token:
+                  type: string
+      responses:
+        '200':
+          description: Token validation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+components:
+  schemas:
+    SuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success]
+        data:
+          type: object
+        traceId:
+          type: string
+    
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [error]
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+        traceId:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            status: error
+            error:
+              code: INVALID_INPUT_FIELDS
+              message: Invalid input provided
+    
+    Conflict:
+      description: Resource conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            status: error
+            error:
+              code: DUPLICATE_USER
+              message: 이미 사용 중인 이메일 또는 사용자명입니다.
+    
+    RateLimitExceeded:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            status: error
+            error:
+              code: RATE_LIMIT_EXCEEDED
+              message: 너무 많은 요청입니다. 잠시 후 다시 시도해주세요.

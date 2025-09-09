@@ -9,6 +9,12 @@ import { Logo } from '@/components/ui/Logo';
 import { Loading, Skeleton } from '@/shared/ui/Loading';
 import { FormError } from '@/shared/ui/FormError';
 import { StepProgress } from '@/shared/ui/Progress';
+import { 
+  generateConsistentPrompt, 
+  extractStoryboardConfig,
+  type StoryboardConfig,
+  type ShotPromptOptions 
+} from '@/lib/utils/prompt-consistency';
 
 interface StoryInput {
   title: string;
@@ -490,15 +496,108 @@ export default function ScenarioPage() {
     );
   };
 
-  // 콘티 이미지 생성 (Google 이미지 생성 API 시뮬레이션)
-  const generateContiImage = async (shotId: string) => {
-    // 실제로는 Google 이미지 생성 API 호출
-    const mockImage =
-      'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNjAiIGhlaWdodD0iOTAiIHZpZXdCb3g9IjAgMCAxNjAgOTAiPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMzMzMzMzM7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2NjY2NjYztzdG9wLW9wYWNpdHk6MSIgLz4KICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDx0ZXh0IHg9IjgwIiB5PSI0NSIgZmlsbD0iYmxhY2siIGZvbnQtc2l6ZT0iMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkRST1dJTkc8L3RleHQ+Cjwvc3ZnPg==';
+  // Storyboard configuration for consistency
+  const [storyboardConfig, setStoryboardConfig] = useState<StoryboardConfig | null>(null);
+  const [isGeneratingImage, setIsGeneratingImage] = useState<Record<string, boolean>>({});
 
-    setShots((prev) =>
-      prev.map((shot) => (shot.id === shotId ? { ...shot, contiImage: mockImage } : shot)),
-    );
+  // 콘티 이미지 생성 (Real API with consistency)
+  const generateContiImage = async (shotId: string) => {
+    try {
+      // Set loading state for this specific shot
+      setIsGeneratingImage(prev => ({ ...prev, [shotId]: true }));
+      
+      // Find the shot
+      const shot = shots.find(s => s.id === shotId);
+      if (!shot) {
+        throw new Error('Shot not found');
+      }
+
+      // Extract or use existing storyboard config
+      let config = storyboardConfig;
+      if (!config) {
+        // Extract config from story context
+        const storyContext = `${storyInput.title} ${storyInput.oneLineStory}`;
+        config = extractStoryboardConfig(storyContext, storyInput.genre);
+        setStoryboardConfig(config);
+      }
+
+      // Determine shot type based on shot metadata
+      const shotTypeMap: Record<string, ShotPromptOptions['type']> = {
+        '와이드': 'wide',
+        '미디엄': 'medium',
+        '클로즈업': 'close-up',
+        '오버숄더': 'over-shoulder',
+        '투샷': 'two-shot',
+        '인서트': 'insert',
+        '디테일': 'detail',
+        '전체': 'establishing'
+      };
+
+      const shotType: ShotPromptOptions['type'] = 
+        shotTypeMap[shot.shotType] || 'medium';
+
+      // Generate consistent prompt
+      const prompt = generateConsistentPrompt(config, {
+        type: shotType,
+        action: shot.description,
+        cameraAngle: shot.camera,
+        additionalDetails: shot.composition
+      });
+
+      console.log('Generating image with prompt:', prompt);
+
+      // Call the real API
+      const response = await fetch('/api/imagen/preview', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt,
+          aspectRatio: '16:9',
+          quality: 'standard'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Image generation failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.ok && data.imageUrl) {
+        // Update shot with generated image
+        setShots((prev) =>
+          prev.map((s) => 
+            s.id === shotId 
+              ? { ...s, contiImage: data.imageUrl } 
+              : s
+          ),
+        );
+      } else {
+        throw new Error('No image URL received');
+      }
+    } catch (error) {
+      console.error('Image generation error:', error);
+      // Fallback to a placeholder with error message
+      const errorPlaceholder = `data:image/svg+xml;base64,${btoa(`
+        <svg xmlns="http://www.w3.org/2000/svg" width="160" height="90">
+          <rect width="100%" height="100%" fill="#f0f0f0"/>
+          <text x="80" y="45" text-anchor="middle" fill="#666">Generation Failed</text>
+        </svg>
+      `)}`;
+      
+      setShots((prev) =>
+        prev.map((s) => 
+          s.id === shotId 
+            ? { ...s, contiImage: errorPlaceholder } 
+            : s
+        ),
+      );
+    } finally {
+      // Clear loading state
+      setIsGeneratingImage(prev => ({ ...prev, [shotId]: false }));
+    }
   };
 
   // 인서트샷 생성
@@ -1032,8 +1131,9 @@ export default function ScenarioPage() {
                         size="sm"
                         onClick={() => generateContiImage(shot.id)}
                         className="btn-secondary"
+                        disabled={isGeneratingImage[shot.id]}
                       >
-                        콘티 생성
+                        {isGeneratingImage[shot.id] ? '생성 중...' : '콘티 생성'}
                       </Button>
                       <Button
                         variant="outline"
@@ -1062,8 +1162,9 @@ export default function ScenarioPage() {
                               size="sm"
                               onClick={() => generateContiImage(shot.id)}
                               className="btn-secondary bg-white/80 px-2 py-1 text-xs hover:bg-white"
+                              disabled={isGeneratingImage[shot.id]}
                             >
-                              재생성
+                              {isGeneratingImage[shot.id] ? '생성 중...' : '재생성'}
                             </Button>
                             <Button
                               variant="outline"
@@ -1205,8 +1306,9 @@ export default function ScenarioPage() {
                                 size="sm"
                                 onClick={() => generateContiImage(shot.id)}
                                 className="btn-secondary px-2 py-1 text-xs"
+                                disabled={isGeneratingImage[shot.id]}
                               >
-                                콘티 생성
+                                {isGeneratingImage[shot.id] ? '생성 중...' : '콘티 생성'}
                               </Button>
                             </div>
                           </div>
