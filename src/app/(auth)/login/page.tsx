@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Logo, Button, FormError } from '@/shared/ui';
+import { Logo, Button, FormError, Input } from '@/shared/ui';
 
 function LoginForm() {
   const router = useRouter();
@@ -57,27 +57,25 @@ function LoginForm() {
     <div className="bg-gray-800/50 backdrop-blur-lg rounded-xl p-8 shadow-2xl border border-gray-700">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* 이메일 입력 */}
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-            이메일 <span className="text-danger-400">*</span>
-          </label>
-          <input
-            id="email"
-            type="email"
-            required
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-            placeholder="your@email.com"
-          />
-        </div>
+        <Input
+          id="email"
+          type="email"
+          required
+          variant="dark"
+          size="lg"
+          label="이메일"
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          placeholder="your@email.com"
+          testId="email-input"
+        />
 
         {/* 비밀번호 입력 */}
         <div>
           <div className="flex justify-between items-center mb-2">
-            <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+            <span className="text-sm font-medium text-gray-300">
               비밀번호 <span className="text-danger-400">*</span>
-            </label>
+            </span>
             <Link 
               href="/forgot-password" 
               className="text-sm text-brand-400 hover:text-brand-300 transition-colors"
@@ -85,14 +83,16 @@ function LoginForm() {
               비밀번호를 잊으셨나요?
             </Link>
           </div>
-          <input
+          <Input
             id="password"
             type="password"
             required
+            variant="dark"
+            size="lg"
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
             placeholder="••••••••"
+            testId="password-input"
           />
         </div>
 
@@ -104,7 +104,7 @@ function LoginForm() {
         )}
 
         {/* 에러 메시지 */}
-        <FormError>{error}</FormError>
+        <FormError data-testid="error-message">{error}</FormError>
 
         {/* 로그인 버튼 */}
         <Button
@@ -112,6 +112,7 @@ function LoginForm() {
           className="w-full"
           size="lg"
           disabled={loading}
+          testId="login-button"
         >
           {loading ? '로그인 중...' : '로그인'}
         </Button>

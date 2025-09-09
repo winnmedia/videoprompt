@@ -11,11 +11,25 @@ const EnvSchema = z.object({
   // 백엔드 마이그레이션: Prisma 접속 문자열 (PostgreSQL, SQLite 지원)
   DATABASE_URL: z
     .string()
-    .optional()
+    .min(1, 'DATABASE_URL is required for database operations')
     .refine(
-      (v) => !v || v.startsWith('postgresql://') || v.startsWith('postgres://') || v.startsWith('file:'),
+      (v) => v.startsWith('postgresql://') || v.startsWith('postgres://') || v.startsWith('file:'),
       'DATABASE_URL must start with postgresql://, postgres://, or file:',
     ),
+  
+  // JWT 인증 토큰
+  JWT_SECRET: z
+    .string()
+    .min(32, 'JWT_SECRET must be at least 32 characters long')
+    .optional(),
+    
+  // SendGrid 이메일 설정
+  SENDGRID_API_KEY: z.string().optional(),
+  DEFAULT_FROM_EMAIL: z.string().email().optional(),
+  
+  // Railway 백엔드 URL
+  RAILWAY_BACKEND_URL: z.string().url().optional(),
+  NEXT_PUBLIC_API_BASE: z.string().url().optional(),
 });
 
 type Env = z.infer<typeof EnvSchema>;

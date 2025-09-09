@@ -1,3 +1,7 @@
+# ✅ VERCEL CRITICAL: API Routes는 절대 제외하지 않음
+# src/app/api/ 디렉토리의 모든 파일은 Serverless Functions로 빌드되어야 함
+# !src/app/api/ (명시적 포함 - 필요시 주석 해제)
+
 # 개발 관련 파일들
 .env.local
 .env.development
@@ -77,7 +81,7 @@ node_modules/webpack/
 
 # 문서 및 스크립트
 *.md
-scripts/
+# scripts/ (빌드 스크립트 필요로 주석 처리)
 integrations-page/
 docs/
 

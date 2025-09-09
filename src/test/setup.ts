@@ -28,8 +28,11 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-// Mock fetch globally
-(global as any).fetch = vi.fn();
+// Mock fetch globally (only for unit tests, not integration tests)
+// Integration tests need real fetch for actual HTTP requests
+if (!process.env.INTEGRATION_TEST) {
+  (global as any).fetch = vi.fn();
+}
 
 // Mock Next.js modules
 vi.mock('next/navigation', () => ({

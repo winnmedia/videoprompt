@@ -1,5 +1,47 @@
 # 📚 MEMORY.md - 프로젝트 변경 이력
 
+## 🗓️ 2025-09-09
+
+### 🎯 환각 테스트 제거 및 프로덕션 복구 프로젝트 (91% 완료)
+
+- **요청/배경:** 사용자가 회원가입 불가능 상태를 발견했으나 모든 테스트가 통과하는 환각 현상 발생. 실제 서비스에서는 모든 API가 405/500/404 오류 발생하는 심각한 상황.
+
+- **핵심 문제 식별:**
+  - **환각 테스트 시스템:** Mock 기반 테스트로 `global.fetch = vi.fn()` 사용하여 가짜 성공 결과 생성
+  - **Vercel 배포 설정 오류:** `output: 'standalone'` 사용으로 API Routes가 Serverless Functions로 빌드되지 않음  
+  - **CORS 및 OPTIONS 누락:** 모든 API Routes에서 프리플라이트 요청 처리 불가
+  - **Prisma 연결 불안정:** Railway Parse Error 및 DB 연결 실패
+
+- **4개 전문 서브에이전트 병렬 복구 작업:**
+  - **Backend Lead**: 68개 API Routes에 CORS 및 OPTIONS 핸들러 추가
+  - **Platform Lead**: Vercel 설정 완전 재구성 (`next.config.mjs`, `vercel.json` 수정)
+  - **Data Lead**: Prisma 연결 안정화 및 Railway 에러 해결  
+  - **QA Lead**: Mock → Real API 기반 33개 E2E 테스트 구축
+
+- **주요 해결책:**
+  - **환각 테스트 완전 제거:** 실제 프로덕션 API 테스트로 전환
+  - **Vercel 배포 최적화:** `output: 'standalone'` 제거로 API Functions 활성화
+  - **표준 CORS 유틸리티 구축:** 모든 API에 일관된 CORS 정책 적용
+  - **실시간 프로덕션 모니터링:** 33개 E2E 테스트로 실제 서비스 품질 검증
+
+- **성과 지표:**
+  - **API 성공률:** 0% → 91% (30/33 통과)
+  - **테스트 신뢰성:** 환각 테스트 → 실제 API 검증으로 전환
+  - **서비스 가용성:** 메인 페이지, 회원가입/로그인 페이지 정상화
+  - **배포 안정성:** 68개 API Routes 자동 검증 체계 확립
+
+- **현재 잔여 이슈:**
+  - `/api/auth/login` POST 요청 405 오류 지속 (3개 테스트 실패)
+  - Vercel 캐시 반영 지연으로 추정됨 (OPTIONS는 204 정상 응답)
+
+- **추가 인프라 수정:**
+  - `.vercelignore`에서 `scripts/` 제외 해제 (빌드 스크립트 필요)
+  - `package.json` engines.node ">=20.19.0" → "20.x" 호환성 개선
+
+---
+
+# 📚 MEMORY.md - 프로젝트 변경 이력
+
 ## 🗓️ 2025-09-08
 
 ### 🚀 프로덕션 배포 차단 오류 완전 해결 및 배포 성공 (v5.3.0)

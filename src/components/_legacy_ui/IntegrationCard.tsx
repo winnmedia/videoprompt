@@ -1,8 +1,8 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './card';
 import { Badge } from './badge';
-import { Button } from './Button';
-import { Icon } from './Icon';
+import { Button } from '@/shared/ui';
+import { Icon } from '@/shared/ui';
 import type { VideoPlanetIntegration } from '@/lib/integrations';
 
 interface IntegrationCardProps {

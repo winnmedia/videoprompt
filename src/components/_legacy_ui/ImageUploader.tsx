@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useRef } from 'react';
-import { Icon } from './Icon';
+import { Icon } from '@/shared/ui';
 
 interface ImageUploaderProps {
   onImageUploaded: (imageUrl: string) => void;
