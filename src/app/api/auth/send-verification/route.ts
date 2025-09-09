@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
       return failure('INVALID_REQUEST', '잘못된 요청 형식입니다.', 400, parseResult.error, traceId);
     }
     
-    const { email } = parseResult.data;
+    const { email } = parseResult.data!;
     console.log(`[SendVerification ${traceId}] ✅ 입력값 파싱 및 검증 성공:`, { email });
 
     // 데이터베이스 작업을 안전하게 실행
