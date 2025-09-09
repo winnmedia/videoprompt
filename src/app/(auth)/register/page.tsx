@@ -16,6 +16,9 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showEmailVerification, setShowEmailVerification] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [emailVerificationSent, setEmailVerificationSent] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,6 +64,72 @@ export default function RegisterPage() {
       }
     } catch (error) {
       console.error('Register error:', error);
+      setError('서버 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEmailVerification = async () => {
+    if (!formData.email) {
+      setError('이메일을 먼저 입력해주세요.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/auth/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email }),
+      });
+
+      const data = await res.json();
+
+      if (data.ok) {
+        setEmailVerificationSent(true);
+      } else {
+        setError(data.message || '인증 이메일 발송에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Email verification error:', error);
+      setError('서버 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerificationCodeSubmit = async () => {
+    if (!verificationCode || verificationCode.length !== 6) {
+      setError('6자리 인증 코드를 입력해주세요.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/auth/verify-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: formData.email,
+          code: verificationCode 
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.ok) {
+        setEmailVerified(true);
+        setError('');
+      } else {
+        setError(data.message || '인증 코드가 올바르지 않습니다.');
+      }
+    } catch (error) {
+      console.error('Verification code error:', error);
       setError('서버 오류가 발생했습니다.');
     } finally {
       setLoading(false);
@@ -174,16 +243,64 @@ export default function RegisterPage() {
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
                 이메일 <span className="text-danger-400">*</span>
+                {emailVerified && (
+                  <span className="text-success-400 text-xs ml-2">✓ 인증완료</span>
+                )}
               </label>
-              <input
-                id="email"
-                type="email"
-                required
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                placeholder="your@email.com"
-              />
+              <div className="flex gap-3">
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="flex-1 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                  placeholder="your@email.com"
+                  disabled={emailVerified}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleEmailVerification}
+                  disabled={loading || !formData.email || emailVerified}
+                  className="px-4 py-3"
+                >
+                  {emailVerificationSent ? '재발송' : '인증요청'}
+                </Button>
+              </div>
+
+              {/* 인증 코드 입력 */}
+              {emailVerificationSent && !emailVerified && (
+                <div className="mt-3">
+                  <label htmlFor="verificationCode" className="block text-sm font-medium text-gray-300 mb-2">
+                    인증 코드 (6자리)
+                  </label>
+                  <div className="flex gap-3">
+                    <input
+                      id="verificationCode"
+                      type="text"
+                      maxLength={6}
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+                      className="flex-1 px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-center text-xl tracking-widest"
+                      placeholder="000000"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleVerificationCodeSubmit}
+                      disabled={loading || !verificationCode || verificationCode.length !== 6}
+                      className="px-4 py-3"
+                    >
+                      인증확인
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    이메일로 전송된 6자리 인증 코드를 입력해주세요
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* 사용자명 입력 */}
