@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // 배포 최적화를 위한 standalone 모드
+  output: 'standalone',
+  
   // API 라우팅 설정 - 강제로 Railway 백엔드 사용
   async rewrites() {
     const apiBase = 'https://videoprompt-production.up.railway.app';

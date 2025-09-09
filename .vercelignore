@@ -22,11 +22,16 @@ __tests__/
 .vscode/
 .idea/
 
-# 빌드 아티팩트
+# Git 히스토리 (배포 시 불필요)
+.git/
+
+# 빌드 아티팩트 및 캐시
 .next/
+.next/cache/
 out/
 dist/
 build/
+*.cache
 
 # 의존성
 node_modules/
