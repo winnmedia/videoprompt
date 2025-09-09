@@ -3,8 +3,6 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
 
 // CORS preflight 처리
 export async function OPTIONS(req: NextRequest) {
