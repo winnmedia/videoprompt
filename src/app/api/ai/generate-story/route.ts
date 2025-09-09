@@ -276,7 +276,10 @@ ${(() => {
 - 여운을 남기는 마무리`
   };
   
-  return methodGuides[developmentMethod] || methodGuides['클래식 기승전결'];
+  const selectedMethod = developmentMethod && developmentMethod in methodGuides 
+    ? developmentMethod as keyof typeof methodGuides
+    : '클래식 기승전결';
+  return methodGuides[selectedMethod];
 })()}
 
 ### 창작 요구사항

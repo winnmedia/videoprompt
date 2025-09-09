@@ -396,7 +396,9 @@ export class StoryboardGeneratorService {
     // 캐시 크기 제한 (최대 100개)
     if (this.promptCache.size > 100) {
       const oldestKey = this.promptCache.keys().next().value;
-      this.promptCache.delete(oldestKey);
+      if (oldestKey) {
+        this.promptCache.delete(oldestKey);
+      }
     }
   }
   

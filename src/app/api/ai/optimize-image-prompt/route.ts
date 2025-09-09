@@ -179,9 +179,9 @@ function parseOptimizedPrompt(text: string): {
   negative: string;
   explanation: string;
 } {
-  const positiveMatch = text.match(/POSITIVE_PROMPT:\s*(.+?)(?=NEGATIVE_PROMPT:|$)/is);
-  const negativeMatch = text.match(/NEGATIVE_PROMPT:\s*(.+?)(?=EXPLANATION:|$)/is);
-  const explanationMatch = text.match(/EXPLANATION:\s*(.+)$/is);
+  const positiveMatch = text.match(/POSITIVE_PROMPT:\s*([\s\S]+?)(?=NEGATIVE_PROMPT:|$)/i);
+  const negativeMatch = text.match(/NEGATIVE_PROMPT:\s*([\s\S]+?)(?=EXPLANATION:|$)/i);
+  const explanationMatch = text.match(/EXPLANATION:\s*([\s\S]+)$/i);
 
   return {
     positive: positiveMatch?.[1]?.trim() || text.trim(),

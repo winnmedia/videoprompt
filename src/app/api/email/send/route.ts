@@ -23,7 +23,7 @@ const ApiSendEmailRequestSchema = z.object({
   // Template-based email
   template: z.object({
     type: EmailTemplateType,
-    data: z.record(z.unknown()),
+    data: z.record(z.string(), z.unknown()),
   }).optional(),
   
   // Direct email fields
@@ -223,7 +223,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Invalid request data',
-          details: error.errors,
+          details: error.issues,
         },
         { status: 400 }
       );

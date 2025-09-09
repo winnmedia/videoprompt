@@ -365,7 +365,7 @@ export const storyboardSelectors = {
    * 선택된 샷 정보 가져오기
    */
   selectSelectedShot: (state: { storyboard: StoryboardSliceState }) => {
-    const { selectedShotId, activeProjectId, generatedResults } = state.storyboard;
+    const { ui: { selectedShotId }, activeProjectId, generatedResults } = state.storyboard;
     
     if (!selectedShotId || !activeProjectId) return null;
     

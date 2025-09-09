@@ -6,6 +6,13 @@
 import { setupServer } from 'msw/node';
 import { handlers } from './handlers';
 
+// Jest globals - only available in test environment
+declare global {
+  var beforeAll: (fn: () => void) => void;
+  var afterEach: (fn: () => void) => void;  
+  var afterAll: (fn: () => void) => void;
+}
+
 // 테스트 서버 설정
 export const server = setupServer(...handlers);
 

@@ -273,7 +273,7 @@ export function useGenerationStatus(projectId: string) {
     queryKey: queryKeys.generationStatus(projectId),
     queryFn: () => getGenerationState(projectId),
     enabled: !!projectId,
-    refetchInterval: (data) => {
+    refetchInterval: (data: any) => {
       // 생성 중일 때만 1초마다 refetch
       if (data && data.overallProgress < 100) {
         return 1000;

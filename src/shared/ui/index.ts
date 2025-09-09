@@ -1,6 +1,6 @@
 // Shared UI Components - Public API (FSD)
-export { button } from './button';
-export { card } from './card';
+export { Button } from './button';
+export { Card } from './card';
 export { EmptyState } from './EmptyState';
 export { FormError } from './FormError';
 export { Header } from './Header';
@@ -9,7 +9,7 @@ export { Modal } from './Modal';
 export { Progress } from './Progress';
 export { StatCard } from './stat-card';
 export { DataTable } from './data-table';
-export { Toast } from './Toast';
+export { ToastProvider } from './Toast';
 
 // Email Verification Components
 export { VerificationCodeInput } from './VerificationCodeInput';

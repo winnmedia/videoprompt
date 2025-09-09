@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
     console.error(`[Register ${traceId}] Error:`, e);
     
     if (e instanceof z.ZodError) {
-      const errorMessage = e.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
+      const errorMessage = e.issues.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
       return failure('INVALID_INPUT_FIELDS', errorMessage, 400, undefined, traceId);
     }
     

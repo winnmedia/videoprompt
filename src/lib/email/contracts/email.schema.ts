@@ -137,7 +137,7 @@ export const SendEmailRequestSchema = z.object({
       substitutionTag: z.string().optional(),
     }).optional(),
   }).optional(),
-  customArgs: z.record(z.string()).optional(),
+  customArgs: z.record(z.string(), z.string()).optional(),
   sendAt: z.number().optional(),
   batchId: z.string().optional(),
   categories: z.array(z.string()).max(10).optional(),
@@ -151,7 +151,7 @@ export type SendEmailRequest = z.infer<typeof SendEmailRequestSchema>;
 export const SendEmailResponseSchema = z.object({
   messageId: z.string(),
   statusCode: z.number(),
-  headers: z.record(z.string()).optional(),
+  headers: z.record(z.string(), z.string()).optional(),
   timestamp: z.string().datetime(),
 });
 
@@ -172,7 +172,7 @@ export const EmailErrorSchema = z.object({
     'UNKNOWN_ERROR',
   ]),
   message: z.string(),
-  details: z.record(z.unknown()).optional(),
+  details: z.record(z.string(), z.unknown()).optional(),
   timestamp: z.string().datetime(),
 });
 
@@ -259,7 +259,7 @@ export const EmailTrackingEventSchema = z.object({
   event: EmailStatusEnum,
   timestamp: z.string().datetime(),
   recipient: EmailAddressSchema,
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type EmailTrackingEvent = z.infer<typeof EmailTrackingEventSchema>;
