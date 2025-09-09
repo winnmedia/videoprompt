@@ -7,7 +7,7 @@
     "pnpm": ">=9.0.0"
   },
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "prebuild": "node scripts/verify-build.js",
     "build": "next build",
     "postbuild": "node scripts/verify-build.js && echo '✅ Build verification passed'",
