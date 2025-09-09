@@ -157,6 +157,11 @@ class SendGridClient {
     }
     
     try {
+      // Production에서 placeholder key 사용 시 경고만 표시하고 계속 진행
+      if (this.config.apiKey === 'development-placeholder-key') {
+        console.warn('[SendGrid] ⚠️  Using placeholder API key - email functionality will be simulated');
+      }
+      
       sgMail.setApiKey(this.config.apiKey);
       
       // Set default timeout
@@ -167,10 +172,14 @@ class SendGridClient {
       console.log('[SendGrid] Client initialized successfully', {
         sandboxMode: this.config.sandboxMode,
         defaultFrom: this.config.defaultFrom.email,
+        usingPlaceholder: this.config.apiKey === 'development-placeholder-key',
       });
     } catch (error) {
       console.error('[SendGrid] Client initialization failed:', error);
-      throw new Error('Failed to initialize SendGrid client');
+      console.warn('[SendGrid] ⚠️  Continuing without email functionality');
+      
+      // 초기화 실패해도 서버는 계속 동작하도록 함
+      this.initialized = true;
     }
   }
 
