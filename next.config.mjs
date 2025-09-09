@@ -1,9 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Next.js 15.4.6 Vercel 호환성을 위한 최소 설정
-  experimental: {
-    serverComponentsExternalPackages: ['@prisma/client']
-  },
+  // Next.js 15: serverExternalPackages supersedes experimental.serverComponentsExternalPackages
+  serverExternalPackages: ['@prisma/client'],
   
   // API 라우팅 설정 - Railway 프록시
   async rewrites() {

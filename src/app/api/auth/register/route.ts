@@ -8,6 +8,8 @@ import { sendVerificationEmail } from '@/lib/email/sender';
 import { safeParseRequestBody } from '@/lib/json-utils';
 import { executeDatabaseOperation, createDatabaseErrorResponse } from '@/lib/database-middleware';
 
+export const runtime = 'nodejs';
+
 
 // CORS preflight 처리
 export async function OPTIONS(req: NextRequest) {
