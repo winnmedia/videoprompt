@@ -112,10 +112,11 @@ class SendGridClient {
       console.error('[SendGrid] Environment validation failed:', error);
       console.error('[SendGrid] Please ensure SENDGRID_API_KEY is set in your environment variables');
       
-      // Production에서만 에러를 throw
-      if (process.env.NODE_ENV === 'production') {
-        throw new Error('SendGrid configuration error: Missing SENDGRID_API_KEY');
-      }
+      // Production에서도 임시로 placeholder 사용 (환경 변수 설정 후 재배포 필요)
+      console.warn('[SendGrid] ⚠️  PRODUCTION: Using placeholder API key - ENVIRONMENT VARIABLES REQUIRED');
+      // if (process.env.NODE_ENV === 'production') {
+      //   throw new Error('SendGrid configuration error: Missing SENDGRID_API_KEY');
+      // }
       
       // Development에서는 placeholder 반환
       return {
