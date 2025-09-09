@@ -89,8 +89,8 @@ const nextConfig = {
   
   // 실험적 기능 설정
   experimental: {
-    // 패키지 import 최적화
-    optimizePackageImports: ['@/components/ui', '@/lib/providers'],
+    // 패키지 import 최적화 - 임시 비활성화 (Vercel 캐시 문제)
+    // optimizePackageImports: ['@/components/ui', '@/lib/providers'],
   },
   
   // API 라우팅 설정 - 강제로 Railway 백엔드 사용
