@@ -100,29 +100,29 @@ const nextConfig = {
 
     return [
       // Authentication API는 Next.js에서 직접 처리 (프록시하지 않음)
-      // - /api/auth/register: Next.js에서 처리
-      // - /api/auth/send-verification: Next.js에서 처리  
-      // - /api/auth/verify-code: Next.js에서 처리
-      // - /api/auth/login: Next.js에서 처리 (추후 구현 시)
+      // ⚠️ CRITICAL: /api/auth/* 경로는 절대 프록시하지 않음
+      // - /api/auth/register: Next.js Serverless Function으로 처리
+      // - /api/auth/send-verification: Next.js Serverless Function으로 처리  
+      // - /api/auth/verify-code: Next.js Serverless Function으로 처리
+      // - /api/auth/login: Next.js Serverless Function으로 처리
       
-      // User API
+      // 🔄 Business Logic APIs - Railway로 프록시
+      // User API (but NOT auth)
       { source: '/api/user/:path*', destination: `${apiBase}/api/user/:path*` },
-      // Email API (SendGrid 관련만 Railway로)
-      { source: '/api/email/:path*', destination: `${apiBase}/api/email/:path*` },
-      // Health API
-      { source: '/api/health/:path*', destination: `${apiBase}/api/health/:path*` },
-      // Seedance API
+      
+      // 🚫 Email API는 Next.js에서 직접 처리 (SendGrid 키가 Vercel에 있음)
+      // { source: '/api/email/:path*', destination: `${apiBase}/api/email/:path*` },
+      
+      // External Services APIs - Railway로 프록시
       { source: '/api/seedance/:path*', destination: `${apiBase}/api/seedance/:path*` },
-      // Imagen API
       { source: '/api/imagen/:path*', destination: `${apiBase}/api/imagen/:path*` },
-      // Veo API
       { source: '/api/veo/:path*', destination: `${apiBase}/api/veo/:path*` },
-      // Scenario API
       { source: '/api/scenario/:path*', destination: `${apiBase}/api/scenario/:path*` },
-      // Video API
       { source: '/api/video/:path*', destination: `${apiBase}/api/video/:path*` },
-      // Net API
       { source: '/api/net/:path*', destination: `${apiBase}/api/net/:path*` },
+      
+      // 🔄 Health check는 Railway로 프록시 (Railway 서비스 상태 확인용)  
+      { source: '/api/health', destination: `${apiBase}/api/health` },
     ];
   },
 
