@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Logo, Button } from '@/components/ui';
+import { Logo, Button } from '@/shared/ui';
 import { FormError } from '@/shared/ui/FormError';
 import { PasswordInput } from '@/shared/ui/PasswordInput';
 import { PasswordStrengthIndicator } from '@/shared/ui/PasswordStrengthIndicator';

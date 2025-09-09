@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/Icon';
-import { Logo } from '@/components/ui/Logo';
+import { Button } from '@/shared/ui';
+import { Icon } from '@/shared/ui';
+import { Logo } from '@/shared/ui';
 
 interface PlanningItem {
   id: string;

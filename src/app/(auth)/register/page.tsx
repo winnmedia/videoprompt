@@ -3,8 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Logo, Button } from '@/components/ui';
-import { FormError } from '@/shared/ui/FormError';
+import { Logo, Button, FormError } from '@/shared/ui';
 
 export default function RegisterPage() {
   const router = useRouter();

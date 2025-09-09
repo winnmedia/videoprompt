@@ -3,7 +3,7 @@ import { Inter } from 'next/font/google';
 import Link from 'next/link';
 import './globals.css';
 import { assertEnvInitialized } from '@/shared/config/env';
-import { Logo } from '@/components/ui/Logo';
+import { Logo } from '@/shared/ui';
 import { MainNav } from '@/components/layout/MainNav';
 
 const inter = Inter({ subsets: ['latin'] });

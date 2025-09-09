@@ -2,8 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSeedancePolling } from '@/features/seedance/status';
-import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/Icon';
+import { Button } from '@/shared/ui';
+import { Icon } from '@/shared/ui';
 import { buildVeo3PromptFromScene } from '@/lib/veo3';
 import { translateToEnglish } from '@/lib/ai-client';
 

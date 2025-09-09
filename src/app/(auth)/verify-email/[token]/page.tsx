@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Logo, Button } from '@/components/ui';
+import { Logo, Button } from '@/shared/ui';
 
 interface VerifyEmailTokenPageProps {
   params: Promise<{

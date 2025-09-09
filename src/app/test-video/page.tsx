@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/shared/ui';
 
 export default function TestVideoPage() {
   const [prompt, setPrompt] = useState('a beautiful sunset over mountains');

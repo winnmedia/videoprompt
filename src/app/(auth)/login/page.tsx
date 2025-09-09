@@ -3,8 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Logo, Button } from '@/components/ui';
-import { FormError } from '@/shared/ui/FormError';
+import { Logo, Button, FormError } from '@/shared/ui';
 
 function LoginForm() {
   const router = useRouter();
