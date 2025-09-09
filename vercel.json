@@ -9,7 +9,8 @@
   },
   "env": {
     "NODE_ENV": "production",
-    "NEXT_TELEMETRY_DISABLED": "1"
+    "NEXT_TELEMETRY_DISABLED": "1",
+    "FORCE_REBUILD": "2024-09-09-15-22"
   },
   "functions": {
     "src/app/api/**/route.ts": {
