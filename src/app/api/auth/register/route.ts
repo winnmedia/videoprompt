@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       return failure('INVALID_REQUEST', '잘못된 요청 형식입니다.', 400, parseResult.error, traceId);
     }
     
-    const { email, username, password } = parseResult.data;
+    const { email, username, password } = parseResult.data!;
     console.log(`[Register ${traceId}] ✅ 입력값 파싱 및 검증 성공:`, { email, username, passwordLength: password.length });
     
     // 중복 사용자 확인 및 사용자 생성을 데이터베이스 작업으로 래핑
