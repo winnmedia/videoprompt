@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { IntegrationGrid } from '@/components/ui/IntegrationGrid';
-import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/Icon';
+import { IntegrationGrid } from '@/shared/ui';
+import { Button } from '@/shared/ui';
+import { Icon } from '@/shared/ui';
 import {
   videoPlanetIntegrations,
   integrationCategories,

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { Icon } from '@/components/ui/Icon';
+import { Icon } from '@/shared/ui';
 
 interface PlanningData {
   title: string;

@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/Icon';
+import { Button } from '@/shared/ui';
+import { Icon } from '@/shared/ui';
 
 interface SharedContent {
   id: string;

@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import { extractSceneComponents } from '@/lib/ai-client';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/shared/ui';
 import { useProjectStore } from '@/entities/project';
-import { Icon } from '@/components/ui/Icon';
-import { Logo } from '@/components/ui/Logo';
+import { Icon } from '@/shared/ui';
+import { Logo } from '@/shared/ui';
 import { Loading, Skeleton } from '@/shared/ui/Loading';
 import { StepProgress } from '@/shared/ui/Progress';
 import { 

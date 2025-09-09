@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { useProjectStore } from '@/entities/project';
-import { Icon } from '@/components/ui/Icon';
+import { Icon } from '@/shared/ui';
 import { useSeedancePolling } from '@/features/seedance/status';
 
 interface WorkflowData {

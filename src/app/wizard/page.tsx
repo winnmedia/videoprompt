@@ -4,8 +4,8 @@ export const dynamic = 'force-dynamic';
 import React, { useEffect, useState, Suspense, useMemo } from 'react';
 import { useSeedanceCreate } from '@/features/seedance/create';
 import { useSeedancePolling } from '@/features/seedance/status';
-import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/Icon';
+import { Button } from '@/shared/ui';
+import { Icon } from '@/shared/ui';
 import { getApiUrl, API_ENDPOINTS } from '@/lib/config/api';
 import { ScenePrompt } from '@/types/api';
 import {

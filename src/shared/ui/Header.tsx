@@ -3,8 +3,8 @@
 import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Logo } from '@/components/ui/Logo';
-import { Button } from '@/components/ui/Button';
+import { Logo } from '@/shared/ui';
+import { Button } from '@/shared/ui';
 import { useAuthStore } from '@/shared/store/useAuthStore';
 
 export function Header() {
