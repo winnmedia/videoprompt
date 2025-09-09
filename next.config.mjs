@@ -7,88 +7,88 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   
-  // 실험적 기능 및 최적화 설정 통합
+  // 번들 크기 최적화를 위한 파일 제외 목록 (Next.js 15.4.6+)
+  outputFileTracingExcludes: {
+    '*': [
+      // 캐시 및 빌드 아티팩트
+      '.next/cache/**/*',
+      'out/**/*',
+      'dist/**/*',
+      'build/**/*',
+      
+      // Git 및 문서
+      '.git/**/*',
+      '**/*.md',
+      'docs/**/*',
+      
+      // 테스트 관련 (개발 도구)
+      'tests/**/*',
+      '__tests__/**/*',
+      'test-results/**/*',
+      'playwright-report/**/*',
+      '**/*.test.ts',
+      '**/*.test.tsx',
+      '**/*.spec.ts',
+      '**/*.spec.tsx',
+      'vitest.config.*',
+      'playwright.config.*',
+      
+      // 개발 도구 및 설정
+      'scripts/**/*',
+      '.vscode/**/*',
+      '.cursor/**/*',
+      '.idea/**/*',
+      '.husky/**/*',
+      'eslint.config.*',
+      'prettier.config.*',
+      'tailwind.config.*',
+      
+      // 플랫폼별 네이티브 바이너리 (대폭 확장)
+      'node_modules/@swc/core-*',
+      'node_modules/@esbuild/*',
+      'node_modules/@next/swc-*',
+      'node_modules/webpack/**/*',
+      
+      // Prisma 엔진 최적화 (사용하지 않는 엔진 제외)
+      'node_modules/@prisma/engines/**/*',
+      'node_modules/.prisma/client/libquery_engine-*',
+      '!node_modules/.prisma/client/libquery_engine-linux-x64-openssl-3.0.x.so.node',
+      'node_modules/.prisma/client/query_engine-*',
+      '!node_modules/.prisma/client/query_engine-linux-x64-openssl-3.0.x',
+      
+      // Playwright 관련 (프로덕션 불필요)
+      'node_modules/@playwright/**/*',
+      'node_modules/playwright/**/*',
+      'node_modules/playwright-core/**/*',
+      
+      // 기타 네이티브 바이너리
+      '**/*.wasm',
+      '**/*.node',
+      '!node_modules/.prisma/client/*.node',
+      
+      // pnpm 관련
+      'node_modules/.pnpm/**/*',
+      '.pnpm-debug.log',
+      
+      // 개발 환경 파일
+      '.env.local',
+      '.env.development',
+      '.env.test',
+      '*.log',
+      
+      // TypeScript 관련 (중복 버전 제외)
+      'node_modules/typescript/**/*',
+      'node_modules/@types/**/*',
+      'tsconfig*.json',
+      
+      // 기타 대용량 개발 도구
+      'node_modules/madge/**/*',
+      'node_modules/tsx/**/*',
+    ],
+  },
+  
+  // 실험적 기능 설정
   experimental: {
-    // 번들 크기 최적화를 위한 파일 제외 목록 대폭 확장
-    outputFileTracingExcludes: {
-      '*': [
-        // 캐시 및 빌드 아티팩트
-        '.next/cache/**/*',
-        'out/**/*',
-        'dist/**/*',
-        'build/**/*',
-        
-        // Git 및 문서
-        '.git/**/*',
-        '**/*.md',
-        'docs/**/*',
-        
-        // 테스트 관련 (개발 도구)
-        'tests/**/*',
-        '__tests__/**/*',
-        'test-results/**/*',
-        'playwright-report/**/*',
-        '**/*.test.ts',
-        '**/*.test.tsx',
-        '**/*.spec.ts',
-        '**/*.spec.tsx',
-        'vitest.config.*',
-        'playwright.config.*',
-        
-        // 개발 도구 및 설정
-        'scripts/**/*',
-        '.vscode/**/*',
-        '.cursor/**/*',
-        '.idea/**/*',
-        '.husky/**/*',
-        'eslint.config.*',
-        'prettier.config.*',
-        'tailwind.config.*',
-        
-        // 플랫폼별 네이티브 바이너리 (대폭 확장)
-        'node_modules/@swc/core-*',
-        'node_modules/@esbuild/*',
-        'node_modules/@next/swc-*',
-        'node_modules/webpack/**/*',
-        
-        // Prisma 엔진 최적화 (사용하지 않는 엔진 제외)
-        'node_modules/@prisma/engines/**/*',
-        'node_modules/.prisma/client/libquery_engine-*',
-        '!node_modules/.prisma/client/libquery_engine-linux-x64-openssl-3.0.x.so.node',
-        'node_modules/.prisma/client/query_engine-*',
-        '!node_modules/.prisma/client/query_engine-linux-x64-openssl-3.0.x',
-        
-        // Playwright 관련 (프로덕션 불필요)
-        'node_modules/@playwright/**/*',
-        'node_modules/playwright/**/*',
-        'node_modules/playwright-core/**/*',
-        
-        // 기타 네이티브 바이너리
-        '**/*.wasm',
-        '**/*.node',
-        '!node_modules/.prisma/client/*.node',
-        
-        // pnpm 관련
-        'node_modules/.pnpm/**/*',
-        '.pnpm-debug.log',
-        
-        // 개발 환경 파일
-        '.env.local',
-        '.env.development',
-        '.env.test',
-        '*.log',
-        
-        // TypeScript 관련 (중복 버전 제외)
-        'node_modules/typescript/**/*',
-        'node_modules/@types/**/*',
-        'tsconfig*.json',
-        
-        // 기타 대용량 개발 도구
-        'node_modules/madge/**/*',
-        'node_modules/tsx/**/*',
-      ],
-    },
-    
     // 패키지 import 최적화
     optimizePackageImports: ['@/components/ui', '@/lib/providers'],
   },
