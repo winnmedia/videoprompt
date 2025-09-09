@@ -12,6 +12,38 @@
     "NEXT_TELEMETRY_DISABLED": "1",
     "FORCE_REBUILD": "2025-09-09-PRISMA-DEPS-FIX"
   },
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "runtime": "nodejs20.x",
+      "regions": ["icn1"],
+      "maxDuration": 30,
+      "memory": 1024
+    },
+    "src/app/api/auth/**/*.ts": {
+      "runtime": "nodejs20.x",
+      "regions": ["icn1"],
+      "maxDuration": 15,
+      "memory": 512
+    },
+    "src/app/api/ai/**/*.ts": {
+      "runtime": "nodejs20.x", 
+      "regions": ["icn1"],
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "src/app/api/seedance/**/*.ts": {
+      "runtime": "nodejs20.x",
+      "regions": ["icn1"],
+      "maxDuration": 120,
+      "memory": 1024
+    },
+    "src/app/api/veo/**/*.ts": {
+      "runtime": "nodejs20.x",
+      "regions": ["icn1"],
+      "maxDuration": 120,
+      "memory": 1024
+    }
+  },
   "headers": [
     {
       "source": "/api/(.*)",
@@ -20,6 +52,12 @@
         { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, DELETE, OPTIONS" },
         { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" }
       ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/health-check",
+      "destination": "/api/health"
     }
   ]
 }

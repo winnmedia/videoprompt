@@ -1,12 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // ⚠️ VERCEL CRITICAL: standalone 모드는 API Routes를 Functions로 빌드하지 않음
-  // Vercel에서는 기본 모드를 사용해야 API Routes가 Serverless Functions로 처리됨
-  // output: 'standalone', // <- Vercel 배포 시 제거
+  // ✅ VERCEL CRITICAL: API Routes가 Serverless Functions로 빌드되도록 기본값 사용
+  // standalone 모드는 API Routes를 Functions로 빌드하지 않으므로 절대 사용 금지
   
   // 압축 및 헤더 최적화
   compress: true,
   poweredByHeader: false,
+  
+  // ✅ API Routes 강제 빌드 설정
+  // Vercel에서 API Routes가 Functions로 빌드되도록 보장
+  experimental: {
+    // API Routes가 Serverless Functions로 빌드되도록 강제
+    serverComponentsExternalPackages: ['@prisma/client'],
+  },
   
   // 번들 크기 최적화를 위한 파일 제외 목록 (Next.js 15.4.6+)
   outputFileTracingExcludes: {
@@ -88,11 +94,6 @@ const nextConfig = {
     ],
   },
   
-  // 실험적 기능 설정
-  experimental: {
-    // 패키지 import 최적화 - 임시 비활성화 (Vercel 캐시 문제)
-    // optimizePackageImports: ['@/components/ui', '@/lib/providers'],
-  },
   
   // API 라우팅 설정 - 하이브리드 접근: 인증은 Next.js, 나머지는 Railway
   async rewrites() {
