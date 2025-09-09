@@ -13,7 +13,7 @@
     "NEXT_TELEMETRY_DISABLED": "1"
   },
   "functions": {
-    "src/app/api/**/*.ts": {
+    "src/app/api/**/route.ts": {
       "maxDuration": 30,
       "memory": 1024
     }
