@@ -1,38 +1,21 @@
 import { PrismaClient } from '@prisma/client';
 
-declare global {
-  // eslint-disable-next-line no-var
-  var __prisma: PrismaClient | undefined;
-}
-
-// 연결 재시도 설정
-const createPrismaClient = () => {
-  const databaseUrl = process.env.DATABASE_URL;
-  
-  // 프로덕션에서 DATABASE_URL이 없으면 명시적으로 에러 발생
-  if (typeof window === 'undefined' && !databaseUrl && process.env.NODE_ENV === 'production') {
-    const error = new Error('DATABASE_URL environment variable is not set in production environment');
-    console.error('❌ Prisma Client Creation Error:', error.message);
-    console.error('Available environment variables:', Object.keys(process.env).filter(key => key.includes('DATABASE')));
-    throw error;
-  }
-  
-  // 개발환경에서도 DATABASE_URL 체크
-  if (!databaseUrl) {
-    console.warn('⚠️ DATABASE_URL not found, using placeholder URL for development');
-  }
-  
+const prismaClientSingleton = () => {
   return new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-    datasources: {
-      db: {
-        url: databaseUrl || 'postgresql://placeholder:placeholder@localhost:5432/placeholder',
-      },
-    },
   });
 };
 
-// 데이터베이스 연결 헬스 체크
+declare global {
+  // eslint-disable-next-line no-var
+  var prisma: undefined | ReturnType<typeof prismaClientSingleton>;
+}
+
+export const prisma = globalThis.prisma ?? prismaClientSingleton();
+
+if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma;
+
+// 데이터베이스 연결 헬스 체크 (기존 기능 유지)
 export const checkDatabaseConnection = async (client: PrismaClient, retries = 3): Promise<boolean> => {
   for (let i = 0; i < retries; i++) {
     try {
@@ -51,33 +34,3 @@ export const checkDatabaseConnection = async (client: PrismaClient, retries = 3)
   }
   return false;
 };
-
-// Lazy initialization으로 런타임에만 Prisma 클라이언트 생성
-export const getPrismaClient = (): PrismaClient => {
-  if (global.__prisma) {
-    return global.__prisma;
-  }
-  
-  const client = createPrismaClient();
-  
-  if (process.env.NODE_ENV !== 'production') {
-    global.__prisma = client;
-  }
-  
-  return client;
-};
-
-// 편의성을 위한 prisma 인스턴스 (lazy evaluation)
-export const prisma = new Proxy({} as PrismaClient, {
-  get(target, prop) {
-    const client = getPrismaClient();
-    return client[prop as keyof PrismaClient];
-  }
-});
-
-// 프로세스 종료 시 연결 정리
-process.on('beforeExit', async () => {
-  if (global.__prisma) {
-    await global.__prisma.$disconnect();
-  }
-});

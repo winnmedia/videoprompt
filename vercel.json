@@ -1,7 +1,7 @@
 {
   "version": 2,
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "rm -rf .next node_modules/.cache && pnpm install --frozen-lockfile && pnpm build",
+  "buildCommand": "pnpm build",
   "git": {
     "deploymentEnabled": {
       "main": true
@@ -10,7 +10,7 @@
   "env": {
     "NODE_ENV": "production",
     "NEXT_TELEMETRY_DISABLED": "1",
-    "FORCE_REBUILD": "2025-09-09-STANDALONE-FIX"
+    "FORCE_REBUILD": "2025-09-09-PRISMA-DEPS-FIX"
   },
   "headers": [
     {
