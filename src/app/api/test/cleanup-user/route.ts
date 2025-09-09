@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/db';
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -41,52 +41,46 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Supabase 클라이언트 생성 (직접 DB 액세스)
-    const supabase = createServerClient();
-    
-    // 사용자 관련 데이터 정리 (순서 중요 - 외래키 제약 고려)
-    const cleanupOperations = [
-      // 1. 사용자의 세션 정리
-      () => supabase
-        .from('user_sessions')
-        .delete()
-        .eq('user_email', userEmail),
-      
-      // 2. 인증 관련 데이터 정리
-      () => supabase
-        .from('email_verifications')
-        .delete()
-        .eq('email', userEmail),
-      
-      // 3. 사용자 계정 정리
-      () => supabase
-        .from('users')
-        .delete()
-        .eq('email', userEmail),
-    ];
-
-    // 순차적으로 정리 작업 수행
+    // Prisma를 사용하여 테스트 사용자 데이터 정리
     const results = [];
-    for (const operation of cleanupOperations) {
-      try {
-        const result = await operation();
-        results.push({
-          operation: operation.name || 'unknown',
-          success: !result.error,
-          error: result.error?.message,
-          count: result.count || 0,
-        });
-      } catch (error) {
-        results.push({
-          operation: operation.name || 'unknown',
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-          count: 0,
+    let totalCleaned = 0;
+
+    try {
+      // 사용자 찾기
+      const user = await prisma.user.findUnique({
+        where: { email: userEmail }
+      });
+
+      if (!user) {
+        return NextResponse.json({
+          ok: true,
+          message: `Test user not found: ${userEmail}`,
+          data: { email: userEmail, totalRecordsCleaned: 0, operations: [] }
         });
       }
+
+      // 사용자 삭제 (관련 데이터는 Prisma의 cascade 설정에 따라 자동 삭제)
+      const deleteResult = await prisma.user.delete({
+        where: { email: userEmail }
+      });
+
+      results.push({
+        operation: 'delete_user',
+        success: true,
+        error: null,
+        count: 1,
+      });
+      totalCleaned = 1;
+
+    } catch (error) {
+      results.push({
+        operation: 'delete_user',
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        count: 0,
+      });
     }
 
-    const totalCleaned = results.reduce((sum, result) => sum + (result.count || 0), 0);
     const hasErrors = results.some(result => !result.success);
 
     return NextResponse.json({
@@ -126,42 +120,47 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const supabase = createServerClient();
-    
-    // 테스트 사용자 패턴으로 조회
-    const { data: testUsers, error } = await supabase
-      .from('users')
-      .select('id, email, username, created_at, email_verified')
-      .or('email.ilike.%integration_test_%,email.ilike.%test_%')
-      .order('created_at', { ascending: false })
-      .limit(100);
-
-    if (error) {
-      throw error;
-    }
+    // Prisma를 사용하여 테스트 사용자 조회
+    const testUsers = await prisma.user.findMany({
+      where: {
+        OR: [
+          { email: { contains: 'integration_test_' } },
+          { email: { contains: 'test_' } }
+        ]
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        createdAt: true,
+        emailVerified: true
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100
+    });
 
     // 생성 시간이 오래된 사용자들 필터링 (1시간 이상)
     const now = new Date();
     const retentionHours = Number(process.env.TEST_USER_RETENTION_HOURS) || 1;
     const cutoffTime = new Date(now.getTime() - (retentionHours * 60 * 60 * 1000));
     
-    const oldTestUsers = testUsers?.filter(user => 
-      new Date(user.created_at) < cutoffTime
-    ) || [];
+    const oldTestUsers = testUsers.filter(user => 
+      new Date(user.createdAt) < cutoffTime
+    );
 
     return NextResponse.json({
       ok: true,
       data: {
-        totalTestUsers: testUsers?.length || 0,
+        totalTestUsers: testUsers.length,
         cleanupCandidates: oldTestUsers.length,
         retentionHours,
         users: oldTestUsers.map(user => ({
           id: user.id,
           email: user.email,
           username: user.username,
-          createdAt: user.created_at,
-          emailVerified: user.email_verified,
-          ageHours: Math.floor((now.getTime() - new Date(user.created_at).getTime()) / (60 * 60 * 1000)),
+          createdAt: user.createdAt,
+          emailVerified: user.emailVerified,
+          ageHours: Math.floor((now.getTime() - new Date(user.createdAt).getTime()) / (60 * 60 * 1000)),
         })),
       },
     });
