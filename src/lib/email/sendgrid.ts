@@ -89,16 +89,42 @@ class SendGridClient {
    */
   private validateEnvironment() {
     try {
+      // 개발 환경에서는 더 유연하게 처리
+      if (process.env.NODE_ENV === 'development' && !process.env.SENDGRID_API_KEY) {
+        console.warn('[SendGrid] Running in development without SendGrid API key. Email sending will be simulated.');
+        return {
+          SENDGRID_API_KEY: 'development-placeholder-key',
+          SENDGRID_FROM_EMAIL: process.env.DEFAULT_FROM_EMAIL || 'dev@example.com',
+          SENDGRID_FROM_NAME: 'Development',
+          SENDGRID_SANDBOX_MODE: 'true',
+          NODE_ENV: 'development',
+        };
+      }
+      
       return EnvSchema.parse({
         SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
-        SENDGRID_FROM_EMAIL: process.env.SENDGRID_FROM_EMAIL,
+        SENDGRID_FROM_EMAIL: process.env.SENDGRID_FROM_EMAIL || process.env.DEFAULT_FROM_EMAIL,
         SENDGRID_FROM_NAME: process.env.SENDGRID_FROM_NAME,
         SENDGRID_SANDBOX_MODE: process.env.SENDGRID_SANDBOX_MODE,
         NODE_ENV: process.env.NODE_ENV,
       });
     } catch (error) {
       console.error('[SendGrid] Environment validation failed:', error);
-      throw new Error('SendGrid configuration error: Missing or invalid environment variables');
+      console.error('[SendGrid] Please ensure SENDGRID_API_KEY is set in your environment variables');
+      
+      // Production에서만 에러를 throw
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('SendGrid configuration error: Missing SENDGRID_API_KEY');
+      }
+      
+      // Development에서는 placeholder 반환
+      return {
+        SENDGRID_API_KEY: 'development-placeholder-key',
+        SENDGRID_FROM_EMAIL: 'dev@example.com',
+        SENDGRID_FROM_NAME: 'Development',
+        SENDGRID_SANDBOX_MODE: 'true',
+        NODE_ENV: 'development',
+      };
     }
   }
 

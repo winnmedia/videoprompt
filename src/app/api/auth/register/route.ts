@@ -16,9 +16,20 @@ const RegisterSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const traceId = getTraceId(req);
+  
   try {
-    const traceId = getTraceId(req);
-    const { email, username, password } = RegisterSchema.parse(await req.json());
+    // Request body 파싱
+    let body;
+    try {
+      body = await req.json();
+    } catch (e) {
+      console.error(`[Register ${traceId}] Failed to parse request body:`, e);
+      return failure('INVALID_REQUEST', '잘못된 요청 형식입니다.', 400, undefined, traceId);
+    }
+    
+    // 입력값 검증
+    const { email, username, password } = RegisterSchema.parse(body);
 
     const existing = await prisma.user.findFirst({
       where: { OR: [{ email }, { username }] },
@@ -63,7 +74,12 @@ export async function POST(req: NextRequest) {
 
       // Send verification email
       try {
-        const verificationLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/verify-email?token=${verificationToken}`;
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                       process.env.NEXT_PUBLIC_API_URL || 
+                       'http://localhost:3000';
+        const verificationLink = `${baseUrl}/verify-email/${verificationToken}`;
+        
+        console.log(`[Register ${traceId}] Sending verification email to ${email}`);
         
         await sendVerificationEmail(
           email,
@@ -71,8 +87,10 @@ export async function POST(req: NextRequest) {
           verificationLink,
           verificationCode
         );
+        
+        console.log(`[Register ${traceId}] Verification email sent successfully`);
       } catch (emailError) {
-        console.error('[Register] Failed to send verification email:', emailError);
+        console.error(`[Register ${traceId}] Failed to send verification email:`, emailError);
         // Continue with registration even if email fails
         // User can request resend later
       }
@@ -85,9 +103,24 @@ export async function POST(req: NextRequest) {
       message: '회원가입이 완료되었습니다. 이메일을 확인하여 계정을 인증해주세요.',
     }, 201, traceId);
   } catch (e: any) {
+    console.error(`[Register ${traceId}] Error:`, e);
+    
     if (e instanceof z.ZodError) {
-      return failure('INVALID_INPUT_FIELDS', e.message, 400);
+      const errorMessage = e.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
+      return failure('INVALID_INPUT_FIELDS', errorMessage, 400, undefined, traceId);
     }
-    return failure('UNKNOWN', e?.message || 'Server error', 500);
+    
+    if (e.code === 'P2002') {
+      // Prisma unique constraint violation
+      return failure('DUPLICATE_USER', '이미 사용 중인 이메일 또는 사용자명입니다.', 409, undefined, traceId);
+    }
+    
+    if (e.code === 'P2003') {
+      // Prisma foreign key constraint violation
+      return failure('DATABASE_ERROR', '데이터베이스 제약 조건 오류', 400, undefined, traceId);
+    }
+    
+    // 일반적인 서버 에러
+    return failure('INTERNAL_SERVER_ERROR', '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', 500, e?.message, traceId);
   }
 }
