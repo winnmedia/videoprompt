@@ -1041,4 +1041,83 @@ outputFileTracingExcludes: {
 - ✅ **번들 최적화**: Vercel 제한 내에서 배포 가능한 크기로 최적화
 - ✅ **Edge Runtime 호환성**: Next.js 15.4.6 아키텍처에 맞는 설정 완료
 
+---
+
+## 📱 UI/UX 개선 작업 완료 (2025-09-09)
+
+### 🎯 작업 목표
+사용자 요청에 따른 순차적 UI/UX 개선:
+1. 자동저장 기능 제거 후 임시저장 버튼만 남기기
+2. AI 영상 기획 페이지 상단 헤더/메뉴 중복 제거
+3. 콘텐츠관리 페이지 헤더 중복 제거
+4. 전체 레이아웃 일관성 점검 및 접근성 개선
+
+### ✅ 완료된 작업
+
+#### Phase 1: 자동저장 → 임시저장 전환
+**파일**: `/src/app/scenario/page.tsx`
+- ❌ **제거**: `useAutoSave` 훅과 `AutoSaveStatus` 컴포넌트
+- ✅ **추가**: 수동 저장 함수 및 상태 관리
+```typescript
+const [isSaving, setIsSaving] = useState(false);
+const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
+const saveManually = async () => {
+  if (isSaving) return;
+  try {
+    setIsSaving(true);
+    project.setScenario({...});
+    setLastSaved(new Date());
+    toast.success('시나리오가 임시 저장되었습니다.', '저장 완료');
+  } catch (error) {
+    toast.error('저장 중 오류가 발생했습니다.');
+  } finally {
+    setIsSaving(false);
+  }
+};
+```
+
+#### Phase 2: AI 영상 기획 페이지 헤더 중복 제거
+**파일**: `/src/app/scenario/page.tsx` (766-808 라인)
+- ❌ **제거**: 페이지 내 중복 헤더 (`<header>` 전체)
+- ✅ **대체**: 임시저장 상태바 (높이 48px)
+- **결과**: 전역 헤더(`layout.tsx`)만 사용하여 일관성 확보
+
+#### Phase 3: 콘텐츠관리 페이지 헤더 중복 제거
+**파일**: `/src/app/planning/page.tsx` (630-649 라인)
+- ❌ **제거**: 페이지 내 중복 헤더
+- ✅ **대체**: "새 기획안" 버튼만 있는 액션바 (높이 48px)
+- **결과**: 전역 헤더 활용으로 UI 통일
+
+#### Phase 4: 접근성 개선
+**개선사항**:
+- 저장 상태 표시: `role="status"`, `aria-label="저장 상태"`
+- 아이콘 요소: `aria-hidden="true"`
+- 저장 버튼: 동적 `aria-label` (저장 중/임시저장 실행)
+- 로딩 스피너: `aria-hidden="true"`
+
+### 🏗️ 아키텍처 개선 결과
+
+#### 레이아웃 일관성
+- **전역 헤더**: `layout.tsx`에서 모든 페이지 공통 적용
+- **페이지별 헤더**: 완전 제거하여 중복 해결
+- **액션바**: 페이지별 필요시에만 최소한으로 적용
+
+#### 상태 관리 최적화
+- **자동저장**: 제거하여 서버 부하 감소
+- **수동저장**: 사용자 의도적 저장으로 데이터 신뢰성 향상
+- **상태 피드백**: 명확한 저장 상태 표시
+
+### 📊 품질 검증 완료
+- ✅ **TypeScript**: `pnpm tsc --noEmit` 통과
+- ✅ **ESLint**: 기존 경고 외 새로운 문제 없음
+- ✅ **접근성**: ARIA 레이블 및 역할 적용
+- ✅ **일관성**: 전체 페이지 레이아웃 통일
+
+### 🎨 사용자 경험 개선
+- **명확한 저장 제어**: 사용자가 직접 저장 시점 결정
+- **시각적 일관성**: 중복 헤더 제거로 깔끔한 UI
+- **접근성 향상**: 스크린 리더 및 키보드 사용자 지원
+- **성능 최적화**: 불필요한 자동저장 제거
+
 **참고**: 이 문서는 프로젝트의 주요 변경사항과 결정사항을 기록합니다. 삭제하거나 수정하지 마시고, 새로운 내용은 추가만 해주세요.

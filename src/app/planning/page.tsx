@@ -626,27 +626,16 @@ export default function PlanningPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* 헤더 */}
-      <header className="border-b bg-white shadow-sm">
+      {/* 액션 바 */}
+      <div className="bg-white border-b">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            <Logo size="lg" />
-            <nav className="hidden items-center space-x-8 md:flex">
-              <a href="/" className="font-medium text-gray-700 hover:text-primary-600">
-                홈
-              </a>
-              <a href="/wizard" className="font-medium text-gray-700 hover:text-primary-600">
-                AI 영상 생성
-              </a>
-            </nav>
-            <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm" onClick={handleCreateNew}>
-                새 기획안
-              </Button>
-            </div>
+          <div className="flex h-12 items-center justify-end">
+            <Button variant="outline" size="sm" onClick={handleCreateNew}>
+              새 기획안
+            </Button>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* 메인 콘텐츠 */}
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
