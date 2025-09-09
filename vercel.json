@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "installCommand": "pnpm install --frozen-lockfile",
+  "installCommand": "pnpm install --frozen-lockfile --prod",
   "buildCommand": "pnpm build",
   "git": {
     "deploymentEnabled": {
@@ -10,6 +10,12 @@
   "env": {
     "NODE_ENV": "production",
     "NEXT_TELEMETRY_DISABLED": "1"
+  },
+  "functions": {
+    "src/app/api/**/route.ts": {
+      "maxDuration": 30,
+      "memory": 512
+    }
   },
   "headers": [
     {

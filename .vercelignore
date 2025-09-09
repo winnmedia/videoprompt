@@ -15,12 +15,18 @@ __tests__/
 *.test.tsx
 *.spec.ts
 *.spec.tsx
+vitest.config.*
+playwright.config.*
 
-# 개발 도구
+# 개발 도구 및 설정
 .husky/
 .cursor/
 .vscode/
 .idea/
+eslint.config.*
+prettier.config.*
+tailwind.config.*
+tsconfig*.json
 
 # Git 히스토리 (배포 시 불필요)
 .git/
@@ -33,13 +39,46 @@ dist/
 build/
 *.cache
 
-# 의존성
+# pnpm 관련
+node_modules/.pnpm/
+.pnpm-debug.log
+
+# 의존성 - 세밀한 제어
 node_modules/
+
+# Prisma 엔진 최적화 (사용하지 않는 플랫폼 엔진 제외)
+node_modules/@prisma/engines/
+!node_modules/@prisma/engines/libquery_engine-linux-x64-openssl-3.0.x.so.node
+!node_modules/@prisma/engines/query_engine-linux-x64-openssl-3.0.x
+
+# 플랫폼별 네이티브 바이너리 제외
+node_modules/@swc/core-*
+node_modules/@esbuild/*
+node_modules/@next/swc-*
+
+# Playwright 관련 (프로덕션 불필요)
+node_modules/@playwright/
+node_modules/playwright/
+node_modules/playwright-core/
+
+# 기타 네이티브 바이너리 (선택적 제외)
+**/*.wasm
+**/*.node
+!node_modules/.prisma/client/*.node
+
+# TypeScript 컴파일러 (런타임 불필요)
+node_modules/typescript/
+
+# 기타 대용량 개발 도구
+node_modules/madge/
+node_modules/tsx/
+node_modules/webpack/
 
 # 문서 및 스크립트
 *.md
 scripts/
 integrations-page/
+docs/
 
 # 데이터베이스
 prisma/migrations/
