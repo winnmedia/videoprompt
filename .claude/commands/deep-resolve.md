@@ -1,4 +1,4 @@
-# deep-resolve Rule Addendum: FSD–TDD Strategy Emphasis and Seven-Agent Parallelism
+# deep-resolve Rule Addendum: FSD–TDD Strategy Emphasis and Agent Parallelism
 
 This addendum preserves parallel analysis while preventing excessive output on small tasks via budgeted selection, lead assignment, and escalation controls. The screen-first definition of done, FSD boundaries, and TDD gates remain unchanged. This addendum complements the main “deep-resolve Rule Addendum: FSD–TDD Strategy Emphasis and Seven-Agent Parallelism,” including its Output format section.
 

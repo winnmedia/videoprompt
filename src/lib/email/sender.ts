@@ -190,6 +190,45 @@ export async function sendEmail(request: SendEmailRequest): Promise<SendEmailRes
       mailSettings: config.sandboxMode ? { sandboxMode: { enable: true } } : undefined,
     };
     
+    // 개발 환경에서 placeholder key 사용 시 이메일 시뮬레이션
+    if (config.apiKey === 'development-placeholder-key') {
+      console.log('\n📧 =========================== 이메일 시뮬레이션 ===========================');
+      console.log('🎯 받는 사람:', Array.isArray(validatedRequest.to) 
+        ? validatedRequest.to.map(r => `${r.name} <${r.email}>`).join(', ')
+        : `${validatedRequest.to.name} <${validatedRequest.to.email}>`);
+      console.log('📝 제목:', validatedRequest.subject);
+      console.log('🔗 HTML 내용:');
+      console.log(validatedRequest.html);
+      console.log('📄 텍스트 내용:');
+      console.log(validatedRequest.text);
+      console.log('========================================================================\n');
+      
+      // 가짜 응답 생성
+      const mockResponse = {
+        statusCode: 202,
+        headers: {
+          'x-message-id': `dev-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        },
+      };
+      
+      const result: SendEmailResponse = {
+        messageId: mockResponse.headers['x-message-id'],
+        statusCode: mockResponse.statusCode,
+        headers: mockResponse.headers,
+        timestamp: new Date().toISOString(),
+      };
+      
+      console.log('[Email] ✅ 개발 환경에서 이메일 시뮬레이션 완료', {
+        messageId: result.messageId,
+        to: Array.isArray(validatedRequest.to) 
+          ? validatedRequest.to.map(r => r.email) 
+          : validatedRequest.to.email,
+        subject: validatedRequest.subject,
+      });
+      
+      return SendEmailResponseSchema.parse(result);
+    }
+
     // Send with retry
     const [response] = await retryWithBackoff(
       () => client.send(message),
@@ -375,7 +414,11 @@ export async function sendVerificationEmail(
       recipientName,
       verificationLink,
       verificationCode,
-      expiresIn: '24 hours',
+      expiresIn: '24시간',
+      appName: 'VLANET',
+      appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://vridge.kr',
+      supportEmail: 'support@vlanet.net',
+      year: new Date().getFullYear(),
     },
     { email: recipientEmail, name: recipientName }
   );
