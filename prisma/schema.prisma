@@ -31,9 +31,12 @@ model Project {
   title        String
   description  String?
   thumbnailUrl String?  @map("thumbnail_url")
-  status       String   // 'draft' | 'in_progress' | 'completed' | 'archived'
-  tags         Json // JSON for PostgreSQL
+  status       String   // 'draft' | 'processing' | 'completed' | 'failed'
+  tags         Json? // JSON for PostgreSQL
   metadata     Json? // JSON for PostgreSQL
+  scenario     String? // JSON string for scenario data
+  prompt       String? // JSON string for prompt data
+  video        String? // JSON string for video data
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
   userId       String   @map("user_id")

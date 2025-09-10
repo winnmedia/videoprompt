@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { getUser } from '@/lib/auth';
 
 // Exponential backoff 유틸리티
 function exponentialBackoff(attempt: number): number {
@@ -23,6 +25,9 @@ interface StoryRequest {
   tempo?: string;
   developmentMethod?: string;
   developmentIntensity?: string;
+  projectId?: string; // Optional project ID to save to
+  saveAsProject?: boolean; // Option to save as new project
+  projectTitle?: string; // Title for new project
 }
 
 interface StoryStructure {
@@ -63,7 +68,7 @@ interface StoryResponse {
 export async function POST(request: NextRequest) {
   try {
     const body: StoryRequest = await request.json();
-    const { story, genre, tone, target, duration, format, tempo, developmentMethod, developmentIntensity } = body;
+    const { story, genre, tone, target, duration, format, tempo, developmentMethod, developmentIntensity, projectId, saveAsProject, projectTitle } = body;
 
     if (!story || !genre || !tone) {
       return NextResponse.json({ error: '스토리, 장르, 톤앤매너는 필수입니다.' }, { status: 400 });
@@ -504,8 +509,78 @@ ${(() => {
             }
             
             console.log('[LLM] ✅ JSON 파싱 및 검증 성공');
+            
+            // Save to database if requested
+            let savedProject = null;
+            if (saveAsProject || projectId) {
+              try {
+                // Get user for authentication
+                const user = await getUser(request);
+                if (user) {
+                  const scenarioData = {
+                    title: projectTitle || parsedResponse.structure.act1.title,
+                    story,
+                    genre,
+                    tone,
+                    target,
+                    duration,
+                    format,
+                    tempo,
+                    developmentMethod,
+                    developmentIntensity,
+                    structure: parsedResponse
+                  };
+
+                  if (projectId) {
+                    // Update existing project
+                    savedProject = await prisma.project.update({
+                      where: { 
+                        id: projectId,
+                        userId: user.id // Ensure user owns the project
+                      },
+                      data: {
+                        scenario: JSON.stringify(scenarioData),
+                        status: 'processing',
+                        updatedAt: new Date()
+                      }
+                    });
+                    console.log(`[LLM] ✅ 기존 프로젝트 업데이트: ${projectId}`);
+                  } else {
+                    // Create new project
+                    savedProject = await prisma.project.create({
+                      data: {
+                        title: projectTitle || `${genre} 스토리: ${parsedResponse.structure.act1.title}`,
+                        description: `AI 생성 스토리 - ${tone} 톤앤매너`,
+                        userId: user.id,
+                        scenario: JSON.stringify(scenarioData),
+                        status: 'draft',
+                        tags: JSON.stringify([genre, tone, target])
+                      }
+                    });
+                    console.log(`[LLM] ✅ 새 프로젝트 생성: ${savedProject.id}`);
+                  }
+                } else {
+                  console.log('[LLM] ⚠️ 미인증 사용자 - 프로젝트 저장 건너뜀');
+                }
+              } catch (dbError) {
+                console.error('[LLM] ❌ 데이터베이스 저장 실패:', dbError);
+                // Continue without failing the whole request
+              }
+            }
+            
             console.log('[LLM] ========== 스토리 생성 완료 ==========');
-            return NextResponse.json(parsedResponse);
+            
+            // Return response with project info if saved
+            const response = {
+              ...parsedResponse,
+              project: savedProject ? {
+                id: savedProject.id,
+                title: savedProject.title,
+                saved: true
+              } : null
+            };
+            
+            return NextResponse.json(response);
             
           } catch (parseError) {
             parseAttempts++;
