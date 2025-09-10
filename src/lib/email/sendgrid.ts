@@ -16,6 +16,7 @@ import { EmailServiceConfigSchema, type EmailServiceConfig } from './contracts/e
 
 /**
  * SendGrid service configuration with validation
+ * Updated: 2025-09-10 - Fixed verified sender email
  */
 const DEFAULT_CONFIG: Partial<EmailServiceConfig> = {
   defaultFrom: {
