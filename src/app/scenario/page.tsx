@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { extractSceneComponents } from '@/lib/ai-client';
+import { extractSceneComponents } from '@/shared/lib';
 import { Button } from '@/shared/ui';
 import { useProjectStore } from '@/entities/project';
 import { Icon } from '@/shared/ui';
@@ -11,6 +11,8 @@ import { useToast } from '@/shared/lib/hooks';
 import { createErrorPlaceholder } from '@/shared/lib/encoding-utils';
 import { generatePlanningPDFWithProgress } from '@/shared/lib/pdf-generator';
 import { StepProgress } from '@/shared/ui/Progress';
+import { generateImageWithPolling } from '@/shared/lib/image-generation-polling';
+import { registerScenarioContent, type ContentRegistrationResult } from '@/shared/lib/upload-utils';
 import { 
   generateConsistentPrompt, 
   extractStoryboardConfig,
@@ -20,55 +22,13 @@ import {
 import {
   StoryboardGallery,
   GenerateStoryboardButton,
-  StoryboardProgress,
-  type Shot as StoryboardShot
+  StoryboardProgress
 } from '@/components/storyboard';
+import { StoryInput, StoryStep, Shot, InsertShot, StoryboardShot } from '@/entities/scenario';
+import { generateStorySteps, generateShots } from '@/features/scenario';
+import { StoryInputForm, StoryStepsEditor, ShotsGrid } from '@/widgets/scenario';
 
-interface StoryInput {
-  title: string;
-  oneLineStory: string;
-  toneAndManner: string[];
-  genre: string;
-  target: string;
-  duration: string;
-  format: string;
-  tempo: string;
-  developmentMethod: string;
-  developmentIntensity: string;
-}
-
-interface StoryStep {
-  id: string;
-  title: string;
-  summary: string;
-  content: string;
-  goal: string;
-  lengthHint: string;
-  isEditing: boolean;
-}
-
-interface Shot {
-  id: string;
-  stepId: string;
-  title: string;
-  description: string;
-  shotType: string;
-  camera: string;
-  composition: string;
-  length: number;
-  dialogue: string;
-  subtitle: string;
-  transition: string;
-  contiImage?: string;
-  insertShots: InsertShot[];
-}
-
-interface InsertShot {
-  id: string;
-  purpose: string;
-  description: string;
-  framing: string;
-}
+// 타입들은 이제 entities 레이어에서 가져옴
 
 export default function ScenarioPage() {
   const project = useProjectStore();
@@ -97,21 +57,39 @@ export default function ScenarioPage() {
   const [showCustomToneInput, setShowCustomToneInput] = useState(false);
   const [showCustomGenreInput, setShowCustomGenreInput] = useState(false);
 
-  // 자동 저장을 위한 데이터 통합
-  const autoSaveData = useMemo(() => ({
-    title: storyInput.title,
-    oneLineStory: storyInput.oneLineStory,
-    toneAndManner: storyInput.toneAndManner,
-    genre: storyInput.genre,
-    target: storyInput.target,
-    duration: storyInput.duration,
-    format: storyInput.format,
-    tempo: storyInput.tempo,
-    developmentMethod: storyInput.developmentMethod,
-    developmentIntensity: storyInput.developmentIntensity,
-    storySteps,
-    shots
-  }), [storyInput, storySteps, shots]);
+  // 자동 저장을 위한 데이터를 Zustand 스토어에만 저장
+  const autoSaveData = useMemo(() => {
+    // 데이터가 있는 경우에만 프로젝트 스토어에 자동 저장
+    if (storyInput.title || storyInput.oneLineStory || storySteps.length > 0) {
+      project.setScenario({
+        title: storyInput.title,
+        story: storyInput.oneLineStory,
+        tone: storyInput.toneAndManner,
+        genre: storyInput.genre,
+        target: storyInput.target,
+        format: storyInput.format,
+        tempo: storyInput.tempo,
+        developmentMethod: storyInput.developmentMethod,
+        developmentIntensity: storyInput.developmentIntensity,
+        durationSec: parseInt(storyInput.duration, 10) || undefined,
+      });
+    }
+    
+    return {
+      title: storyInput.title,
+      oneLineStory: storyInput.oneLineStory,
+      toneAndManner: storyInput.toneAndManner,
+      genre: storyInput.genre,
+      target: storyInput.target,
+      duration: storyInput.duration,
+      format: storyInput.format,
+      tempo: storyInput.tempo,
+      developmentMethod: storyInput.developmentMethod,
+      developmentIntensity: storyInput.developmentIntensity,
+      storySteps,
+      shots,
+    };
+  }, [storyInput, storySteps, shots, project]);
 
   // 수동 저장 기능
   const [isSaving, setIsSaving] = useState(false);
@@ -298,181 +276,135 @@ export default function ScenarioPage() {
   };
 
   // 2단계: 4단계 스토리 생성
-  const generateStorySteps = async () => {
-    setLoading(true);
-    setError(null);
-    setErrorType(null);
-    setLoadingMessage('AI가 스토리를 생성하고 있습니다...');
-
+  const handleGenerateStorySteps = async () => {
     try {
-      // 실제 AI API 호출 시도
-      const response = await fetch('/api/ai/generate-story', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const steps = await generateStorySteps({
+        storyInput,
+        onLoadingStart: (message) => {
+          setLoading(true);
+          setError(null);
+          setErrorType(null);
+          setLoadingMessage(message);
         },
-        body: JSON.stringify({
-          story: storyInput.oneLineStory,
-          genre: storyInput.genre,
-          tone: storyInput.toneAndManner.join(', '),
-          target: storyInput.target,
-          duration: storyInput.duration,
-          format: storyInput.format,
-          tempo: storyInput.tempo,
-          developmentMethod: storyInput.developmentMethod,
-          developmentIntensity: storyInput.developmentIntensity,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const steps = convertStructureToSteps(data.structure);
-        setStorySteps(steps);
-        setCurrentStep(2);
-        setLoadingMessage('');
-        setRetryCount(0); // 성공 시 재시도 카운트 리셋
-        toast.success('4단계 스토리가 성공적으로 생성되었습니다!', '생성 완료');
-      } else {
-        // API 실패 시 에러 상태 설정
-        const status = response.status;
-        if (status === 400) {
-          const errorMsg = '필수 정보가 누락되었습니다. 모든 필드를 입력했는지 확인해주세요.';
-          setError(errorMsg);
-          setErrorType('client');
-          toast.error(errorMsg, '요청 오류');
-        } else if (status >= 500) {
-          const errorMsg = 'AI 서버에 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
-          setError(errorMsg);
-          setErrorType('server');
-          toast.error(errorMsg, '서버 오류');
-        } else {
-          const errorMsg = `요청 처리 중 오류가 발생했습니다. (오류 코드: ${status})`;
-          setError(errorMsg);
-          setErrorType('server');
-          toast.error(errorMsg, 'API 오류');
+        onLoadingEnd: () => {
+          setLoading(false);
+          setLoadingMessage('');
+        },
+        onError: (error, type) => {
+          setError(error);
+          setErrorType(type);
+          toast.error(error, type === 'client' ? '요청 오류' : type === 'network' ? '네트워크 오류' : '서버 오류');
+        },
+        onSuccess: (steps, message) => {
+          setStorySteps(steps);
+          setCurrentStep(2);
+          setRetryCount(0);
+          toast.success(message, '생성 완료');
         }
-      }
+      });
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다';
-      console.error('AI API 호출 실패:', errorMessage);
-      
-      // 네트워크 에러 처리
-      if (errorMessage.includes('fetch') || errorMessage.includes('network')) {
-        const errorMsg = '네트워크 연결을 확인해주세요. 인터넷 연결이 불안정할 수 있습니다.';
-        setError(errorMsg);
-        setErrorType('network');
-        toast.error(errorMsg, '네트워크 오류');
-      } else {
-        const errorMsg = 'AI 서비스 연결에 실패했습니다. 잠시 후 다시 시도해주세요.';
-        setError(errorMsg);
-        setErrorType('server');
-        toast.error(errorMsg, '연결 실패');
-      }
-    } finally {
-      setLoading(false);
-      setLoadingMessage('');
+      // 에러는 이미 콜백에서 처리됨
     }
   };
 
   // 재시도 함수
   const handleRetry = async () => {
     setRetryCount(prev => prev + 1);
-    await generateStorySteps();
+    await handleGenerateStorySteps();
+  };
+
+  // 관리 페이지 등록 상태
+  const [registrationStatus, setRegistrationStatus] = useState<{
+    isRegistering: boolean;
+    result: ContentRegistrationResult | null;
+  }>({ isRegistering: false, result: null });
+
+  // 시나리오를 관리 페이지에 등록하는 함수
+  const registerToManagement = async () => {
+    if (!autoSaveData.title || !autoSaveData.oneLineStory) {
+      toast.warning('제목과 스토리 내용이 필요합니다.', '등록 실패');
+      return;
+    }
+
+    setRegistrationStatus({ isRegistering: true, result: null });
+
+    try {
+      const scenarioData = {
+        title: autoSaveData.title,
+        story: autoSaveData.oneLineStory,
+        genre: autoSaveData.genre,
+        tone: autoSaveData.toneAndManner,
+        target: autoSaveData.target,
+        format: autoSaveData.format,
+        tempo: autoSaveData.tempo,
+        developmentMethod: autoSaveData.developmentMethod,
+        developmentIntensity: autoSaveData.developmentIntensity,
+        durationSec: parseInt(autoSaveData.duration, 10) || undefined,
+      };
+
+      const result = await registerScenarioContent(scenarioData, project.id);
+      
+      setRegistrationStatus({ isRegistering: false, result });
+
+      if (result.success) {
+        toast.success(result.message || '시나리오가 관리 페이지에 등록되었습니다.', '등록 완료');
+        
+        // 프로젝트 스토어에 ID 저장
+        if (result.scenarioId) {
+          project.setScenarioId(result.scenarioId);
+        }
+      } else {
+        toast.error(result.error || '등록에 실패했습니다.', '등록 실패');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      setRegistrationStatus({ 
+        isRegistering: false, 
+        result: {
+          success: false,
+          error: '등록 중 오류가 발생했습니다.'
+        }
+      });
+      toast.error('등록 중 오류가 발생했습니다.', '등록 실패');
+    }
   };
 
   // 3단계: 12개 숏트 생성
-  const generateShots = async () => {
-    setLoading(true);
-    setError(null);
-    setLoadingMessage('숏트를 생성하고 있습니다...');
-
+  const handleGenerateShots = async () => {
     try {
-      const components = await extractSceneComponents({
-        scenario: storyInput.oneLineStory || storyInput.title || project.scenario.story || '',
-        theme: storyInput.title,
-        style: (project.scenario.tone as any)?.[0] || 'cinematic',
-        aspectRatio: project.scenario.format || '16:9',
-        durationSec: project.scenario.durationSec || 8,
-        mood: project.scenario.tempo || 'normal',
-        camera: 'wide',
-        weather: 'clear',
-      });
-
-      const generatedShots: Shot[] = [];
-      const generatedStoryboardShots: StoryboardShot[] = [];
-      let shotId = 1;
-
-      storySteps.forEach((step) => {
-        const shotsPerStep = 3; // 각 단계당 3개 숏트
-        for (let i = 0; i < shotsPerStep; i++) {
-          const beat = components.timelineBeats?.[Math.min(shotId - 1, components.timelineBeats.length - 1)];
-          
-          // 더 구체적인 description 생성
-          const generateShotDescription = (step: any, beatIndex: number, beat: any) => {
-            if (beat?.action && beat.action.trim() !== '') {
-              return beat.action;
-            }
-            
-            // beat이 없거나 action이 없을 때 step.content를 활용해서 구체적인 내용 생성
-            const stepContent = step.content || step.summary || '';
-            const shotType = ['와이드샷으로', '클로즈업으로', '미디엄샷으로'][beatIndex % 3];
-            
-            if (stepContent.length > 30) {
-              // step의 내용을 3등분하여 각 샷에 배분
-              const contentParts = stepContent.split('.').filter((s: string) => s.trim());
-              const partIndex = beatIndex % Math.max(contentParts.length, 1);
-              const relevantPart = contentParts[partIndex] || contentParts[0] || stepContent;
-              return `${shotType} ${relevantPart.trim()}을 보여주는 장면`;
-            } else {
-              return `${shotType} ${stepContent}을 시각적으로 표현하는 장면`;
-            }
-          };
-
-          const shotData = {
-            id: `shot-${shotId}`,
-            stepId: step.id,
-            title: `${step.title} - 숏트 ${i + 1}`,
-            description: generateShotDescription(step, i, beat),
-            shotType: '와이드',
-            camera: '정적',
-            composition: '중앙 정렬',
-            length: storyInput.tempo === '빠르게' ? 4 : storyInput.tempo === '느리게' ? 10 : 6,
-            dialogue: '',
-            subtitle: beat?.audio || '',
-            transition: '컷',
-            insertShots: [],
-          };
-          
-          generatedShots.push(shotData);
-          
-          // StoryboardShot 형식으로도 변환
-          generatedStoryboardShots.push({
-            id: shotData.id,
-            title: shotData.title,
-            description: shotData.description,
-            imageUrl: undefined,
-            prompt: undefined,
-            shotType: shotData.shotType,
-            camera: shotData.camera,
-            duration: shotData.length,
-            index: shotId,
-          });
-          
-          shotId++;
+      const result = await generateShots({
+        storyInput,
+        storySteps,
+        projectData: {
+          scenario: {
+            story: project.scenario.story,
+            tone: project.scenario.tone,
+            format: project.scenario.format,
+            durationSec: project.scenario.durationSec,
+            tempo: project.scenario.tempo,
+          }
+        },
+        onLoadingStart: (message) => {
+          setLoading(true);
+          setError(null);
+          setLoadingMessage(message);
+        },
+        onLoadingEnd: () => {
+          setLoading(false);
+          setLoadingMessage('');
+        },
+        onError: (error) => {
+          toast.error(error, '숏트 생성 실패');
+        },
+        onSuccess: (shots, storyboardShots, message) => {
+          setShots(shots);
+          setStoryboardShots(storyboardShots);
+          setCurrentStep(3);
+          toast.success(message, '숏트 생성 완료');
         }
       });
-
-      setShots(generatedShots);
-      setStoryboardShots(generatedStoryboardShots);
-      setCurrentStep(3);
-      toast.success(`${generatedShots.length}개의 숏트가 성공적으로 생성되었습니다!`, '숏트 생성 완료');
-    } catch (e) {
-      console.error(e);
-      toast.error('숏트 생성 중 오류가 발생했습니다.', '숏트 생성 실패');
-    } finally {
-      setLoading(false);
-      setLoadingMessage('');
+    } catch (error) {
+      // 에러는 이미 콜백에서 처리됨
     }
   };
 
@@ -572,7 +504,15 @@ export default function ScenarioPage() {
     for (const shot of shots) {
       if (shot.imageUrl) {
         handleDownloadShot(shot.id, shot.imageUrl);
-        await new Promise(resolve => setTimeout(resolve, 500)); // 지연
+        // 다운로드 간격 조절을 위한 지연
+        let downloadDelayId: NodeJS.Timeout | null = null;
+        try {
+          await new Promise(resolve => {
+            downloadDelayId = setTimeout(resolve, 500);
+          });
+        } finally {
+          if (downloadDelayId) clearTimeout(downloadDelayId);
+        }
       }
     }
   };
@@ -668,9 +608,16 @@ export default function ScenarioPage() {
         additionalDetails: ''
       });
 
-      // 재시도 로직 구현
+      // 재시도 로직 구현 - 메모리 보호를 위해 3회로 제한
       const MAX_RETRIES = 3;
-      const RETRY_DELAYS = [1000, 2000, 4000]; // 1초, 2초, 4초
+      const RETRY_BASE_DELAY = 1000;
+      
+      // 지수 백오프 계산 함수
+      const calculateDelay = (attempt: number) => {
+        const maxDelay = 10000; // 최대 10초
+        const delay = RETRY_BASE_DELAY * Math.pow(2, attempt);
+        return Math.min(delay, maxDelay);
+      };
       let lastError: Error | null = null;
       let data: any = null;
       
@@ -679,22 +626,27 @@ export default function ScenarioPage() {
           console.log(`이미지 생성 시도 ${attempt + 1}/${MAX_RETRIES} for shot ${shotId}`);
           
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 180000); // 3분 타임아웃
+          const timeoutId = setTimeout(() => controller.abort(), 60000); // 1분 타임아웃으로 단축
           
-          const response = await fetch('/api/imagen/preview', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              prompt,
-              aspectRatio: '16:9',
-              quality: 'standard'
-            }),
-            signal: controller.signal
-          });
-
-          clearTimeout(timeoutId);
+          let response: Response;
+          
+          try {
+            response = await fetch('/api/imagen/preview', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                prompt,
+                aspectRatio: '16:9',
+                quality: 'standard'
+              }),
+              signal: controller.signal
+            });
+          } finally {
+            // 항상 타임아웃 정리
+            clearTimeout(timeoutId);
+          }
 
           // 재시도 가능한 오류 확인 (5xx 서버 오류, 408 타임아웃, 429 Rate Limit, 503, 504)
           if (!response.ok) {
@@ -708,9 +660,18 @@ export default function ScenarioPage() {
               throw new Error(`Image generation failed: ${response.status} ${response.statusText}`);
             }
             
-            // 재시도 가능한 오류인 경우 다음 시도를 위해 대기
-            console.log(`재시도 가능한 오류 (${response.status}). ${RETRY_DELAYS[attempt]}ms 후 재시도...`);
-            await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]));
+            // 재시도 가능한 오류인 경우 다음 시도를 위해 지수 백오프로 대기
+            const delay = calculateDelay(attempt);
+            console.log(`재시도 가능한 오류 (${response.status}). ${delay}ms 후 재시도...`);
+            
+            let retryTimeoutId: NodeJS.Timeout | null = null;
+            try {
+              await new Promise(resolve => {
+                retryTimeoutId = setTimeout(resolve, delay);
+              });
+            } finally {
+              if (retryTimeoutId) clearTimeout(retryTimeoutId);
+            }
             continue;
           }
 
@@ -730,9 +691,18 @@ export default function ScenarioPage() {
             throw fetchError;
           }
           
-          // 재시도 가능한 경우 지연 후 계속
-          console.log(`네트워크/타임아웃 오류. ${RETRY_DELAYS[attempt]}ms 후 재시도...`);
-          await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]));
+          // 재시도 가능한 경우 지수 백오프로 지연 후 계속
+          const delay = calculateDelay(attempt);
+          console.log(`네트워크/타임아웃 오류. ${delay}ms 후 재시도...`);
+          
+          let errorTimeoutId: NodeJS.Timeout | null = null;
+          try {
+            await new Promise(resolve => {
+              errorTimeoutId = setTimeout(resolve, delay);
+            });
+          } finally {
+            if (errorTimeoutId) clearTimeout(errorTimeoutId);
+          }
         }
       }
       
@@ -740,7 +710,8 @@ export default function ScenarioPage() {
         throw lastError || new Error('All retry attempts failed');
       }
       
-      if (data.ok && data.imageUrl) {
+      // 더 안전한 데이터 검증 및 fallback 처리
+      if (data && data.ok && data.imageUrl) {
         // 스토리보드 샷 업데이트
         setStoryboardShots(prev => prev.map(s => 
           s.id === shotId 
@@ -759,7 +730,26 @@ export default function ScenarioPage() {
         const successMessage = `"${shotInfo?.title || '이미지'}" 콘티 이미지가 생성되었습니다.`;
         toast.success(successMessage, '이미지 생성 완료');
       } else {
-        throw new Error('No image URL received');
+        // 데이터가 없거나 imageUrl이 없는 경우에 대한 fallback 처리
+        console.warn('Invalid response data, using fallback image');
+        const fallbackImageUrl = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIwIiBoZWlnaHQ9IjE4MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+CiAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY2NzA4NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+7J2066mV IOyDnOyEsSDsm5A8L3RleHQ+Cjwvc3ZnPg==';
+        
+        // fallback 이미지로 업데이트
+        setStoryboardShots(prev => prev.map(s => 
+          s.id === shotId 
+            ? { ...s, imageUrl: fallbackImageUrl, prompt } 
+            : s
+        ));
+        
+        setShots(prev => prev.map(s => 
+          s.id === shotId 
+            ? { ...s, contiImage: fallbackImageUrl } 
+            : s
+        ));
+        
+        // 경고 메시지 표시하지만 완전히 실패로 처리하지 않음
+        const shotInfo = storyboardShots.find(s => s.id === shotId);
+        toast.warning(`"${shotInfo?.title || '이미지'}" 이미지 생성에 일부 문제가 있어 기본 이미지를 사용합니다.`, '이미지 생성 경고');
       }
     } catch (error: any) {
       console.error('이미지 생성 최종 실패:', error);
@@ -861,7 +851,8 @@ export default function ScenarioPage() {
 
       const data = await response.json();
       
-      if (data.ok && data.imageUrl) {
+      // 더 안전한 데이터 검증 및 fallback 처리
+      if (data && data.ok && data.imageUrl) {
         // Update shot with generated image
         setShots((prev) =>
           prev.map((s) => 
@@ -871,7 +862,17 @@ export default function ScenarioPage() {
           ),
         );
       } else {
-        throw new Error('No image URL received');
+        // 데이터가 없거나 imageUrl이 없는 경우에 대한 fallback 처리
+        console.warn('Invalid response data in generateContiImage, using fallback image');
+        const fallbackImageUrl = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIwIiBoZWlnaHQ9IjE4MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+CiAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY2NzA4NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+7J2066mV IOyDnOyEsSDsm5A8L3RleHQ+Cjwvc3ZnPg==';
+        
+        setShots((prev) =>
+          prev.map((s) => 
+            s.id === shotId 
+              ? { ...s, contiImage: fallbackImageUrl } 
+              : s
+          ),
+        );
       }
     } catch (error) {
       console.error('Image generation error:', error);
@@ -1410,7 +1411,7 @@ export default function ScenarioPage() {
 
             <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
               <Button
-                onClick={generateStorySteps}
+                onClick={handleGenerateStorySteps}
                 disabled={loading || !storyInput.title || !storyInput.oneLineStory}
                 size="lg"
                 className="btn-primary w-full px-8 sm:w-auto"
@@ -1575,7 +1576,7 @@ export default function ScenarioPage() {
 
             <div className="flex justify-center">
               <Button
-                onClick={generateShots}
+                onClick={handleGenerateShots}
                 disabled={loading}
                 size="lg"
                 className="btn-primary px-8"
@@ -1623,6 +1624,15 @@ export default function ScenarioPage() {
                     loadingText="이미지 생성 중"
                   />
                   <Button
+                    variant="outline"
+                    size="lg"
+                    onClick={registerToManagement}
+                    disabled={registrationStatus.isRegistering || !autoSaveData.title || !autoSaveData.oneLineStory}
+                    className="px-6"
+                  >
+                    {registrationStatus.isRegistering ? '등록 중...' : '관리 페이지에 등록'}
+                  </Button>
+                  <Button
                     size="lg"
                     className="btn-primary px-6"
                     onClick={() => handleExportPlan()}
@@ -1663,36 +1673,9 @@ export default function ScenarioPage() {
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               {shots.map((shot, index) => (
                 <div key={shot.id} className="card-hover p-4">
-                  {/* 숏트 헤더 */}
-                  <div className="mb-3 flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-text text-lg font-medium">{shot.title}</h3>
-                      <p className="text-text-light mt-1 text-sm">{shot.description}</p>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => generateContiImage(shot.id)}
-                        className="btn-secondary"
-                        disabled={isGeneratingImage[shot.id]}
-                      >
-                        {isGeneratingImage[shot.id] ? '생성 중...' : '콘티 생성'}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => generateInsertShots(shot.id)}
-                        className="btn-secondary"
-                      >
-                        인서트
-                      </Button>
-                    </div>
-                  </div>
-
                   {/* 콘티 이미지 프레임 */}
                   <div className="mb-4">
-                    <div className="border-border flex min-h-32 items-center justify-center overflow-hidden rounded-lg border-2 border-dashed bg-gray-50">
+                    <div className="border-border relative flex min-h-32 items-center justify-center overflow-hidden rounded-lg border-2 border-dashed bg-gray-50">
                       {shot.contiImage ? (
                         <div className="relative w-full">
                           <img
@@ -1726,12 +1709,37 @@ export default function ScenarioPage() {
                           </div>
                         </div>
                       ) : (
-                        <div className="text-text-lighter py-8 text-center">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
                           <Icon name="image" className="mx-auto text-gray-400" />
-                          <p className="mt-2 text-sm">콘티 이미지를 생성하세요</p>
+                          <p className="mt-2 text-sm text-text-lighter">콘티 이미지를 생성하세요</p>
+                          <div className="mt-4 flex space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => generateContiImage(shot.id)}
+                              className="btn-secondary"
+                              disabled={isGeneratingImage[shot.id]}
+                            >
+                              {isGeneratingImage[shot.id] ? '생성 중...' : '콘티 생성'}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => generateInsertShots(shot.id)}
+                              className="btn-secondary"
+                            >
+                              인서트
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </div>
+                  </div>
+
+                  {/* 숏트 정보 - 이미지 아래로 이동 */}
+                  <div className="mb-3">
+                    <h3 className="text-text text-lg font-medium">{shot.title}</h3>
+                    <p className="text-text-light mt-1 text-sm">{shot.description}</p>
                   </div>
 
                   {/* 숏 정보 편집 필드 */}

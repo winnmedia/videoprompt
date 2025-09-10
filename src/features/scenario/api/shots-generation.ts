@@ -1,0 +1,119 @@
+import { StoryInput, StoryStep, Shot, StoryboardShot } from '@/entities/scenario';
+import { extractSceneComponents } from '@/shared/lib';
+
+interface GenerateShotsParams {
+  storyInput: StoryInput;
+  storySteps: StoryStep[];
+  projectData: {
+    scenario: {
+      story?: string;
+      tone?: unknown;
+      format?: string;
+      durationSec?: number;
+      tempo?: string;
+    };
+  };
+  onLoadingStart?: (message: string) => void;
+  onLoadingEnd?: () => void;
+  onError?: (error: string) => void;
+  onSuccess?: (shots: Shot[], storyboardShots: StoryboardShot[], message: string) => void;
+}
+
+export async function generateShots({
+  storyInput,
+  storySteps,
+  projectData,
+  onLoadingStart,
+  onLoadingEnd,
+  onError,
+  onSuccess
+}: GenerateShotsParams): Promise<{ shots: Shot[], storyboardShots: StoryboardShot[] }> {
+  onLoadingStart?.('숏트를 생성하고 있습니다...');
+
+  try {
+    const components = await extractSceneComponents({
+      scenario: storyInput.oneLineStory || storyInput.title || projectData.scenario.story || '',
+      theme: storyInput.title,
+      style: (projectData.scenario.tone as any)?.[0] || 'cinematic',
+      aspectRatio: projectData.scenario.format || '16:9',
+      durationSec: projectData.scenario.durationSec || 8,
+      mood: projectData.scenario.tempo || 'normal',
+      camera: 'wide',
+      weather: 'clear',
+    });
+
+    const generatedShots: Shot[] = [];
+    const generatedStoryboardShots: StoryboardShot[] = [];
+    let shotId = 1;
+
+    // 더 구체적인 description 생성 헬퍼 함수
+    const generateShotDescription = (step: StoryStep, beatIndex: number, beat: any) => {
+      if (beat?.action && beat.action.trim() !== '') {
+        return beat.action;
+      }
+      
+      // beat이 없거나 action이 없을 때 step.content를 활용해서 구체적인 내용 생성
+      const stepContent = step.content || step.summary || '';
+      const shotType = ['와이드샷으로', '클로즈업으로', '미디엄샷으로'][beatIndex % 3];
+      
+      if (stepContent.length > 30) {
+        // step의 내용을 3등분하여 각 샷에 배분
+        const contentParts = stepContent.split('.').filter((s: string) => s.trim());
+        const partIndex = beatIndex % Math.max(contentParts.length, 1);
+        const relevantPart = contentParts[partIndex] || contentParts[0] || stepContent;
+        return `${shotType} ${relevantPart.trim()}을 보여주는 장면`;
+      } else {
+        return `${shotType} ${stepContent}을 시각적으로 표현하는 장면`;
+      }
+    };
+
+    storySteps.forEach((step) => {
+      const shotsPerStep = 3; // 각 단계당 3개 숏트
+      for (let i = 0; i < shotsPerStep; i++) {
+        const beat = components.timelineBeats?.[Math.min(shotId - 1, components.timelineBeats.length - 1)];
+        
+        const shotData = {
+          id: `shot-${shotId}`,
+          stepId: step.id,
+          title: `${step.title} - 숏트 ${i + 1}`,
+          description: generateShotDescription(step, i, beat),
+          shotType: '와이드',
+          camera: '정적',
+          composition: '중앙 정렬',
+          length: storyInput.tempo === '빠르게' ? 4 : storyInput.tempo === '느리게' ? 10 : 6,
+          dialogue: '',
+          subtitle: beat?.audio || '',
+          transition: '컷',
+          insertShots: [],
+        };
+        
+        generatedShots.push(shotData);
+        
+        // StoryboardShot 형식으로도 변환
+        generatedStoryboardShots.push({
+          id: shotData.id,
+          title: shotData.title,
+          description: shotData.description,
+          imageUrl: undefined,
+          prompt: undefined,
+          shotType: shotData.shotType,
+          camera: shotData.camera,
+          duration: shotData.length,
+          index: shotId,
+        });
+        
+        shotId++;
+      }
+    });
+
+    onSuccess?.(generatedShots, generatedStoryboardShots, `${generatedShots.length}개의 숏트가 성공적으로 생성되었습니다!`);
+    return { shots: generatedShots, storyboardShots: generatedStoryboardShots };
+  } catch (e) {
+    console.error(e);
+    const errorMessage = '숏트 생성 중 오류가 발생했습니다.';
+    onError?.(errorMessage);
+    throw new Error(errorMessage);
+  } finally {
+    onLoadingEnd?.();
+  }
+}

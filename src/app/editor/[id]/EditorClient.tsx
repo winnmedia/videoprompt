@@ -5,7 +5,7 @@ import { useSeedancePolling } from '@/features/seedance/status';
 import { Button } from '@/shared/ui';
 import { Icon } from '@/shared/ui';
 import { buildVeo3PromptFromScene } from '@/lib/veo3';
-import { translateToEnglish } from '@/lib/ai-client';
+import { translateToEnglish } from '@/shared/lib/ai-client';
 
 interface EditorClientProps {
   id: string;

@@ -1,4 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { 
+  VideoUploadValidationSchema,
+  createValidationErrorResponse,
+  createSuccessResponse,
+  createErrorResponse
+} from '@/shared/schemas/api.schema';
 
 // 대용량 영상 업로드 라우트 - Presigned URL 기반 업로드 시스템
 // - Vercel Serverless Functions 제약사항을 고려한 아키텍처
@@ -28,49 +35,42 @@ export async function POST(request: NextRequest) {
     const contentLength = request.headers.get('content-length');
     if (contentLength && parseInt(contentLength) > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { 
-          ok: false, 
-          error: 'FILE_TOO_LARGE', 
-          message: `파일 크기가 600MB를 초과합니다. (${Math.round(parseInt(contentLength) / 1024 / 1024)}MB)` 
-        }, 
+        createErrorResponse(
+          'FILE_TOO_LARGE', 
+          `파일 크기가 600MB를 초과합니다. (${Math.round(parseInt(contentLength) / 1024 / 1024)}MB)`
+        ), 
         { status: 413 }
       );
     }
 
-    // FormData에서 파일 정보 추출 (메타데이터만)
+    // FormData에서 파일 정보 추출 및 검증
     const formData = await request.formData();
-    const file = formData.get('video') as File | null;
+    const videoFile = formData.get('video');
 
-    if (!file) {
+    if (!videoFile || !(videoFile instanceof File)) {
       return NextResponse.json(
-        { ok: false, error: 'VIDEO_MISSING', message: '영상 파일이 필요합니다.' }, 
+        createErrorResponse('VIDEO_MISSING', '영상 파일이 필요합니다.'), 
         { status: 400 }
       );
     }
 
-    // 비디오 타입 검증
-    if (!file.type || !SUPPORTED_VIDEO_TYPES.includes(file.type)) {
+    // Zod를 사용한 파일 검증
+    const validationResult = VideoUploadValidationSchema.safeParse({
+      file: {
+        name: videoFile.name,
+        size: videoFile.size,
+        type: videoFile.type,
+      }
+    });
+
+    if (!validationResult.success) {
       return NextResponse.json(
-        { 
-          ok: false, 
-          error: 'INVALID_TYPE', 
-          message: `지원되지 않는 영상 형식입니다. 지원 형식: ${SUPPORTED_VIDEO_TYPES.join(', ')}` 
-        }, 
+        createValidationErrorResponse(validationResult.error),
         { status: 400 }
       );
     }
 
-    // 파일 크기 검증
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { 
-          ok: false, 
-          error: 'FILE_TOO_LARGE', 
-          message: `파일 크기가 600MB를 초과합니다. (${Math.round(file.size / 1024 / 1024)}MB)` 
-        }, 
-        { status: 413 }
-      );
-    }
+    const file = videoFile;
 
     // 파일 검증 통과 - Railway 백엔드로 전송 준비
     const uploadId = crypto.randomUUID();
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
       sanitizedFileName,
       fileSize: file.size,
       fileType: file.type,
-      status: 'pending',
+      status: 'pending' as const,
       createdAt: new Date().toISOString(),
       expiresAt: new Date(Date.now() + 1000 * 60 * 60).toISOString(), // 1시간 후 만료
     };
@@ -96,8 +96,7 @@ export async function POST(request: NextRequest) {
       fileType: file.type,
     });
 
-    // Railway 백엔드 업로드 정보 반환
-    return NextResponse.json({
+    const responseData = {
       ok: true,
       uploadId,
       uploadUrl: railwayUploadUrl,
@@ -113,7 +112,9 @@ export async function POST(request: NextRequest) {
         chunkSize: '50MB',
         timeout: 600000, // 10분 (600MB 고려)
       }
-    });
+    };
+
+    return NextResponse.json(responseData);
 
   } catch (error) {
     console.error('영상 업로드 준비 오류:', error);
@@ -122,49 +123,55 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error) {
       if (error.message.includes('memory') || error.message.includes('heap')) {
         return NextResponse.json(
-          { 
-            ok: false, 
-            error: 'MEMORY_LIMIT', 
-            message: '파일이 너무 커서 처리할 수 없습니다. 600MB 이하의 파일을 업로드해주세요.' 
-          }, 
+          createErrorResponse(
+            'MEMORY_LIMIT', 
+            '파일이 너무 커서 처리할 수 없습니다. 600MB 이하의 파일을 업로드해주세요.'
+          ), 
           { status: 507 }
         );
       }
       
       if (error.message.includes('timeout') || error.message.includes('time')) {
         return NextResponse.json(
-          { 
-            ok: false, 
-            error: 'TIMEOUT', 
-            message: '업로드 준비 시간이 초과되었습니다. 다시 시도해주세요.' 
-          }, 
+          createErrorResponse(
+            'TIMEOUT', 
+            '업로드 준비 시간이 초과되었습니다. 다시 시도해주세요.'
+          ), 
           { status: 408 }
         );
       }
     }
 
     return NextResponse.json(
-      { 
-        ok: false, 
-        error: 'UPLOAD_PREPARATION_FAILED', 
-        message: '영상 업로드 준비 중 오류가 발생했습니다.' 
-      }, 
+      createErrorResponse(
+        'UPLOAD_PREPARATION_FAILED', 
+        '영상 업로드 준비 중 오류가 발생했습니다.'
+      ), 
       { status: 500 }
     );
   }
 }
 
+// 업로드 ID 검증 스키마
+const UploadIdSchema = z.object({
+  uploadId: z.string().uuid('유효한 업로드 ID가 필요합니다'),
+});
+
 // 업로드 상태 확인 API
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const uploadId = searchParams.get('uploadId');
-
-  if (!uploadId) {
+  
+  // 쿼리 파라미터 검증
+  const queryResult = UploadIdSchema.safeParse(Object.fromEntries(searchParams.entries()));
+  
+  if (!queryResult.success) {
     return NextResponse.json(
-      { ok: false, error: 'UPLOAD_ID_MISSING', message: '업로드 ID가 필요합니다.' },
+      createValidationErrorResponse(queryResult.error),
       { status: 400 }
     );
   }
+  
+  const { uploadId } = queryResult.data;
 
   // Railway 백엔드에서 업로드 상태 조회
   try {
@@ -176,6 +183,8 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ ok: true, upload: status });
   } catch (error) {
+    console.error('업로드 상태 조회 오류:', error);
+    
     // 폴백: 기본 상태 반환
     const fallbackStatus = {
       uploadId,

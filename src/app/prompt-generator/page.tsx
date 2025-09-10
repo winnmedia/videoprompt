@@ -12,6 +12,8 @@ import { type PromptGenerationStateV31 } from '@/types/video-prompt-v3.1';
 import { generateId } from '@/shared/lib/utils';
 import { useProjectStore } from '@/entities/project';
 import { createEmptyV31Instance, compilePromptSimple, type CineGeniusV31Simple } from '@/lib/schemas/cinegenius-v3.1-simple';
+// sessionStorage 관련 함수들은 제거하고 Zustand 스토어만 사용
+import { registerPromptContent, type ContentRegistrationResult } from '@/shared/lib/upload-utils';
 import { Button } from '@/shared/ui/button';
 import Link from 'next/link';
 
@@ -104,10 +106,30 @@ const PromptGeneratorPage: React.FC = () => {
     }
   };
 
-  // 컴포넌트 마운트 시 스토리 로드
+  // 컴포넌트 마운트 시 스토리 로드 및 프로젝트 스토어 데이터 확인
   useEffect(() => {
     loadStories();
-  }, []);
+    
+    // 프로젝트 스토어에 시나리오 데이터가 있는 경우 자동 로드
+    if (project.scenario && project.scenario.title) {
+      // Auto-loading scenario data from project store
+      
+      // 스토리로 변환하여 선택 상태 설정
+      const storeStory: Story = {
+        id: project.id || `story-${Date.now()}`,
+        title: project.scenario.title,
+        oneLineStory: project.scenario.story || '',
+        genre: project.scenario.genre || '',
+        tone: Array.isArray(project.scenario.tone) ? project.scenario.tone.join(', ') : project.scenario.tone || '',
+        target: project.scenario.target || '',
+        createdAt: project.createdAt,
+        updatedAt: project.updatedAt,
+      };
+      
+      setSelectedStory(storeStory);
+      setShowStories(false);
+    }
+  }, [project]);
 
   // 스토리 선택 핸들러
   const handleStorySelect = (story: Story) => {
@@ -199,6 +221,52 @@ const PromptGeneratorPage: React.FC = () => {
     setState((prev) => ({ ...prev, negative_prompts }));
   };
 
+  // 관리 페이지 등록 상태
+  const [registrationStatus, setRegistrationStatus] = useState<{
+    isRegistering: boolean;
+    result: ContentRegistrationResult | null;
+  }>({ isRegistering: false, result: null });
+
+  // 프롬프트를 관리 페이지에 등록하는 함수
+  const registerPromptToManagement = async () => {
+    const promptData = project.prompt;
+    const scenarioTitle = project.scenario?.title || selectedStory?.title || '프롬프트';
+    
+    if (!promptData.finalPrompt) {
+      alert('생성된 프롬프트가 필요합니다.');
+      return;
+    }
+
+    setRegistrationStatus({ isRegistering: true, result: null });
+
+    try {
+      const result = await registerPromptContent(promptData, scenarioTitle, project.id);
+      
+      setRegistrationStatus({ isRegistering: false, result });
+
+      if (result.success) {
+        alert(result.message || '프롬프트가 관리 페이지에 등록되었습니다.');
+        
+        // 프로젝트 스토어에 ID 저장
+        if (result.promptId) {
+          project.setPromptId(result.promptId);
+        }
+      } else {
+        alert(result.error || '등록에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      setRegistrationStatus({ 
+        isRegistering: false, 
+        result: {
+          success: false,
+          error: '등록 중 오류가 발생했습니다.'
+        }
+      });
+      alert('등록 중 오류가 발생했습니다.');
+    }
+  };
+
   const handleGeneratePrompt = async () => {
     setState((prev) => ({ ...prev, isGenerating: true }));
 
@@ -271,6 +339,11 @@ const PromptGeneratorPage: React.FC = () => {
           keywords: finalPrompt.keywords,
           negativePrompt: state.negative_prompts?.join(', '),
         });
+        
+        // 프롬프트 생성 성공 시 자동으로 관리 페이지에 등록
+        setTimeout(() => {
+          registerPromptToManagement();
+        }, 1000);
       }
     } catch (error) {
       console.error('프롬프트 생성 실패:', error);
@@ -287,6 +360,11 @@ const PromptGeneratorPage: React.FC = () => {
             {selectedStory && (
               <div className="text-sm text-gray-600">
                 선택된 스토리: <span className="font-medium">{selectedStory.title}</span>
+                {project.scenario?.title && (
+                  <span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
+                    프로젝트 저장됨
+                  </span>
+                )}
               </div>
             )}
             
@@ -586,12 +664,68 @@ const PromptGeneratorPage: React.FC = () => {
           </div>
           
           <div className="p-6">
+            {/* 프로젝트 스토어에 시나리오 데이터가 있는 경우 표시 */}
+            {project.scenario?.title && (
+              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center space-x-2">
+                    <h3 className="font-semibold text-green-900">현재 프로젝트 시나리오</h3>
+                    <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
+                      저장됨
+                    </span>
+                  </div>
+                </div>
+                <div className="text-sm text-green-800 mb-3">
+                  <p className="font-medium">{project.scenario.title}</p>
+                  <p className="text-green-600 line-clamp-2">{project.scenario.story}</p>
+                </div>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => {
+                      const projectStory: Story = {
+                        id: project.id || `story-${Date.now()}`,
+                        title: project.scenario?.title || '',
+                        oneLineStory: project.scenario?.story || '',
+                        genre: project.scenario?.genre || '',
+                        tone: Array.isArray(project.scenario?.tone) ? project.scenario.tone.join(', ') : project.scenario?.tone || '',
+                        target: project.scenario?.target || '',
+                        createdAt: project.createdAt,
+                        updatedAt: project.updatedAt,
+                      };
+                      handleStorySelect(projectStory);
+                    }}
+                    className="px-3 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+                  >
+                    이 시나리오 사용
+                  </button>
+                  <button
+                    onClick={() => {
+                      const projectStory: Story = {
+                        id: project.id || `story-${Date.now()}`,
+                        title: project.scenario?.title || '',
+                        oneLineStory: project.scenario?.story || '',
+                        genre: project.scenario?.genre || '',
+                        tone: Array.isArray(project.scenario?.tone) ? project.scenario.tone.join(', ') : project.scenario?.tone || '',
+                        target: project.scenario?.target || '',
+                        createdAt: project.createdAt,
+                        updatedAt: project.updatedAt,
+                      };
+                      handleGenerateFromStory(projectStory);
+                    }}
+                    className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                  >
+                    바로 프롬프트 생성
+                  </button>
+                </div>
+              </div>
+            )}
+            
             {storiesLoading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto"></div>
                 <p className="mt-2 text-gray-600">스토리를 불러오는 중...</p>
               </div>
-            ) : stories.length === 0 ? (
+            ) : stories.length === 0 && !project.scenario?.title ? (
               <div className="text-center py-8">
                 <div className="text-gray-400 text-4xl mb-4">📝</div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">생성된 스토리가 없습니다</h3>

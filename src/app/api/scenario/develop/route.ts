@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAIServiceManager } from '@/lib/ai-client';
+import { createAIServiceManager } from '@/shared/lib/ai-client';
 
 export async function POST(request: NextRequest) {
   try {

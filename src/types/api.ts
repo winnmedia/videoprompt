@@ -340,6 +340,37 @@ export interface ApiRequestOptions {
   retries?: number;
 }
 
+// 12샷 분해 관련 타입
+export interface DevelopShotsRequest {
+  structure4: Array<{
+    title: string;
+    summary: string;
+  }>;
+  genre: string;
+  tone: string;
+}
+
+export interface Shot {
+  id: string;
+  title: string;
+  description: string;
+}
+
+export interface DevelopShotsResponse {
+  success: boolean;
+  data?: {
+    shots12: Shot[];
+    metadata: {
+      originalStructure: DevelopShotsRequest['structure4'];
+      genre: string;
+      tone: string;
+      generatedAt: string;
+      aiModel: string;
+    };
+  };
+  error?: string;
+}
+
 // 환경 설정 타입
 export interface EnvironmentConfig {
   NODE_ENV: string;

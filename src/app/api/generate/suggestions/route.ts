@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { extractSceneComponents } from '@/lib/ai-client';
+import { extractSceneComponents } from '@/shared/lib/ai-client';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { logger } from '@/shared/lib/logger';
 import { z } from 'zod';

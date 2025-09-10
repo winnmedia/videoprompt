@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { saveFileFromUrl } from '@/lib/utils/file-storage';
 import { createJob, updateJobStatus } from '@/shared/lib/job-store';
+import { logger } from '@/shared/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -18,21 +19,23 @@ export async function OPTIONS() {
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('🚀 Imagen Preview API 호출 시작');
-
     const body = await req.json();
     const { prompt, aspectRatio = '16:9', quality = 'standard' } = body;
 
+    // 요청 trace id 수집/생성 (Railway로 전달하여 상호 상관관계 확보)
+    const traceId = req.headers.get('x-trace-id') ||
+      (globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2));
+
+    logger.info('Imagen Preview API started', {
+      prompt: prompt?.substring(0, 100) + (prompt?.length > 100 ? '...' : ''),
+      aspectRatio,
+      quality
+    }, traceId);
+
     if (!prompt) {
+      logger.warn('Missing prompt in request', {}, traceId);
       return NextResponse.json({ error: '프롬프트가 필요합니다.' }, { status: 400 });
     }
-
-    console.log(`📝 프롬프트: ${prompt}`);
-    console.log(`🎨 비율: ${aspectRatio}, 품질: ${quality}`);
-
-    // 요청 trace id 수집/생성 (Railway로 전달하여 상호 상관관계 확보)
-    const incomingTraceId = req.headers.get('x-trace-id') ||
-      (globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2));
 
     // 작업 ID 생성
     const jobId = `img_${Date.now()}_${Math.random().toString(36).slice(2)}`;
@@ -44,10 +47,10 @@ export async function POST(req: NextRequest) {
     // 1) 환경변수 플래그, 2) 헤더 플래그(x-e2e-fast)
     const e2eFastHeader = (req.headers.get('x-e2e-fast') || '').toLowerCase();
     if (process.env.E2E_FAST_PREVIEW === '1' || e2eFastHeader === '1' || e2eFastHeader === 'true') {
-      console.log('E2E_FAST_PREVIEW 활성화: 외부 호출 없이 즉시 완료 처리');
+      logger.info('E2E fast preview mode activated', { jobId }, traceId);
       updateJobStatus(jobId, 'completed', 100, buildFallbackImageDataUrl(prompt));
       return NextResponse.json(
-        { ok: true, jobId, status: 'completed', imageUrl: buildFallbackImageDataUrl(prompt), traceId: incomingTraceId },
+        { ok: true, jobId, status: 'completed', imageUrl: buildFallbackImageDataUrl(prompt), traceId },
         { status: 200, headers: corsHeaders },
       );
     }
@@ -59,14 +62,17 @@ export async function POST(req: NextRequest) {
     );
 
     // 백그라운드에서 이미지 생성 처리 (Promise를 기다리지 않음)
-    processImageGeneration(jobId, prompt, aspectRatio, quality, incomingTraceId).catch(error => {
-      console.error('Background image generation failed:', error);
+    processImageGeneration(jobId, prompt, aspectRatio, quality, traceId).catch(error => {
+      logger.error('Background image generation failed', { error: error.message, jobId }, traceId);
       updateJobStatus(jobId, 'failed', 0, undefined, error.message);
     });
 
     return response;
   } catch (error) {
-    console.error('Imagen preview error:', error);
+    const traceId = req.headers.get('x-trace-id') || 'unknown';
+    logger.error('Imagen preview API error', { 
+      error: error instanceof Error ? error.message : String(error) 
+    }, traceId);
     // 최상위 예외에서도 빈 이미지 금지 → SVG 폴백 제공
     return NextResponse.json(
       { ok: true, provider: 'fallback-svg', imageUrl: buildFallbackImageDataUrl('Storyboard preview') },

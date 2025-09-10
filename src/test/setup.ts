@@ -1,4 +1,6 @@
-import { vi, afterEach } from 'vitest';
+import { vi, afterEach, beforeAll, afterAll } from 'vitest';
+import { setupServer } from 'msw/node';
+import { handlers } from '@/shared/lib/mocks/handlers';
 
 // Mock global objects
 (global as any).ResizeObserver = vi.fn().mockImplementation(() => ({
@@ -28,8 +30,24 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-// Mock fetch globally (only for unit tests, not integration tests)
-// Integration tests need real fetch for actual HTTP requests
+// MSW 서버 설정
+const server = setupServer(...handlers);
+
+// MSW 서버 시작 - 통합 테스트에서는 실제 HTTP 요청을 MSW로 인터셉트
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: 'error' });
+});
+
+afterEach(() => {
+  server.resetHandlers();
+});
+
+afterAll(() => {
+  server.close();
+});
+
+// Mock fetch globally (only for pure unit tests, not integration tests)
+// Integration tests use MSW to intercept actual HTTP requests
 if (!process.env.INTEGRATION_TEST) {
   (global as any).fetch = vi.fn();
 }
