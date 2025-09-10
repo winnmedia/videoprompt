@@ -37,8 +37,7 @@
     },
     "src/app/api/upload/**/*.ts": {
       "maxDuration": 60,
-      "memory": 1024,
-      "maxRequestBodySize": "600mb"
+      "memory": 1024
     }
   },
   "headers": [
