@@ -114,25 +114,55 @@ export async function POST(req: NextRequest) {
 
     // 2단계: 이메일 전송 (비동기, 실패해도 회원가입은 완료)
     let emailSent = false;
+    let emailError: string | null = null;
+    
     try {
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
                      process.env.NEXT_PUBLIC_API_URL || 
-                     'http://localhost:3000';
+                     'https://www.vridge.kr';
       const verificationLink = `${baseUrl}/verify-email/${verificationData.token}`;
       
-      console.log(`[Register ${traceId}] Sending verification email to ${email}`);
+      console.log(`[Register ${traceId}] 🚀 인증 이메일 전송 시작 - 받는 사람: ${email}`);
+      console.log(`[Register ${traceId}] 📧 인증 링크: ${verificationLink}`);
+      console.log(`[Register ${traceId}] 🔢 인증 코드: ${verificationData.code}`);
       
-      await sendVerificationEmail(
+      // 이메일 전송에 타임아웃 설정 (15초)
+      const emailPromise = sendVerificationEmail(
         email,
         username,
         verificationLink,
         verificationData.code
       );
       
-      console.log(`[Register ${traceId}] Verification email sent successfully`);
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Email timeout after 15 seconds')), 15000);
+      });
+      
+      await Promise.race([emailPromise, timeoutPromise]);
+      
+      console.log(`[Register ${traceId}] ✅ 인증 이메일 전송 성공`);
       emailSent = true;
-    } catch (emailError) {
-      console.error(`[Register ${traceId}] Failed to send verification email:`, emailError);
+      
+    } catch (emailErrorCaught: any) {
+      console.error(`[Register ${traceId}] ❌ 인증 이메일 전송 실패:`, {
+        message: emailErrorCaught.message,
+        code: emailErrorCaught.code,
+        details: emailErrorCaught.details || emailErrorCaught.toString(),
+      });
+      
+      // 구체적인 오류 메시지 생성
+      if (emailErrorCaught.code === 'INVALID_API_KEY') {
+        emailError = 'SendGrid API 키가 유효하지 않습니다.';
+      } else if (emailErrorCaught.code === 'INVALID_SENDER') {
+        emailError = '발신자 이메일이 인증되지 않았습니다.';
+      } else if (emailErrorCaught.message?.includes('timeout')) {
+        emailError = '이메일 전송 시간이 초과되었습니다.';
+      } else if (emailErrorCaught.code === 'NETWORK_ERROR') {
+        emailError = '네트워크 오류로 이메일 전송에 실패했습니다.';
+      } else {
+        emailError = '이메일 서비스 오류로 전송에 실패했습니다.';
+      }
+      
       // 이메일 전송 실패해도 사용자 등록은 성공으로 간주
     }
 

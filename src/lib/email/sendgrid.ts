@@ -19,8 +19,8 @@ import { EmailServiceConfigSchema, type EmailServiceConfig } from './contracts/e
  */
 const DEFAULT_CONFIG: Partial<EmailServiceConfig> = {
   defaultFrom: {
-    email: 'service@vlanet.net',
-    name: 'VideoPlanet Service',
+    email: process.env.DEFAULT_FROM_EMAIL || 'vridgeofficial@vlanet.net',
+    name: 'VLANET',
   },
   sandboxMode: process.env.NODE_ENV !== 'production',
   maxRetries: 3,
@@ -91,11 +91,12 @@ class SendGridClient {
     try {
       // 개발 환경에서는 더 유연하게 처리
       if (process.env.NODE_ENV === 'development' && !process.env.SENDGRID_API_KEY) {
-        console.warn('[SendGrid] Running in development without SendGrid API key. Email sending will be simulated.');
+        console.warn('[SendGrid] 🚧 개발 환경: SendGrid API 키가 없습니다. 이메일 전송이 시뮬레이션됩니다.');
+        console.info('[SendGrid] 📧 실제 이메일을 보내려면 .env.local에 SENDGRID_API_KEY를 설정하세요.');
         return {
           SENDGRID_API_KEY: 'development-placeholder-key',
-          SENDGRID_FROM_EMAIL: process.env.DEFAULT_FROM_EMAIL || 'dev@example.com',
-          SENDGRID_FROM_NAME: 'Development',
+          SENDGRID_FROM_EMAIL: process.env.DEFAULT_FROM_EMAIL || 'dev@vlanet.net',
+          SENDGRID_FROM_NAME: 'VLANET Development',
           SENDGRID_SANDBOX_MODE: 'true' as const,
           NODE_ENV: 'development' as const,
         };
