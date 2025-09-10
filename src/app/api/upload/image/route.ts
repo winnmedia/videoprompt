@@ -118,8 +118,6 @@ export async function POST(request: NextRequest) {
         },
         { status: 500 }
       );
-        warning: '파일이 임시 위치에 저장되었습니다.',
-      });
     }
 
   } catch (error) {
