@@ -90,14 +90,8 @@ export async function POST(request: NextRequest) {
 
     // Google Gemini API 키 확인 및 유효성 검증
     const geminiApiKey = process.env.GOOGLE_GEMINI_API_KEY;
-    console.log('[LLM] ========== 스토리 생성 시작 ==========');
-    console.log(`[LLM] API 키 상태: ${geminiApiKey ? `존재 (길이: ${geminiApiKey.length})` : '없음'}`);
-    console.log(`[LLM] 요청 파라미터:`);
-    console.log(`  - story: "${story?.substring(0, 100)}..."`);
-    console.log(`  - genre: "${genre}"`);
-    console.log(`  - tone: "${tone}"`);
-    console.log(`  - developmentMethod: "${developmentMethod}"`);
-    console.log(`  - developmentIntensity: "${developmentIntensity}"`);
+    // 스토리 생성 시작
+    // API 키 상태 확인 및 파라미터 검증
 
     // API 키 유효성 검증
     const isValidApiKey = geminiApiKey && 
@@ -133,7 +127,7 @@ export async function POST(request: NextRequest) {
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       if (attempt > 0) {
         const delay = exponentialBackoff(attempt - 1);
-        console.log(`[LLM] 재시도 ${attempt + 1}/${MAX_RETRIES} - ${delay}ms 대기 중...`);
+        // 재시도 대기
         await sleep(delay);
       }
       
@@ -558,7 +552,7 @@ ${(() => {
                         updatedAt: new Date()
                       }
                     });
-                    console.log(`[LLM] ✅ 기존 프로젝트 업데이트: ${projectId}`);
+                    // 기존 프로젝트 업데이트
                   } else {
                     // Create new project
                     savedProject = await prisma.project.create({
@@ -571,7 +565,7 @@ ${(() => {
                         tags: JSON.stringify([genre, tone, target])
                       }
                     });
-                    console.log(`[LLM] ✅ 새 프로젝트 생성: ${savedProject.id}`);
+                    // 새 프로젝트 생성
                   }
                 } else {
                   console.log('[LLM] ⚠️ 미인증 사용자 - 프로젝트 저장 건너뜀');

@@ -117,20 +117,20 @@ export async function POST(req: NextRequest) {
                   );
 
                   if (saveResult.success) {
-                    console.log('DEBUG: 영상 파일 저장 성공:', saveResult.fileInfo);
+                    // 영상 파일 저장 성공
                   } else {
-                    console.error('DEBUG: 영상 파일 저장 실패:', saveResult.error);
+                    // 영상 파일 저장 실패
                   }
                 } else {
-                  console.log('DEBUG: 영상 URL이 아직 준비되지 않음, 나중에 재시도');
+                  // 영상 URL이 아직 준비되지 않음
                 }
               }
             } catch (error) {
-              console.error('DEBUG: 파일 저장 중 오류:', error);
+              // 파일 저장 중 오류
             }
           }, 1000); // 1초 후 시작
         } catch (error) {
-          console.error('DEBUG: 파일 저장 작업 시작 실패:', error);
+          // 파일 저장 작업 시작 실패
           // 파일 저장 실패는 사용자 응답에 영향을 주지 않음
         }
       }
