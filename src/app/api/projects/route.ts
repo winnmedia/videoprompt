@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getUser } from '@/lib/auth';
+import { getUser } from '@/shared/lib/auth';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { z } from 'zod';
 
@@ -79,9 +79,9 @@ export async function POST(req: NextRequest) {
         title: validatedData.title,
         description: validatedData.description,
         userId: user.id,
-        scenario: validatedData.scenario ? JSON.stringify(validatedData.scenario) : null,
-        prompt: validatedData.prompt ? JSON.stringify(validatedData.prompt) : null,
-        video: validatedData.video ? JSON.stringify(validatedData.video) : null,
+        scenario: validatedData.scenario ?? undefined,
+        prompt: validatedData.prompt ?? undefined,
+        video: validatedData.video ?? undefined,
         status: 'draft',
       },
       select: {
@@ -99,13 +99,8 @@ export async function POST(req: NextRequest) {
 
     console.log(`[Projects ${traceId}] ✅ 프로젝트 생성 완료: ${project.id}`);
 
-    // Parse JSON fields for response
-    const response = {
-      ...project,
-      scenario: project.scenario ? JSON.parse(project.scenario) : null,
-      prompt: project.prompt ? JSON.parse(project.prompt) : null,
-      video: project.video ? JSON.parse(project.video) : null,
-    };
+    // Prisma automatically handles JSON fields
+    const response = project;
 
     return success(response, 201, traceId);
 
@@ -113,7 +108,7 @@ export async function POST(req: NextRequest) {
     console.error(`[Projects ${traceId}] ❌ 프로젝트 생성 실패:`, error);
 
     if (error instanceof z.ZodError) {
-      return failure('VALIDATION_ERROR', '입력 데이터가 올바르지 않습니다.', 400, { errors: error.issues }, traceId);
+      return failure('VALIDATION_ERROR', '입력 데이터가 올바르지 않습니다.', 400, JSON.stringify({ errors: error.issues }), traceId);
     }
 
     return failure('INTERNAL_ERROR', '프로젝트 생성 중 오류가 발생했습니다.', 500, undefined, traceId);
@@ -168,9 +163,9 @@ export async function GET(req: NextRequest) {
     const response = {
       projects: projects.map(project => ({
         ...project,
-        scenario: project.scenario ? JSON.parse(project.scenario) : null,
-        prompt: project.prompt ? JSON.parse(project.prompt) : null,
-        video: project.video ? JSON.parse(project.video) : null,
+        scenario: project.scenario,
+        prompt: project.prompt,
+        video: project.video,
       })),
       pagination: {
         page,

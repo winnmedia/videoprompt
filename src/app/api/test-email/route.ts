@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
         'EMAIL_CONFIG_ERROR',
         'SendGrid 설정을 불러올 수 없습니다.',
         500,
-        { error: String(configError) },
+        JSON.stringify({ error: String(configError) }),
         traceId
       );
     }
@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
         'EMAIL_SEND_ERROR',
         '테스트 이메일 전송에 실패했습니다.',
         500,
-        {
+        JSON.stringify({
           error: emailError.message,
           code: emailError.code,
           details: emailError.details,
@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
             sandboxMode: config?.sandboxMode,
             usingPlaceholder: config?.apiKey === 'development-placeholder-key',
           },
-        },
+        }),
         traceId
       );
     }
@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
         'INVALID_REQUEST',
         '잘못된 요청 형식입니다.',
         400,
-        { errors: error.issues },
+        JSON.stringify({ errors: error.issues }),
         traceId
       );
     }
@@ -159,7 +159,7 @@ export async function POST(req: NextRequest) {
       'UNKNOWN_ERROR',
       '예상치 못한 오류가 발생했습니다.',
       500,
-      { error: String(error) },
+      JSON.stringify({ error: String(error) }),
       traceId
     );
   }
@@ -187,7 +187,7 @@ export async function GET(req: NextRequest) {
       'EMAIL_STATUS_ERROR',
       '이메일 서비스 상태를 확인할 수 없습니다.',
       500,
-      { error: String(error) },
+      JSON.stringify({ error: String(error) }),
       traceId
     );
   }

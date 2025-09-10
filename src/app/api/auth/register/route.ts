@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     // 중복 사용자 확인 및 사용자 생성을 데이터베이스 작업으로 래핑
 
     // 1단계: 데이터베이스 작업 (트랜잭션 내에서 수행)
-    const { user, verificationData } = await executeDatabaseOperation(async () => {
+    const { user } = await executeDatabaseOperation(async () => {
       // 중복 사용자 확인
       const existing = await prisma.user.findFirst({
         where: { OR: [{ email }, { username }] },

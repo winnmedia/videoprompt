@@ -88,6 +88,12 @@ export default function ScenarioPage() {
   const [storySteps, setStorySteps] = useState<StoryStep[]>([]);
   const [shots, setShots] = useState<Shot[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  // 사용자 입력 상태 추가
+  const [customTone, setCustomTone] = useState('');
+  const [customGenre, setCustomGenre] = useState('');
+  const [showCustomToneInput, setShowCustomToneInput] = useState(false);
+  const [showCustomGenreInput, setShowCustomGenreInput] = useState(false);
 
   // 자동 저장을 위한 데이터 통합
   const autoSaveData = useMemo(() => ({
@@ -165,32 +171,42 @@ export default function ScenarioPage() {
 
   // 검색 및 필터링 상태
 
-  // 톤앤매너 옵션
+  // 톤앤매너 옵션 (분위기와 감정적 특성)
   const toneOptions = [
-    '드라마틱',
-    '코믹',
-    '로맨틱',
-    '미스터리',
-    '액션',
     '감성적',
-    '유머러스',
+    '유머러스', 
     '진지한',
-    '판타지',
-    '현실적',
+    '밝고 경쾌한',
+    '어둡고 무거운',
+    '따뜻하고 희망적',
+    '쿨하고 세련된',
+    '긴장감 넘치는',
+    '몽환적인',
+    '현실적인',
+    '극적인',
+    '서정적인'
   ];
 
-  // 장르 옵션
+  // 장르 옵션 (스토리 유형과 설정)
   const genreOptions = [
-    '액션-스릴러',
-    '로맨틱-코미디',
     '드라마',
+    '코미디',
+    '액션',
+    '스릴러',
+    '로맨스',
     '판타지',
     'SF',
     '호러',
+    '미스터리',
     '다큐멘터리',
     '애니메이션',
     '뮤지컬',
     '웨스턴',
+    '범죄',
+    '전쟁',
+    '가족',
+    '청춘',
+    '역사'
   ];
 
   // 포맷 옵션
@@ -238,6 +254,31 @@ export default function ScenarioPage() {
       if (field === 'duration') patch.durationSec = parseInt(value, 10) || undefined;
       if (Object.keys(patch).length) project.setScenario(patch);
     } catch {}
+  };
+
+  // 커스텀 톤앤매너 추가 처리
+  const handleCustomToneAdd = () => {
+    if (customTone.trim() && !storyInput.toneAndManner.includes(customTone.trim())) {
+      const newTones = [...storyInput.toneAndManner, customTone.trim()];
+      handleStoryInputChange('toneAndManner', newTones);
+      setCustomTone('');
+      setShowCustomToneInput(false);
+    }
+  };
+
+  // 커스텀 장르 설정 처리
+  const handleCustomGenreSet = () => {
+    if (customGenre.trim()) {
+      handleStoryInputChange('genre', customGenre.trim());
+      setCustomGenre('');
+      setShowCustomGenreInput(false);
+    }
+  };
+
+  // 톤앤매너 제거 처리
+  const handleToneRemove = (toneToRemove: string) => {
+    const newTones = storyInput.toneAndManner.filter(tone => tone !== toneToRemove);
+    handleStoryInputChange('toneAndManner', newTones);
   };
 
   // 2단계: 4단계 스토리 생성
@@ -548,7 +589,7 @@ export default function ScenarioPage() {
         '와이드': 'wide',
         '미디엄': 'medium',
         '클로즈업': 'close-up',
-        '오버숙c더': 'over-shoulder',
+        '오버숄더': 'over-shoulder',
         '투샷': 'two-shot',
         '인서트': 'insert',
         '디테일': 'detail',
@@ -565,23 +606,77 @@ export default function ScenarioPage() {
         additionalDetails: ''
       });
 
-      const response = await fetch('/api/imagen/preview', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt,
-          aspectRatio: '16:9',
-          quality: 'standard'
-        })
-      });
+      // 재시도 로직 구현
+      const MAX_RETRIES = 3;
+      const RETRY_DELAYS = [1000, 2000, 4000]; // 1초, 2초, 4초
+      let lastError: Error | null = null;
+      let data: any = null;
+      
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        try {
+          console.log(`이미지 생성 시도 ${attempt + 1}/${MAX_RETRIES} for shot ${shotId}`);
+          
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 180000); // 3분 타임아웃
+          
+          const response = await fetch('/api/imagen/preview', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              prompt,
+              aspectRatio: '16:9',
+              quality: 'standard'
+            }),
+            signal: controller.signal
+          });
 
-      if (!response.ok) {
-        throw new Error(`Image generation failed: ${response.status}`);
+          clearTimeout(timeoutId);
+
+          // 재시도 가능한 오류 확인 (5xx 서버 오류, 408 타임아웃, 429 Rate Limit, 503, 504)
+          if (!response.ok) {
+            const isRetryable = response.status >= 500 || 
+                              response.status === 408 || 
+                              response.status === 429 ||
+                              response.status === 503 ||
+                              response.status === 504;
+                              
+            if (!isRetryable || attempt === MAX_RETRIES - 1) {
+              throw new Error(`Image generation failed: ${response.status} ${response.statusText}`);
+            }
+            
+            // 재시도 가능한 오류인 경우 다음 시도를 위해 대기
+            console.log(`재시도 가능한 오류 (${response.status}). ${RETRY_DELAYS[attempt]}ms 후 재시도...`);
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]));
+            continue;
+          }
+
+          data = await response.json();
+          break; // 성공 시 루프 탈출
+          
+        } catch (fetchError: any) {
+          lastError = fetchError;
+          console.error(`이미지 생성 시도 ${attempt + 1} 실패:`, fetchError.message);
+          
+          // AbortController로 인한 타임아웃인지 확인
+          const isTimeout = fetchError.name === 'AbortError' || fetchError.message.includes('timeout');
+          const isNetworkError = fetchError.message.includes('fetch') || fetchError.message.includes('network');
+          
+          // 재시도 가능한 오류가 아니거나 마지막 시도인 경우
+          if ((!isTimeout && !isNetworkError && !fetchError.message.includes('5')) || attempt === MAX_RETRIES - 1) {
+            throw fetchError;
+          }
+          
+          // 재시도 가능한 경우 지연 후 계속
+          console.log(`네트워크/타임아웃 오류. ${RETRY_DELAYS[attempt]}ms 후 재시도...`);
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]));
+        }
       }
-
-      const data = await response.json();
+      
+      if (!data) {
+        throw lastError || new Error('All retry attempts failed');
+      }
       
       if (data.ok && data.imageUrl) {
         // 스토리보드 샷 업데이트
@@ -598,20 +693,38 @@ export default function ScenarioPage() {
             : s
         ));
         
-        const shot = storyboardShots.find(s => s.id === shotId);
-        toast.success(`"${shot?.title || '이미지'}" 콘티 이미지가 생성되었습니다.`, '이미지 생성 완료');
+        const shotInfo = storyboardShots.find(s => s.id === shotId);
+        const successMessage = `"${shotInfo?.title || '이미지'}" 콘티 이미지가 생성되었습니다.`;
+        toast.success(successMessage, '이미지 생성 완료');
       } else {
         throw new Error('No image URL received');
       }
-    } catch (error) {
-      console.error('Image generation error:', error);
+    } catch (error: any) {
+      console.error('이미지 생성 최종 실패:', error);
       const shot = storyboardShots.find(s => s.id === shotId);
-      toast.error(`"${shot?.title || '이미지'}" 콘티 이미지 생성에 실패했습니다.`, '이미지 생성 실패');
       
+      let errorMessage = `"${shot?.title || '이미지'}" 콘티 이미지 생성에 실패했습니다.`;
+      if (error.name === 'AbortError') {
+        errorMessage += ' (타임아웃)';
+      } else if (error.message.includes('fetch') || error.message.includes('network')) {
+        errorMessage += ' (네트워크 오류)';
+      }
+      
+      toast.error(errorMessage, '이미지 생성 실패');
+      
+      // 실패 시 더 자세한 플레이스홀더 생성
+      const errorType = error.name === 'AbortError' ? 'Timeout' : 
+                       error.message.includes('5') ? 'Server Error' : 
+                       'Generation Failed';
+                       
       const errorPlaceholder = `data:image/svg+xml;base64,${btoa(`
-        <svg xmlns="http://www.w3.org/2000/svg" width="160" height="90">
-          <rect width="100%" height="100%" fill="#f0f0f0"/>
-          <text x="80" y="45" text-anchor="middle" fill="#666">Generation Failed</text>
+        <svg xmlns="http://www.w3.org/2000/svg" width="320" height="180">
+          <rect width="100%" height="100%" fill="#fee2e2"/>
+          <rect x="10" y="10" width="300" height="160" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="5,5"/>
+          <text x="160" y="60" text-anchor="middle" fill="#dc2626" font-size="16" font-weight="bold">${errorType}</text>
+          <text x="160" y="85" text-anchor="middle" fill="#991b1b" font-size="12">Shot: ${shot?.title || 'Unknown'}</text>
+          <text x="160" y="105" text-anchor="middle" fill="#7f1d1d" font-size="10">Click to retry</text>
+          <text x="160" y="150" text-anchor="middle" fill="#a3a3a3" font-size="8">${new Date().toISOString().slice(11, 19)}</text>
         </svg>
       `)}`;
       
@@ -915,24 +1028,149 @@ export default function ScenarioPage() {
                         <span className="text-sm text-gray-900">{tone}</span>
                       </label>
                     ))}
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomToneInput(true)}
+                      className="flex cursor-pointer items-center space-x-2 text-brand-600 hover:text-brand-700"
+                    >
+                      <div className="h-4 w-4 rounded border-2 border-brand-600 flex items-center justify-center">
+                        <span className="text-xs">+</span>
+                      </div>
+                      <span className="text-sm">기타 추가</span>
+                    </button>
                   </div>
+                  
+                  {/* 선택된 톤앤매너 태그 표시 */}
+                  {storyInput.toneAndManner.length > 0 && (
+                    <div className="mt-3">
+                      <div className="flex flex-wrap gap-2">
+                        {storyInput.toneAndManner.map((tone) => (
+                          <span 
+                            key={tone}
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-800"
+                          >
+                            {tone}
+                            <button
+                              type="button"
+                              onClick={() => handleToneRemove(tone)}
+                              className="ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full text-brand-400 hover:bg-brand-200 hover:text-brand-500 focus:bg-brand-500 focus:text-white focus:outline-none"
+                            >
+                              <span className="sr-only">Remove {tone}</span>
+                              <span aria-hidden="true">×</span>
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* 커스텀 톤앤매너 입력 */}
+                  {showCustomToneInput && (
+                    <div className="mt-3 flex gap-2">
+                      <input
+                        type="text"
+                        value={customTone}
+                        onChange={(e) => setCustomTone(e.target.value)}
+                        placeholder="새로운 톤앤매너를 입력하세요"
+                        className="flex-1 rounded-lg border-2 border-brand-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            handleCustomToneAdd();
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCustomToneAdd}
+                        className="px-3 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                      >
+                        추가
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCustomToneInput(false);
+                          setCustomTone('');
+                        }}
+                        className="px-3 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-200"
+                      >
+                        취소
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <label className="mb-2 block text-sm font-medium text-gray-900">장르</label>
-                    <select
-                      value={storyInput.genre}
-                      onChange={(e) => handleStoryInputChange('genre', e.target.value)}
-                      className="w-full rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                    >
-                      <option value="">장르를 선택하세요</option>
-                      {genreOptions.map((genre) => (
-                        <option key={genre} value={genre}>
-                          {genre}
-                        </option>
-                      ))}
-                    </select>
+                    {showCustomGenreInput ? (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={customGenre}
+                          onChange={(e) => setCustomGenre(e.target.value)}
+                          placeholder="새로운 장르를 입력하세요"
+                          className="flex-1 rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              handleCustomGenreSet();
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleCustomGenreSet}
+                          className="px-4 py-3 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                        >
+                          추가
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowCustomGenreInput(false);
+                            setCustomGenre('');
+                          }}
+                          className="px-4 py-3 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-200"
+                        >
+                          취소
+                        </button>
+                      </div>
+                    ) : (
+                      <select
+                        value={storyInput.genre === customGenre ? '기타' : storyInput.genre}
+                        onChange={(e) => {
+                          if (e.target.value === '기타') {
+                            setShowCustomGenreInput(true);
+                          } else {
+                            handleStoryInputChange('genre', e.target.value);
+                          }
+                        }}
+                        className="w-full rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                      >
+                        <option value="">장르를 선택하세요</option>
+                        {genreOptions.map((genre) => (
+                          <option key={genre} value={genre}>
+                            {genre}
+                          </option>
+                        ))}
+                        <option value="기타">기타 (직접 입력)</option>
+                      </select>
+                    )}
+                    {storyInput.genre && !genreOptions.includes(storyInput.genre) && (
+                      <div className="mt-2">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-800">
+                          커스텀: {storyInput.genre}
+                          <button
+                            type="button"
+                            onClick={() => handleStoryInputChange('genre', '')}
+                            className="ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full text-brand-400 hover:bg-brand-200 hover:text-brand-500 focus:bg-brand-500 focus:text-white focus:outline-none"
+                          >
+                            <span className="sr-only">Remove custom genre</span>
+                            <span aria-hidden="true">×</span>
+                          </button>
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <div>

@@ -17,6 +17,7 @@ type ProjectActions = {
   setScenario: (partial: Partial<ScenarioData>) => void;
   setPrompt: (partial: Partial<PromptData>) => void;
   setVideo: (partial: Partial<VideoData>) => void;
+  updateVideo: (partial: Partial<VideoData>) => void; // Alias for setVideo
   addVersion: (version: VersionMeta) => void;
   setScenarioId: (id: string) => void;
   setPromptId: (id: string) => void;
@@ -62,6 +63,12 @@ export const useProjectStore = create<ProjectStore>()(
         })),
 
       setVideo: (partial) =>
+        set((state) => ({
+          video: { ...state.video, ...partial },
+          updatedAt: nowIso(),
+        })),
+
+      updateVideo: (partial) =>
         set((state) => ({
           video: { ...state.video, ...partial },
           updatedAt: nowIso(),

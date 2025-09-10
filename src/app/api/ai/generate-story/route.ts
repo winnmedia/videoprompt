@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getUser } from '@/lib/auth';
+import { getUser } from '@/shared/lib/auth';
 
 // Exponential backoff 유틸리티
 function exponentialBackoff(attempt: number): number {
@@ -539,7 +539,7 @@ ${(() => {
                         userId: user.id // Ensure user owns the project
                       },
                       data: {
-                        scenario: JSON.stringify(scenarioData),
+                        scenario: scenarioData,
                         status: 'processing',
                         updatedAt: new Date()
                       }
@@ -552,7 +552,7 @@ ${(() => {
                         title: projectTitle || `${genre} 스토리: ${parsedResponse.structure.act1.title}`,
                         description: `AI 생성 스토리 - ${tone} 톤앤매너`,
                         userId: user.id,
-                        scenario: JSON.stringify(scenarioData),
+                        scenario: scenarioData,
                         status: 'draft',
                         tags: JSON.stringify([genre, tone, target])
                       }
