@@ -213,7 +213,7 @@ export default function SceneWizardPage() {
         const arr = JSON.parse(raw) as any[];
         setRecentPrompts(arr);
         const pins: Record<string, boolean> = {};
-        arr.forEach((r: any) => {
+        arr.forEach((r: { id?: string; pinned?: boolean; [key: string]: unknown }) => {
           if (r.pinned) pins[r.id] = true;
         });
         setRecentPinnedIds(pins);
@@ -523,7 +523,7 @@ export default function SceneWizardPage() {
             try {
               await navigator.clipboard.writeText(english);
             } catch {}
-            const payload: any = {
+            const payload: Record<string, unknown> = {
               prompt: english,
               aspect_ratio: scene.metadata?.aspect_ratio || selectedAspectRatio,
               duration_seconds: selectedDuration,
@@ -596,7 +596,7 @@ export default function SceneWizardPage() {
       try {
         await navigator.clipboard.writeText(english);
       } catch {}
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         prompt: english,
         aspect_ratio: selectedAspectRatio,
         duration_seconds: selectedDuration,
@@ -879,7 +879,7 @@ export default function SceneWizardPage() {
 
       // 이미지 URL 유효성 검사
       const validImages = json.images.filter(
-        (img: any) => img && typeof img === 'string' && img.trim() !== '',
+        (img: unknown) => img && typeof img === 'string' && img.trim() !== '',
       );
       if (validImages.length === 0) {
         throw new Error('유효한 이미지 URL이 없습니다');
@@ -2447,7 +2447,7 @@ export default function SceneWizardPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          const next = recentPrompts.filter((r: any) => !r.pinned);
+                          const next = recentPrompts.filter((r: { pinned?: boolean }) => !r.pinned);
                           setRecentPrompts(next);
                           localStorage.setItem('vp:recentPrompts', JSON.stringify(next));
                         }}
