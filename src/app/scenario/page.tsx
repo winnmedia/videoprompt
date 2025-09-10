@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { extractSceneComponents } from '@/shared/lib';
-import { Button } from '@/shared/ui';
+import { Button, ErrorBoundary } from '@/shared/ui';
 import { useProjectStore } from '@/entities/project';
 import { Icon } from '@/shared/ui';
 import { Logo } from '@/shared/ui';
@@ -358,7 +358,9 @@ export default function ScenarioPage() {
         toast.error(result.error || '등록에 실패했습니다.', '등록 실패');
       }
     } catch (error) {
-      console.error('Registration error:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Registration error:', error);
+      }
       setRegistrationStatus({ 
         isRegistering: false, 
         result: {
@@ -534,7 +536,9 @@ export default function ScenarioPage() {
         };
         
         await generatePlanningPDFWithProgress(pdfData, (progress) => {
-          console.log(`PDF 생성 진행률: ${progress}%`);
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`PDF 생성 진행률: ${progress}%`);
+          }
         });
         
         toast.success('PDF 기획안이 성공적으로 다운로드되었습니다.', 'PDF 다운로드 완료');
@@ -566,7 +570,9 @@ export default function ScenarioPage() {
         }
       }
     } catch (e) {
-      console.error('기획안 다운로드 실패:', e);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('기획안 다운로드 실패:', e);
+      }
       toast.error('기획안 다운로드에 실패했습니다.', '다운로드 실패');
     }
   };
@@ -624,7 +630,9 @@ export default function ScenarioPage() {
       
       for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
         try {
-          console.log(`이미지 생성 시도 ${attempt + 1}/${MAX_RETRIES} for shot ${shotId}`);
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`이미지 생성 시도 ${attempt + 1}/${MAX_RETRIES} for shot ${shotId}`);
+          }
           
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 60000); // 1분 타임아웃으로 단축
@@ -663,7 +671,9 @@ export default function ScenarioPage() {
             
             // 재시도 가능한 오류인 경우 다음 시도를 위해 지수 백오프로 대기
             const delay = calculateDelay(attempt);
-            console.log(`재시도 가능한 오류 (${response.status}). ${delay}ms 후 재시도...`);
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`재시도 가능한 오류 (${response.status}). ${delay}ms 후 재시도...`);
+            }
             
             let retryTimeoutId: NodeJS.Timeout | null = null;
             try {
@@ -682,7 +692,9 @@ export default function ScenarioPage() {
         } catch (fetchError: unknown) {
           const error = fetchError as Error;
           lastError = error;
-          console.error(`이미지 생성 시도 ${attempt + 1} 실패:`, error.message || fetchError);
+          if (process.env.NODE_ENV === 'development') {
+            console.error(`이미지 생성 시도 ${attempt + 1} 실패:`, error.message || fetchError);
+          }
           
           // AbortController로 인한 타임아웃인지 확인
           const isTimeout = error.name === 'AbortError' || (error.message && error.message.includes('timeout'));
@@ -695,7 +707,9 @@ export default function ScenarioPage() {
           
           // 재시도 가능한 경우 지수 백오프로 지연 후 계속
           const delay = calculateDelay(attempt);
-          console.log(`네트워크/타임아웃 오류. ${delay}ms 후 재시도...`);
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`네트워크/타임아웃 오류. ${delay}ms 후 재시도...`);
+          }
           
           let errorTimeoutId: NodeJS.Timeout | null = null;
           try {
@@ -756,7 +770,9 @@ export default function ScenarioPage() {
       }
     } catch (error: unknown) {
       const err = error as Error;
-      console.error('이미지 생성 최종 실패:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('이미지 생성 최종 실패:', err);
+      }
       const shot = storyboardShots.find(s => s.id === shotId);
       
       let errorMessage = `"${shot?.title || '이미지'}" 콘티 이미지 생성에 실패했습니다.`;
@@ -834,7 +850,9 @@ export default function ScenarioPage() {
         additionalDetails: shot.composition
       });
 
-      console.log('Generating image with prompt:', prompt);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Generating image with prompt:', prompt);
+      }
 
       // Call the real API
       const response = await fetch('/api/imagen/preview', {
@@ -879,7 +897,9 @@ export default function ScenarioPage() {
         );
       }
     } catch (error) {
-      console.error('Image generation error:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Image generation error:', error);
+      }
       // Fallback to a placeholder with error message
       const errorPlaceholder = createErrorPlaceholder('Generation Failed');
       
@@ -934,7 +954,9 @@ export default function ScenarioPage() {
         throw new Error('올바르지 않은 응답 형식');
       }
     } catch (error) {
-      console.error('인서트 샷 생성 실패:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('인서트 샷 생성 실패:', error);
+      }
       toast.error(
         error instanceof Error ? error.message : '인서트 샷 생성 중 오류가 발생했습니다.',
         '인서트 생성 실패'
@@ -976,7 +998,8 @@ export default function ScenarioPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-50">
       {/* 임시저장 상태바 */}
       <div className="bg-white border-b">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -1895,5 +1918,6 @@ export default function ScenarioPage() {
         )}
       </main>
     </div>
+    </ErrorBoundary>
   );
 }

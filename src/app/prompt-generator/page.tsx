@@ -7,6 +7,7 @@ import {
   DynamicTimeline,
   LLMAssistant,
 } from '@/features/prompt-generator';
+import { ErrorBoundary } from '@/shared/ui';
 import { type PromptGenerationState, type VideoPrompt } from '@/types/video-prompt';
 import { type PromptGenerationStateV31 } from '@/types/video-prompt-v3.1';
 import { generateId } from '@/shared/lib/utils';
@@ -373,7 +374,15 @@ const PromptGeneratorPage: React.FC = () => {
               variant="toggle"
               size="sm"
               active={v31Mode}
-              onClick={() => setV31Mode(!v31Mode)}
+              onClick={() => {
+                const newMode = !v31Mode;
+                setV31Mode(newMode);
+                
+                // 모드 전환 시 현재 단계 초기화
+                if (newMode && currentStep > 2) {
+                  setCurrentStep(1);
+                }
+              }}
               title={v31Mode ? 'CineGenius v3.1 모드 (Veo 3 최적화)' : '레거시 v2 모드'}
               className="rounded-full"
             >
@@ -588,42 +597,252 @@ const PromptGeneratorPage: React.FC = () => {
           </div>
         );
 
-      default:
+      case 2:
         return (
           <div className="mx-auto max-w-4xl px-6 py-8">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                v3.1 단계 {currentStep}
+                시각 요소 및 장면 구성
               </h2>
-              <p className="text-gray-600 mb-6">
-                이 단계는 아직 구현 중입니다. 곧 업데이트됩니다.
-              </p>
               
-              <div className="flex justify-between">
-                <button
-                  onClick={previousStep}
-                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
-                >
-                  이전 단계
-                </button>
-                
-                {currentStep < totalSteps ? (
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    시각적 스타일
+                  </label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {['시네마틱', '사실적', '몽환적', '미니멀'].map((style) => (
+                      <button
+                        key={style}
+                        onClick={() => setV31State((prev: CineGeniusV31Simple) => ({
+                          ...prev,
+                          promptBlueprint: {
+                            ...prev.promptBlueprint,
+                            styleDirection: {
+                              ...prev.promptBlueprint.styleDirection,
+                              visualStyle: style
+                            }
+                          }
+                        }))}
+                        className={`
+                          px-3 py-2 text-sm rounded-md border transition-colors
+                          ${v31State.promptBlueprint.styleDirection.visualStyle === style
+                            ? 'bg-primary-500 text-white border-primary-500'
+                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                          }
+                        `}
+                      >
+                        {style}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    조명 설정
+                  </label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {['자연광', '스튜디오', '어둠침침', '드라마틱', '따뜻한', '차가운'].map((lighting) => (
+                      <button
+                        key={lighting}
+                        onClick={() => setV31State((prev: CineGeniusV31Simple) => ({
+                          ...prev,
+                          promptBlueprint: {
+                            ...prev.promptBlueprint,
+                            environment: {
+                              ...prev.promptBlueprint.environment,
+                              lighting: lighting
+                            }
+                          }
+                        }))}
+                        className={`
+                          px-3 py-2 text-sm rounded-md border transition-colors
+                          ${v31State.promptBlueprint.environment.lighting === lighting
+                            ? 'bg-primary-500 text-white border-primary-500'
+                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                          }
+                        `}
+                      >
+                        {lighting}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-between pt-6 border-t border-gray-200">
+                  <button
+                    onClick={previousStep}
+                    className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+                  >
+                    이전 단계
+                  </button>
+                  
                   <button
                     onClick={nextStep}
                     className="px-6 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
                   >
                     다음 단계
                   </button>
-                ) : (
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 3:
+        return (
+          <div className="mx-auto max-w-4xl px-6 py-8">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                촬영 기법 및 환경 설정
+              </h2>
+              
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    카메라 움직임
+                  </label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {['고정', '팬', '틸트', '줌인', '줌아웃', '트래킹'].map((movement) => (
+                      <button
+                        key={movement}
+                        onClick={() => setV31State((prev: CineGeniusV31Simple) => ({
+                          ...prev,
+                          promptBlueprint: {
+                            ...prev.promptBlueprint,
+                            cinematography: {
+                              ...prev.promptBlueprint.cinematography,
+                              cameraMovement: movement
+                            }
+                          }
+                        }))}
+                        className={`
+                          px-3 py-2 text-sm rounded-md border transition-colors
+                          ${v31State.promptBlueprint.cinematography.cameraMovement === movement
+                            ? 'bg-primary-500 text-white border-primary-500'
+                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                          }
+                        `}
+                      >
+                        {movement}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    템포 및 리듬
+                  </label>
+                  <select
+                    value={v31State.promptBlueprint.styleDirection.mood || 'normal'}
+                    onChange={(e) => setV31State((prev: CineGeniusV31Simple) => ({
+                      ...prev,
+                      promptBlueprint: {
+                        ...prev.promptBlueprint,
+                        styleDirection: {
+                          ...prev.promptBlueprint.styleDirection,
+                          mood: e.target.value
+                        }
+                      }
+                    }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  >
+                    <option value="slow">느림</option>
+                    <option value="normal">보통</option>
+                    <option value="fast">빠름</option>
+                  </select>
+                </div>
+
+                <div className="flex justify-between pt-6 border-t border-gray-200">
+                  <button
+                    onClick={previousStep}
+                    className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+                  >
+                    이전 단계
+                  </button>
+                  
+                  <button
+                    onClick={nextStep}
+                    className="px-6 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
+                  >
+                    다음 단계
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 4:
+        return (
+          <div className="mx-auto max-w-4xl px-6 py-8">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                Veo 3 최적화 및 최종 생성
+              </h2>
+              
+              <div className="space-y-6">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="text-sm font-medium text-blue-900 mb-2">
+                    v3.1 모드 설정 요약
+                  </h3>
+                  <div className="text-sm text-blue-700 space-y-1">
+                    <p><strong>프롬프트:</strong> {v31State.userInput?.directPrompt || '설정되지 않음'}</p>
+                    <p><strong>프로젝트:</strong> {v31State.projectConfig?.projectName || '무제'}</p>
+                    <p><strong>영상 길이:</strong> {v31State.projectConfig?.videoLength || 10}초</p>
+                    <p><strong>화면 비율:</strong> {v31State.projectConfig?.aspectRatio || '16:9'}</p>
+                    {v31State.promptBlueprint.styleDirection.visualStyle && (
+                      <p><strong>시각적 스타일:</strong> {v31State.promptBlueprint.styleDirection.visualStyle}</p>
+                    )}
+                    {v31State.promptBlueprint.environment.lighting && (
+                      <p><strong>조명:</strong> {v31State.promptBlueprint.environment.lighting}</p>
+                    )}
+                    {v31State.promptBlueprint.cinematography.cameraMovement && (
+                      <p><strong>카메라 움직임:</strong> {v31State.promptBlueprint.cinematography.cameraMovement}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-between pt-6 border-t border-gray-200">
+                  <button
+                    onClick={previousStep}
+                    className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+                  >
+                    이전 단계
+                  </button>
+                  
                   <button
                     onClick={handleGeneratePrompt}
-                    disabled={state.isGenerating}
+                    disabled={state.isGenerating || !v31State.userInput?.directPrompt?.trim()}
                     className="px-6 py-2 bg-success-500 text-white rounded-md hover:bg-success-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                   >
                     {state.isGenerating ? '생성 중...' : 'v3.1 프롬프트 생성'}
                   </button>
-                )}
+                </div>
               </div>
+            </div>
+          </div>
+        );
+
+      default:
+        return (
+          <div className="mx-auto max-w-4xl px-6 py-8">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                알 수 없는 단계
+              </h2>
+              <p className="text-gray-600 mb-6">
+                잘못된 단계입니다. 1단계로 돌아가세요.
+              </p>
+              
+              <button
+                onClick={() => setCurrentStep(1)}
+                className="px-6 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
+              >
+                1단계로 돌아가기
+              </button>
             </div>
           </div>
         );
@@ -861,13 +1080,15 @@ const PromptGeneratorPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50" aria-busy={state.isGenerating ? 'true' : 'false'} aria-live="polite">
-      {renderStepIndicator()}
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-50" aria-busy={state.isGenerating ? 'true' : 'false'} aria-live="polite">
+        {renderStepIndicator()}
 
-      <main className="py-8">
-        {showStories ? renderStoriesList() : renderCurrentStep()}
-      </main>
-    </div>
+        <main className="py-8">
+          {showStories ? renderStoriesList() : renderCurrentStep()}
+        </main>
+      </div>
+    </ErrorBoundary>
   );
 };
 

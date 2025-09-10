@@ -17,6 +17,7 @@ export { StatCard } from './stat-card';
 export { DataTable } from './data-table';
 export { ToastProvider, useToast } from './Toast';
 export { AutoSaveStatus } from './AutoSaveStatus';
+export { ErrorBoundary, withErrorBoundary } from './ErrorBoundary';
 
 // Email Verification Components
 export { VerificationCodeInput } from './VerificationCodeInput';
