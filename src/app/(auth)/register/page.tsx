@@ -15,11 +15,7 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showEmailVerification, setShowEmailVerification] = useState(false);
-  const [emailVerified, setEmailVerified] = useState(false);
-  const [emailVerificationSent, setEmailVerificationSent] = useState(false);
-  const [verificationCode, setVerificationCode] = useState('');
-  const [verificationSuccess, setVerificationSuccess] = useState(false);
+  // Email verification disabled - simplified registration flow
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,13 +49,8 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (data.ok) {
-        // 회원가입 성공 - 이메일 인증 안내 표시
-        if (data.requireEmailVerification) {
-          setShowEmailVerification(true);
-        } else {
-          // 이메일 인증이 필요없는 경우 로그인 페이지로 이동
-          router.push('/login?message=회원가입이 완료되었습니다. 로그인해주세요.');
-        }
+        // 회원가입 성공 - 바로 로그인 페이지로 이동
+        router.push('/login?message=회원가입이 완료되었습니다. 로그인해주세요.');
       } else {
         setError(data.message || '회원가입에 실패했습니다.');
       }
@@ -71,162 +62,9 @@ export default function RegisterPage() {
     }
   };
 
-  const handleEmailVerification = async () => {
-    if (!formData.email) {
-      setError('이메일을 먼저 입력해주세요.');
-      return;
-    }
+  // Email verification functions removed - simplified registration
 
-    setLoading(true);
-    setError('');
-
-    try {
-      const res = await fetch('/api/auth/send-verification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email }),
-      });
-
-      const data = await res.json();
-
-      if (data.ok) {
-        setEmailVerificationSent(true);
-      } else {
-        setError(data.message || '인증 이메일 발송에 실패했습니다.');
-      }
-    } catch (error) {
-      console.error('Email verification error:', error);
-      setError('서버 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerificationCodeSubmit = async () => {
-    if (!verificationCode || verificationCode.length !== 6) {
-      setError('6자리 인증 코드를 입력해주세요.');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-
-    try {
-      const res = await fetch('/api/auth/verify-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email: formData.email,
-          code: verificationCode 
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.ok) {
-        setEmailVerified(true);
-        setVerificationSuccess(true);
-        setError('');
-      } else {
-        setError(data.message || '인증 코드가 올바르지 않습니다.');
-      }
-    } catch (error) {
-      console.error('Verification code error:', error);
-      setError('서버 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 이메일 인증 안내 화면
-  if (showEmailVerification) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center px-4">
-        <div className="w-full max-w-md">
-          {/* 로고 */}
-          <div className="text-center mb-8">
-            <Logo size="xl" className="mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-white">회원가입 완료</h1>
-          </div>
-
-          {/* 이메일 인증 안내 */}
-          <div className="bg-gray-800/50 backdrop-blur-lg rounded-xl p-8 shadow-2xl border border-gray-700" data-testid="email-verification-notice">
-            <div className="text-center space-y-6">
-              {/* 이메일 아이콘 */}
-              <div className="mx-auto w-20 h-20 bg-brand-500/10 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-10 h-10 text-brand-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                  />
-                </svg>
-              </div>
-
-              <div>
-                <h2 className="text-xl font-semibold text-white mb-2">
-                  이메일을 확인해주세요
-                </h2>
-                <p className="text-gray-400">
-                  <span className="text-white font-medium">{formData.email}</span>로
-                  인증 메일을 발송했습니다.
-                </p>
-                <p className="text-gray-400 mt-2">
-                  이메일을 확인하고 인증 링크를 클릭해주세요.
-                </p>
-              </div>
-
-              {/* 안내 메시지 */}
-              <div className="p-4 bg-gray-700/30 rounded-lg border border-gray-600">
-                <p className="text-sm text-gray-400">
-                  이메일이 도착하지 않았나요?
-                </p>
-                <ul className="mt-2 text-xs text-gray-500 space-y-1">
-                  <li>• 스팸 폴더를 확인해주세요</li>
-                  <li>• 이메일 주소가 올바른지 확인해주세요</li>
-                  <li>• 몇 분 후에 다시 시도해주세요</li>
-                </ul>
-              </div>
-
-              {/* 버튼들 */}
-              <div className="space-y-3">
-                <Button
-                  onClick={() => router.push(`/verify-email?email=${encodeURIComponent(formData.email)}&sent=true`)}
-                  className="w-full"
-                  size="lg"
-                >
-                  인증 페이지로 이동
-                </Button>
-                
-                <Button
-                  onClick={() => router.push('/login')}
-                  variant="ghost"
-                  className="w-full"
-                  size="lg"
-                >
-                  로그인 페이지로
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* 하단 링크 */}
-          <div className="mt-8 text-center">
-            <Link href="/" className="text-gray-400 hover:text-white text-sm">
-              홈으로 돌아가기
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Email verification screen removed - simplified registration flow
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center px-4">
@@ -242,85 +80,18 @@ export default function RegisterPage() {
         <div className="bg-gray-800/50 backdrop-blur-lg rounded-xl p-8 shadow-2xl border border-gray-700">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* 이메일 입력 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                이메일 <span className="text-danger-400">*</span>
-                {emailVerified && (
-                  <span className="text-success-400 text-xs ml-2">✓ 인증완료</span>
-                )}
-              </label>
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <Input
-                    id="email"
-                    type="email"
-                    required
-                    variant="dark"
-                    size="lg"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="your@email.com"
-                    disabled={emailVerified}
-                    testId="email-input"
-                  />
-                </div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleEmailVerification}
-                  disabled={loading || !formData.email || emailVerified}
-                  className="px-4 py-3"
-                >
-                  {emailVerificationSent ? '재발송' : '인증요청'}
-                </Button>
-              </div>
-
-              {/* 인증 코드 입력 */}
-              {emailVerificationSent && !emailVerified && (
-                <div className="mt-3">
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    인증 코드 (6자리)
-                  </label>
-                  <div className="flex gap-3">
-                    <div className="flex-1">
-                      <Input
-                        id="verificationCode"
-                        type="text"
-                        maxLength={6}
-                        variant="dark"
-                        size="lg"
-                        value={verificationCode}
-                        onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                        className="text-center text-xl tracking-widest"
-                        placeholder="000000"
-                        testId="verification-code-input"
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={handleVerificationCodeSubmit}
-                      disabled={loading || !verificationCode || verificationCode.length !== 6}
-                      className="px-4 py-3"
-                      testId="verify-code-button"
-                    >
-                      인증확인
-                    </Button>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-1">
-                    이메일로 전송된 6자리 인증 코드를 입력해주세요
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* 인증 성공 메시지 */}
-            {verificationSuccess && (
-              <div className="bg-green-500/10 border border-green-500/50 rounded-lg px-4 py-3 text-green-400 text-sm" data-testid="verification-success-message">
-                이메일 인증이 완료되었습니다! 이제 회원가입을 완료할 수 있습니다.
-              </div>
-            )}
+            <Input
+              id="email"
+              type="email"
+              required
+              variant="dark"
+              size="lg"
+              label="이메일"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              placeholder="your@email.com"
+              testId="email-input"
+            />
 
             {/* 사용자명 입력 */}
             <Input
