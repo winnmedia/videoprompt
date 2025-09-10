@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
     }
 
     // LLM 호출 재시도 로직 (최대 2회로 제한하여 무한 에러 방지)
-    const MAX_RETRIES = 2;
+    const MAX_RETRIES = 3; // 안정성을 위해 재시도 횟수 증가
     let lastError: Error | null = null;
     
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {

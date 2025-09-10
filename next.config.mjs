@@ -57,21 +57,23 @@ const nextConfig = {
   },
   
   
-  // API 라우팅 설정 - Railway 프록시
+  // API 라우팅 설정 - Railway 프록시 (최적화)
   async rewrites() {
     const apiBase = 'https://videoprompt-production.up.railway.app';
-    console.log('🚀 Using Railway backend API proxy for business logic APIs');
+    
+    // 프로덕션에서만 프록시 활성화
+    if (process.env.NODE_ENV !== 'production') {
+      return [];
+    }
+
+    console.log('🚀 Using Railway backend API proxy for video processing APIs');
 
     return [
-      // 인증 API는 Next.js에서 처리
-      // 나머지는 Railway로 프록시
-      { source: '/api/user/:path*', destination: `${apiBase}/api/user/:path*` },
+      // 비디오 처리 관련 API만 프록시 (나머지는 Next.js에서 직접 처리)
       { source: '/api/seedance/:path*', destination: `${apiBase}/api/seedance/:path*` },
       { source: '/api/imagen/:path*', destination: `${apiBase}/api/imagen/:path*` },
       { source: '/api/veo/:path*', destination: `${apiBase}/api/veo/:path*` },
-      { source: '/api/scenario/:path*', destination: `${apiBase}/api/scenario/:path*` },
       { source: '/api/video/:path*', destination: `${apiBase}/api/video/:path*` },
-      { source: '/api/net/:path*', destination: `${apiBase}/api/net/:path*` },
       { source: '/api/health', destination: `${apiBase}/api/health` },
     ];
   },

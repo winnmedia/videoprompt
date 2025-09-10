@@ -358,16 +358,6 @@ const PromptGeneratorPage: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <h1 className="text-2xl font-bold text-gray-900">AI 영상 프롬프트 생성기</h1>
-            {selectedStory && (
-              <div className="text-sm text-gray-600">
-                선택된 스토리: <span className="font-medium">{selectedStory.title}</span>
-                {project.scenario?.title && (
-                  <span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
-                    프로젝트 저장됨
-                  </span>
-                )}
-              </div>
-            )}
             
             {/* v3.1 모드 전환 버튼 */}
             <Button
@@ -378,7 +368,7 @@ const PromptGeneratorPage: React.FC = () => {
                 const newMode = !v31Mode;
                 setV31Mode(newMode);
                 
-                // 모드 전환 시 현재 단계 초기화
+                // 모드 전환 시 현재 단계 조정
                 if (newMode && currentStep > 2) {
                   setCurrentStep(1);
                 }
@@ -388,6 +378,17 @@ const PromptGeneratorPage: React.FC = () => {
             >
               {v31Mode ? 'v3.1 🚀' : 'v2'}
             </Button>
+            
+            {selectedStory && (
+              <div className="text-sm text-gray-600">
+                선택된 스토리: <span className="font-medium">{selectedStory.title}</span>
+                {project.scenario?.title && (
+                  <span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
+                    프로젝트 저장됨
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* 진행 단계 표시 */}
@@ -929,11 +930,26 @@ const PromptGeneratorPage: React.FC = () => {
                         createdAt: project.createdAt,
                         updatedAt: project.updatedAt,
                       };
+                      
+                      // v3.1 모드 자동 활성화 및 스토리 적용
+                      setV31Mode(true);
+                      setV31State((prev: CineGeniusV31Simple) => ({
+                        ...prev,
+                        userInput: {
+                          ...prev.userInput,
+                          directPrompt: projectStory.oneLineStory,
+                        },
+                        projectConfig: {
+                          ...prev.projectConfig,
+                          projectName: projectStory.title,
+                        }
+                      }));
+                      
                       handleGenerateFromStory(projectStory);
                     }}
-                    className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                    className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors flex items-center space-x-1"
                   >
-                    바로 프롬프트 생성
+                    <span>🚀 v3.1 프롬프트 생성</span>
                   </button>
                 </div>
               </div>
