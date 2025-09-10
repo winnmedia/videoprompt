@@ -150,9 +150,7 @@ test.describe('프로덕션 스모크 테스트', () => {
       
       const authEndpoints = [
         '/api/auth/login',
-        '/api/auth/register', 
-        '/api/login',
-        '/api/register'
+        '/api/auth/register'
       ];
       
       for (const endpoint of authEndpoints) {

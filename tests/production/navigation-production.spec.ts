@@ -69,11 +69,11 @@ test.describe('프로덕션 환경 네비게이션 테스트', () => {
       await page.goto('/');
       
       const importantPages = [
-        { path: '/login', name: '로그인' },
-        { path: '/register', name: '회원가입' }, 
-        { path: '/about', name: '소개' },
-        { path: '/pricing', name: '요금제' },
-        { path: '/contact', name: '연락처' }
+        { path: '/login', name: '로그인', required: true },
+        { path: '/register', name: '회원가입', required: true }, 
+        { path: '/about', name: '소개', required: false },
+        { path: '/pricing', name: '요금제', required: false },
+        { path: '/contact', name: '연락처', required: false }
       ];
       
       for (const pagePath of importantPages) {
@@ -83,23 +83,29 @@ test.describe('프로덕션 환경 네비게이션 테스트', () => {
           const response = await page.goto(pagePath.path);
           const status = response?.status() || 0;
           
-          // 404나 500대 에러가 아니어야 함
+          // 500대 에러가 아니어야 함
           expect(status).toBeLessThan(500);
-          expect(status).not.toBe(404);
+          
+          // 필수 페이지는 404가 아니어야 함
+          if (pagePath.required) {
+            expect(status).not.toBe(404);
+          }
           
           // 기본 HTML 구조가 있어야 함
           const bodyContent = await page.textContent('body');
           expect(bodyContent).toBeTruthy();
           expect(bodyContent!.trim().length).toBeGreaterThan(0);
           
-          // 에러 페이지가 아닌지 확인
-          const hasErrorIndicators = await page.locator('div:has-text("500"), div:has-text("Error"), div:has-text("오류")').count();
-          expect(hasErrorIndicators).toBe(0);
+          // 필수 페이지만 에러 페이지 검증
+          if (pagePath.required) {
+            const hasErrorIndicators = await page.locator('div:has-text("500"), div:has-text("Error"), div:has-text("오류")').count();
+            expect(hasErrorIndicators).toBe(0);
+          }
           
         } catch (error) {
           console.log(`Page ${pagePath.name} (${pagePath.path}) failed:`, error);
-          // 선택적 페이지는 실패해도 테스트를 중단하지 않음
-          if (pagePath.path === '/login' || pagePath.path === '/register') {
+          // 필수 페이지만 실패 시 테스트 중단
+          if (pagePath.required) {
             throw error; // 핵심 페이지는 반드시 성공해야 함
           }
         }
