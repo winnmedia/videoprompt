@@ -25,7 +25,7 @@ export interface PromptData {
 }
 
 export interface VideoData {
-  provider?: 'seedance' | 'veo3' | 'mock';
+  provider?: 'seedance' | 'veo3' | 'mock' | 'upload';
   jobId?: string; // seedance
   operationId?: string; // veo
   videoUrl?: string; // 최종 URL 또는 data-uri(mock)

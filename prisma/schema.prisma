@@ -34,9 +34,9 @@ model Project {
   status       String   // 'draft' | 'processing' | 'completed' | 'failed'
   tags         Json? // JSON for PostgreSQL
   metadata     Json? // JSON for PostgreSQL
-  scenario     String? // JSON string for scenario data
-  prompt       String? // JSON string for prompt data
-  video        String? // JSON string for video data
+  scenario     Json? // JSON object for scenario data
+  prompt       Json? // JSON object for prompt data
+  video        Json? // JSON object for video data
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
   userId       String   @map("user_id")

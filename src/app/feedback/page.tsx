@@ -106,10 +106,93 @@ export default function FeedbackPage() {
   const [shareOpen, setShareOpen] = useState(false);
   const [replaceOpen, setReplaceOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const [comment, setComment] = useState('');
   const [showVersionComparison, setShowVersionComparison] = useState(false);
   const [compareVersionId, setCompareVersionId] = useState<string | null>(null);
+
+  const handleVideoUpload = async (slotIndex: number) => {
+    const input = document.getElementById(`upload-slot-${slotIndex}`) as HTMLInputElement;
+    const file = input?.files?.[0];
+    
+    if (!file) {
+      alert('업로드할 비디오 파일을 선택해주세요.');
+      return;
+    }
+    
+    if (!file.type.startsWith('video/')) {
+      alert('비디오 파일만 업로드 가능합니다.');
+      return;
+    }
+    
+    // 파일 크기 체크 (100MB 제한)
+    const maxSize = 100 * 1024 * 1024; // 100MB
+    if (file.size > maxSize) {
+      alert('파일 크기가 너무 큽니다. 100MB 이하의 파일을 선택해주세요.');
+      return;
+    }
+    
+    setIsUploading(true);
+    setUploadProgress(0);
+    
+    try {
+      // FormData 생성
+      const formData = new FormData();
+      formData.append('video', file);
+      formData.append('slot', `v${slotIndex + 1}`);
+      if (token) formData.append('token', token);
+      
+      // 업로드 API 호출 (추후 구현될 API 엔드포인트)
+      const response = await fetch('/api/video/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`업로드 실패: ${response.status} ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.ok) {
+        // 업로드 성공 시 프로젝트 상태 업데이트
+        project.updateVideo({
+          provider: 'upload',
+          videoUrl: result.videoUrl || URL.createObjectURL(file), // 임시로 blob URL 사용
+          status: 'succeeded'
+        });
+        
+        alert(`V${slotIndex + 1} 슬롯에 비디오가 성공적으로 업로드되었습니다.`);
+        setUploadOpen(false);
+        
+        // 입력 필드 초기화
+        if (input) input.value = '';
+      } else {
+        throw new Error(result.error || '업로드 중 오류가 발생했습니다.');
+      }
+    } catch (error: any) {
+      console.error('비디오 업로드 오류:', error);
+      
+      // 오류 타입별 메시지
+      let errorMessage = '비디오 업로드에 실패했습니다.';
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        errorMessage += ' 네트워크 연결을 확인해주세요.';
+      } else if (error.message.includes('413')) {
+        errorMessage += ' 파일 크기가 너무 큽니다.';
+      } else if (error.message.includes('415')) {
+        errorMessage += ' 지원되지 않는 파일 형식입니다.';
+      } else if (error.message.includes('timeout')) {
+        errorMessage += ' 업로드 시간이 초과되었습니다.';
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
 
   const getCurrentTc = (): string => {
     const time = videoRef.current?.currentTime ?? 0;

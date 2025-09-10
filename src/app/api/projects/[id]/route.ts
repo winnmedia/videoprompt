@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getUser } from '@/lib/auth';
+import { getUser } from '@/shared/lib/auth';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { z } from 'zod';
 
@@ -55,9 +55,10 @@ export async function OPTIONS(req: NextRequest) {
 }
 
 // Get single project
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const traceId = getTraceId(req);
-  console.log(`[Project ${traceId}] 📋 프로젝트 상세 조회: ${params.id}`);
+  const { id } = await params;
+  console.log(`[Project ${traceId}] 📋 프로젝트 상세 조회: ${id}`);
 
   try {
     // Check authentication
@@ -69,7 +70,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // Find project
     const project = await prisma.project.findFirst({
       where: {
-        id: params.id,
+        id,
         userId: user.id,
       },
       select: {
@@ -91,13 +92,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     console.log(`[Project ${traceId}] ✅ 프로젝트 조회 완료`);
 
-    // Parse JSON fields
-    const response = {
-      ...project,
-      scenario: project.scenario ? JSON.parse(project.scenario) : null,
-      prompt: project.prompt ? JSON.parse(project.prompt) : null,
-      video: project.video ? JSON.parse(project.video) : null,
-    };
+    // Prisma automatically handles JSON fields
+    const response = project;
 
     return success(response, 200, traceId);
 
@@ -108,9 +104,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 // Update project
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const traceId = getTraceId(req);
-  console.log(`[Project ${traceId}] 🔄 프로젝트 수정: ${params.id}`);
+  const { id } = await params;
+  console.log(`[Project ${traceId}] 🔄 프로젝트 수정: ${id}`);
 
   try {
     // Check authentication
@@ -128,7 +125,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     // Check if project exists and belongs to user
     const existingProject = await prisma.project.findFirst({
       where: {
-        id: params.id,
+        id,
         userId: user.id,
       },
     });
@@ -148,7 +145,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     if (validatedData.status !== undefined) updateData.status = validatedData.status;
 
     const project = await prisma.project.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       select: {
         id: true,
@@ -165,13 +162,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
     console.log(`[Project ${traceId}] ✅ 프로젝트 수정 완료`);
 
-    // Parse JSON fields for response
-    const response = {
-      ...project,
-      scenario: project.scenario ? JSON.parse(project.scenario) : null,
-      prompt: project.prompt ? JSON.parse(project.prompt) : null,
-      video: project.video ? JSON.parse(project.video) : null,
-    };
+    // Prisma automatically handles JSON fields
+    const response = project;
 
     return success(response, 200, traceId);
 
@@ -179,7 +171,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     console.error(`[Project ${traceId}] ❌ 프로젝트 수정 실패:`, error);
 
     if (error instanceof z.ZodError) {
-      return failure('VALIDATION_ERROR', '입력 데이터가 올바르지 않습니다.', 400, { errors: error.issues }, traceId);
+      return failure('VALIDATION_ERROR', '입력 데이터가 올바르지 않습니다.', 400, JSON.stringify({ errors: error.issues }), traceId);
     }
 
     return failure('INTERNAL_ERROR', '프로젝트 수정 중 오류가 발생했습니다.', 500, undefined, traceId);
@@ -187,9 +179,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 }
 
 // Delete project
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const traceId = getTraceId(req);
-  console.log(`[Project ${traceId}] 🗑️ 프로젝트 삭제: ${params.id}`);
+  const { id } = await params;
+  console.log(`[Project ${traceId}] 🗑️ 프로젝트 삭제: ${id}`);
 
   try {
     // Check authentication
@@ -201,7 +194,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     // Check if project exists and belongs to user
     const existingProject = await prisma.project.findFirst({
       where: {
-        id: params.id,
+        id,
         userId: user.id,
       },
     });
@@ -212,7 +205,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
     // Delete project
     await prisma.project.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     console.log(`[Project ${traceId}] ✅ 프로젝트 삭제 완료`);

@@ -69,4 +69,30 @@ export function getUserIdFromRequest(req: NextRequest): string | undefined {
   return undefined;
 }
 
+export async function getUser(req: NextRequest) {
+  const userId = getUserIdFromRequest(req);
+  if (!userId) return null;
+  
+  // Import prisma locally to avoid circular dependencies
+  const { prisma } = await import('@/lib/db');
+  
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        createdAt: true,
+        updatedAt: true,
+      }
+    });
+    
+    return user;
+  } catch (error) {
+    console.error('Failed to fetch user:', error);
+    return null;
+  }
+}
+
 
