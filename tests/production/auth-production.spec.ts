@@ -56,7 +56,7 @@ test.describe('프로덕션 환경 인증 테스트', () => {
       expect(response?.status()).not.toBe(404); // 페이지가 존재함
       
       // 페이지 타이틀 확인
-      await expect(page).toHaveTitle(/vridge|VideoPlanet/i);
+      await expect(page).toHaveTitle(/VLANET|vridge|VideoPlanet/i);
       
       // 기본 UI 요소들이 로드되는지 확인
       const bodyText = await page.textContent('body');
@@ -102,7 +102,7 @@ test.describe('프로덕션 환경 인증 테스트', () => {
       
       // 회원가입 폼의 핵심 요소들 확인
       await expect(page.locator('input[type="email"]')).toBeVisible();
-      await expect(page.locator('input[type="password"]')).toBeVisible();
+      await expect(page.locator('input[type="password"]').first()).toBeVisible();
       
       // 제출 버튼 존재 확인
       const submitButton = page.locator('button[type="submit"], button:has-text("회원가입"), button:has-text("가입"), button:has-text("Register")');
