@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { saveFileFromUrl } from '@/lib/utils/file-storage';
+import { createJob, updateJobStatus } from '@/shared/lib/job-store';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -33,32 +34,80 @@ export async function POST(req: NextRequest) {
     const incomingTraceId = req.headers.get('x-trace-id') ||
       (globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2));
 
+    // 작업 ID 생성
+    const jobId = `img_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    
+    // 작업 상태 초기화
+    createJob(jobId);
+
     // E2E 전용 빠른 폴백 모드: 외부 호출을 건너뛰고 즉시 SVG data URL 반환
     // 1) 환경변수 플래그, 2) 헤더 플래그(x-e2e-fast)
     const e2eFastHeader = (req.headers.get('x-e2e-fast') || '').toLowerCase();
     if (process.env.E2E_FAST_PREVIEW === '1' || e2eFastHeader === '1' || e2eFastHeader === 'true') {
-      console.log('E2E_FAST_PREVIEW 활성화: 외부 호출 없이 즉시 SVG 폴백 반환');
+      console.log('E2E_FAST_PREVIEW 활성화: 외부 호출 없이 즉시 완료 처리');
+      updateJobStatus(jobId, 'completed', 100, buildFallbackImageDataUrl(prompt));
       return NextResponse.json(
-        { ok: true, provider: 'fallback-svg', imageUrl: buildFallbackImageDataUrl(prompt), traceId: incomingTraceId },
+        { ok: true, jobId, status: 'completed', imageUrl: buildFallbackImageDataUrl(prompt), traceId: incomingTraceId },
         { status: 200, headers: corsHeaders },
       );
     }
 
-    // Railway 백엔드로 직접 연결 (프록시 없음)
-    const railwayUrl = 'https://videoprompt-production.up.railway.app/api/imagen/preview';
+    // 즉시 jobId 반환 (비동기 처리 시작)
+    const response = NextResponse.json(
+      { ok: true, jobId, status: 'processing', traceId: incomingTraceId },
+      { status: 200, headers: corsHeaders }
+    );
 
-    // AbortController로 타임아웃 설정 (120초)
+    // 백그라운드에서 이미지 생성 처리 (Promise를 기다리지 않음)
+    processImageGeneration(jobId, prompt, aspectRatio, quality, incomingTraceId).catch(error => {
+      console.error('Background image generation failed:', error);
+      updateJobStatus(jobId, 'failed', 0, undefined, error.message);
+    });
+
+    return response;
+  } catch (error) {
+    console.error('Imagen preview error:', error);
+    // 최상위 예외에서도 빈 이미지 금지 → SVG 폴백 제공
+    return NextResponse.json(
+      { ok: true, provider: 'fallback-svg', imageUrl: buildFallbackImageDataUrl('Storyboard preview') },
+      { status: 200, headers: corsHeaders },
+    );
+  }
+}
+
+// 백그라운드 이미지 생성 처리 함수
+async function processImageGeneration(
+  jobId: string,
+  prompt: string,
+  aspectRatio: string,
+  quality: string,
+  traceId: string
+): Promise<void> {
+  try {
+    // 진행률 10% 업데이트
+    updateJobStatus(jobId, 'processing', 10);
+
+    // Railway 백엔드로 연결 시도
+    const railwayUrl = 'https://videoprompt-production.up.railway.app/api/imagen/preview';
+    
+    // 진행률 20% 업데이트
+    updateJobStatus(jobId, 'processing', 20);
+
+    // AbortController로 타임아웃 설정 (8초 - Vercel 10초 제한 고려)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000); // 120초
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
 
     try {
-      console.log('🔗 Railway 백엔드 연결 시도...');
+      console.log(`🔗 [${jobId}] Railway 백엔드 연결 시도...`);
+      
+      // 진행률 30% 업데이트
+      updateJobStatus(jobId, 'processing', 30);
 
       const response = await fetch(railwayUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-trace-id': incomingTraceId,
+          'x-trace-id': traceId,
         },
         body: JSON.stringify({
           prompt,
@@ -69,141 +118,101 @@ export async function POST(req: NextRequest) {
       });
 
       clearTimeout(timeoutId);
+      
+      // 진행률 60% 업데이트
+      updateJobStatus(jobId, 'processing', 60);
 
       if (!response.ok) {
-        console.error(`❌ Railway 백엔드 오류: ${response.status} ${response.statusText}`);
-
-        if (response.status === 503) {
-          // 503일 때도 폴백 시도 → 실패 시 SVG 프리뷰 반환
-          const fallback503 = await tryGoogleImageAPI(prompt, aspectRatio);
-          if (fallback503.ok) {
-            return NextResponse.json(
-              { ok: true, imageUrl: fallback503.imageUrl, provider: 'google-image-api' },
-              { status: 200, headers: corsHeaders },
-            );
-          }
-          return NextResponse.json(
-            { ok: true, provider: 'fallback-svg', imageUrl: buildFallbackImageDataUrl(prompt) },
-            { status: 200, headers: corsHeaders },
-          );
-        }
-
-        // Railway 실패 시 Google Image Generation API로 폴백 시도
+        console.error(`❌ [${jobId}] Railway 백엔드 오류: ${response.status} ${response.statusText}`);
+        
+        // Railway 실패 시 Google Image API로 폴백 시도
         const fallback = await tryGoogleImageAPI(prompt, aspectRatio);
         if (fallback.ok) {
-          return NextResponse.json(
-            { ok: true, imageUrl: fallback.imageUrl, provider: 'google-image-api' },
-            { status: 200, headers: corsHeaders },
-          );
+          // 파일 저장 시도
+          const savedUrl = await saveImageIfPossible(fallback.imageUrl!, jobId);
+          updateJobStatus(jobId, 'completed', 100, savedUrl || fallback.imageUrl);
+          return;
         }
-        // 최종 폴백: 빈 플레이스홀더 금지 → 텍스트가 포함된 SVG data URL 반환
-        return NextResponse.json(
-          {
-            ok: true,
-            provider: 'fallback-svg',
-            imageUrl: buildFallbackImageDataUrl(prompt),
-          },
-          { status: 200, headers: corsHeaders },
-        );
+        
+        // 최종 폴백: SVG 데이터 URL
+        const fallbackUrl = buildFallbackImageDataUrl(prompt);
+        updateJobStatus(jobId, 'completed', 100, fallbackUrl);
+        return;
       }
 
       const data = await response.json();
+      
+      // 진행률 80% 업데이트
+      updateJobStatus(jobId, 'processing', 80);
 
-      console.log('DEBUG: Railway 응답 수신', {
+      console.log(`DEBUG: [${jobId}] Railway 응답 수신`, {
         status: response.status,
         ok: response.ok,
         dataOk: data?.ok,
         hasImageUrl: Boolean(data?.imageUrl),
         provider: data?.provider,
-        traceId: incomingTraceId,
       });
 
-      // 근본 보강: HTTP 200 이더라도 JSON ok=false 또는 imageUrl 누락 시 폴백 수행
+      // Railway 응답 검증
       if (!data?.ok || !data?.imageUrl) {
-        console.warn('WARN: Railway JSON 비정상(ok=false 또는 imageUrl 누락). 폴백 시도.', {
-          reason: !data?.ok ? 'json_not_ok' : 'missing_imageUrl',
-        });
-        const fb = await tryGoogleImageAPI(prompt, aspectRatio);
-        if (fb.ok && fb.imageUrl) {
-          return NextResponse.json(
-            { ok: true, imageUrl: fb.imageUrl, provider: 'google-image-api', traceId: incomingTraceId },
-            { status: 200, headers: corsHeaders },
-          );
+        console.warn(`WARN: [${jobId}] Railway JSON 비정상. 폴백 시도.`);
+        const fallback = await tryGoogleImageAPI(prompt, aspectRatio);
+        if (fallback.ok) {
+          const savedUrl = await saveImageIfPossible(fallback.imageUrl!, jobId);
+          updateJobStatus(jobId, 'completed', 100, savedUrl || fallback.imageUrl);
+          return;
         }
-        return NextResponse.json(
-          {
-            ok: true,
-            provider: 'fallback-svg',
-            imageUrl: buildFallbackImageDataUrl(prompt),
-            traceId: incomingTraceId,
-          },
-          { status: 200, headers: corsHeaders },
-        );
+        
+        const fallbackUrl = buildFallbackImageDataUrl(prompt);
+        updateJobStatus(jobId, 'completed', 100, fallbackUrl);
+        return;
       }
 
-      // 이미지 생성 성공 시 파일 저장 시도
-      if (data.ok && data.imageUrl) {
-        try {
-          console.log('DEBUG: 이미지 생성 성공, 파일 저장 시작:', data.imageUrl);
+      // 성공한 경우 파일 저장 시도
+      const savedUrl = await saveImageIfPossible(data.imageUrl, jobId);
+      updateJobStatus(jobId, 'completed', 100, savedUrl || data.imageUrl);
 
-          // 파일 저장 (비동기로 처리하여 응답 지연 방지)
-          saveFileFromUrl(data.imageUrl, `imagen-${Date.now()}-`, 'images')
-            .then((saveResult) => {
-              if (saveResult.success) {
-                console.log('DEBUG: 이미지 파일 저장 성공:', saveResult.fileInfo);
-
-                // 저장된 파일 정보를 데이터에 추가
-                data.savedFileInfo = saveResult.fileInfo;
-                data.localPath = saveResult.fileInfo.savedPath;
-              } else {
-                console.error('DEBUG: 이미지 파일 저장 실패:', saveResult.error);
-              }
-            })
-            .catch((error) => {
-              console.error('DEBUG: 파일 저장 중 오류:', error);
-            });
-        } catch (error) {
-          console.error('DEBUG: 파일 저장 작업 시작 실패:', error);
-          // 파일 저장 실패는 사용자 응답에 영향을 주지 않음
-        }
-      }
-
-      // provider 누락 시 기본값 지정
-      if (!data.provider) {
-        data.provider = 'railway';
-      }
-
-      return NextResponse.json(data, {
-        status: 200,
-        headers: corsHeaders,
-      });
     } catch (fetchError) {
       clearTimeout(timeoutId);
-
-      console.error('DEBUG: Railway 백엔드 연결 실패:', fetchError);
-
-      // 배포 환경에서는 에러를 그대로 반환 (Mock 모드 없음)
-      // Railway 연결 오류 시 Google Image API 폴백
+      console.error(`DEBUG: [${jobId}] Railway 백엔드 연결 실패:`, fetchError);
+      
+      // 연결 오류 시 Google Image API 폴백
       const fallback = await tryGoogleImageAPI(prompt, aspectRatio);
       if (fallback.ok) {
-        return NextResponse.json(
-          { ok: true, imageUrl: fallback.imageUrl, provider: 'google-image-api' },
-          { status: 200, headers: corsHeaders },
-        );
+        const savedUrl = await saveImageIfPossible(fallback.imageUrl!, jobId);
+        updateJobStatus(jobId, 'completed', 100, savedUrl || fallback.imageUrl);
+        return;
       }
-      // 최종 폴백: 빈 플레이스홀더 금지 → 텍스트 포함 SVG data URL 반환
-      return NextResponse.json(
-        { ok: true, provider: 'fallback-svg', imageUrl: buildFallbackImageDataUrl(prompt), traceId: incomingTraceId },
-        { status: 200, headers: corsHeaders },
-      );
+      
+      // 최종 폴백
+      const fallbackUrl = buildFallbackImageDataUrl(prompt);
+      updateJobStatus(jobId, 'completed', 100, fallbackUrl);
+    }
+
+  } catch (error) {
+    console.error(`ERROR: [${jobId}] 이미지 생성 처리 실패:`, error);
+    const fallbackUrl = buildFallbackImageDataUrl(prompt);
+    updateJobStatus(jobId, 'failed', 0, fallbackUrl, error instanceof Error ? error.message : String(error));
+  }
+}
+
+// 이미지 파일 저장 헬퍼 함수
+async function saveImageIfPossible(imageUrl: string, jobId: string): Promise<string | null> {
+  try {
+    console.log(`DEBUG: [${jobId}] 이미지 파일 저장 시도:`, imageUrl);
+    
+    const saveResult = await saveFileFromUrl(imageUrl, `imagen-${Date.now()}-`, 'images');
+    
+    if (saveResult.success) {
+      console.log(`DEBUG: [${jobId}] 이미지 파일 저장 성공:`, saveResult.fileInfo);
+      return saveResult.fileInfo.savedPath;
+    } else {
+      console.error(`DEBUG: [${jobId}] 이미지 파일 저장 실패:`, saveResult.error);
+      return null;
     }
   } catch (error) {
-    console.error('Imagen preview error:', error);
-    // 최상위 예외에서도 빈 이미지 금지 → SVG 폴백 제공
-    return NextResponse.json(
-      { ok: true, provider: 'fallback-svg', imageUrl: buildFallbackImageDataUrl('Storyboard preview') },
-      { status: 200, headers: corsHeaders },
-    );
+    console.error(`DEBUG: [${jobId}] 파일 저장 중 오류:`, error);
+    return null;
   }
 }
 

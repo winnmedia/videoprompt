@@ -12,7 +12,6 @@ const items = [
   { href: '/workflow', label: 'AI 영상 생성' },
   { href: '/feedback', label: '영상 피드백' },
   { href: '/planning', label: '콘텐츠 관리' },
-  { href: '/templates', label: '템플릿' },
 ];
 
 export function MainNav() {
@@ -20,10 +19,10 @@ export function MainNav() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, checkAuth, logout } = useAuthStore();
 
-  // 컴포넌트 마운트 시 인증 상태 확인
+  // 컴포넌트 마운트 시 인증 상태 확인 (한 번만 실행)
   useEffect(() => {
     checkAuth();
-  }, [checkAuth]);
+  }, []); // 빈 의존성 배열로 변경
 
   const handleLogout = async () => {
     await logout();

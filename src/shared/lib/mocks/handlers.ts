@@ -5,6 +5,7 @@
 
 import { http, HttpResponse, delay } from 'msw';
 import type { StoryboardResult } from '../types/storyboard';
+import { safeBase64Encode } from '../encoding-utils';
 
 // 모의 데이터 생성 함수
 function generateMockImageData(prompt: string): string {
@@ -17,7 +18,7 @@ function generateMockImageData(prompt: string): string {
       </text>
     </svg>
   `;
-  return `data:image/svg+xml;base64,${btoa(svg)}`;
+  return `data:image/svg+xml;base64,${safeBase64Encode(svg)}`;
 }
 
 // 모의 스토리보드 결과 생성

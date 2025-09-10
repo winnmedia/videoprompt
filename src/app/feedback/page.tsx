@@ -112,6 +112,15 @@ export default function FeedbackPage() {
   const [comment, setComment] = useState('');
   const [showVersionComparison, setShowVersionComparison] = useState(false);
   const [compareVersionId, setCompareVersionId] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<{[key: number]: File | null}>({});
+
+  // 파일 선택 핸들러
+  const handleFileSelect = (slotIndex: number, file: File | null) => {
+    setSelectedFiles(prev => ({
+      ...prev,
+      [slotIndex]: file
+    }));
+  };
 
   const handleVideoUpload = async (slotIndex: number) => {
     const input = document.getElementById(`upload-slot-${slotIndex}`) as HTMLInputElement;
@@ -145,7 +154,7 @@ export default function FeedbackPage() {
       if (token) formData.append('token', token);
       
       // 업로드 API 호출 (추후 구현될 API 엔드포인트)
-      const response = await fetch('/api/video/upload', {
+      const response = await fetch('/api/upload/video', {
         method: 'POST',
         body: formData,
       });
@@ -191,6 +200,60 @@ export default function FeedbackPage() {
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
+    }
+  };
+
+  // 모든 슬롯의 파일을 업로드하는 함수
+  const handleAllUpload = async () => {
+    const uploadSlots = [0, 1, 2];
+    let hasFiles = false;
+    let uploadCount = 0;
+
+    // 업로드할 파일이 있는지 확인
+    for (const slotIndex of uploadSlots) {
+      if (selectedFiles[slotIndex]) {
+        hasFiles = true;
+        break;
+      }
+    }
+
+    if (!hasFiles) {
+      alert('업로드할 파일이 없습니다. 파일을 먼저 선택해주세요.');
+      return;
+    }
+
+    // 각 슬롯별로 업로드 수행
+    for (const slotIndex of uploadSlots) {
+      const input = document.getElementById(`upload-slot-${slotIndex}`) as HTMLInputElement;
+      const file = input?.files?.[0];
+      
+      if (file) {
+        try {
+          await handleVideoUpload(slotIndex);
+          uploadCount++;
+        } catch (error) {
+          console.error(`슬롯 ${slotIndex + 1} 업로드 실패:`, error);
+          // 개별 슬롯 실패 시에도 계속 진행
+        }
+      }
+    }
+
+    if (uploadCount > 0) {
+      alert(`${uploadCount}개의 파일이 업로드되었습니다.`);
+      setUploadOpen(false);
+      
+      // 파일 입력 초기화
+      uploadSlots.forEach(slotIndex => {
+        const input = document.getElementById(`upload-slot-${slotIndex}`) as HTMLInputElement;
+        if (input) {
+          input.value = '';
+        }
+      });
+      
+      // 선택된 파일 상태 초기화
+      setSelectedFiles({});
+    } else {
+      alert('업로드에 실패했습니다.');
     }
   };
 
@@ -665,14 +728,48 @@ export default function FeedbackPage() {
                 <div className="text-xs text-gray-500">슬롯 {idx + 1}</div>
               </div>
               <label className="mb-1 block text-sm text-gray-700" htmlFor={`upload-slot-${idx}`}>파일 선택</label>
-              <input id={`upload-slot-${idx}`} type="file" accept="video/*" className="block w-full" />
+              <input 
+                id={`upload-slot-${idx}`} 
+                type="file" 
+                accept="video/*" 
+                className="block w-full" 
+                onChange={(e) => handleFileSelect(idx, e.target.files?.[0] || null)}
+              />
+              {selectedFiles[idx] && (
+                <p className="mt-1 text-xs text-green-600">
+                  선택됨: {selectedFiles[idx]?.name} ({Math.round((selectedFiles[idx]?.size || 0) / 1024 / 1024)}MB)
+                </p>
+              )}
             </div>
           ))}
+          
+          {/* 업로드 진행 상태 표시 */}
+          {isUploading && (
+            <div className="mb-4">
+              <div className="mb-2 flex items-center justify-between text-sm">
+                <span>업로드 중...</span>
+                <span>{Math.round(uploadProgress)}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                  style={{ width: `${uploadProgress}%` }}
+                ></div>
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setUploadOpen(false)} aria-label="업로드 닫기">
               닫기
             </Button>
-            <Button aria-busy={false}>업로드</Button>
+            <Button 
+              onClick={handleAllUpload}
+              disabled={isUploading}
+              aria-busy={isUploading}
+            >
+              {isUploading ? '업로드 중...' : '업로드'}
+            </Button>
           </div>
         </div>
       </Modal>

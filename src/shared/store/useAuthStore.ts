@@ -54,7 +54,9 @@ export const useAuthStore = create<AuthState>()(
       },
 
       checkAuth: async () => {
-        const { isLoading } = get();
+        const { isLoading, isAuthenticated } = get();
+        
+        // 이미 로딩 중이거나 인증된 상태면 중복 요청 방지
         if (isLoading) return;
 
         set({ isLoading: true });
