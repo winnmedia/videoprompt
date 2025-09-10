@@ -131,16 +131,16 @@
                           "workerIndex": 0,
                           "parallelIndex": 0,
                           "status": "passed",
-                          "duration": 991,
+                          "duration": 787,
                           "errors": [],
                           "stdout": [
                             {
-                              "text": "메인 페이지 응답 시간: 436ms, 상태: 200\n"
+                              "text": "메인 페이지 응답 시간: 240ms, 상태: 200\n"
                             }
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:19.496Z",
+                          "startTime": "2025-09-10T11:28:36.950Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -169,7 +169,7 @@
                           "workerIndex": 1,
                           "parallelIndex": 1,
                           "status": "passed",
-                          "duration": 797,
+                          "duration": 1019,
                           "errors": [],
                           "stdout": [
                             {
@@ -178,7 +178,7 @@
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:19.521Z",
+                          "startTime": "2025-09-10T11:28:36.927Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -207,22 +207,22 @@
                           "workerIndex": 2,
                           "parallelIndex": 2,
                           "status": "passed",
-                          "duration": 1672,
+                          "duration": 1467,
                           "errors": [],
                           "stdout": [
                             {
-                              "text": "로드된 핵심 리소스: 29개\n"
+                              "text": "로드된 핵심 리소스: 21개\n"
                             },
                             {
                               "text": "리소스 로드 에러: 1개\n"
                             },
                             {
-                              "text": "리소스 에러 목록: [ \u001b[32m'500: https://www.vridge.kr/api/auth/me'\u001b[39m ]\n"
+                              "text": "리소스 에러 목록: [ \u001b[32m'401: https://www.vridge.kr/api/auth/me'\u001b[39m ]\n"
                             }
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:19.529Z",
+                          "startTime": "2025-09-10T11:28:36.940Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -248,19 +248,19 @@
                       "projectName": "webkit-production",
                       "results": [
                         {
-                          "workerIndex": 9,
-                          "parallelIndex": 0,
+                          "workerIndex": 8,
+                          "parallelIndex": 6,
                           "status": "passed",
-                          "duration": 1162,
+                          "duration": 1050,
                           "errors": [],
                           "stdout": [
                             {
-                              "text": "메인 페이지 응답 시간: 419ms, 상태: 200\n"
+                              "text": "메인 페이지 응답 시간: 312ms, 상태: 200\n"
                             }
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:21.401Z",
+                          "startTime": "2025-09-10T11:28:38.678Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -286,10 +286,10 @@
                       "projectName": "webkit-production",
                       "results": [
                         {
-                          "workerIndex": 10,
-                          "parallelIndex": 5,
+                          "workerIndex": 9,
+                          "parallelIndex": 7,
                           "status": "passed",
-                          "duration": 1047,
+                          "duration": 1158,
                           "errors": [],
                           "stdout": [
                             {
@@ -298,7 +298,7 @@
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:21.402Z",
+                          "startTime": "2025-09-10T11:28:38.716Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -324,25 +324,25 @@
                       "projectName": "webkit-production",
                       "results": [
                         {
-                          "workerIndex": 11,
-                          "parallelIndex": 6,
+                          "workerIndex": 10,
+                          "parallelIndex": 1,
                           "status": "passed",
-                          "duration": 2177,
+                          "duration": 2028,
                           "errors": [],
                           "stdout": [
                             {
-                              "text": "로드된 핵심 리소스: 29개\n"
+                              "text": "로드된 핵심 리소스: 21개\n"
                             },
                             {
                               "text": "리소스 로드 에러: 1개\n"
                             },
                             {
-                              "text": "리소스 에러 목록: [ \u001b[32m'500: https://www.vridge.kr/api/auth/me'\u001b[39m ]\n"
+                              "text": "리소스 에러 목록: [ \u001b[32m'401: https://www.vridge.kr/api/auth/me'\u001b[39m ]\n"
                             }
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:21.460Z",
+                          "startTime": "2025-09-10T11:28:38.730Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -368,19 +368,19 @@
                       "projectName": "firefox-production",
                       "results": [
                         {
-                          "workerIndex": 19,
-                          "parallelIndex": 4,
+                          "workerIndex": 15,
+                          "parallelIndex": 5,
                           "status": "passed",
-                          "duration": 2150,
+                          "duration": 1548,
                           "errors": [],
                           "stdout": [
                             {
-                              "text": "메인 페이지 응답 시간: 596ms, 상태: 200\n"
+                              "text": "메인 페이지 응답 시간: 398ms, 상태: 200\n"
                             }
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:25.559Z",
+                          "startTime": "2025-09-10T11:28:41.274Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -406,10 +406,10 @@
                       "projectName": "firefox-production",
                       "results": [
                         {
-                          "workerIndex": 18,
-                          "parallelIndex": 5,
+                          "workerIndex": 16,
+                          "parallelIndex": 2,
                           "status": "passed",
-                          "duration": 1993,
+                          "duration": 1973,
                           "errors": [],
                           "stdout": [
                             {
@@ -418,7 +418,7 @@
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:25.295Z",
+                          "startTime": "2025-09-10T11:28:41.553Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -445,24 +445,24 @@
                       "results": [
                         {
                           "workerIndex": 17,
-                          "parallelIndex": 2,
+                          "parallelIndex": 3,
                           "status": "passed",
-                          "duration": 2684,
+                          "duration": 2750,
                           "errors": [],
                           "stdout": [
                             {
-                              "text": "로드된 핵심 리소스: 29개\n"
+                              "text": "로드된 핵심 리소스: 21개\n"
                             },
                             {
                               "text": "리소스 로드 에러: 1개\n"
                             },
                             {
-                              "text": "리소스 에러 목록: [ \u001b[32m'500: https://www.vridge.kr/api/auth/me'\u001b[39m ]\n"
+                              "text": "리소스 에러 목록: [ \u001b[32m'401: https://www.vridge.kr/api/auth/me'\u001b[39m ]\n"
                             }
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:25.274Z",
+                          "startTime": "2025-09-10T11:28:41.760Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -499,16 +499,16 @@
                           "workerIndex": 3,
                           "parallelIndex": 3,
                           "status": "passed",
-                          "duration": 1037,
+                          "duration": 211,
                           "errors": [],
                           "stdout": [
                             {
-                              "text": "전용 헬스체크 엔드포인트를 찾을 수 없음 - 메인 페이지로 대체 검증\n"
+                              "text": "헬스체크 엔드포인트 발견: /api/health\n"
                             }
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:19.510Z",
+                          "startTime": "2025-09-10T11:28:36.971Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -523,7 +523,7 @@
                 },
                 {
                   "title": "인증 API 기본 응답 (POST 요청)",
-                  "ok": false,
+                  "ok": true,
                   "tags": [],
                   "tests": [
                     {
@@ -536,99 +536,25 @@
                         {
                           "workerIndex": 4,
                           "parallelIndex": 4,
-                          "status": "failed",
-                          "duration": 731,
-                          "error": {
-                            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m405\u001b[39m",
-                            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m405\u001b[39m\n    at /home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts:169:30",
-                            "location": {
-                              "file": "/home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts",
-                              "column": 30,
-                              "line": 169
-                            },
-                            "snippet": "  167 |           \n  168 |           // 405 (Method Not Allowed)는 서버 구성 오류\n> 169 |           expect(status).not.toBe(405);\n      |                              ^\n  170 |           \n  171 |           // 500 (Internal Server Error)는 서버 장애\n  172 |           expect(status).not.toBe(500);"
-                          },
-                          "errors": [
-                            {
-                              "location": {
-                                "file": "/home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts",
-                                "column": 30,
-                                "line": 169
-                              },
-                              "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m405\u001b[39m\n\n  167 |           \n  168 |           // 405 (Method Not Allowed)는 서버 구성 오류\n> 169 |           expect(status).not.toBe(405);\n      |                              ^\n  170 |           \n  171 |           // 500 (Internal Server Error)는 서버 장애\n  172 |           expect(status).not.toBe(500);\n    at /home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts:169:30"
-                            }
-                          ],
+                          "status": "passed",
+                          "duration": 397,
+                          "errors": [],
                           "stdout": [
                             {
-                              "text": "/api/auth/login 응답 상태: 405\n"
+                              "text": "/api/auth/login 응답 상태: 400\n"
                             },
                             {
-                              "text": "/api/auth/login 테스트 중 에러: ExpectError: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m405\u001b[39m\n    at \u001b[90m/home/winnmedia/videoprompt/\u001b[39mtests/production/smoke-production.spec.ts:169:30 {\n  matcherResult: {\n    actual: \u001b[33m405\u001b[39m,\n    expected: \u001b[33m405\u001b[39m,\n    message: \u001b[32m'\\x1B[2mexpect(\\x1B[22m\\x1B[31mreceived\\x1B[39m\\x1B[2m).\\x1B[22mnot\\x1B[2m.\\x1B[22mtoBe\\x1B[2m(\\x1B[22m\\x1B[32mexpected\\x1B[39m\\x1B[2m) // Object.is equality\\x1B[22m\\n'\u001b[39m +\n      \u001b[32m'\\n'\u001b[39m +\n      \u001b[32m'Expected: not \\x1B[32m405\\x1B[39m'\u001b[39m,\n    name: \u001b[32m'toBe'\u001b[39m,\n    pass: \u001b[33mtrue\u001b[39m\n  },\n  [\u001b[32mSymbol(step)\u001b[39m]: {\n    category: \u001b[32m'expect'\u001b[39m,\n    apiName: \u001b[32m'expect.not.toBe'\u001b[39m,\n    title: \u001b[32m'Expect \"not toBe\"'\u001b[39m,\n    params: { expected: \u001b[33m405\u001b[39m },\n    infectParentStepsWithError: \u001b[90mundefined\u001b[39m,\n    stepId: \u001b[32m'expect@27'\u001b[39m,\n    group: \u001b[90mundefined\u001b[39m,\n    boxedStack: \u001b[90mundefined\u001b[39m,\n    location: {\n      file: \u001b[32m'/home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts'\u001b[39m,\n      line: \u001b[33m169\u001b[39m,\n      column: \u001b[33m30\u001b[39m\n    },\n    steps: [],\n    attachmentIndices: [],\n    info: TestStepInfoImpl {\n      annotations: [],\n      _testInfo: \u001b[36m[TestInfoImpl]\u001b[39m,\n      _stepId: \u001b[32m'expect@27'\u001b[39m,\n      _title: \u001b[32m'Expect \"not toBe\"'\u001b[39m,\n      _parentStep: \u001b[90mundefined\u001b[39m,\n      skip: \u001b[36m[Function (anonymous)]\u001b[39m\n    },\n    recoverFromStepError: \u001b[36m[AsyncFunction: recoverFromStepError]\u001b[39m,\n    complete: \u001b[36m[Function: complete]\u001b[39m,\n    endWallTime: \u001b[33m1757427740225\u001b[39m,\n    error: {\n      message: \u001b[32m'Error: \\x1B[2mexpect(\\x1B[22m\\x1B[31mreceived\\x1B[39m\\x1B[2m).\\x1B[22mnot\\x1B[2m.\\x1B[22mtoBe\\x1B[2m(\\x1B[22m\\x1B[32mexpected\\x1B[39m\\x1B[2m) // Object.is equality\\x1B[22m\\n'\u001b[39m +\n        \u001b[32m'\\n'\u001b[39m +\n        \u001b[32m'Expected: not \\x1B[32m405\\x1B[39m'\u001b[39m,\n      stack: \u001b[32m'Error: \\x1B[2mexpect(\\x1B[22m\\x1B[31mreceived\\x1B[39m\\x1B[2m).\\x1B[22mnot\\x1B[2m.\\x1B[22mtoBe\\x1B[2m(\\x1B[22m\\x1B[32mexpected\\x1B[39m\\x1B[2m) // Object.is equality\\x1B[22m\\n'\u001b[39m +\n        \u001b[32m'\\n'\u001b[39m +\n        \u001b[32m'Expected: not \\x1B[32m405\\x1B[39m\\n'\u001b[39m +\n        \u001b[32m'    at /home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts:169:30'\u001b[39m,\n      cause: \u001b[90mundefined\u001b[39m\n    }\n  }\n}\n"
+                              "text": "/api/auth/register 응답 상태: 400\n"
                             }
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:19.505Z",
+                          "startTime": "2025-09-10T11:28:36.914Z",
                           "annotations": [],
-                          "attachments": [],
-                          "errorLocation": {
-                            "file": "/home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts",
-                            "column": 30,
-                            "line": 169
-                          }
-                        },
-                        {
-                          "workerIndex": 8,
-                          "parallelIndex": 4,
-                          "status": "failed",
-                          "duration": 522,
-                          "error": {
-                            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m405\u001b[39m",
-                            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m405\u001b[39m\n    at /home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts:169:30",
-                            "location": {
-                              "file": "/home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts",
-                              "column": 30,
-                              "line": 169
-                            },
-                            "snippet": "  167 |           \n  168 |           // 405 (Method Not Allowed)는 서버 구성 오류\n> 169 |           expect(status).not.toBe(405);\n      |                              ^\n  170 |           \n  171 |           // 500 (Internal Server Error)는 서버 장애\n  172 |           expect(status).not.toBe(500);"
-                          },
-                          "errors": [
-                            {
-                              "location": {
-                                "file": "/home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts",
-                                "column": 30,
-                                "line": 169
-                              },
-                              "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m405\u001b[39m\n\n  167 |           \n  168 |           // 405 (Method Not Allowed)는 서버 구성 오류\n> 169 |           expect(status).not.toBe(405);\n      |                              ^\n  170 |           \n  171 |           // 500 (Internal Server Error)는 서버 장애\n  172 |           expect(status).not.toBe(500);\n    at /home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts:169:30"
-                            }
-                          ],
-                          "stdout": [
-                            {
-                              "text": "/api/auth/login 응답 상태: 405\n"
-                            },
-                            {
-                              "text": "/api/auth/login 테스트 중 에러: ExpectError: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m405\u001b[39m\n    at \u001b[90m/home/winnmedia/videoprompt/\u001b[39mtests/production/smoke-production.spec.ts:169:30 {\n  matcherResult: {\n    actual: \u001b[33m405\u001b[39m,\n    expected: \u001b[33m405\u001b[39m,\n    message: \u001b[32m'\\x1B[2mexpect(\\x1B[22m\\x1B[31mreceived\\x1B[39m\\x1B[2m).\\x1B[22mnot\\x1B[2m.\\x1B[22mtoBe\\x1B[2m(\\x1B[22m\\x1B[32mexpected\\x1B[39m\\x1B[2m) // Object.is equality\\x1B[22m\\n'\u001b[39m +\n      \u001b[32m'\\n'\u001b[39m +\n      \u001b[32m'Expected: not \\x1B[32m405\\x1B[39m'\u001b[39m,\n    name: \u001b[32m'toBe'\u001b[39m,\n    pass: \u001b[33mtrue\u001b[39m\n  },\n  [\u001b[32mSymbol(step)\u001b[39m]: {\n    category: \u001b[32m'expect'\u001b[39m,\n    apiName: \u001b[32m'expect.not.toBe'\u001b[39m,\n    title: \u001b[32m'Expect \"not toBe\"'\u001b[39m,\n    params: { expected: \u001b[33m405\u001b[39m },\n    infectParentStepsWithError: \u001b[90mundefined\u001b[39m,\n    stepId: \u001b[32m'expect@27'\u001b[39m,\n    group: \u001b[90mundefined\u001b[39m,\n    boxedStack: \u001b[90mundefined\u001b[39m,\n    location: {\n      file: \u001b[32m'/home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts'\u001b[39m,\n      line: \u001b[33m169\u001b[39m,\n      column: \u001b[33m30\u001b[39m\n    },\n    steps: [],\n    attachmentIndices: [],\n    info: TestStepInfoImpl {\n      annotations: [],\n      _testInfo: \u001b[36m[TestInfoImpl]\u001b[39m,\n      _stepId: \u001b[32m'expect@27'\u001b[39m,\n      _title: \u001b[32m'Expect \"not toBe\"'\u001b[39m,\n      _parentStep: \u001b[90mundefined\u001b[39m,\n      skip: \u001b[36m[Function (anonymous)]\u001b[39m\n    },\n    recoverFromStepError: \u001b[36m[AsyncFunction: recoverFromStepError]\u001b[39m,\n    complete: \u001b[36m[Function: complete]\u001b[39m,\n    endWallTime: \u001b[33m1757427741653\u001b[39m,\n    error: {\n      message: \u001b[32m'Error: \\x1B[2mexpect(\\x1B[22m\\x1B[31mreceived\\x1B[39m\\x1B[2m).\\x1B[22mnot\\x1B[2m.\\x1B[22mtoBe\\x1B[2m(\\x1B[22m\\x1B[32mexpected\\x1B[39m\\x1B[2m) // Object.is equality\\x1B[22m\\n'\u001b[39m +\n        \u001b[32m'\\n'\u001b[39m +\n        \u001b[32m'Expected: not \\x1B[32m405\\x1B[39m'\u001b[39m,\n      stack: \u001b[32m'Error: \\x1B[2mexpect(\\x1B[22m\\x1B[31mreceived\\x1B[39m\\x1B[2m).\\x1B[22mnot\\x1B[2m.\\x1B[22mtoBe\\x1B[2m(\\x1B[22m\\x1B[32mexpected\\x1B[39m\\x1B[2m) // Object.is equality\\x1B[22m\\n'\u001b[39m +\n        \u001b[32m'\\n'\u001b[39m +\n        \u001b[32m'Expected: not \\x1B[32m405\\x1B[39m\\n'\u001b[39m +\n        \u001b[32m'    at /home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts:169:30'\u001b[39m,\n      cause: \u001b[90mundefined\u001b[39m\n    }\n  }\n}\n"
-                            }
-                          ],
-                          "stderr": [],
-                          "retry": 1,
-                          "startTime": "2025-09-09T14:22:21.142Z",
-                          "annotations": [],
-                          "attachments": [
-                            {
-                              "name": "trace",
-                              "contentType": "application/zip",
-                              "path": "/home/winnmedia/videoprompt/test-results/smoke-production-프로덕션-스모크--217d1-엔드포인트-인증-API-기본-응답-POST-요청--chromium-production-retry1/trace.zip"
-                            }
-                          ],
-                          "errorLocation": {
-                            "file": "/home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts",
-                            "column": 30,
-                            "line": 169
-                          }
+                          "attachments": []
                         }
                       ],
-                      "status": "unexpected"
+                      "status": "expected"
                     }
                   ],
                   "id": "cfbb785fabc6b36fea5a-f6a72af889ae20fde04a",
@@ -649,19 +575,19 @@
                       "projectName": "webkit-production",
                       "results": [
                         {
-                          "workerIndex": 12,
-                          "parallelIndex": 1,
+                          "workerIndex": 11,
+                          "parallelIndex": 5,
                           "status": "passed",
-                          "duration": 653,
+                          "duration": 153,
                           "errors": [],
                           "stdout": [
                             {
-                              "text": "전용 헬스체크 엔드포인트를 찾을 수 없음 - 메인 페이지로 대체 검증\n"
+                              "text": "헬스체크 엔드포인트 발견: /api/health\n"
                             }
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:21.838Z",
+                          "startTime": "2025-09-10T11:28:38.764Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -676,7 +602,7 @@
                 },
                 {
                   "title": "인증 API 기본 응답 (POST 요청)",
-                  "ok": false,
+                  "ok": true,
                   "tags": [],
                   "tests": [
                     {
@@ -687,101 +613,27 @@
                       "projectName": "webkit-production",
                       "results": [
                         {
-                          "workerIndex": 13,
-                          "parallelIndex": 2,
-                          "status": "failed",
-                          "duration": 487,
-                          "error": {
-                            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m405\u001b[39m",
-                            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m405\u001b[39m\n    at /home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts:169:30",
-                            "location": {
-                              "file": "/home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts",
-                              "column": 30,
-                              "line": 169
-                            },
-                            "snippet": "  167 |           \n  168 |           // 405 (Method Not Allowed)는 서버 구성 오류\n> 169 |           expect(status).not.toBe(405);\n      |                              ^\n  170 |           \n  171 |           // 500 (Internal Server Error)는 서버 장애\n  172 |           expect(status).not.toBe(500);"
-                          },
-                          "errors": [
-                            {
-                              "location": {
-                                "file": "/home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts",
-                                "column": 30,
-                                "line": 169
-                              },
-                              "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m405\u001b[39m\n\n  167 |           \n  168 |           // 405 (Method Not Allowed)는 서버 구성 오류\n> 169 |           expect(status).not.toBe(405);\n      |                              ^\n  170 |           \n  171 |           // 500 (Internal Server Error)는 서버 장애\n  172 |           expect(status).not.toBe(500);\n    at /home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts:169:30"
-                            }
-                          ],
+                          "workerIndex": 12,
+                          "parallelIndex": 3,
+                          "status": "passed",
+                          "duration": 413,
+                          "errors": [],
                           "stdout": [
                             {
-                              "text": "/api/auth/login 응답 상태: 405\n"
+                              "text": "/api/auth/login 응답 상태: 400\n"
                             },
                             {
-                              "text": "/api/auth/login 테스트 중 에러: ExpectError: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m405\u001b[39m\n    at \u001b[90m/home/winnmedia/videoprompt/\u001b[39mtests/production/smoke-production.spec.ts:169:30 {\n  matcherResult: {\n    actual: \u001b[33m405\u001b[39m,\n    expected: \u001b[33m405\u001b[39m,\n    message: \u001b[32m'\\x1B[2mexpect(\\x1B[22m\\x1B[31mreceived\\x1B[39m\\x1B[2m).\\x1B[22mnot\\x1B[2m.\\x1B[22mtoBe\\x1B[2m(\\x1B[22m\\x1B[32mexpected\\x1B[39m\\x1B[2m) // Object.is equality\\x1B[22m\\n'\u001b[39m +\n      \u001b[32m'\\n'\u001b[39m +\n      \u001b[32m'Expected: not \\x1B[32m405\\x1B[39m'\u001b[39m,\n    name: \u001b[32m'toBe'\u001b[39m,\n    pass: \u001b[33mtrue\u001b[39m\n  },\n  [\u001b[32mSymbol(step)\u001b[39m]: {\n    category: \u001b[32m'expect'\u001b[39m,\n    apiName: \u001b[32m'expect.not.toBe'\u001b[39m,\n    title: \u001b[32m'Expect \"not toBe\"'\u001b[39m,\n    params: { expected: \u001b[33m405\u001b[39m },\n    infectParentStepsWithError: \u001b[90mundefined\u001b[39m,\n    stepId: \u001b[32m'expect@27'\u001b[39m,\n    group: \u001b[90mundefined\u001b[39m,\n    boxedStack: \u001b[90mundefined\u001b[39m,\n    location: {\n      file: \u001b[32m'/home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts'\u001b[39m,\n      line: \u001b[33m169\u001b[39m,\n      column: \u001b[33m30\u001b[39m\n    },\n    steps: [],\n    attachmentIndices: [],\n    info: TestStepInfoImpl {\n      annotations: [],\n      _testInfo: \u001b[36m[TestInfoImpl]\u001b[39m,\n      _stepId: \u001b[32m'expect@27'\u001b[39m,\n      _title: \u001b[32m'Expect \"not toBe\"'\u001b[39m,\n      _parentStep: \u001b[90mundefined\u001b[39m,\n      skip: \u001b[36m[Function (anonymous)]\u001b[39m\n    },\n    recoverFromStepError: \u001b[36m[AsyncFunction: recoverFromStepError]\u001b[39m,\n    complete: \u001b[36m[Function: complete]\u001b[39m,\n    endWallTime: \u001b[33m1757427742481\u001b[39m,\n    error: {\n      message: \u001b[32m'Error: \\x1B[2mexpect(\\x1B[22m\\x1B[31mreceived\\x1B[39m\\x1B[2m).\\x1B[22mnot\\x1B[2m.\\x1B[22mtoBe\\x1B[2m(\\x1B[22m\\x1B[32mexpected\\x1B[39m\\x1B[2m) // Object.is equality\\x1B[22m\\n'\u001b[39m +\n        \u001b[32m'\\n'\u001b[39m +\n        \u001b[32m'Expected: not \\x1B[32m405\\x1B[39m'\u001b[39m,\n      stack: \u001b[32m'Error: \\x1B[2mexpect(\\x1B[22m\\x1B[31mreceived\\x1B[39m\\x1B[2m).\\x1B[22mnot\\x1B[2m.\\x1B[22mtoBe\\x1B[2m(\\x1B[22m\\x1B[32mexpected\\x1B[39m\\x1B[2m) // Object.is equality\\x1B[22m\\n'\u001b[39m +\n        \u001b[32m'\\n'\u001b[39m +\n        \u001b[32m'Expected: not \\x1B[32m405\\x1B[39m\\n'\u001b[39m +\n        \u001b[32m'    at /home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts:169:30'\u001b[39m,\n      cause: \u001b[90mundefined\u001b[39m\n    }\n  }\n}\n"
+                              "text": "/api/auth/register 응답 상태: 400\n"
                             }
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:21.994Z",
+                          "startTime": "2025-09-10T11:28:38.857Z",
                           "annotations": [],
-                          "attachments": [],
-                          "errorLocation": {
-                            "file": "/home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts",
-                            "column": 30,
-                            "line": 169
-                          }
-                        },
-                        {
-                          "workerIndex": 16,
-                          "parallelIndex": 2,
-                          "status": "failed",
-                          "duration": 620,
-                          "error": {
-                            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m405\u001b[39m",
-                            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m405\u001b[39m\n    at /home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts:169:30",
-                            "location": {
-                              "file": "/home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts",
-                              "column": 30,
-                              "line": 169
-                            },
-                            "snippet": "  167 |           \n  168 |           // 405 (Method Not Allowed)는 서버 구성 오류\n> 169 |           expect(status).not.toBe(405);\n      |                              ^\n  170 |           \n  171 |           // 500 (Internal Server Error)는 서버 장애\n  172 |           expect(status).not.toBe(500);"
-                          },
-                          "errors": [
-                            {
-                              "location": {
-                                "file": "/home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts",
-                                "column": 30,
-                                "line": 169
-                              },
-                              "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m405\u001b[39m\n\n  167 |           \n  168 |           // 405 (Method Not Allowed)는 서버 구성 오류\n> 169 |           expect(status).not.toBe(405);\n      |                              ^\n  170 |           \n  171 |           // 500 (Internal Server Error)는 서버 장애\n  172 |           expect(status).not.toBe(500);\n    at /home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts:169:30"
-                            }
-                          ],
-                          "stdout": [
-                            {
-                              "text": "/api/auth/login 응답 상태: 405\n"
-                            },
-                            {
-                              "text": "/api/auth/login 테스트 중 에러: ExpectError: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m405\u001b[39m\n    at \u001b[90m/home/winnmedia/videoprompt/\u001b[39mtests/production/smoke-production.spec.ts:169:30 {\n  matcherResult: {\n    actual: \u001b[33m405\u001b[39m,\n    expected: \u001b[33m405\u001b[39m,\n    message: \u001b[32m'\\x1B[2mexpect(\\x1B[22m\\x1B[31mreceived\\x1B[39m\\x1B[2m).\\x1B[22mnot\\x1B[2m.\\x1B[22mtoBe\\x1B[2m(\\x1B[22m\\x1B[32mexpected\\x1B[39m\\x1B[2m) // Object.is equality\\x1B[22m\\n'\u001b[39m +\n      \u001b[32m'\\n'\u001b[39m +\n      \u001b[32m'Expected: not \\x1B[32m405\\x1B[39m'\u001b[39m,\n    name: \u001b[32m'toBe'\u001b[39m,\n    pass: \u001b[33mtrue\u001b[39m\n  },\n  [\u001b[32mSymbol(step)\u001b[39m]: {\n    category: \u001b[32m'expect'\u001b[39m,\n    apiName: \u001b[32m'expect.not.toBe'\u001b[39m,\n    title: \u001b[32m'Expect \"not toBe\"'\u001b[39m,\n    params: { expected: \u001b[33m405\u001b[39m },\n    infectParentStepsWithError: \u001b[90mundefined\u001b[39m,\n    stepId: \u001b[32m'expect@27'\u001b[39m,\n    group: \u001b[90mundefined\u001b[39m,\n    boxedStack: \u001b[90mundefined\u001b[39m,\n    location: {\n      file: \u001b[32m'/home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts'\u001b[39m,\n      line: \u001b[33m169\u001b[39m,\n      column: \u001b[33m30\u001b[39m\n    },\n    steps: [],\n    attachmentIndices: [],\n    info: TestStepInfoImpl {\n      annotations: [],\n      _testInfo: \u001b[36m[TestInfoImpl]\u001b[39m,\n      _stepId: \u001b[32m'expect@27'\u001b[39m,\n      _title: \u001b[32m'Expect \"not toBe\"'\u001b[39m,\n      _parentStep: \u001b[90mundefined\u001b[39m,\n      skip: \u001b[36m[Function (anonymous)]\u001b[39m\n    },\n    recoverFromStepError: \u001b[36m[AsyncFunction: recoverFromStepError]\u001b[39m,\n    complete: \u001b[36m[Function: complete]\u001b[39m,\n    endWallTime: \u001b[33m1757427743997\u001b[39m,\n    error: {\n      message: \u001b[32m'Error: \\x1B[2mexpect(\\x1B[22m\\x1B[31mreceived\\x1B[39m\\x1B[2m).\\x1B[22mnot\\x1B[2m.\\x1B[22mtoBe\\x1B[2m(\\x1B[22m\\x1B[32mexpected\\x1B[39m\\x1B[2m) // Object.is equality\\x1B[22m\\n'\u001b[39m +\n        \u001b[32m'\\n'\u001b[39m +\n        \u001b[32m'Expected: not \\x1B[32m405\\x1B[39m'\u001b[39m,\n      stack: \u001b[32m'Error: \\x1B[2mexpect(\\x1B[22m\\x1B[31mreceived\\x1B[39m\\x1B[2m).\\x1B[22mnot\\x1B[2m.\\x1B[22mtoBe\\x1B[2m(\\x1B[22m\\x1B[32mexpected\\x1B[39m\\x1B[2m) // Object.is equality\\x1B[22m\\n'\u001b[39m +\n        \u001b[32m'\\n'\u001b[39m +\n        \u001b[32m'Expected: not \\x1B[32m405\\x1B[39m\\n'\u001b[39m +\n        \u001b[32m'    at /home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts:169:30'\u001b[39m,\n      cause: \u001b[90mundefined\u001b[39m\n    }\n  }\n}\n"
-                            }
-                          ],
-                          "stderr": [],
-                          "retry": 1,
-                          "startTime": "2025-09-09T14:22:23.414Z",
-                          "annotations": [],
-                          "attachments": [
-                            {
-                              "name": "trace",
-                              "contentType": "application/zip",
-                              "path": "/home/winnmedia/videoprompt/test-results/smoke-production-프로덕션-스모크--217d1-엔드포인트-인증-API-기본-응답-POST-요청--webkit-production-retry1/trace.zip"
-                            }
-                          ],
-                          "errorLocation": {
-                            "file": "/home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts",
-                            "column": 30,
-                            "line": 169
-                          }
+                          "attachments": []
                         }
                       ],
-                      "status": "unexpected"
+                      "status": "expected"
                     }
                   ],
                   "id": "cfbb785fabc6b36fea5a-e6df71928e43bbb368bd",
@@ -802,19 +654,19 @@
                       "projectName": "firefox-production",
                       "results": [
                         {
-                          "workerIndex": 21,
+                          "workerIndex": 18,
                           "parallelIndex": 1,
                           "status": "passed",
-                          "duration": 617,
+                          "duration": 172,
                           "errors": [],
                           "stdout": [
                             {
-                              "text": "전용 헬스체크 엔드포인트를 찾을 수 없음 - 메인 페이지로 대체 검증\n"
+                              "text": "헬스체크 엔드포인트 발견: /api/health\n"
                             }
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:25.754Z",
+                          "startTime": "2025-09-10T11:28:41.931Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -829,7 +681,7 @@
                 },
                 {
                   "title": "인증 API 기본 응답 (POST 요청)",
-                  "ok": false,
+                  "ok": true,
                   "tags": [],
                   "tests": [
                     {
@@ -840,101 +692,27 @@
                       "projectName": "firefox-production",
                       "results": [
                         {
-                          "workerIndex": 20,
-                          "parallelIndex": 3,
-                          "status": "failed",
-                          "duration": 466,
-                          "error": {
-                            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m405\u001b[39m",
-                            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m405\u001b[39m\n    at /home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts:169:30",
-                            "location": {
-                              "file": "/home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts",
-                              "column": 30,
-                              "line": 169
-                            },
-                            "snippet": "  167 |           \n  168 |           // 405 (Method Not Allowed)는 서버 구성 오류\n> 169 |           expect(status).not.toBe(405);\n      |                              ^\n  170 |           \n  171 |           // 500 (Internal Server Error)는 서버 장애\n  172 |           expect(status).not.toBe(500);"
-                          },
-                          "errors": [
-                            {
-                              "location": {
-                                "file": "/home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts",
-                                "column": 30,
-                                "line": 169
-                              },
-                              "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m405\u001b[39m\n\n  167 |           \n  168 |           // 405 (Method Not Allowed)는 서버 구성 오류\n> 169 |           expect(status).not.toBe(405);\n      |                              ^\n  170 |           \n  171 |           // 500 (Internal Server Error)는 서버 장애\n  172 |           expect(status).not.toBe(500);\n    at /home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts:169:30"
-                            }
-                          ],
+                          "workerIndex": 19,
+                          "parallelIndex": 4,
+                          "status": "passed",
+                          "duration": 473,
+                          "errors": [],
                           "stdout": [
                             {
-                              "text": "/api/auth/login 응답 상태: 405\n"
+                              "text": "/api/auth/login 응답 상태: 400\n"
                             },
                             {
-                              "text": "/api/auth/login 테스트 중 에러: ExpectError: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m405\u001b[39m\n    at \u001b[90m/home/winnmedia/videoprompt/\u001b[39mtests/production/smoke-production.spec.ts:169:30 {\n  matcherResult: {\n    actual: \u001b[33m405\u001b[39m,\n    expected: \u001b[33m405\u001b[39m,\n    message: \u001b[32m'\\x1B[2mexpect(\\x1B[22m\\x1B[31mreceived\\x1B[39m\\x1B[2m).\\x1B[22mnot\\x1B[2m.\\x1B[22mtoBe\\x1B[2m(\\x1B[22m\\x1B[32mexpected\\x1B[39m\\x1B[2m) // Object.is equality\\x1B[22m\\n'\u001b[39m +\n      \u001b[32m'\\n'\u001b[39m +\n      \u001b[32m'Expected: not \\x1B[32m405\\x1B[39m'\u001b[39m,\n    name: \u001b[32m'toBe'\u001b[39m,\n    pass: \u001b[33mtrue\u001b[39m\n  },\n  [\u001b[32mSymbol(step)\u001b[39m]: {\n    category: \u001b[32m'expect'\u001b[39m,\n    apiName: \u001b[32m'expect.not.toBe'\u001b[39m,\n    title: \u001b[32m'Expect \"not toBe\"'\u001b[39m,\n    params: { expected: \u001b[33m405\u001b[39m },\n    infectParentStepsWithError: \u001b[90mundefined\u001b[39m,\n    stepId: \u001b[32m'expect@27'\u001b[39m,\n    group: \u001b[90mundefined\u001b[39m,\n    boxedStack: \u001b[90mundefined\u001b[39m,\n    location: {\n      file: \u001b[32m'/home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts'\u001b[39m,\n      line: \u001b[33m169\u001b[39m,\n      column: \u001b[33m30\u001b[39m\n    },\n    steps: [],\n    attachmentIndices: [],\n    info: TestStepInfoImpl {\n      annotations: [],\n      _testInfo: \u001b[36m[TestInfoImpl]\u001b[39m,\n      _stepId: \u001b[32m'expect@27'\u001b[39m,\n      _title: \u001b[32m'Expect \"not toBe\"'\u001b[39m,\n      _parentStep: \u001b[90mundefined\u001b[39m,\n      skip: \u001b[36m[Function (anonymous)]\u001b[39m\n    },\n    recoverFromStepError: \u001b[36m[AsyncFunction: recoverFromStepError]\u001b[39m,\n    complete: \u001b[36m[Function: complete]\u001b[39m,\n    endWallTime: \u001b[33m1757427746159\u001b[39m,\n    error: {\n      message: \u001b[32m'Error: \\x1B[2mexpect(\\x1B[22m\\x1B[31mreceived\\x1B[39m\\x1B[2m).\\x1B[22mnot\\x1B[2m.\\x1B[22mtoBe\\x1B[2m(\\x1B[22m\\x1B[32mexpected\\x1B[39m\\x1B[2m) // Object.is equality\\x1B[22m\\n'\u001b[39m +\n        \u001b[32m'\\n'\u001b[39m +\n        \u001b[32m'Expected: not \\x1B[32m405\\x1B[39m'\u001b[39m,\n      stack: \u001b[32m'Error: \\x1B[2mexpect(\\x1B[22m\\x1B[31mreceived\\x1B[39m\\x1B[2m).\\x1B[22mnot\\x1B[2m.\\x1B[22mtoBe\\x1B[2m(\\x1B[22m\\x1B[32mexpected\\x1B[39m\\x1B[2m) // Object.is equality\\x1B[22m\\n'\u001b[39m +\n        \u001b[32m'\\n'\u001b[39m +\n        \u001b[32m'Expected: not \\x1B[32m405\\x1B[39m\\n'\u001b[39m +\n        \u001b[32m'    at /home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts:169:30'\u001b[39m,\n      cause: \u001b[90mundefined\u001b[39m\n    }\n  }\n}\n"
+                              "text": "/api/auth/register 응답 상태: 400\n"
                             }
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:25.685Z",
+                          "startTime": "2025-09-10T11:28:42.138Z",
                           "annotations": [],
-                          "attachments": [],
-                          "errorLocation": {
-                            "file": "/home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts",
-                            "column": 30,
-                            "line": 169
-                          }
-                        },
-                        {
-                          "workerIndex": 24,
-                          "parallelIndex": 3,
-                          "status": "failed",
-                          "duration": 527,
-                          "error": {
-                            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m405\u001b[39m",
-                            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m405\u001b[39m\n    at /home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts:169:30",
-                            "location": {
-                              "file": "/home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts",
-                              "column": 30,
-                              "line": 169
-                            },
-                            "snippet": "  167 |           \n  168 |           // 405 (Method Not Allowed)는 서버 구성 오류\n> 169 |           expect(status).not.toBe(405);\n      |                              ^\n  170 |           \n  171 |           // 500 (Internal Server Error)는 서버 장애\n  172 |           expect(status).not.toBe(500);"
-                          },
-                          "errors": [
-                            {
-                              "location": {
-                                "file": "/home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts",
-                                "column": 30,
-                                "line": 169
-                              },
-                              "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m405\u001b[39m\n\n  167 |           \n  168 |           // 405 (Method Not Allowed)는 서버 구성 오류\n> 169 |           expect(status).not.toBe(405);\n      |                              ^\n  170 |           \n  171 |           // 500 (Internal Server Error)는 서버 장애\n  172 |           expect(status).not.toBe(500);\n    at /home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts:169:30"
-                            }
-                          ],
-                          "stdout": [
-                            {
-                              "text": "/api/auth/login 응답 상태: 405\n"
-                            },
-                            {
-                              "text": "/api/auth/login 테스트 중 에러: ExpectError: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m405\u001b[39m\n    at \u001b[90m/home/winnmedia/videoprompt/\u001b[39mtests/production/smoke-production.spec.ts:169:30 {\n  matcherResult: {\n    actual: \u001b[33m405\u001b[39m,\n    expected: \u001b[33m405\u001b[39m,\n    message: \u001b[32m'\\x1B[2mexpect(\\x1B[22m\\x1B[31mreceived\\x1B[39m\\x1B[2m).\\x1B[22mnot\\x1B[2m.\\x1B[22mtoBe\\x1B[2m(\\x1B[22m\\x1B[32mexpected\\x1B[39m\\x1B[2m) // Object.is equality\\x1B[22m\\n'\u001b[39m +\n      \u001b[32m'\\n'\u001b[39m +\n      \u001b[32m'Expected: not \\x1B[32m405\\x1B[39m'\u001b[39m,\n    name: \u001b[32m'toBe'\u001b[39m,\n    pass: \u001b[33mtrue\u001b[39m\n  },\n  [\u001b[32mSymbol(step)\u001b[39m]: {\n    category: \u001b[32m'expect'\u001b[39m,\n    apiName: \u001b[32m'expect.not.toBe'\u001b[39m,\n    title: \u001b[32m'Expect \"not toBe\"'\u001b[39m,\n    params: { expected: \u001b[33m405\u001b[39m },\n    infectParentStepsWithError: \u001b[90mundefined\u001b[39m,\n    stepId: \u001b[32m'expect@27'\u001b[39m,\n    group: \u001b[90mundefined\u001b[39m,\n    boxedStack: \u001b[90mundefined\u001b[39m,\n    location: {\n      file: \u001b[32m'/home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts'\u001b[39m,\n      line: \u001b[33m169\u001b[39m,\n      column: \u001b[33m30\u001b[39m\n    },\n    steps: [],\n    attachmentIndices: [],\n    info: TestStepInfoImpl {\n      annotations: [],\n      _testInfo: \u001b[36m[TestInfoImpl]\u001b[39m,\n      _stepId: \u001b[32m'expect@27'\u001b[39m,\n      _title: \u001b[32m'Expect \"not toBe\"'\u001b[39m,\n      _parentStep: \u001b[90mundefined\u001b[39m,\n      skip: \u001b[36m[Function (anonymous)]\u001b[39m\n    },\n    recoverFromStepError: \u001b[36m[AsyncFunction: recoverFromStepError]\u001b[39m,\n    complete: \u001b[36m[Function: complete]\u001b[39m,\n    endWallTime: \u001b[33m1757427747348\u001b[39m,\n    error: {\n      message: \u001b[32m'Error: \\x1B[2mexpect(\\x1B[22m\\x1B[31mreceived\\x1B[39m\\x1B[2m).\\x1B[22mnot\\x1B[2m.\\x1B[22mtoBe\\x1B[2m(\\x1B[22m\\x1B[32mexpected\\x1B[39m\\x1B[2m) // Object.is equality\\x1B[22m\\n'\u001b[39m +\n        \u001b[32m'\\n'\u001b[39m +\n        \u001b[32m'Expected: not \\x1B[32m405\\x1B[39m'\u001b[39m,\n      stack: \u001b[32m'Error: \\x1B[2mexpect(\\x1B[22m\\x1B[31mreceived\\x1B[39m\\x1B[2m).\\x1B[22mnot\\x1B[2m.\\x1B[22mtoBe\\x1B[2m(\\x1B[22m\\x1B[32mexpected\\x1B[39m\\x1B[2m) // Object.is equality\\x1B[22m\\n'\u001b[39m +\n        \u001b[32m'\\n'\u001b[39m +\n        \u001b[32m'Expected: not \\x1B[32m405\\x1B[39m\\n'\u001b[39m +\n        \u001b[32m'    at /home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts:169:30'\u001b[39m,\n      cause: \u001b[90mundefined\u001b[39m\n    }\n  }\n}\n"
-                            }
-                          ],
-                          "stderr": [],
-                          "retry": 1,
-                          "startTime": "2025-09-09T14:22:26.840Z",
-                          "annotations": [],
-                          "attachments": [
-                            {
-                              "name": "trace",
-                              "contentType": "application/zip",
-                              "path": "/home/winnmedia/videoprompt/test-results/smoke-production-프로덕션-스모크--217d1-엔드포인트-인증-API-기본-응답-POST-요청--firefox-production-retry1/trace.zip"
-                            }
-                          ],
-                          "errorLocation": {
-                            "file": "/home/winnmedia/videoprompt/tests/production/smoke-production.spec.ts",
-                            "column": 30,
-                            "line": 169
-                          }
+                          "attachments": []
                         }
                       ],
-                      "status": "unexpected"
+                      "status": "expected"
                     }
                   ],
                   "id": "cfbb785fabc6b36fea5a-9d9c41436b1dde8851d2",
@@ -947,7 +725,7 @@
             {
               "title": "기본 사용자 플로우",
               "file": "smoke-production.spec.ts",
-              "line": 190,
+              "line": 188,
               "column": 8,
               "specs": [
                 {
@@ -966,7 +744,7 @@
                           "workerIndex": 5,
                           "parallelIndex": 5,
                           "status": "passed",
-                          "duration": 957,
+                          "duration": 1051,
                           "errors": [],
                           "stdout": [
                             {
@@ -981,7 +759,7 @@
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:19.527Z",
+                          "startTime": "2025-09-10T11:28:36.921Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -991,7 +769,7 @@
                   ],
                   "id": "cfbb785fabc6b36fea5a-3a621f630d2161b98d97",
                   "file": "smoke-production.spec.ts",
-                  "line": 192,
+                  "line": 190,
                   "column": 9
                 },
                 {
@@ -1010,7 +788,7 @@
                           "workerIndex": 6,
                           "parallelIndex": 6,
                           "status": "passed",
-                          "duration": 1058,
+                          "duration": 875,
                           "errors": [],
                           "stdout": [
                             {
@@ -1019,7 +797,7 @@
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:19.501Z",
+                          "startTime": "2025-09-10T11:28:36.952Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -1029,11 +807,55 @@
                   ],
                   "id": "cfbb785fabc6b36fea5a-7d8a4d4faddb2f9392d2",
                   "file": "smoke-production.spec.ts",
-                  "line": 214,
+                  "line": 212,
                   "column": 9
                 },
                 {
                   "title": "회원가입 페이지 접근 및 폼 존재",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit-production",
+                      "projectName": "webkit-production",
+                      "results": [
+                        {
+                          "workerIndex": 13,
+                          "parallelIndex": 2,
+                          "status": "passed",
+                          "duration": 1234,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "email 필드 확인됨\n"
+                            },
+                            {
+                              "text": "password 필드 확인됨\n"
+                            },
+                            {
+                              "text": "submit 필드 확인됨\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-09-10T11:28:39.193Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "cfbb785fabc6b36fea5a-4d737ab2b2e33a86a16f",
+                  "file": "smoke-production.spec.ts",
+                  "line": 190,
+                  "column": 9
+                },
+                {
+                  "title": "로그인 페이지 접근 및 폼 존재",
                   "ok": true,
                   "tags": [],
                   "tests": [
@@ -1048,51 +870,7 @@
                           "workerIndex": 14,
                           "parallelIndex": 4,
                           "status": "passed",
-                          "duration": 1398,
-                          "errors": [],
-                          "stdout": [
-                            {
-                              "text": "email 필드 확인됨\n"
-                            },
-                            {
-                              "text": "password 필드 확인됨\n"
-                            },
-                            {
-                              "text": "submit 필드 확인됨\n"
-                            }
-                          ],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2025-09-09T14:22:22.534Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
-                    }
-                  ],
-                  "id": "cfbb785fabc6b36fea5a-4d737ab2b2e33a86a16f",
-                  "file": "smoke-production.spec.ts",
-                  "line": 192,
-                  "column": 9
-                },
-                {
-                  "title": "로그인 페이지 접근 및 폼 존재",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 60000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "webkit-production",
-                      "projectName": "webkit-production",
-                      "results": [
-                        {
-                          "workerIndex": 15,
-                          "parallelIndex": 7,
-                          "status": "passed",
-                          "duration": 1970,
+                          "duration": 1622,
                           "errors": [],
                           "stdout": [
                             {
@@ -1101,7 +879,7 @@
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:23.222Z",
+                          "startTime": "2025-09-10T11:28:39.450Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -1111,7 +889,7 @@
                   ],
                   "id": "cfbb785fabc6b36fea5a-603cfa419d1de981932d",
                   "file": "smoke-production.spec.ts",
-                  "line": 214,
+                  "line": 212,
                   "column": 9
                 },
                 {
@@ -1127,10 +905,10 @@
                       "projectName": "firefox-production",
                       "results": [
                         {
-                          "workerIndex": 22,
+                          "workerIndex": 20,
                           "parallelIndex": 0,
                           "status": "passed",
-                          "duration": 2259,
+                          "duration": 1910,
                           "errors": [],
                           "stdout": [
                             {
@@ -1145,7 +923,7 @@
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:26.098Z",
+                          "startTime": "2025-09-10T11:28:42.372Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -1155,7 +933,7 @@
                   ],
                   "id": "cfbb785fabc6b36fea5a-36d8a1d541066a590fd0",
                   "file": "smoke-production.spec.ts",
-                  "line": 192,
+                  "line": 190,
                   "column": 9
                 },
                 {
@@ -1171,10 +949,10 @@
                       "projectName": "firefox-production",
                       "results": [
                         {
-                          "workerIndex": 23,
-                          "parallelIndex": 7,
+                          "workerIndex": 21,
+                          "parallelIndex": 6,
                           "status": "passed",
-                          "duration": 2136,
+                          "duration": 1972,
                           "errors": [],
                           "stdout": [
                             {
@@ -1183,7 +961,7 @@
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:26.199Z",
+                          "startTime": "2025-09-10T11:28:42.572Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -1193,7 +971,7 @@
                   ],
                   "id": "cfbb785fabc6b36fea5a-4e604a906e0683d91369",
                   "file": "smoke-production.spec.ts",
-                  "line": 214,
+                  "line": 212,
                   "column": 9
                 }
               ]
@@ -1201,7 +979,7 @@
             {
               "title": "검색엔진 최적화 기본 요소",
               "file": "smoke-production.spec.ts",
-              "line": 231,
+              "line": 229,
               "column": 8,
               "specs": [
                 {
@@ -1220,7 +998,7 @@
                           "workerIndex": 7,
                           "parallelIndex": 7,
                           "status": "passed",
-                          "duration": 887,
+                          "duration": 934,
                           "errors": [],
                           "stdout": [
                             {
@@ -1241,7 +1019,7 @@
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:19.513Z",
+                          "startTime": "2025-09-10T11:28:36.950Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -1251,310 +1029,11 @@
                   ],
                   "id": "cfbb785fabc6b36fea5a-72520cd72453e193bc44",
                   "file": "smoke-production.spec.ts",
-                  "line": 233,
+                  "line": 231,
                   "column": 9
                 },
                 {
                   "title": "구조화된 데이터 및 접근성 기본 요소",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 60000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium-production",
-                      "projectName": "chromium-production",
-                      "results": [
-                        {
-                          "workerIndex": 1,
-                          "parallelIndex": 1,
-                          "status": "passed",
-                          "duration": 645,
-                          "errors": [],
-                          "stdout": [
-                            {
-                              "text": "구조 요소들:\n"
-                            },
-                            {
-                              "text": "- 헤딩 요소: 14개\n"
-                            },
-                            {
-                              "text": "- 네비게이션: 1개\n"
-                            },
-                            {
-                              "text": "- 메인 콘텐츠: 1개\n"
-                            },
-                            {
-                              "text": "- 이미지: 1개\n"
-                            }
-                          ],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2025-09-09T14:22:20.483Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
-                    }
-                  ],
-                  "id": "cfbb785fabc6b36fea5a-78293ca19636db670716",
-                  "file": "smoke-production.spec.ts",
-                  "line": 264,
-                  "column": 9
-                },
-                {
-                  "title": "메타태그 및 SEO 기본 요소",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 60000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "webkit-production",
-                      "projectName": "webkit-production",
-                      "results": [
-                        {
-                          "workerIndex": 12,
-                          "parallelIndex": 1,
-                          "status": "passed",
-                          "duration": 1667,
-                          "errors": [],
-                          "stdout": [
-                            {
-                              "text": "SEO 기본 요소들:\n"
-                            },
-                            {
-                              "text": "- 타이틀: VLANET - AI 영상 플랫폼\n"
-                            },
-                            {
-                              "text": "- 설명: AI 시나리오 · 프롬프트 · 영상 생성 · 피드백 파이프라인\n"
-                            },
-                            {
-                              "text": "- 뷰포트: width=device-width, initial-scale=1\n"
-                            },
-                            {
-                              "text": "- 문자셋: utf-8\n"
-                            }
-                          ],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2025-09-09T14:22:22.526Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
-                    }
-                  ],
-                  "id": "cfbb785fabc6b36fea5a-b7303ef29c1cae09cf7b",
-                  "file": "smoke-production.spec.ts",
-                  "line": 233,
-                  "column": 9
-                },
-                {
-                  "title": "구조화된 데이터 및 접근성 기본 요소",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 60000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "webkit-production",
-                      "projectName": "webkit-production",
-                      "results": [
-                        {
-                          "workerIndex": 10,
-                          "parallelIndex": 5,
-                          "status": "passed",
-                          "duration": 1532,
-                          "errors": [],
-                          "stdout": [
-                            {
-                              "text": "구조 요소들:\n"
-                            },
-                            {
-                              "text": "- 헤딩 요소: 14개\n"
-                            },
-                            {
-                              "text": "- 네비게이션: 1개\n"
-                            },
-                            {
-                              "text": "- 메인 콘텐츠: 1개\n"
-                            },
-                            {
-                              "text": "- 이미지: 1개\n"
-                            }
-                          ],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2025-09-09T14:22:22.606Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
-                    }
-                  ],
-                  "id": "cfbb785fabc6b36fea5a-53345f18c76f330bd1ea",
-                  "file": "smoke-production.spec.ts",
-                  "line": 264,
-                  "column": 9
-                },
-                {
-                  "title": "메타태그 및 SEO 기본 요소",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 60000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "firefox-production",
-                      "projectName": "firefox-production",
-                      "results": [
-                        {
-                          "workerIndex": 21,
-                          "parallelIndex": 1,
-                          "status": "passed",
-                          "duration": 2072,
-                          "errors": [],
-                          "stdout": [
-                            {
-                              "text": "SEO 기본 요소들:\n"
-                            },
-                            {
-                              "text": "- 타이틀: VLANET - AI 영상 플랫폼\n"
-                            },
-                            {
-                              "text": "- 설명: AI 시나리오 · 프롬프트 · 영상 생성 · 피드백 파이프라인\n"
-                            },
-                            {
-                              "text": "- 뷰포트: width=device-width, initial-scale=1\n"
-                            },
-                            {
-                              "text": "- 문자셋: utf-8\n"
-                            }
-                          ],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2025-09-09T14:22:26.399Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
-                    }
-                  ],
-                  "id": "cfbb785fabc6b36fea5a-9fee9fbfb19dd73a5f3a",
-                  "file": "smoke-production.spec.ts",
-                  "line": 233,
-                  "column": 9
-                },
-                {
-                  "title": "구조화된 데이터 및 접근성 기본 요소",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 60000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "firefox-production",
-                      "projectName": "firefox-production",
-                      "results": [
-                        {
-                          "workerIndex": 25,
-                          "parallelIndex": 3,
-                          "status": "passed",
-                          "duration": 1859,
-                          "errors": [],
-                          "stdout": [
-                            {
-                              "text": "구조 요소들:\n"
-                            },
-                            {
-                              "text": "- 헤딩 요소: 14개\n"
-                            },
-                            {
-                              "text": "- 네비게이션: 1개\n"
-                            },
-                            {
-                              "text": "- 메인 콘텐츠: 1개\n"
-                            },
-                            {
-                              "text": "- 이미지: 1개\n"
-                            }
-                          ],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2025-09-09T14:22:28.284Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
-                    }
-                  ],
-                  "id": "cfbb785fabc6b36fea5a-a465e312467f16917a48",
-                  "file": "smoke-production.spec.ts",
-                  "line": 264,
-                  "column": 9
-                }
-              ]
-            },
-            {
-              "title": "성능 기본 임계값",
-              "file": "smoke-production.spec.ts",
-              "line": 288,
-              "column": 8,
-              "specs": [
-                {
-                  "title": "페이지 로드 시간 임계값",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 60000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium-production",
-                      "projectName": "chromium-production",
-                      "results": [
-                        {
-                          "workerIndex": 7,
-                          "parallelIndex": 7,
-                          "status": "passed",
-                          "duration": 1704,
-                          "errors": [],
-                          "stdout": [
-                            {
-                              "text": "DOM 로드 시간: 108ms\n"
-                            },
-                            {
-                              "text": "전체 로드 시간: 1424ms\n"
-                            }
-                          ],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2025-09-09T14:22:20.565Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
-                    }
-                  ],
-                  "id": "cfbb785fabc6b36fea5a-602a3aa0f4914b364d87",
-                  "file": "smoke-production.spec.ts",
-                  "line": 290,
-                  "column": 9
-                },
-                {
-                  "title": "JavaScript 에러 모니터링",
                   "ok": true,
                   "tags": [],
                   "tests": [
@@ -1569,22 +1048,28 @@
                           "workerIndex": 3,
                           "parallelIndex": 3,
                           "status": "passed",
-                          "duration": 3895,
+                          "duration": 868,
                           "errors": [],
                           "stdout": [
                             {
-                              "text": "JavaScript 에러: 1개 (심각한 에러: 1개)\n"
+                              "text": "구조 요소들:\n"
                             },
                             {
-                              "text": "JavaScript 경고: 0개\n"
+                              "text": "- 헤딩 요소: 14개\n"
                             },
                             {
-                              "text": "심각한 에러들: [\n  \u001b[32m'Failed to load resource: the server responded with a status of 500 ()'\u001b[39m\n]\n"
+                              "text": "- 네비게이션: 1개\n"
+                            },
+                            {
+                              "text": "- 메인 콘텐츠: 1개\n"
+                            },
+                            {
+                              "text": "- 이미지: 1개\n"
                             }
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:20.600Z",
+                          "startTime": "2025-09-10T11:28:37.214Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -1592,54 +1077,13 @@
                       "status": "expected"
                     }
                   ],
-                  "id": "cfbb785fabc6b36fea5a-02b33f41e135cb8061d2",
+                  "id": "cfbb785fabc6b36fea5a-78293ca19636db670716",
                   "file": "smoke-production.spec.ts",
-                  "line": 310,
+                  "line": 262,
                   "column": 9
                 },
                 {
-                  "title": "페이지 로드 시간 임계값",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 60000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "webkit-production",
-                      "projectName": "webkit-production",
-                      "results": [
-                        {
-                          "workerIndex": 9,
-                          "parallelIndex": 0,
-                          "status": "passed",
-                          "duration": 2253,
-                          "errors": [],
-                          "stdout": [
-                            {
-                              "text": "DOM 로드 시간: 214ms\n"
-                            },
-                            {
-                              "text": "전체 로드 시간: 1507ms\n"
-                            }
-                          ],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2025-09-09T14:22:22.717Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
-                    }
-                  ],
-                  "id": "cfbb785fabc6b36fea5a-06acd5559dd356894de8",
-                  "file": "smoke-production.spec.ts",
-                  "line": 290,
-                  "column": 9
-                },
-                {
-                  "title": "JavaScript 에러 모니터링",
+                  "title": "메타태그 및 SEO 기본 요소",
                   "ok": true,
                   "tags": [],
                   "tests": [
@@ -1652,9 +1096,343 @@
                       "results": [
                         {
                           "workerIndex": 11,
+                          "parallelIndex": 5,
+                          "status": "passed",
+                          "duration": 1299,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "SEO 기본 요소들:\n"
+                            },
+                            {
+                              "text": "- 타이틀: VLANET - AI 영상 플랫폼\n"
+                            },
+                            {
+                              "text": "- 설명: AI 시나리오 · 프롬프트 · 영상 생성 · 피드백 파이프라인\n"
+                            },
+                            {
+                              "text": "- 뷰포트: width=device-width, initial-scale=1\n"
+                            },
+                            {
+                              "text": "- 문자셋: utf-8\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-09-10T11:28:38.949Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "cfbb785fabc6b36fea5a-b7303ef29c1cae09cf7b",
+                  "file": "smoke-production.spec.ts",
+                  "line": 231,
+                  "column": 9
+                },
+                {
+                  "title": "구조화된 데이터 및 접근성 기본 요소",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit-production",
+                      "projectName": "webkit-production",
+                      "results": [
+                        {
+                          "workerIndex": 12,
+                          "parallelIndex": 3,
+                          "status": "passed",
+                          "duration": 1370,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "구조 요소들:\n"
+                            },
+                            {
+                              "text": "- 헤딩 요소: 14개\n"
+                            },
+                            {
+                              "text": "- 네비게이션: 1개\n"
+                            },
+                            {
+                              "text": "- 메인 콘텐츠: 1개\n"
+                            },
+                            {
+                              "text": "- 이미지: 1개\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-09-10T11:28:39.299Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "cfbb785fabc6b36fea5a-53345f18c76f330bd1ea",
+                  "file": "smoke-production.spec.ts",
+                  "line": 262,
+                  "column": 9
+                },
+                {
+                  "title": "메타태그 및 SEO 기본 요소",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox-production",
+                      "projectName": "firefox-production",
+                      "results": [
+                        {
+                          "workerIndex": 18,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 1893,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "SEO 기본 요소들:\n"
+                            },
+                            {
+                              "text": "- 타이틀: VLANET - AI 영상 플랫폼\n"
+                            },
+                            {
+                              "text": "- 설명: AI 시나리오 · 프롬프트 · 영상 생성 · 피드백 파이프라인\n"
+                            },
+                            {
+                              "text": "- 뷰포트: width=device-width, initial-scale=1\n"
+                            },
+                            {
+                              "text": "- 문자셋: utf-8\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-09-10T11:28:42.132Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "cfbb785fabc6b36fea5a-9fee9fbfb19dd73a5f3a",
+                  "file": "smoke-production.spec.ts",
+                  "line": 231,
+                  "column": 9
+                },
+                {
+                  "title": "구조화된 데이터 및 접근성 기본 요소",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox-production",
+                      "projectName": "firefox-production",
+                      "results": [
+                        {
+                          "workerIndex": 19,
+                          "parallelIndex": 4,
+                          "status": "passed",
+                          "duration": 2236,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "구조 요소들:\n"
+                            },
+                            {
+                              "text": "- 헤딩 요소: 14개\n"
+                            },
+                            {
+                              "text": "- 네비게이션: 1개\n"
+                            },
+                            {
+                              "text": "- 메인 콘텐츠: 1개\n"
+                            },
+                            {
+                              "text": "- 이미지: 1개\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-09-10T11:28:42.638Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "cfbb785fabc6b36fea5a-a465e312467f16917a48",
+                  "file": "smoke-production.spec.ts",
+                  "line": 262,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "성능 기본 임계값",
+              "file": "smoke-production.spec.ts",
+              "line": 286,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "페이지 로드 시간 임계값",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium-production",
+                      "projectName": "chromium-production",
+                      "results": [
+                        {
+                          "workerIndex": 4,
+                          "parallelIndex": 4,
+                          "status": "passed",
+                          "duration": 1284,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "DOM 로드 시간: 189ms\n"
+                            },
+                            {
+                              "text": "전체 로드 시간: 1002ms\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-09-10T11:28:37.344Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "cfbb785fabc6b36fea5a-602a3aa0f4914b364d87",
+                  "file": "smoke-production.spec.ts",
+                  "line": 288,
+                  "column": 9
+                },
+                {
+                  "title": "JavaScript 에러 모니터링",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium-production",
+                      "projectName": "chromium-production",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 3760,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "JavaScript 에러: 1개 (심각한 에러: 1개)\n"
+                            },
+                            {
+                              "text": "JavaScript 경고: 0개\n"
+                            },
+                            {
+                              "text": "심각한 에러들: [\n  \u001b[32m'Failed to load resource: the server responded with a status of 401 ()'\u001b[39m\n]\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-09-10T11:28:37.898Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "cfbb785fabc6b36fea5a-02b33f41e135cb8061d2",
+                  "file": "smoke-production.spec.ts",
+                  "line": 308,
+                  "column": 9
+                },
+                {
+                  "title": "페이지 로드 시간 임계값",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit-production",
+                      "projectName": "webkit-production",
+                      "results": [
+                        {
+                          "workerIndex": 8,
                           "parallelIndex": 6,
                           "status": "passed",
-                          "duration": 4520,
+                          "duration": 1899,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "DOM 로드 시간: 274ms\n"
+                            },
+                            {
+                              "text": "전체 로드 시간: 1286ms\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-09-10T11:28:39.883Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "cfbb785fabc6b36fea5a-06acd5559dd356894de8",
+                  "file": "smoke-production.spec.ts",
+                  "line": 288,
+                  "column": 9
+                },
+                {
+                  "title": "JavaScript 에러 모니터링",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit-production",
+                      "projectName": "webkit-production",
+                      "results": [
+                        {
+                          "workerIndex": 9,
+                          "parallelIndex": 7,
+                          "status": "passed",
+                          "duration": 4426,
                           "errors": [],
                           "stdout": [
                             {
@@ -1664,12 +1442,12 @@
                               "text": "JavaScript 경고: 1개\n"
                             },
                             {
-                              "text": "심각한 에러들: [\n  \u001b[32m'Failed to load resource: the server responded with a status of 500 (Internal Server Error)'\u001b[39m\n]\n"
+                              "text": "심각한 에러들: [\n  \u001b[32m'Failed to load resource: the server responded with a status of 401 (Unauthorized)'\u001b[39m\n]\n"
                             }
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:23.801Z",
+                          "startTime": "2025-09-10T11:28:40.032Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -1679,7 +1457,7 @@
                   ],
                   "id": "cfbb785fabc6b36fea5a-a34fbd0f89c2fb49234b",
                   "file": "smoke-production.spec.ts",
-                  "line": 310,
+                  "line": 308,
                   "column": 9
                 },
                 {
@@ -1695,22 +1473,22 @@
                       "projectName": "firefox-production",
                       "results": [
                         {
-                          "workerIndex": 26,
-                          "parallelIndex": 6,
+                          "workerIndex": 15,
+                          "parallelIndex": 5,
                           "status": "passed",
-                          "duration": 2536,
+                          "duration": 1405,
                           "errors": [],
                           "stdout": [
                             {
-                              "text": "DOM 로드 시간: 405ms\n"
+                              "text": "DOM 로드 시간: 234ms\n"
                             },
                             {
-                              "text": "전체 로드 시간: 1382ms\n"
+                              "text": "전체 로드 시간: 970ms\n"
                             }
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:29.366Z",
+                          "startTime": "2025-09-10T11:28:43.526Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -1720,7 +1498,7 @@
                   ],
                   "id": "cfbb785fabc6b36fea5a-c069fc83626160956885",
                   "file": "smoke-production.spec.ts",
-                  "line": 290,
+                  "line": 288,
                   "column": 9
                 },
                 {
@@ -1736,10 +1514,10 @@
                       "projectName": "firefox-production",
                       "results": [
                         {
-                          "workerIndex": 18,
-                          "parallelIndex": 5,
+                          "workerIndex": 22,
+                          "parallelIndex": 7,
                           "status": "passed",
-                          "duration": 3826,
+                          "duration": 4544,
                           "errors": [],
                           "stdout": [
                             {
@@ -1751,7 +1529,7 @@
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-09-09T14:22:28.543Z",
+                          "startTime": "2025-09-10T11:28:45.389Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -1761,7 +1539,7 @@
                   ],
                   "id": "cfbb785fabc6b36fea5a-8a6f97d20961e169c3c1",
                   "file": "smoke-production.spec.ts",
-                  "line": 310,
+                  "line": 308,
                   "column": 9
                 }
               ]
@@ -1773,11 +1551,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-09-09T14:22:18.881Z",
-    "duration": 14629.24,
-    "expected": 30,
+    "startTime": "2025-09-10T11:28:36.308Z",
+    "duration": 15027.233,
+    "expected": 33,
     "skipped": 0,
-    "unexpected": 3,
+    "unexpected": 0,
     "flaky": 0
   }
 }
