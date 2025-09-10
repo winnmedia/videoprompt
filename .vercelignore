@@ -36,6 +36,9 @@ playwright.config.*
 .next/
 .next/cache/
 .next/cache/**/*
+# webpack 캐시 명시적 제외 (Vercel 250MB 제한 대응)
+.next/cache/webpack/
+.next/cache/webpack/**/*
 out/
 dist/
 build/

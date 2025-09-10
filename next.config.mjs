@@ -32,7 +32,28 @@ const nextConfig = {
       'node_modules/canvas',
       'node_modules/puppeteer',
       'node_modules/playwright',
+      // webpack 캐시 제외 추가
+      '.next/cache/webpack/**/*',
     ],
+  },
+
+  // webpack 설정 최적화 - 프로덕션 캐시 제어
+  webpack: (config, { isServer, dev }) => {
+    // 프로덕션 빌드시 webpack 캐시 비활성화 (Vercel 크기 제한 대응)
+    if (!dev && process.env.NODE_ENV === 'production') {
+      config.cache = false;
+    }
+    
+    // Serverless Function 크기 최적화
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+      };
+    }
+    
+    return config;
   },
   
   
