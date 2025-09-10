@@ -214,7 +214,7 @@ export default function SceneWizardPage() {
         setRecentPrompts(arr);
         const pins: Record<string, boolean> = {};
         arr.forEach((r: { id?: string; pinned?: boolean; [key: string]: unknown }) => {
-          if (r.pinned) pins[r.id] = true;
+          if (r.pinned && r.id) pins[r.id] = true;
         });
         setRecentPinnedIds(pins);
       }
@@ -523,7 +523,7 @@ export default function SceneWizardPage() {
             try {
               await navigator.clipboard.writeText(english);
             } catch {}
-            const payload: Record<string, unknown> = {
+            const payload = {
               prompt: english,
               aspect_ratio: scene.metadata?.aspect_ratio || selectedAspectRatio,
               duration_seconds: selectedDuration,
@@ -596,7 +596,7 @@ export default function SceneWizardPage() {
       try {
         await navigator.clipboard.writeText(english);
       } catch {}
-      const payload: Record<string, unknown> = {
+      const payload = {
         prompt: english,
         aspect_ratio: selectedAspectRatio,
         duration_seconds: selectedDuration,
@@ -2447,7 +2447,7 @@ export default function SceneWizardPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          const next = recentPrompts.filter((r: { pinned?: boolean }) => !r.pinned);
+                          const next = recentPrompts.filter((r) => !(r as any).pinned);
                           setRecentPrompts(next);
                           localStorage.setItem('vp:recentPrompts', JSON.stringify(next));
                         }}
