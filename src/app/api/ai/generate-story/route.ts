@@ -553,7 +553,7 @@ ${(() => {
                         userId: user.id // Ensure user owns the project
                       },
                       data: {
-                        scenario: scenarioData,
+                        metadata: scenarioData,
                         status: 'processing',
                         updatedAt: new Date()
                       }
@@ -566,7 +566,7 @@ ${(() => {
                         title: projectTitle || `${genre} 스토리: ${parsedResponse.structure.act1.title}`,
                         description: `AI 생성 스토리 - ${tone} 톤앤매너`,
                         userId: user.id,
-                        scenario: scenarioData,
+                        metadata: scenarioData,
                         status: 'draft',
                         tags: JSON.stringify([genre, tone, target])
                       }

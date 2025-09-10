@@ -1,5 +1,3 @@
-// Prisma schema for Railway (PostgreSQL)
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,37 +8,34 @@ datasource db {
 }
 
 model User {
-  id             String   @id @default(uuid())
-  email          String   @unique
-  username       String   @unique
-  passwordHash   String   @map("password_hash")
-  avatarUrl      String?  @map("avatar_url")
-  role           String   // 'user' | 'admin' | 'moderator'
-  preferences    Json? // JSON for PostgreSQL
-  emailVerified  Boolean  @default(false) @map("email_verified")
-  verifiedAt     DateTime? @map("verified_at")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-  projects       Project[]
+  email              String              @unique
+  avatarUrl          String?             @map("avatar_url")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  preferences        Json?
+  role               String
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  username           String              @unique
+  id                 String              @id @default(uuid())
+  passwordHash       String              @map("password_hash")
+  emailVerified      Boolean             @default(false) @map("email_verified")
+  verifiedAt         DateTime?           @map("verified_at")
   emailVerifications EmailVerification[]
   passwordResets     PasswordReset[]
+  projects           Project[]
 }
 
 model Project {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   title        String
   description  String?
-  thumbnailUrl String?  @map("thumbnail_url")
-  status       String   // 'draft' | 'processing' | 'completed' | 'failed'
-  tags         Json? // JSON for PostgreSQL
-  metadata     Json? // JSON for PostgreSQL
-  scenario     Json? // JSON object for scenario data
-  prompt       Json? // JSON object for prompt data
-  video        Json? // JSON object for video data
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-  userId       String   @map("user_id")
-  user         User     @relation(fields: [userId], references: [id])
+  thumbnailUrl String?   @map("thumbnail_url")
+  status       String
+  metadata     Json?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  userId       String    @map("user_id")
+  tags         Json
+  user         User      @relation(fields: [userId], references: [id])
   scenes       Scene[]
   timeline     Timeline?
 }
@@ -49,16 +44,16 @@ model Scene {
   id           String   @id @default(uuid())
   title        String
   description  String
-  prompt       Json // JSON for PostgreSQL
+  prompt       Json
   thumbnailUrl String?  @map("thumbnail_url")
   duration     Int
   order        Int
-  status       String   // 'pending' | 'generating' | 'completed' | 'failed'
+  status       String
   aiGenerated  Boolean  @default(false) @map("ai_generated")
   projectId    String   @map("project_id")
-  project      Project  @relation(fields: [projectId], references: [id])
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
+  project      Project  @relation(fields: [projectId], references: [id])
 }
 
 model Preset {
@@ -66,103 +61,98 @@ model Preset {
   name         String
   description  String
   category     String
-  tags         Json // JSON for PostgreSQL
   thumbnailUrl String?  @map("thumbnail_url")
-  data         Json // JSON for PostgreSQL
+  data         Json
   isPublic     Boolean  @default(false) @map("is_public")
   userId       String   @map("user_id")
   downloads    Int      @default(0)
   rating       Float    @default(0)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
+  tags         Json
 }
 
 model Timeline {
   id            String   @id @default(uuid())
-  projectId     String   @map("project_id") @unique
-  project       Project  @relation(fields: [projectId], references: [id])
-  beads         Json     @default("[]")  // JSON for PostgreSQL
+  projectId     String   @unique @map("project_id")
   totalDuration Int      @default(0) @map("total_duration")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
+  beads         Json     @default("[]")
+  project       Project  @relation(fields: [projectId], references: [id])
 }
 
-// === Unified Pipeline Minimal Entities ===
-
 model Scenario {
-  id          String   @id @default(uuid())
-  title       String
-  logline     String?
-  structure4  Json?    // 4-step structure (JSON for PostgreSQL)
-  shots12     Json?    // 12-shot breakdown (JSON for PostgreSQL)
-  pdfUrl      String?  @map("pdf_url")
-  version     Int      @default(1)
-  createdBy   String?
-  userId      String?  @map("user_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  prompts     Prompt[]
+  id         String   @id @default(uuid())
+  title      String
+  logline    String?
+  structure4 Json?
+  shots12    Json?
+  pdfUrl     String?  @map("pdf_url")
+  version    Int      @default(1)
+  createdBy  String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  userId     String?  @map("user_id")
+  prompts    Prompt[]
 }
 
 model Prompt {
-  id           String   @id @default(uuid())
-  scenarioId   String   @map("scenario_id")
-  scenario     Scenario @relation(fields: [scenarioId], references: [id])
-  metadata     Json     // JSON for PostgreSQL
-  timeline     Json     // JSON for PostgreSQL
-  negative     Json?    // JSON for PostgreSQL
-  version      Int      @default(1)
-  userId       String?  @map("user_id")
-  
-  // CineGenius v3.1 support fields
-  projectId        String? @map("project_id")
-  cinegeniusVersion String? @map("cinegenius_version") // '2.0' | '3.1'
-  userInput        Json? @map("user_input")  // JSON for PostgreSQL
-  projectConfig    Json? @map("project_config")  // JSON for PostgreSQL  
-  generationControl Json? @map("generation_control")  // JSON for PostgreSQL
-  aiAnalysis       Json? @map("ai_analysis")  // JSON for PostgreSQL
-  
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-  videoAssets  VideoAsset[]
+  id                String       @id @default(uuid())
+  scenarioId        String       @map("scenario_id")
+  metadata          Json
+  timeline          Json
+  negative          Json?
+  version           Int          @default(1)
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+  userId            String?      @map("user_id")
+  aiAnalysis        Json?        @map("ai_analysis")
+  cinegeniusVersion String?      @map("cinegenius_version")
+  generationControl Json?        @map("generation_control")
+  projectConfig     Json?        @map("project_config")
+  projectId         String?      @map("project_id")
+  userInput         Json?        @map("user_input")
+  scenario          Scenario     @relation(fields: [scenarioId], references: [id])
+  videoAssets       VideoAsset[]
 }
 
 model VideoAsset {
-  id         String   @id @default(uuid())
-  promptId   String   @map("prompt_id")
-  prompt     Prompt   @relation(fields: [promptId], references: [id])
-  provider   String   // 'seedance' | 'veo3'
-  status     String   // 'queued' | 'processing' | 'completed' | 'failed'
-  url        String?  // final video url
-  codec      String?  
-  duration   Int?     // seconds
-  version    Int      @default(1)
-  userId     String?  @map("user_id")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id        String   @id @default(uuid())
+  promptId  String   @map("prompt_id")
+  provider  String
+  status    String
+  url       String?
+  codec     String?
+  duration  Int?
+  version   Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  userId    String?  @map("user_id")
+  prompt    Prompt   @relation(fields: [promptId], references: [id])
 }
 
 model ShareToken {
   id         String   @id @default(uuid())
   token      String   @unique
-  role       String   // 'viewer' | 'commenter'
+  role       String
   nickname   String?
-  targetType String   // 'project' | 'scenario' | 'prompt' | 'video'
+  targetType String
   targetId   String
   expiresAt  DateTime @map("expires_at")
-  userId     String?  @map("user_id")
   createdAt  DateTime @default(now()) @map("created_at")
+  userId     String?  @map("user_id")
 }
 
 model Comment {
   id         String   @id @default(uuid())
-  targetType String   // 'video' | 'project'
+  targetType String
   targetId   String
-  author     String?  // nickname or user id
-  userId     String?  @map("user_id")
+  author     String?
   text       String
-  timecode   String?  // mmssfff
+  timecode   String?
   createdAt  DateTime @default(now()) @map("created_at")
+  userId     String?  @map("user_id")
 }
 
 model Story {
@@ -172,50 +162,48 @@ model Story {
   genre        String
   tone         String?
   target       String?
-  structure    Json?    // JSON for PostgreSQL
+  structure    Json?
   userId       String?  @map("user_id")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 }
 
 model Upload {
-  id          String   @id @default(uuid())
-  filename    String
-  originalName String  @map("original_name")
-  path        String
-  mimetype    String
-  size        Int
-  userId      String?  @map("user_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(uuid())
+  filename     String
+  originalName String   @map("original_name")
+  path         String
+  mimetype     String
+  size         Int
+  userId       String?  @map("user_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 }
 
 model EmailVerification {
   id        String   @id @default(uuid())
   email     String
   token     String   @unique
-  code      String?  // Optional 6-digit verification code
+  code      String?
   userId    String?  @map("user_id")
-  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime @map("expires_at")
   createdAt DateTime @default(now()) @map("created_at")
-  
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([email])
   @@index([token])
 }
 
 model PasswordReset {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   email     String
-  token     String   @unique
-  userId    String   @map("user_id")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime @map("expires_at")
+  token     String    @unique
+  userId    String    @map("user_id")
+  expiresAt DateTime  @map("expires_at")
   usedAt    DateTime? @map("used_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  
+  createdAt DateTime  @default(now()) @map("created_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([email])
   @@index([token])
 }
-
-
