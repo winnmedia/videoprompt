@@ -13,7 +13,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/planning',
     '/login',
     '/register',
-    '/templates',
     '/queue'
   ];
 

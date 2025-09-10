@@ -4,10 +4,12 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Logo, Button, FormError, Input } from '@/shared/ui';
+import { useAuthStore } from '@/shared/store/useAuthStore';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { setUser } = useAuthStore();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -39,7 +41,10 @@ function LoginForm() {
       const data = await res.json();
 
       if (data.ok) {
-        // 로그인 성공
+        // 로그인 성공 - 사용자 정보를 스토어에 저장
+        if (data.data) {
+          setUser(data.data);
+        }
         router.push('/');
         router.refresh();
       } else {

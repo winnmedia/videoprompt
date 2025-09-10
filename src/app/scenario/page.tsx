@@ -8,6 +8,8 @@ import { Icon } from '@/shared/ui';
 import { Logo } from '@/shared/ui';
 import { Loading, Skeleton } from '@/shared/ui/Loading';
 import { useToast } from '@/shared/lib/hooks';
+import { createErrorPlaceholder } from '@/shared/lib/encoding-utils';
+import { generatePlanningPDFWithProgress } from '@/shared/lib/pdf-generator';
 import { StepProgress } from '@/shared/ui/Progress';
 import { 
   generateConsistentPrompt, 
@@ -158,15 +160,29 @@ export default function ScenarioPage() {
   const convertStructureToSteps = (structure: any): StoryStep[] => {
     if (!structure) return [];
     
-    return Object.entries(structure).map(([key, act]: [string, any], index) => ({
-      id: (index + 1).toString(),
-      title: act.title || `${index + 1}단계`,
-      summary: act.description || '설명 없음',
-      content: act.description || '내용 없음',
-      goal: act.emotional_arc || '목표 없음',
-      lengthHint: `전체의 ${Math.round(100 / 4)}%`,
-      isEditing: false,
-    }));
+    return Object.entries(structure).map(([key, act]: [string, any], index) => {
+      // title을 기반으로 한 줄 요약 생성
+      const generateSummary = (title: string, description: string) => {
+        if (!title || !description) return '설명 없음';
+        
+        // title이 이미 요약적이라면 그대로 사용
+        if (title.length <= 30) return title;
+        
+        // description의 첫 문장을 요약으로 사용
+        const firstSentence = description.split('.')[0] || description.split('。')[0];
+        return firstSentence.length <= 50 ? firstSentence : firstSentence.substring(0, 47) + '...';
+      };
+
+      return {
+        id: (index + 1).toString(),
+        title: act.title || `${index + 1}단계`,
+        summary: generateSummary(act.title, act.description),
+        content: act.description || '내용 없음',
+        goal: act.emotional_arc || '목표 없음',
+        lengthHint: `전체의 ${Math.round(100 / 4)}%`,
+        isEditing: false,
+      };
+    });
   };
 
   // 검색 및 필터링 상태
@@ -391,11 +407,33 @@ export default function ScenarioPage() {
         const shotsPerStep = 3; // 각 단계당 3개 숏트
         for (let i = 0; i < shotsPerStep; i++) {
           const beat = components.timelineBeats?.[Math.min(shotId - 1, components.timelineBeats.length - 1)];
+          
+          // 더 구체적인 description 생성
+          const generateShotDescription = (step: any, beatIndex: number, beat: any) => {
+            if (beat?.action && beat.action.trim() !== '') {
+              return beat.action;
+            }
+            
+            // beat이 없거나 action이 없을 때 step.content를 활용해서 구체적인 내용 생성
+            const stepContent = step.content || step.summary || '';
+            const shotType = ['와이드샷으로', '클로즈업으로', '미디엄샷으로'][beatIndex % 3];
+            
+            if (stepContent.length > 30) {
+              // step의 내용을 3등분하여 각 샷에 배분
+              const contentParts = stepContent.split('.').filter((s: string) => s.trim());
+              const partIndex = beatIndex % Math.max(contentParts.length, 1);
+              const relevantPart = contentParts[partIndex] || contentParts[0] || stepContent;
+              return `${shotType} ${relevantPart.trim()}을 보여주는 장면`;
+            } else {
+              return `${shotType} ${stepContent}을 시각적으로 표현하는 장면`;
+            }
+          };
+
           const shotData = {
             id: `shot-${shotId}`,
             stepId: step.id,
             title: `${step.title} - 숏트 ${i + 1}`,
-            description: beat?.action || `${step.summary}에 대한 구체적인 묘사`,
+            description: generateShotDescription(step, i, beat),
             shotType: '와이드',
             camera: '정적',
             composition: '중앙 정렬',
@@ -539,28 +577,52 @@ export default function ScenarioPage() {
     }
   };
   
-  const handleExportPlan = async () => {
+  const handleExportPlan = async (format: 'json' | 'pdf' = 'pdf') => {
     try {
-      const res = await fetch('/api/planning/export', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      if (format === 'pdf') {
+        // 클라이언트에서 PDF 생성
+        const pdfData = {
+          title: 'VLANET • 기획안 내보내기',
+          generatedAt: new Date().toLocaleString('ko-KR'),
           scenario: {
             title: storyInput.title,
             oneLine: storyInput.oneLineStory,
             structure4: storySteps,
           },
-          shots,
-        }),
-      });
-      if (!res.ok) throw new Error('export failed');
-      const data = await res.json();
-      if (data?.ok && data?.data?.jsonUrl) {
-        const a = document.createElement('a');
-        a.href = data.data.jsonUrl;
-        a.download = `${storyInput.title || 'scenario'}.json`;
-        a.click();
-        toast.success('기획안이 성공적으로 다운로드되었습니다.', '다운로드 완료');
+          shots: shots.slice(0, 12), // 최대 12개 숏트만 포함
+        };
+        
+        await generatePlanningPDFWithProgress(pdfData, (progress) => {
+          console.log(`PDF 생성 진행률: ${progress}%`);
+        });
+        
+        toast.success('PDF 기획안이 성공적으로 다운로드되었습니다.', 'PDF 다운로드 완료');
+        
+      } else {
+        // JSON 형식으로 다운로드
+        const res = await fetch('/api/planning/export', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            scenario: {
+              title: storyInput.title,
+              oneLine: storyInput.oneLineStory,
+              structure4: storySteps,
+            },
+            shots,
+            format: 'json',
+          }),
+        });
+        
+        if (!res.ok) throw new Error('export failed');
+        const data = await res.json();
+        if (data?.ok && data?.data?.jsonUrl) {
+          const a = document.createElement('a');
+          a.href = data.data.jsonUrl;
+          a.download = `${storyInput.title || 'scenario'}.json`;
+          a.click();
+          toast.success('JSON 기획안이 성공적으로 다운로드되었습니다.', 'JSON 다운로드 완료');
+        }
       }
     } catch (e) {
       console.error('기획안 다운로드 실패:', e);
@@ -717,16 +779,12 @@ export default function ScenarioPage() {
                        error.message.includes('5') ? 'Server Error' : 
                        'Generation Failed';
                        
-      const errorPlaceholder = `data:image/svg+xml;base64,${btoa(`
-        <svg xmlns="http://www.w3.org/2000/svg" width="320" height="180">
-          <rect width="100%" height="100%" fill="#fee2e2"/>
-          <rect x="10" y="10" width="300" height="160" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="5,5"/>
-          <text x="160" y="60" text-anchor="middle" fill="#dc2626" font-size="16" font-weight="bold">${errorType}</text>
-          <text x="160" y="85" text-anchor="middle" fill="#991b1b" font-size="12">Shot: ${shot?.title || 'Unknown'}</text>
-          <text x="160" y="105" text-anchor="middle" fill="#7f1d1d" font-size="10">Click to retry</text>
-          <text x="160" y="150" text-anchor="middle" fill="#a3a3a3" font-size="8">${new Date().toISOString().slice(11, 19)}</text>
-        </svg>
-      `)}`;
+      const errorPlaceholder = createErrorPlaceholder(
+        errorType,
+        shot?.title || 'Unknown',
+        320,
+        180
+      );
       
       setStoryboardShots(prev => prev.map(s => 
         s.id === shotId 
@@ -818,12 +876,7 @@ export default function ScenarioPage() {
     } catch (error) {
       console.error('Image generation error:', error);
       // Fallback to a placeholder with error message
-      const errorPlaceholder = `data:image/svg+xml;base64,${btoa(`
-        <svg xmlns="http://www.w3.org/2000/svg" width="160" height="90">
-          <rect width="100%" height="100%" fill="#f0f0f0"/>
-          <text x="80" y="45" text-anchor="middle" fill="#666">Generation Failed</text>
-        </svg>
-      `)}`;
+      const errorPlaceholder = createErrorPlaceholder('Generation Failed');
       
       setShots((prev) =>
         prev.map((s) => 
@@ -838,32 +891,76 @@ export default function ScenarioPage() {
     }
   };
 
-  // 인서트샷 생성
+  // 인서트샷 생성 - LLM API 연동
   const generateInsertShots = async (shotId: string) => {
-    const mockInsertShots: InsertShot[] = [
-      {
-        id: 'insert-1',
-        purpose: '정보 보강',
-        description: '주요 정보를 강조하는 클로즈업',
-        framing: '클로즈업',
-      },
-      {
-        id: 'insert-2',
-        purpose: '리듬 조절',
-        description: '템포를 조절하는 중간 샷',
-        framing: '미디엄 샷',
-      },
-      {
-        id: 'insert-3',
-        purpose: '관계 강조',
-        description: '캐릭터 간 관계를 보여주는 투샷',
-        framing: '투샷',
-      },
-    ];
+    try {
+      const shot = shots.find(s => s.id === shotId);
+      if (!shot) {
+        toast.error('샷을 찾을 수 없습니다.', '인서트 생성 실패');
+        return;
+      }
 
-    setShots((prev) =>
-      prev.map((shot) => (shot.id === shotId ? { ...shot, insertShots: mockInsertShots } : shot)),
-    );
+      const response = await fetch('/api/ai/generate-inserts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          shotTitle: shot.title,
+          shotDescription: shot.description,
+          genre: storyInput.genre,
+          tone: storyInput.toneAndManner.join(', '),
+          context: storyInput.oneLineStory,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API 호출 실패: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.insertShots && Array.isArray(data.insertShots)) {
+        setShots((prev) =>
+          prev.map((s) => (s.id === shotId ? { ...s, insertShots: data.insertShots } : s)),
+        );
+        toast.success(`${data.insertShots.length}개의 인서트 샷이 생성되었습니다.`, '인서트 생성 완료');
+      } else {
+        throw new Error('올바르지 않은 응답 형식');
+      }
+    } catch (error) {
+      console.error('인서트 샷 생성 실패:', error);
+      toast.error(
+        error instanceof Error ? error.message : '인서트 샷 생성 중 오류가 발생했습니다.',
+        '인서트 생성 실패'
+      );
+
+      // 실패 시 기본 인서트 샷 사용 (폴백)
+      const fallbackInsertShots: InsertShot[] = [
+        {
+          id: `insert-${Date.now()}-1`,
+          purpose: '정보 보강',
+          description: '주요 정보를 강조하는 클로즈업',
+          framing: '클로즈업',
+        },
+        {
+          id: `insert-${Date.now()}-2`,
+          purpose: '리듬 조절',
+          description: '템포를 조절하는 중간 샷',
+          framing: '미디엄 샷',
+        },
+        {
+          id: `insert-${Date.now()}-3`,
+          purpose: '관계 강조',
+          description: '캐릭터 간 관계를 보여주는 투샷',
+          framing: '투샷',
+        },
+      ];
+
+      setShots((prev) =>
+        prev.map((shot) => (shot.id === shotId ? { ...shot, insertShots: fallbackInsertShots } : shot)),
+      );
+    }
   };
 
   // 숏트 정보 업데이트
@@ -1528,7 +1625,7 @@ export default function ScenarioPage() {
                   <Button
                     size="lg"
                     className="btn-primary px-6"
-                    onClick={handleExportPlan}
+                    onClick={() => handleExportPlan()}
                   >
                     기획안 다운로드
                   </Button>
@@ -1556,34 +1653,7 @@ export default function ScenarioPage() {
                   <Button
                 size="lg"
                 className="btn-primary px-6"
-                onClick={async () => {
-                  try {
-                    const res = await fetch('/api/planning/export', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        scenario: {
-                          title: storyInput.title,
-                          oneLine: storyInput.oneLineStory,
-                          structure4: storySteps,
-                        },
-                        shots,
-                      }),
-                    });
-                    if (!res.ok) throw new Error('export failed');
-                    const data = await res.json();
-                    if (data?.ok && data?.data?.jsonUrl) {
-                      const a = document.createElement('a');
-                      a.href = data.data.jsonUrl;
-                      a.download = `${storyInput.title || 'scenario'}.json`;
-                      a.click();
-                      toast.success('기획안이 성공적으로 다운로드되었습니다.', '다운로드 완료');
-                    }
-                  } catch (e) {
-                    console.error('기획안 다운로드 실패:', e);
-                    toast.error('기획안 다운로드에 실패했습니다.', '다운로드 실패');
-                  }
-                }}
+                onClick={() => handleExportPlan('pdf')}
               >
                 기획안 다운로드
               </Button>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { Icon } from '@/shared/ui';
+import { Icon, Loading } from '@/shared/ui';
 
 interface PlanningData {
   title: string;
@@ -40,6 +40,7 @@ const GENRE_OPTIONS = [
   { value: 'documentary', label: '다큐', description: '현실적 기록' },
   { value: 'comedy', label: '코미디', description: '유머와 재미' },
   { value: 'romance', label: '로맨스', description: '사랑과 감정' },
+  { value: 'other', label: '기타', description: '직접 입력' },
 ];
 
 const DURATION_OPTIONS = [
@@ -156,6 +157,10 @@ export default function PlanningCreatePage() {
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<any>(null);
+  
+  // 장르 "기타" 입력을 위한 상태
+  const [showCustomGenreInput, setShowCustomGenreInput] = useState(false);
+  const [customGenre, setCustomGenre] = useState('');
 
   const goToNextStep = useCallback(() => {
     setCurrentStep((prev) => Math.min(prev + 1, PLANNING_STEPS.length));
@@ -174,14 +179,26 @@ export default function PlanningCreatePage() {
 
   const handleGeneratePlan = useCallback(async () => {
     if (!planningData.title || !planningData.logline || !planningData.genre) return;
+    
+    // "기타" 장르 선택 시 커스텀 장르가 입력되었는지 확인
+    if (planningData.genre === 'other' && !customGenre.trim()) {
+      alert('장르를 직접 입력해주세요.');
+      return;
+    }
 
     setIsGenerating(true);
     try {
+      // API 전송용 데이터 준비 (커스텀 장르 처리)
+      const apiData = {
+        ...planningData,
+        genre: planningData.genre === 'other' ? customGenre.trim() : planningData.genre,
+      };
+      
       // AI 기획안 생성 API 호출
       const response = await fetch('/api/ai/generate-planning', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(planningData),
+        body: JSON.stringify(apiData),
       });
 
       if (response.ok) {
@@ -191,20 +208,31 @@ export default function PlanningCreatePage() {
       }
     } catch (error) {
       console.error('기획안 생성 실패:', error);
-      // 기본 기획안으로 진행
+      // 사용자 입력을 바탕으로 한 기본 기획안 생성
+      const customGenreText = planningData.genre === 'other' ? customGenre.trim() : planningData.genre;
       setGeneratedPlan({
-        summary: '기본 기획안',
-        structure: ['도입', '전개', '위기', '해결'],
-        visualStyle: 'Cinematic',
+        summary: `${planningData.title}은 ${customGenreText} 장르의 ${planningData.duration} 분량으로, ${planningData.tone}한 톤앤매너를 통해 ${planningData.target}에게 전달하는 ${planningData.format} 영상입니다. ${planningData.developmentMethod} 방식으로 전개됩니다.`,
+        structure: ['기획 설정', '구성 개발', '스타일 정의', '제작 완료'],
+        visualStyle: planningData.format === 'animation' ? 'Animated Style' : 'Cinematic',
         targetAudience: planningData.target,
-        estimatedCost: '중간',
-        timeline: '2-3주',
+        estimatedCost: planningData.duration.includes('60') ? '높음' : '중간',
+        timeline: planningData.developmentIntensity === 'rich' ? '3-4주' : '2-3주',
+        keyElements: [
+          `${customGenreText} 장르 특성 반영`,
+          `${planningData.tone} 톤앤매너 구현`,
+          `${planningData.target} 타겟 최적화`,
+        ],
+        productionNotes: [
+          `${planningData.format} 형식에 맞는 제작 방식`,
+          `${planningData.tempo} 템포 유지`,
+          `${planningData.developmentIntensity} 전개 강도 적용`,
+        ]
       });
       goToNextStep();
     } finally {
       setIsGenerating(false);
     }
-  }, [planningData, goToNextStep]);
+  }, [planningData, goToNextStep, customGenre]);
 
   const getProgress = useCallback(() => {
     switch (currentStep) {
@@ -388,12 +416,19 @@ export default function PlanningCreatePage() {
                     <label className="mb-2 block text-sm font-medium text-slate-700">장르 *</label>
                     <select
                       value={planningData.genre}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        const selectedValue = e.target.value;
                         setPlanningData((prev) => ({
                           ...prev,
-                          genre: e.target.value,
-                        }))
-                      }
+                          genre: selectedValue,
+                        }));
+                        
+                        // "기타" 선택 시 커스텀 입력창 표시
+                        setShowCustomGenreInput(selectedValue === 'other');
+                        if (selectedValue !== 'other') {
+                          setCustomGenre('');
+                        }
+                      }}
                       className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">장르 선택</option>
@@ -403,6 +438,26 @@ export default function PlanningCreatePage() {
                         </option>
                       ))}
                     </select>
+                    
+                    {/* 기타 장르 직접 입력 */}
+                    {showCustomGenreInput && (
+                      <div className="mt-3">
+                        <label className="mb-2 block text-sm font-medium text-slate-700">
+                          장르 직접 입력 *
+                        </label>
+                        <input
+                          type="text"
+                          value={customGenre}
+                          onChange={(e) => setCustomGenre(e.target.value)}
+                          placeholder="예: 판타지, 스릴러, 실험적..."
+                          className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+                          maxLength={20}
+                        />
+                        <p className="mt-1 text-xs text-slate-500">
+                          20자 이내로 입력해주세요.
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -569,7 +624,9 @@ export default function PlanningCreatePage() {
                       </div>
                       <div>
                         <strong>장르:</strong>{' '}
-                        {GENRE_OPTIONS.find((g) => g.value === planningData.genre)?.label}
+{planningData.genre === 'other' && customGenre 
+                          ? customGenre 
+                          : GENRE_OPTIONS.find((g) => g.value === planningData.genre)?.label}
                       </div>
                       <div>
                         <strong>톤앤매너:</strong>{' '}
@@ -706,7 +763,9 @@ export default function PlanningCreatePage() {
                       </div>
                       <div>
                         <strong>장르:</strong>{' '}
-                        {GENRE_OPTIONS.find((g) => g.value === planningData.genre)?.label}
+{planningData.genre === 'other' && customGenre 
+                          ? customGenre 
+                          : GENRE_OPTIONS.find((g) => g.value === planningData.genre)?.label}
                       </div>
                       <div>
                         <strong>톤앤매너:</strong>{' '}
@@ -767,6 +826,25 @@ export default function PlanningCreatePage() {
           )}
         </div>
       </div>
+      
+      {/* AI 생성 중 로딩 오버레이 */}
+      {isGenerating && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="rounded-lg bg-white p-8 shadow-xl">
+            <div className="flex flex-col items-center space-y-4">
+              <Loading size="lg" />
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-slate-900">
+                  AI가 기획안을 생성하고 있습니다
+                </h3>
+                <p className="mt-2 text-sm text-slate-600">
+                  잠시만 기다려주세요. 최대 30초 정도 소요될 수 있습니다.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
