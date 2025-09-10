@@ -135,10 +135,11 @@ export default function ScenarioPage() {
   const [retryCount, setRetryCount] = useState(0);
 
   // API 응답을 StoryStep 형식으로 변환하는 함수
-  const convertStructureToSteps = (structure: any): StoryStep[] => {
+  const convertStructureToSteps = (structure: Record<string, unknown> | null | undefined): StoryStep[] => {
     if (!structure) return [];
     
-    return Object.entries(structure).map(([key, act]: [string, any], index) => {
+    return Object.entries(structure).map(([key, act], index) => {
+      const actData = act as { title?: string; description?: string };
       // title을 기반으로 한 줄 요약 생성
       const generateSummary = (title: string, description: string) => {
         if (!title || !description) return '설명 없음';
@@ -223,7 +224,7 @@ export default function ScenarioPage() {
   const intensityOptions = ['그대로', '적당히', '풍부하게'];
 
   // 1단계: 스토리 입력 처리
-  const handleStoryInputChange = (field: keyof StoryInput, value: any) => {
+  const handleStoryInputChange = (field: keyof StoryInput, value: string | number) => {
     if (field === 'toneAndManner') {
       setStoryInput((prev) => ({
         ...prev,
@@ -237,7 +238,7 @@ export default function ScenarioPage() {
     }
     // FSD: entities 업데이트(스토어 동기화)
     try {
-      const patch: any = {};
+      const patch: Partial<StoryInput> = {};
       if (field === 'genre') patch.genre = value;
       if (field === 'toneAndManner') patch.tone = Array.isArray(value) ? value : [value];
       if (field === 'target') patch.target = value;
@@ -619,7 +620,7 @@ export default function ScenarioPage() {
         return Math.min(delay, maxDelay);
       };
       let lastError: Error | null = null;
-      let data: any = null;
+      let data: { structure?: Record<string, unknown> } | null = null;
       
       for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
         try {
@@ -678,7 +679,7 @@ export default function ScenarioPage() {
           data = await response.json();
           break; // 성공 시 루프 탈출
           
-        } catch (fetchError: any) {
+        } catch (fetchError: unknown) {
           lastError = fetchError;
           console.error(`이미지 생성 시도 ${attempt + 1} 실패:`, fetchError.message);
           
@@ -751,7 +752,7 @@ export default function ScenarioPage() {
         const shotInfo = storyboardShots.find(s => s.id === shotId);
         toast.warning(`"${shotInfo?.title || '이미지'}" 이미지 생성에 일부 문제가 있어 기본 이미지를 사용합니다.`, '이미지 생성 경고');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('이미지 생성 최종 실패:', error);
       const shot = storyboardShots.find(s => s.id === shotId);
       
@@ -965,7 +966,7 @@ export default function ScenarioPage() {
   };
 
   // 숏트 정보 업데이트
-  const updateShot = (shotId: string, field: keyof Shot, value: any) => {
+  const updateShot = (shotId: string, field: keyof Shot, value: string | number | boolean) => {
     setShots((prev) =>
       prev.map((shot) => (shot.id === shotId ? { ...shot, [field]: value } : shot)),
     );
