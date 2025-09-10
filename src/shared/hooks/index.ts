@@ -8,7 +8,6 @@ export { useWizardOptions } from './useWizardOptions';
 export { useScenarioGenerator } from './useScenarioGenerator';
 
 export type {
-  ScenePrompt,
   WizardState,
   WizardActions
 } from './useSceneWizard';

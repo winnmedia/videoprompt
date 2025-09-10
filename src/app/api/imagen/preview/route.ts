@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
 
     // 즉시 jobId 반환 (비동기 처리 시작)
     const response = NextResponse.json(
-      { ok: true, jobId, status: 'processing', traceId: incomingTraceId },
+      { ok: true, jobId, status: 'processing', traceId },
       { status: 200, headers: corsHeaders }
     );
 

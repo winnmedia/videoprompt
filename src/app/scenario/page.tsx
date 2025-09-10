@@ -154,10 +154,10 @@ export default function ScenarioPage() {
 
       return {
         id: (index + 1).toString(),
-        title: act.title || `${index + 1}단계`,
-        summary: generateSummary(act.title, act.description),
-        content: act.description || '내용 없음',
-        goal: act.emotional_arc || '목표 없음',
+        title: actData.title || `${index + 1}단계`,
+        summary: generateSummary(actData.title || '', actData.description || ''),
+        content: actData.description || '내용 없음',
+        goal: (actData as any).emotional_arc || '목표 없음',
         lengthHint: `전체의 ${Math.round(100 / 4)}%`,
         isEditing: false,
       };
@@ -224,29 +224,29 @@ export default function ScenarioPage() {
   const intensityOptions = ['그대로', '적당히', '풍부하게'];
 
   // 1단계: 스토리 입력 처리
-  const handleStoryInputChange = (field: keyof StoryInput, value: string | number) => {
+  const handleStoryInputChange = (field: keyof StoryInput, value: string | number | string[]) => {
     if (field === 'toneAndManner') {
       setStoryInput((prev) => ({
         ...prev,
-        toneAndManner: Array.isArray(value) ? value : [value],
+        toneAndManner: Array.isArray(value) ? value : [String(value)],
       }));
     } else {
       setStoryInput((prev) => ({
         ...prev,
-        [field]: value,
+        [field]: String(value),
       }));
     }
     // FSD: entities 업데이트(스토어 동기화)
     try {
-      const patch: Partial<StoryInput> = {};
-      if (field === 'genre') patch.genre = value;
-      if (field === 'toneAndManner') patch.tone = Array.isArray(value) ? value : [value];
-      if (field === 'target') patch.target = value;
-      if (field === 'format') patch.format = value;
-      if (field === 'tempo') patch.tempo = value;
-      if (field === 'developmentMethod') patch.developmentMethod = value;
-      if (field === 'developmentIntensity') patch.developmentIntensity = value;
-      if (field === 'duration') patch.durationSec = parseInt(value, 10) || undefined;
+      const patch: any = {};
+      if (field === 'genre') patch.genre = String(value);
+      if (field === 'toneAndManner') patch.tone = Array.isArray(value) ? value : [String(value)];
+      if (field === 'target') patch.target = String(value);
+      if (field === 'format') patch.format = String(value);
+      if (field === 'tempo') patch.tempo = String(value);
+      if (field === 'developmentMethod') patch.developmentMethod = String(value);
+      if (field === 'developmentIntensity') patch.developmentIntensity = String(value);
+      if (field === 'duration') patch.durationSec = parseInt(String(value), 10) || undefined;
       if (Object.keys(patch).length) project.setScenario(patch);
     } catch {}
   };
@@ -680,16 +680,17 @@ export default function ScenarioPage() {
           break; // 성공 시 루프 탈출
           
         } catch (fetchError: unknown) {
-          lastError = fetchError;
-          console.error(`이미지 생성 시도 ${attempt + 1} 실패:`, fetchError.message);
+          const error = fetchError as Error;
+          lastError = error;
+          console.error(`이미지 생성 시도 ${attempt + 1} 실패:`, error.message || fetchError);
           
           // AbortController로 인한 타임아웃인지 확인
-          const isTimeout = fetchError.name === 'AbortError' || fetchError.message.includes('timeout');
-          const isNetworkError = fetchError.message.includes('fetch') || fetchError.message.includes('network');
+          const isTimeout = error.name === 'AbortError' || (error.message && error.message.includes('timeout'));
+          const isNetworkError = error.message && (error.message.includes('fetch') || error.message.includes('network'));
           
           // 재시도 가능한 오류가 아니거나 마지막 시도인 경우
-          if ((!isTimeout && !isNetworkError && !fetchError.message.includes('5')) || attempt === MAX_RETRIES - 1) {
-            throw fetchError;
+          if ((!isTimeout && !isNetworkError && (!error.message || !error.message.includes('5'))) || attempt === MAX_RETRIES - 1) {
+            throw error;
           }
           
           // 재시도 가능한 경우 지수 백오프로 지연 후 계속
@@ -712,18 +713,19 @@ export default function ScenarioPage() {
       }
       
       // 더 안전한 데이터 검증 및 fallback 처리
-      if (data && data.ok && data.imageUrl) {
+      const apiResponse = data as { ok?: boolean; imageUrl?: string; structure?: Record<string, unknown> };
+      if (apiResponse && apiResponse.ok && apiResponse.imageUrl) {
         // 스토리보드 샷 업데이트
         setStoryboardShots(prev => prev.map(s => 
           s.id === shotId 
-            ? { ...s, imageUrl: data.imageUrl, prompt } 
+            ? { ...s, imageUrl: apiResponse.imageUrl, prompt } 
             : s
         ));
         
         // 기존 shots도 업데이트
         setShots(prev => prev.map(s => 
           s.id === shotId 
-            ? { ...s, contiImage: data.imageUrl } 
+            ? { ...s, contiImage: apiResponse.imageUrl } 
             : s
         ));
         
@@ -753,21 +755,22 @@ export default function ScenarioPage() {
         toast.warning(`"${shotInfo?.title || '이미지'}" 이미지 생성에 일부 문제가 있어 기본 이미지를 사용합니다.`, '이미지 생성 경고');
       }
     } catch (error: unknown) {
-      console.error('이미지 생성 최종 실패:', error);
+      const err = error as Error;
+      console.error('이미지 생성 최종 실패:', err);
       const shot = storyboardShots.find(s => s.id === shotId);
       
       let errorMessage = `"${shot?.title || '이미지'}" 콘티 이미지 생성에 실패했습니다.`;
-      if (error.name === 'AbortError') {
+      if (err.name === 'AbortError') {
         errorMessage += ' (타임아웃)';
-      } else if (error.message.includes('fetch') || error.message.includes('network')) {
+      } else if (err.message && (err.message.includes('fetch') || err.message.includes('network'))) {
         errorMessage += ' (네트워크 오류)';
       }
       
       toast.error(errorMessage, '이미지 생성 실패');
       
       // 실패 시 더 자세한 플레이스홀더 생성
-      const errorType = error.name === 'AbortError' ? 'Timeout' : 
-                       error.message.includes('5') ? 'Server Error' : 
+      const errorType = err.name === 'AbortError' ? 'Timeout' : 
+                       (err.message && err.message.includes('5')) ? 'Server Error' : 
                        'Generation Failed';
                        
       const errorPlaceholder = createErrorPlaceholder(

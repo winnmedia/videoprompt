@@ -4,6 +4,8 @@
  */
 
 import { http, HttpResponse, delay } from 'msw';
+import { safeBase64Encode } from '../encoding-utils';
+import type { StoryboardResult } from '../types/storyboard';
 
 // 테스트용 유틸리티
 function generateMockPdfBuffer(): Buffer {
