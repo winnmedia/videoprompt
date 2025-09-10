@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { prisma } from '@/lib/db';
 
 /**
  * 테스트용 API: 사용자 존재 여부 확인
@@ -38,17 +39,20 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // 데이터베이스에서 사용자 조회 (실제 구현은 Prisma 사용)
-    // const user = await prisma.user.findUnique({ where: { email } });
-    
-    // 모의 응답 (실제로는 DB 조회 결과 사용)
-    const userExists = Math.random() > 0.5; // 임시 로직
+    // 데이터베이스에서 사용자 조회
+    const user = await prisma.user.findUnique({ 
+      where: { email },
+      select: {
+        id: true,
+        emailVerified: true
+      }
+    });
     
     return NextResponse.json({
       ok: true,
       data: {
-        exists: userExists,
-        emailVerified: userExists ? Math.random() > 0.5 : false
+        exists: !!user,
+        emailVerified: user?.emailVerified || false
       }
     });
 

@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
                     console.error('DEBUG: Veo 영상 파일 저장 실패:', saveResult.error);
                   }
                 } else {
-                  console.log('DEBUG: Veo 영상 URL이 아직 준비되지 않음, 나중에 재시도');
+                  // Veo 영상 URL이 아직 준비되지 않음
                 }
               }
             } catch (error) {
