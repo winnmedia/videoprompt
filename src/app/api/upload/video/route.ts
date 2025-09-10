@@ -26,8 +26,8 @@ const SUPPORTED_VIDEO_TYPES = [
   'video/x-ms-wmv', // .wmv
 ];
 
-// 파일 크기 제한: 600MB
-const MAX_FILE_SIZE = 600 * 1024 * 1024;
+// 파일 크기 제한: 1GB (대용량 영상 파일 대응)
+const MAX_FILE_SIZE = 1024 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         createErrorResponse(
           'FILE_TOO_LARGE', 
-          `파일 크기가 600MB를 초과합니다. (${Math.round(parseInt(contentLength) / 1024 / 1024)}MB)`
+          `파일 크기가 1GB를 초과합니다. (${Math.round(parseInt(contentLength) / 1024 / 1024)}MB)`
         ), 
         { status: 413 }
       );
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
         message: '대용량 파일은 Railway 백엔드로 직접 업로드됩니다.',
         maxRetries: 3,
         chunkSize: '50MB',
-        timeout: 600000, // 10분 (600MB 고려)
+        timeout: 900000, // 15분 (1GB 대용량 파일 고려)
       }
     };
 
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           createErrorResponse(
             'MEMORY_LIMIT', 
-            '파일이 너무 커서 처리할 수 없습니다. 600MB 이하의 파일을 업로드해주세요.'
+            '파일이 너무 커서 처리할 수 없습니다. 1GB 이하의 파일을 업로드해주세요.'
           ), 
           { status: 507 }
         );
