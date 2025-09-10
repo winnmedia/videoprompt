@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { getUser } from '@/shared/lib/auth';
+import { 
+  createValidationErrorResponse,
+  createErrorResponse 
+} from '@/shared/schemas/api.schema';
 
 // Exponential backoff 유틸리티
 function exponentialBackoff(attempt: number): number {
@@ -15,20 +20,23 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-interface StoryRequest {
-  story: string;
-  genre: string;
-  tone: string;
-  target: string;
-  duration?: string;
-  format?: string;
-  tempo?: string;
-  developmentMethod?: string;
-  developmentIntensity?: string;
-  projectId?: string; // Optional project ID to save to
-  saveAsProject?: boolean; // Option to save as new project
-  projectTitle?: string; // Title for new project
-}
+// Zod 스키마 정의
+const StoryRequestSchema = z.object({
+  story: z.string().min(10, '스토리는 최소 10자 이상이어야 합니다'),
+  genre: z.string().min(1, '장르는 필수입니다'),
+  tone: z.string().min(1, '톤앤매너는 필수입니다'),
+  target: z.string().min(1, '타겟 관객은 필수입니다'),
+  duration: z.string().optional(),
+  format: z.string().optional(),
+  tempo: z.string().optional(),
+  developmentMethod: z.string().optional(),
+  developmentIntensity: z.string().optional(),
+  projectId: z.string().uuid().optional(),
+  saveAsProject: z.boolean().optional(),
+  projectTitle: z.string().optional(),
+});
+
+type StoryRequest = z.infer<typeof StoryRequestSchema>;
 
 interface StoryStructure {
   act1: {
@@ -67,12 +75,18 @@ interface StoryResponse {
 
 export async function POST(request: NextRequest) {
   try {
-    const body: StoryRequest = await request.json();
-    const { story, genre, tone, target, duration, format, tempo, developmentMethod, developmentIntensity, projectId, saveAsProject, projectTitle } = body;
-
-    if (!story || !genre || !tone) {
-      return NextResponse.json({ error: '스토리, 장르, 톤앤매너는 필수입니다.' }, { status: 400 });
+    const body = await request.json();
+    
+    // 입력 데이터 검증
+    const validationResult = StoryRequestSchema.safeParse(body);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        createValidationErrorResponse(validationResult.error),
+        { status: 400 }
+      );
     }
+
+    const { story, genre, tone, target, duration, format, tempo, developmentMethod, developmentIntensity, projectId, saveAsProject, projectTitle } = validationResult.data;
 
     // Google Gemini API 키 확인 및 유효성 검증
     const geminiApiKey = process.env.GOOGLE_GEMINI_API_KEY;

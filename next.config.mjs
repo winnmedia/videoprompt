@@ -10,6 +10,17 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
 
+  // 대용량 파일 업로드를 위한 실험적 설정
+  experimental: {
+    // 대용량 요청 처리를 위한 설정
+    largePageDataBytes: 1024 * 1024, // 1MB
+    // 서버 액션 최적화
+    serverActions: {
+      allowedOrigins: ['localhost:3000', 'videoprompt.vercel.app'],
+      bodySizeLimit: '600mb', // 600MB 제한
+    },
+  },
+
   
   // 번들 크기 최적화 - Vercel 250MB 제한 해결
   outputFileTracingExcludes: {

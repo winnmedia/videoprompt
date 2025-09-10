@@ -15,7 +15,7 @@ import {
   rewritePromptForImage,
   rewritePromptForSeedance,
   transformPromptForTarget,
-} from '@/lib/ai-client';
+} from '@/shared/lib/ai-client';
 import { useProjectStore } from '@/entities/project';
 import { buildVeo3PromptFromScene } from '@/lib/veo3';
 import { buildVeo3PromptFromWizard } from '@/lib/veo3';

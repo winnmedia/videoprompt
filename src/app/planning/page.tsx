@@ -214,7 +214,7 @@ export default function PlanningPage() {
         version: 'V1',
         status: 'completed',
         refPromptTitle: '산맥 일몰 프롬프트',
-        videoUrl: 'https://example.com/video1.mp4',
+        videoUrl: `${process.env.RAILWAY_BACKEND_URL || 'https://your-railway-backend.railway.app'}/api/videos/v1`,
         thumbnailUrl:
           'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNjAiIGhlaWdodD0iOTAiIHZpZXdCb3g9IjAgMCAxNjAgOTAiPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNGRjZCMzU7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iNTAlIiBzdHlsZT0ic3RvcC1jb2xvcjojRjc5MzFFO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNGRkQyM0Y7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxjaXJjbGUgY3g9IjEyMCIgY3k9IjIwIiByPSIxNSIgZmlsbD0iI0ZGRDIzRiIvPgogIDxwb2x5Z29uIHBvaW50cz0iMTYsNjMgNDgsMzYgODAsNTQgMTEyLDQ2IDE0NCw2MyIgZmlsbD0iIzJEMzc0OCIvPgogIDx0ZXh0IHg9IjgwIiB5PSI3NSIgZmlsbD0id2hpdGUiIGZvbnQtc2l6ZT0iOCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+5LiA6Ie06rO8PC90ZXh0Pgo8L3N2Zz4=',
         createdAt: '2024-01-15T10:30:00Z',
@@ -232,7 +232,7 @@ export default function PlanningPage() {
         version: 'V2',
         status: 'completed',
         refPromptTitle: '바다 파도 프롬프트',
-        videoUrl: 'https://example.com/video2.mp4',
+        videoUrl: `${process.env.RAILWAY_BACKEND_URL || 'https://your-railway-backend.railway.app'}/api/videos/v2`,
         thumbnailUrl:
           'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5MCIgaGVpZ2h0PSIxNjAiIHZpZXdCb3g9IjAgMCA5MCAxNjAiPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMzMTgyQ0U7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iNTAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNDI5OUUxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM2M0IzRUQ7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxyZWN0IHg9IjAiIHk9Ijk2IiB3aWR0aD0iOTAiIGhlaWdodD0iNjQiIGZpbGw9IiMzMTgyQ0UiLz4KICA8dGV4dCB4PSI0NSIgeT0iMTQwIiBmaWxsPSJ3aGl0ZSIgZm9udC1zaXplPSI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7rs7TsnbQ8L3RleHQ+Cjwvc3ZnPg==',
         createdAt: '2024-01-14T15:45:00Z',
@@ -437,7 +437,7 @@ export default function PlanningPage() {
 
     try {
       // API 호출로 실제 삭제 구현 예정
-      console.log('Deleting items:', Array.from(selectedItems));
+      // Deleting selected items from planning
       
       // 임시로 로컬 상태에서 제거
       setScenarioItems(prev => prev.filter(item => !selectedItems.has(item.id)));

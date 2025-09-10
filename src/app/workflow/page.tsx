@@ -498,7 +498,7 @@ export default function WorkflowPage() {
           setVideoJobIds([data.jobId]);
         } else if (data.provider === 'veo3' && data.operationId) {
           // Veo3의 경우 operationId로 상태 추적 (추후 구현)
-          console.log('Veo3 operation started:', data.operationId);
+          // Veo3 operation started successfully
         } else if (data.provider === 'mock' && data.videoUrl) {
           // Mock 영상은 즉시 완료
           setGeneratedVideo(data.videoUrl);

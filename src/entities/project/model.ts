@@ -1,50 +1,14 @@
-export interface ScenarioData {
-  title?: string;
-  story?: string;
-  genre?: string;
-  tone?: string | string[];
-  target?: string;
-  structure?: string[]; // 4단계 구조
-  format?: string;
-  tempo?: string;
-  developmentMethod?: string;
-  developmentIntensity?: string;
-  durationSec?: number;
-  // 추가 메타(기획안 PDF 링크 등)는 필요 시 확장
-}
+/**
+ * 프로젝트 모델 - entities 레이어
+ * 
+ * 실제 타입 정의는 shared/types/project.ts로 이동되었으며,
+ * 하위 호환성을 위해 여기서 re-export합니다.
+ */
 
-export interface PromptData {
-  finalPrompt?: string;
-  negativePrompt?: string;
-  keywords?: string[];
-  // 상세 설정 스냅샷(선택)
-  visualStyle?: string;
-  mood?: string;
-  quality?: string;
-  directorStyle?: string;
-}
-
-export interface VideoData {
-  provider?: 'seedance' | 'veo3' | 'mock' | 'upload';
-  jobId?: string; // seedance
-  operationId?: string; // veo
-  videoUrl?: string; // 최종 URL 또는 data-uri(mock)
-  status?: 'queued' | 'processing' | 'pending' | 'succeeded' | 'failed';
-}
-
-export interface VersionMeta {
-  id: string;
-  label: string; // v1, v2, ...
-  src: string;
-  uploadedAt: string; // ISO
-}
-
-export interface ProjectPipelineState {
-  id: string;
-  scenario: ScenarioData;
-  prompt: PromptData;
-  video: VideoData;
-  versions: VersionMeta[];
-  createdAt: string;
-  updatedAt: string;
-}
+export type {
+  ScenarioData,
+  PromptData,
+  VideoData,
+  VersionMeta,
+  ProjectPipelineState
+} from '@/shared/types/project';

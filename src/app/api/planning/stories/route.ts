@@ -1,94 +1,77 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-
-interface StoryRecord {
-  id: string;
-  title: string;
-  oneLineStory: string;
-  genre: string;
-  tone: string;
-  target: string;
-  structure?: {
-    act1: {
-      title: string;
-      description: string;
-      key_elements: string[];
-      emotional_arc: string;
-    };
-    act2: {
-      title: string;
-      description: string;
-      key_elements: string[];
-      emotional_arc: string;
-    };
-    act3: {
-      title: string;
-      description: string;
-      key_elements: string[];
-      emotional_arc: string;
-    };
-    act4: {
-      title: string;
-      description: string;
-      key_elements: string[];
-      emotional_arc: string;
-    };
-  };
-  createdAt: string;
-  updatedAt: string;
-}
+import { 
+  GetStoriesQuerySchema, 
+  CreateStoryRequestSchema,
+  StoriesResponseSchema,
+  StoryResponseSchema,
+  type GetStoriesQuery,
+  type CreateStoryRequest
+} from '@/shared/schemas/story.schema';
+import { 
+  createValidationErrorResponse,
+  createSuccessResponse,
+  createErrorResponse
+} from '@/shared/schemas/api.schema';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const search = searchParams.get('search') || '';
     
-    // 사용자 인증 확인 (향후 추가 예정)
-    // const user = await getCurrentUser(request);
-    // if (!user) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // }
+    // 쿼리 파라미터 검증
+    const queryResult = GetStoriesQuerySchema.safeParse(Object.fromEntries(searchParams.entries()));
+    
+    if (!queryResult.success) {
+      return NextResponse.json(
+        createValidationErrorResponse(queryResult.error),
+        { status: 400 }
+      );
+    }
+    
+    const { page, limit, search, genre, tone, target, sortBy, sortOrder } = queryResult.data;
+    
+    // 사용자 인증 확인
+    const { getUser } = await import('@/shared/lib/auth');
+    const user = await getUser(request);
 
     const skip = (page - 1) * limit;
 
-    // 검색 조건 설정
-    const whereCondition = search
-      ? {
-          OR: [
-            { title: { contains: search, mode: 'insensitive' as const } },
-            { logline: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {};
+    // 검색 조건 구성
+    const whereCondition = {
+      // 검색어가 있는 경우
+      ...(search ? {
+        OR: [
+          { title: { contains: search, mode: 'insensitive' as const } },
+          { oneLineStory: { contains: search, mode: 'insensitive' as const } },
+          { genre: { contains: search, mode: 'insensitive' as const } },
+        ],
+      } : {}),
+      // 필터 조건들
+      ...(genre ? { genre } : {}),
+      ...(tone ? { tone } : {}),
+      ...(target ? { target } : {}),
+      // 사용자별 필터링: 인증된 사용자는 본인 스토리, 미인증은 public 스토리만
+      userId: user ? user.id : null,
+    };
 
-    // 생성된 스토리 목록 조회 (Story 테이블 사용)
-    const whereConditionStory = search
-      ? {
-          OR: [
-            { title: { contains: search, mode: 'insensitive' as const } },
-            { oneLineStory: { contains: search, mode: 'insensitive' as const } },
-            { genre: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {};
+    // 정렬 조건 구성
+    const orderBy = { [sortBy]: sortOrder };
 
     const [stories, totalCount] = await Promise.all([
       prisma.story.findMany({
-        where: whereConditionStory,
-        orderBy: { updatedAt: 'desc' },
+        where: whereCondition,
+        orderBy,
         skip,
         take: limit,
       }),
       prisma.story.count({
-        where: whereConditionStory,
+        where: whereCondition,
       }),
     ]);
 
     const totalPages = Math.ceil(totalCount / limit);
 
-    // StoryRecord 형식으로 변환
+    // 응답 데이터 형식화
     const formattedStories = stories.map((story) => ({
       id: story.id,
       title: story.title,
@@ -97,11 +80,12 @@ export async function GET(request: NextRequest) {
       tone: story.tone || 'Neutral',
       target: story.target || 'General',
       structure: story.structure || null,
+      userId: story.userId,
       createdAt: story.createdAt.toISOString(),
       updatedAt: story.updatedAt.toISOString(),
     }));
 
-    return NextResponse.json({
+    const response = {
       stories: formattedStories,
       pagination: {
         currentPage: page,
@@ -110,54 +94,107 @@ export async function GET(request: NextRequest) {
         hasNext: page < totalPages,
         hasPrev: page > 1,
       },
-    });
+    };
+
+    // 응답 데이터 검증
+    const responseResult = StoriesResponseSchema.safeParse(response);
+    
+    if (!responseResult.success) {
+      console.error('응답 데이터 검증 실패:', responseResult.error);
+      return NextResponse.json(
+        createErrorResponse('RESPONSE_VALIDATION_ERROR', '응답 데이터 형식이 올바르지 않습니다'),
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error('스토리 목록 조회 오류:', error);
-    return NextResponse.json({ error: '스토리 목록 조회 중 오류가 발생했습니다.' }, { status: 500 });
+    return NextResponse.json(
+      createErrorResponse('INTERNAL_ERROR', '스토리 목록 조회 중 오류가 발생했습니다'),
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    // 요청 본문 파싱 및 검증
     const body = await request.json();
-    const { title, oneLineStory, genre, tone, target, structure } = body;
-
-    if (!title || !oneLineStory) {
-      return NextResponse.json({ error: '제목과 스토리는 필수입니다.' }, { status: 400 });
+    const validationResult = CreateStoryRequestSchema.safeParse(body);
+    
+    if (!validationResult.success) {
+      return NextResponse.json(
+        createValidationErrorResponse(validationResult.error),
+        { status: 400 }
+      );
     }
+    
+    const validatedData = validationResult.data;
 
-    // 사용자 인증 확인 (향후 추가 예정)
-    // const user = await getCurrentUser(request);
-    // if (!user) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // }
+    // 사용자 인증 확인
+    const { getUser } = await import('@/shared/lib/auth');
+    const user = await getUser(request);
+    
+    // 인증되지 않은 사용자도 생성 허용하되, userId는 null로 저장
+    // 추후 정책에 따라 인증 강제 가능
 
     // Story 테이블에 저장
     const story = await prisma.story.create({
       data: {
-        title,
-        oneLineStory,
-        genre: genre || 'Drama',
-        tone: tone || 'Neutral',
-        target: target || 'General',
-        structure: structure || null,
-        // 사용자 인증 추가 시 userId 설정
+        title: validatedData.title,
+        oneLineStory: validatedData.oneLineStory,
+        genre: validatedData.genre,
+        tone: validatedData.tone,
+        target: validatedData.target,
+        structure: validatedData.structure || undefined,
+        userId: user?.id || null,
       },
     });
 
-    return NextResponse.json({
+    const responseData = {
       id: story.id,
       title: story.title,
       oneLineStory: story.oneLineStory,
       genre: story.genre,
       tone: story.tone,
       target: story.target,
-      structure,
+      structure: story.structure,
+      userId: story.userId,
       createdAt: story.createdAt.toISOString(),
       updatedAt: story.updatedAt.toISOString(),
-    }, { status: 201 });
+    };
+
+    // 응답 데이터 검증
+    const responseValidation = StoryResponseSchema.safeParse(
+      createSuccessResponse(responseData, '스토리가 성공적으로 생성되었습니다')
+    );
+
+    if (!responseValidation.success) {
+      console.error('응답 데이터 검증 실패:', responseValidation.error);
+      return NextResponse.json(
+        createErrorResponse('RESPONSE_VALIDATION_ERROR', '응답 데이터 형식이 올바르지 않습니다'),
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(responseData, { status: 201 });
   } catch (error) {
     console.error('스토리 저장 오류:', error);
-    return NextResponse.json({ error: '스토리 저장 중 오류가 발생했습니다.' }, { status: 500 });
+    
+    // 데이터베이스 제약 조건 위반 등의 특정 오류 처리
+    if (error instanceof Error) {
+      if (error.message.includes('Unique constraint')) {
+        return NextResponse.json(
+          createErrorResponse('DUPLICATE_ERROR', '이미 존재하는 스토리입니다'),
+          { status: 409 }
+        );
+      }
+    }
+    
+    return NextResponse.json(
+      createErrorResponse('INTERNAL_ERROR', '스토리 저장 중 오류가 발생했습니다'),
+      { status: 500 }
+    );
   }
 }
