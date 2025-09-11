@@ -61,7 +61,7 @@ JSON만 반환해주세요.`;
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
       {
         method: 'POST',
         headers: {
@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
           genre,
           tone,
           generatedAt: new Date().toISOString(),
-          aiModel: process.env.GOOGLE_GEMINI_API_KEY ? 'gemini-pro' : 'fallback',
+          aiModel: process.env.GOOGLE_GEMINI_API_KEY ? 'gemini-1.5-flash' : 'fallback',
         },
       },
     };

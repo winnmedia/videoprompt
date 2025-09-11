@@ -39,7 +39,7 @@ describe('시나리오 개발 API 통합 테스트', () => {
       expect(result.data.totalShots).toBe(result.data.shots.length);
       expect(result.data.estimatedDuration).toBeGreaterThan(0);
       expect(result.data.generatedAt).toBeDefined();
-      expect(result.data.aiModel).toBe('gemini-pro-vision');
+      expect(result.data.aiModel).toBe('gemini-1.5-flash');
       expect(result.data.processingTime).toBeDefined();
     });
 

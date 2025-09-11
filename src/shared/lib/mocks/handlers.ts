@@ -440,7 +440,7 @@ export const handlers = [
         totalShots: shots.length,
         estimatedDuration: shots.reduce((sum, shot) => sum + shot.duration, 0),
         generatedAt: new Date().toISOString(),
-        aiModel: 'gemini-pro-vision',
+        aiModel: 'gemini-1.5-flash',
         processingTime: 4800,
       }
     });
