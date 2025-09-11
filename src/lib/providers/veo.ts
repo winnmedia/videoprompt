@@ -187,6 +187,7 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
       raw: { error: String(error) },
     };
   }
+  */
 }
 
 // Veo 2 operation 상태 확인 및 동영상 다운로드
@@ -263,4 +264,5 @@ export async function checkVeoVideoStatus(operationId: string): Promise<VeoVideo
       error: `Status check exception: ${error instanceof Error ? error.message : 'unknown error'}`,
     };
   }
+  */
 }
