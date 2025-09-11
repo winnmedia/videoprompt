@@ -6,6 +6,7 @@ import { Modal } from '@/shared/ui/Modal';
 import { Camera, MessageSquare, Share2, Repeat, Upload } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { useProjectStore } from '@/entities/project';
+import { safeFetch } from '@/shared/lib/api-retry';
 
 interface VideoVersionMeta {
   id: string;
@@ -57,7 +58,7 @@ export default function FeedbackPage() {
     if (!t) return;
     (async () => {
       try {
-        const res = await fetch(`/api/shares/${t}`);
+        const res = await safeFetch(`/api/shares/${t}`);
         const json = await res.json();
         if (json?.ok)
           setTokenInfo({
@@ -154,7 +155,7 @@ export default function FeedbackPage() {
       if (token) formData.append('token', token);
       
       // 업로드 API 호출 (추후 구현될 API 엔드포인트)
-      const response = await fetch('/api/upload/video', {
+      const response = await safeFetch('/api/upload/video', {
         method: 'POST',
         body: formData,
       });
@@ -560,7 +561,7 @@ export default function FeedbackPage() {
                   try {
                     const t = token;
                     if (!t) return alert('공유 토큰이 필요합니다');
-                    await fetch('/api/comments', {
+                    await safeFetch('/api/comments', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
@@ -681,7 +682,7 @@ export default function FeedbackPage() {
                   );
                   const role =
                     (document.getElementById('role') as HTMLSelectElement)?.value || 'commenter';
-                  const res = await fetch('/api/shares', {
+                  const res = await safeFetch('/api/shares', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

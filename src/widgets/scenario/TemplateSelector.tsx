@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { StoryTemplate, StoryInput } from '@/entities/scenario';
 import { DEFAULT_TEMPLATES } from '@/entities/scenario/templates';
 import { Button } from '@/shared/ui';
+import { safeFetch } from '@/shared/lib/api-retry';
 
 interface TemplateSelectorProps {
   onSelect: (template: StoryTemplate) => void;
@@ -36,7 +37,7 @@ export function TemplateSelector({
   const loadUserTemplates = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/templates');
+      const response = await safeFetch('/api/templates');
       if (response.ok) {
         const data = await response.json();
         setUserTemplates(data.templates || []);

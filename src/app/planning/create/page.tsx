@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { Icon, Loading } from '@/shared/ui';
+import { safeFetch } from '@/shared/lib/api-retry';
 
 interface PlanningData {
   title: string;
@@ -195,7 +196,7 @@ export default function PlanningCreatePage() {
       };
       
       // AI 기획안 생성 API 호출
-      const response = await fetch('/api/ai/generate-planning', {
+      const response = await safeFetch('/api/ai/generate-planning', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(apiData),
