@@ -388,18 +388,6 @@ export default function ScenarioPage() {
     toast.success(`"${template.name}" 템플릿이 적용되었습니다.`, '템플릿 적용');
   };
 
-  // StoryStepsEditor용 핸들러 함수들
-  const handleToggleEditing = (stepId: string) => {
-    // TODO: 스텝 편집 상태 토글 로직 구현
-    console.log('Toggle editing for step:', stepId);
-  };
-
-  const handleUpdateStep = (stepId: string, field: keyof StoryStep, value: string) => {
-    setStorySteps(prev => prev.map(step => 
-      step.id === stepId ? { ...step, [field]: value } : step
-    ));
-  };
-
   // 현재 설정을 템플릿으로 저장
   const handleSaveAsTemplate = async (templateData: { name: string; description: string; storyInput: StoryInput }) => {
     try {
@@ -1210,14 +1198,506 @@ export default function ScenarioPage() {
         {/* 2단계: 4단계 스토리 검토/수정 */}
         {currentStep === 2 && (
           <StoryStepsEditor
-            storySteps={storySteps}
-            onToggleEditing={handleToggleEditing}
-            onUpdateStep={handleUpdateStep}
-            onGenerateShots={handleGenerateShots}
-            loading={loading}
-            loadingMessage={loadingMessage}
+            steps={storySteps}
+            onStepsChange={setStorySteps}
+            onContinue={() => setCurrentStep(3)}
           />
         )}
+                  <div className="grid grid-cols-2 gap-2">
+                    {toneOptions.map((tone) => (
+                      <label key={tone} className="flex cursor-pointer items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={storyInput.toneAndManner.includes(tone)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              handleStoryInputChange('toneAndManner', [
+                                ...storyInput.toneAndManner,
+                                tone,
+                              ]);
+                            } else {
+                              handleStoryInputChange(
+                                'toneAndManner',
+                                storyInput.toneAndManner.filter((t) => t !== tone),
+                              );
+                            }
+                          }}
+                          className="text-primary border-border focus:ring-primary h-4 w-4 rounded focus:ring-2 focus:ring-offset-2"
+                        />
+                        <span className="text-sm text-gray-900">{tone}</span>
+                      </label>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomToneInput(true)}
+                      className="flex cursor-pointer items-center space-x-2 text-brand-600 hover:text-brand-700"
+                    >
+                      <div className="h-4 w-4 rounded border-2 border-brand-600 flex items-center justify-center">
+                        <span className="text-xs">+</span>
+                      </div>
+                      <span className="text-sm">기타 추가</span>
+                    </button>
+                  </div>
+                  
+                  {/* 선택된 톤앤매너 태그 표시 */}
+                  {storyInput.toneAndManner.length > 0 && (
+                    <div className="mt-3">
+                      <div className="flex flex-wrap gap-2">
+                        {storyInput.toneAndManner.map((tone) => (
+                          <span 
+                            key={tone}
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-800"
+                          >
+                            {tone}
+                            <button
+                              type="button"
+                              onClick={() => handleToneRemove(tone)}
+                              className="ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full text-brand-400 hover:bg-brand-200 hover:text-brand-500 focus:bg-brand-500 focus:text-white focus:outline-none"
+                            >
+                              <span className="sr-only">Remove {tone}</span>
+                              <span aria-hidden="true">×</span>
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* 커스텀 톤앤매너 입력 */}
+                  {showCustomToneInput && (
+                    <div className="mt-3 flex gap-2">
+                      <input
+                        type="text"
+                        value={customTone}
+                        onChange={(e) => setCustomTone(e.target.value)}
+                        placeholder="새로운 톤앤매너를 입력하세요"
+                        className="flex-1 rounded-lg border-2 border-brand-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            handleCustomToneAdd();
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCustomToneAdd}
+                        className="px-3 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                      >
+                        추가
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCustomToneInput(false);
+                          setCustomTone('');
+                        }}
+                        className="px-3 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-200"
+                      >
+                        취소
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-900">장르</label>
+                    {showCustomGenreInput ? (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={customGenre}
+                          onChange={(e) => setCustomGenre(e.target.value)}
+                          placeholder="새로운 장르를 입력하세요"
+                          className="flex-1 rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              handleCustomGenreSet();
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleCustomGenreSet}
+                          className="px-4 py-3 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                        >
+                          추가
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowCustomGenreInput(false);
+                            setCustomGenre('');
+                          }}
+                          className="px-4 py-3 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-200"
+                        >
+                          취소
+                        </button>
+                      </div>
+                    ) : (
+                      <select
+                        value={storyInput.genre === customGenre ? '기타' : storyInput.genre}
+                        onChange={(e) => {
+                          if (e.target.value === '기타') {
+                            setShowCustomGenreInput(true);
+                          } else {
+                            handleStoryInputChange('genre', e.target.value);
+                          }
+                        }}
+                        className="w-full rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                      >
+                        <option value="">장르를 선택하세요</option>
+                        {genreOptions.map((genre) => (
+                          <option key={genre} value={genre}>
+                            {genre}
+                          </option>
+                        ))}
+                        <option value="기타">기타 (직접 입력)</option>
+                      </select>
+                    )}
+                    {storyInput.genre && !genreOptions.includes(storyInput.genre) && (
+                      <div className="mt-2">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-800">
+                          커스텀: {storyInput.genre}
+                          <button
+                            type="button"
+                            onClick={() => handleStoryInputChange('genre', '')}
+                            className="ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full text-brand-400 hover:bg-brand-200 hover:text-brand-500 focus:bg-brand-500 focus:text-white focus:outline-none"
+                          >
+                            <span className="sr-only">Remove custom genre</span>
+                            <span aria-hidden="true">×</span>
+                          </button>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-900">포맷</label>
+                    <select
+                      value={storyInput.format}
+                      onChange={(e) => handleStoryInputChange('format', e.target.value)}
+                      className="w-full rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                    >
+                      <option value="">포맷을 선택하세요</option>
+                      {formatOptions.map((format) => (
+                        <option key={format} value={format}>
+                          {format}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-900">템포</label>
+                    <div className="space-y-2">
+                      {tempoOptions.map((tempo) => (
+                        <label key={tempo} className="flex cursor-pointer items-center space-x-2">
+                          <input
+                            type="radio"
+                            name="tempo"
+                            value={tempo}
+                            checked={storyInput.tempo === tempo}
+                            onChange={(e) => handleStoryInputChange('tempo', e.target.value)}
+                            className="text-primary border-border focus:ring-primary h-4 w-4 focus:ring-2 focus:ring-offset-2"
+                          />
+                          <span className="text-sm text-gray-900">{tempo}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-900">
+                      전개 강도
+                    </label>
+                    <div className="space-y-2">
+                      {intensityOptions.map((intensity) => (
+                        <label
+                          key={intensity}
+                          className="flex cursor-pointer items-center space-x-2"
+                        >
+                          <input
+                            type="radio"
+                            name="intensity"
+                            value={intensity}
+                            checked={storyInput.developmentIntensity === intensity}
+                            onChange={(e) =>
+                              handleStoryInputChange('developmentIntensity', e.target.value)
+                            }
+                            className="text-primary border-border focus:ring-primary h-4 w-4 focus:ring-2 focus:ring-offset-2"
+                          />
+                          <span className="text-sm text-gray-900">{intensity}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-900">전개 방식</label>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {developmentOptions.map((method) => {
+                      const selected = storyInput.developmentMethod === method;
+                      return (
+                        <button
+                          key={method}
+                          type="button"
+                          onClick={() => handleStoryInputChange('developmentMethod', method)}
+                          className={`rounded-md border p-3 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+                            selected
+                              ? 'border-brand-500 bg-primary-50 shadow'
+                              : 'border-gray-300 bg-white hover:border-gray-400'
+                          }`}
+                          aria-pressed={selected ? 'true' : 'false'}
+                        >
+                          <div className="font-medium text-gray-900">{method}</div>
+                          <div className="mt-1 text-xs text-gray-600">
+                            {method === '훅-몰입-반전-떡밥' && '시작에 강한 주목→빠른 몰입→반전→후속 기대' }
+                            {method === '클래식 기승전결' && '기-승-전-결의 안정적 구조'}
+                            {method === '귀납법' && '사례를 모아 결론에 도달'}
+                            {method === '연역법' && '결론을 먼저 제시하고 근거로 전개'}
+                            {method === '다큐(인터뷰식)' && '인터뷰/내레이션 중심의 전개'}
+                            {method === '픽사스토리' && '옛날 옛적에→매일→그러던 어느 날→때문에→결국'}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 선택된 옵션 미리보기 */}
+            {(storyInput.toneAndManner.length > 0 ||
+              storyInput.genre ||
+              storyInput.tempo ||
+              storyInput.developmentMethod ||
+              storyInput.developmentIntensity) && (
+              <div className="mt-6 rounded-lg border border-brand-200 bg-primary-50 p-4">
+                <h3 className="mb-2 text-sm font-medium text-primary-800">선택된 설정 미리보기</h3>
+                <div className="grid grid-cols-1 gap-2 text-sm text-primary-700 sm:grid-cols-2">
+                  {storyInput.toneAndManner.length > 0 && (
+                    <div>
+                      <span className="font-medium">톤앤매너:</span>{' '}
+                      {storyInput.toneAndManner.join(', ')}
+                    </div>
+                  )}
+                  {storyInput.genre && (
+                    <div>
+                      <span className="font-medium">장르:</span> {storyInput.genre}
+                    </div>
+                  )}
+                  {storyInput.tempo && (
+                    <div>
+                      <span className="font-medium">템포:</span> {storyInput.tempo}
+                    </div>
+                  )}
+                  {storyInput.developmentMethod && (
+                    <div>
+                      <span className="font-medium">전개 방식:</span> {storyInput.developmentMethod}
+                    </div>
+                  )}
+                  {storyInput.developmentIntensity && (
+                    <div>
+                      <span className="font-medium">전개 강도:</span>{' '}
+                      {storyInput.developmentIntensity}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
+              <Button
+                onClick={handleGenerateStorySteps}
+                disabled={loading || !storyInput.title || !storyInput.oneLineStory}
+                size="lg"
+                className="btn-primary w-full px-8 sm:w-auto"
+              >
+                {loading ? '생성 중...' : '4단계 스토리 생성'}
+              </Button>
+            </div>
+
+            {/* 로딩 */}
+            {loading && (
+              <div className="mt-4">
+                <Loading size="md" message={loadingMessage} />
+                <Skeleton lines={3} className="mt-4" />
+              </div>
+            )}
+
+            {/* 에러 메시지 및 재시도 */}
+            {error && !loading && (
+              <div className="mt-6 rounded-lg border border-danger-200 bg-danger-50 p-4">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    <svg
+                      className="h-5 w-5 text-danger-400"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <h3 className="text-sm font-medium text-danger-800">스토리 생성 실패</h3>
+                    <div className="mt-2 text-sm text-danger-700">
+                      <p>{error}</p>
+                    </div>
+                    <div className="mt-4 flex items-center gap-3">
+                      <Button
+                        onClick={handleRetry}
+                        size="sm"
+                        className="bg-danger-600 text-white hover:bg-danger-700 focus:ring-danger-500"
+                      >
+                        <svg
+                          className="-ml-1 mr-2 h-4 w-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                          />
+                        </svg>
+                        다시 시도
+                      </Button>
+                      {retryCount > 0 && (
+                        <span className="text-xs text-danger-600">
+                          재시도 {retryCount}회
+                        </span>
+                      )}
+                    </div>
+                    {errorType === 'network' && (
+                      <div className="mt-3 rounded-md bg-danger-100 p-2">
+                        <p className="text-xs text-danger-700">
+                          💡 해결 방법:
+                          <br />• 인터넷 연결을 확인해주세요
+                          <br />• VPN을 사용 중이라면 잠시 끄고 시도해보세요
+                          <br />• 브라우저를 새로고침(F5) 후 다시 시도해주세요
+                        </p>
+                      </div>
+                    )}
+                    {errorType === 'server' && retryCount >= 2 && (
+                      <div className="mt-3 rounded-md bg-danger-100 p-2">
+                        <p className="text-xs text-danger-700">
+                          💡 AI 서버가 일시적으로 과부하 상태입니다.
+                          <br />• 1-2분 후에 다시 시도해주세요
+                          <br />• 계속 문제가 발생하면 고객센터로 문의해주세요
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 2단계: 4단계 스토리 검토/수정 */}
+        {currentStep === 2 && (
+          <div className="card p-4 sm:p-6">
+            <h2 className="mb-6 text-xl font-semibold text-gray-900">4단계 스토리 검토/수정</h2>
+
+            <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+              {storySteps.map((step) => (
+                <div key={step.id} className="card-hover p-4">
+                  <div className="mb-3 flex items-start justify-between">
+                    <h3 className="text-lg font-medium text-gray-900">{step.title}</h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleStepEditing(step.id)}
+                      className="btn-secondary"
+                    >
+                      {step.isEditing ? '완료' : '편집'}
+                    </Button>
+                  </div>
+
+                  {step.isEditing ? (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-gray-900">요약</label>
+                        <input
+                          type="text"
+                          value={step.summary}
+                          onChange={(e) => updateStep(step.id, 'summary', e.target.value)}
+                          className="w-full rounded-lg border-2 border-brand-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-gray-900">본문</label>
+                        <textarea
+                          value={step.content}
+                          onChange={(e) => updateStep(step.id, 'content', e.target.value)}
+                          rows={3}
+                          className="w-full rounded-lg border-2 border-brand-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-gray-900">목표</label>
+                        <input
+                          type="text"
+                          value={step.goal}
+                          onChange={(e) => updateStep(step.id, 'goal', e.target.value)}
+                          className="w-full rounded-lg border-2 border-brand-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-sm text-gray-600">
+                        <strong>요약:</strong> {step.summary}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <strong>본문:</strong> {step.content}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <strong>목표:</strong> {step.goal}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        <strong>길이 힌트:</strong> {step.lengthHint}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-center">
+              <Button
+                onClick={handleGenerateShots}
+                disabled={loading}
+                size="lg"
+                className="btn-primary px-8"
+              >
+                {loading ? '숏트 생성 중...' : '12개 숏트 생성'}
+              </Button>
+            </div>
+
+            {/* 로딩 메시지 */}
+            {loading && loadingMessage && (
+              <div className="mt-4 text-center">
+                <div className="text-primary inline-flex items-center space-x-2">
+                  <div className="border-primary h-4 w-4 animate-spin rounded-full border-b-2"></div>
+                  <span>{loadingMessage}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* 3단계: 12개 숏트 편집 및 스토리보드 생성 */}
         {currentStep === 3 && (
           <div className="space-y-8">
