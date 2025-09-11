@@ -37,15 +37,17 @@ export async function generateStorySteps({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        story: storyInput.oneLineStory,
-        genre: storyInput.genre,
-        tone: storyInput.toneAndManner.join(', '),
-        target: storyInput.target,
-        duration: storyInput.duration,
-        format: storyInput.format,
-        tempo: storyInput.tempo,
-        developmentMethod: storyInput.developmentMethod,
-        developmentIntensity: storyInput.developmentIntensity,
+        story: storyInput.oneLineStory || '',
+        genre: storyInput.genre || '드라마',
+        tone: storyInput.toneAndManner && storyInput.toneAndManner.length > 0 
+          ? storyInput.toneAndManner.join(', ')
+          : '일반적',
+        target: storyInput.target || '일반 시청자',
+        duration: storyInput.duration || '30',
+        format: storyInput.format || 'video',
+        tempo: storyInput.tempo || 'moderate',
+        developmentMethod: storyInput.developmentMethod || 'traditional',
+        developmentIntensity: storyInput.developmentIntensity || 'moderate',
       }),
     });
 
