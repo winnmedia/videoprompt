@@ -5,12 +5,10 @@ import { clsx } from 'clsx';
 
 interface GenerateStoryboardButtonProps {
   onGenerate: () => void;
-  onBatchGenerate?: (mode: 'all' | 'selected') => void;
   isLoading?: boolean;
   disabled?: boolean;
   text?: string;
   loadingText?: string;
-  showBatchOption?: boolean;
   progress?: number;
   total?: number;
   showSuccess?: boolean;
@@ -20,36 +18,16 @@ interface GenerateStoryboardButtonProps {
 
 export const GenerateStoryboardButton: React.FC<GenerateStoryboardButtonProps> = ({
   onGenerate,
-  onBatchGenerate,
   isLoading = false,
   disabled = false,
   text = '스토리보드 생성',
   loadingText = '생성 중...',
-  showBatchOption = false,
   progress,
   total,
   showSuccess = false,
   error,
   className,
 }) => {
-  const [showDropdown, setShowDropdown] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-
-    if (showDropdown) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showDropdown]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if ((e.key === 'Enter' || e.key === ' ') && !disabled && !isLoading) {
@@ -132,68 +110,6 @@ export const GenerateStoryboardButton: React.FC<GenerateStoryboardButtonProps> =
     className
   );
 
-  if (showBatchOption && onBatchGenerate) {
-    return (
-      <div className="relative inline-block" ref={dropdownRef}>
-        <div className="flex">
-          <button
-            role="button"
-            aria-busy={isLoading}
-            disabled={disabled || isLoading}
-            onClick={onGenerate}
-            onKeyDown={handleKeyDown}
-            className={clsx(buttonClasses, 'rounded-r-none')}
-          >
-            {getButtonContent()}
-          </button>
-          <button
-            aria-label="생성 옵션"
-            onClick={() => setShowDropdown(!showDropdown)}
-            disabled={disabled || isLoading}
-            className={clsx(
-              'rounded-l-none border-l border-white/20',
-              buttonClasses
-            )}
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </button>
-        </div>
-
-        {/* 드롭다운 메뉴 */}
-        {showDropdown && (
-          <div className="absolute right-0 z-10 mt-2 w-48 rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 dark:bg-gray-800">
-            <div className="py-1">
-              <button
-                onClick={() => {
-                  onBatchGenerate('all');
-                  setShowDropdown(false);
-                }}
-                className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
-              >
-                모든 샷 생성
-              </button>
-              <button
-                onClick={() => {
-                  onBatchGenerate('selected');
-                  setShowDropdown(false);
-                }}
-                className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
-              >
-                선택한 샷만 생성
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
 
   return (
     <div className="inline-block">

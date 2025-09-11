@@ -505,52 +505,8 @@ export default function ScenarioPage() {
   const [isGeneratingImage, setIsGeneratingImage] = useState<Record<string, boolean>>({});
   const [storyboardShots, setStoryboardShots] = useState<StoryboardShot[]>([]);
   const [storyboardProgress, setStoryboardProgress] = useState<any[]>([]);
-  const [isBatchGenerating, setIsBatchGenerating] = useState(false);
-  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
 
-  // 스토리보드 관련 핸들러들
-  const handleBatchGenerate = async (mode: 'all' | 'selected') => {
-    setIsBatchGenerating(true);
-    const shotsToGenerate = mode === 'all' 
-      ? storyboardShots.filter(s => !s.imageUrl)
-      : storyboardShots.filter(s => !s.imageUrl).slice(0, 3); // 예시로 처음 3개만
-    
-    setBatchProgress({ current: 0, total: shotsToGenerate.length });
-    
-    // 진행 상태 초기화
-    const progressSteps = shotsToGenerate.map((shot, index) => ({
-      id: `step-${shot.id}`,
-      label: `${shot.title} 이미지 생성`,
-      status: 'pending' as const,
-      message: '대기 중',
-    }));
-    setStoryboardProgress(progressSteps);
-    
-    for (let i = 0; i < shotsToGenerate.length; i++) {
-      const shot = shotsToGenerate[i];
-      
-      // 진행 상태 업데이트
-      setStoryboardProgress(prev => prev.map((step, idx) => 
-        idx === i ? { ...step, status: 'processing', message: '생성 중...' } : 
-        idx < i ? { ...step, status: 'completed', message: '완료' } : 
-        step
-      ));
-      
-      await generateContiImageForStoryboard(shot.id);
-      
-      setBatchProgress(prev => ({ ...prev, current: i + 1 }));
-    }
-    
-    // 모든 진행 완료
-    setStoryboardProgress(prev => prev.map(step => ({ 
-      ...step, 
-      status: 'completed', 
-      message: '완료' 
-    })));
-    
-    toast.success(`${shotsToGenerate.length}개의 스토리보드 이미지가 모두 생성되었습니다!`, '배치 생성 완료');
-    setIsBatchGenerating(false);
-  };
+  // 스토리보드 관련 핸들러들 (일괄 생성 제거됨)
   
   const handleRegenerateShot = async (shotId: string) => {
     await generateContiImageForStoryboard(shotId);
@@ -1718,16 +1674,10 @@ export default function ScenarioPage() {
               <div className="mb-6 flex items-center justify-between">
                 <h2 className="text-2xl font-semibold text-gray-900">스토리보드 갤러리</h2>
                 <div className="flex gap-2">
-                  <GenerateStoryboardButton
-                    onGenerate={() => handleBatchGenerate('all')}
-                    onBatchGenerate={handleBatchGenerate}
-                    isLoading={isBatchGenerating}
-                    showBatchOption={true}
-                    progress={batchProgress.current}
-                    total={batchProgress.total}
-                    text="모든 이미지 생성"
-                    loadingText="이미지 생성 중"
-                  />
+                  {/* 일괄 생성 기능 제거 - 개별 생성만 사용 */}
+                  <div className="text-sm text-gray-500 flex items-center">
+                    각 스토리보드에서 개별적으로 이미지를 생성하세요
+                  </div>
                   <Button
                     variant="outline"
                     size="lg"
