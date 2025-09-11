@@ -20,35 +20,33 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Zod 스키마 정의 - 빈 문자열을 기본값으로 변환하도록 개선
+// Zod 스키마 정의 - 필수 필드는 엄격하게, 선택 필드는 기본값 제공
 const StoryRequestSchema = z.object({
   story: z.string()
-    .transform(val => val?.trim() || '')
-    .refine(val => val.length >= 5, {
+    .min(1, '스토리를 입력해주세요')
+    .transform(val => val?.trim())
+    .refine(val => val && val.length >= 5, {
       message: '스토리는 최소 5자 이상 입력해주세요'
     }),
   genre: z.string()
-    .transform(val => val?.trim() || '드라마')
-    .refine(val => val.length > 0, {
-      message: '장르를 선택해주세요'
-    }),
+    .min(1, '장르를 선택해주세요')
+    .transform(val => val?.trim())
+    .default('드라마'),
   tone: z.string()
-    .transform(val => val?.trim() || '일반적')
-    .refine(val => val.length > 0, {
-      message: '톤앤매너를 선택해주세요'
-    }),
+    .min(1, '톤앤매너를 선택해주세요')  
+    .transform(val => val?.trim())
+    .default('일반적'),
   target: z.string()
-    .transform(val => val?.trim() || '일반 시청자')
-    .refine(val => val.length > 0, {
-      message: '타겟 관객을 입력해주세요'
-    }),
-  duration: z.string().optional(),
-  format: z.string().optional(),
-  tempo: z.string().optional(),
-  developmentMethod: z.string().optional(),
-  developmentIntensity: z.string().optional(),
+    .min(1, '타겟 관객을 입력해주세요')
+    .transform(val => val?.trim())
+    .default('일반 시청자'),
+  duration: z.string().optional().default('60초'),
+  format: z.string().optional().default('16:9'),
+  tempo: z.string().optional().default('보통'),
+  developmentMethod: z.string().optional().default('클래식 기승전결'),
+  developmentIntensity: z.string().optional().default('보통'),
   projectId: z.string().uuid().optional(),
-  saveAsProject: z.boolean().optional(),
+  saveAsProject: z.boolean().optional().default(false),
   projectTitle: z.string().optional(),
 });
 
@@ -101,12 +99,15 @@ export async function POST(request: NextRequest) {
         message: issue.message
       }));
       
+      // 첫 번째 에러 메시지를 우선으로 표시
+      const primaryError = errorDetails[0];
+      const userMessage = primaryError ? primaryError.message : '필수 정보가 누락되었습니다. 모든 필드를 입력했는지 확인해주세요.';
+      
       return NextResponse.json({
-        error: '입력 정보를 확인해주세요',
+        error: 'VALIDATION_ERROR',
+        message: userMessage,
         details: errorDetails,
-        userMessage: errorDetails.length === 1 
-          ? errorDetails[0].message 
-          : '필수 정보를 모두 입력해주세요'
+        userMessage
       }, { status: 400 });
     }
 

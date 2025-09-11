@@ -8,6 +8,33 @@ import { logger } from '@/shared/lib/logger';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+export async function GET(req: NextRequest) {
+  try {
+    const traceId = getTraceId(req);
+    const userId = getUserIdFromRequest(req);
+    
+    const videos = await prisma.videoAsset.findMany({
+      where: userId ? { userId } : {},
+      orderBy: { createdAt: 'desc' },
+      include: {
+        prompt: {
+          select: {
+            id: true,
+            metadata: true,
+            timeline: true,
+          },
+        },
+      },
+    });
+
+    logger.info('videoAssets fetched', { count: videos.length }, traceId);
+    return success({ videos }, 200, traceId);
+  } catch (e: any) {
+    logger.error('videoAssets fetch failed', { error: e?.message }, undefined);
+    return failure('UNKNOWN', e?.message || 'Server error', 500);
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const traceId = getTraceId(req);
@@ -47,4 +74,15 @@ export async function POST(req: NextRequest) {
     logger.error('videoAsset create failed', { error: e?.message }, undefined);
     return failure('UNKNOWN', e?.message || 'Server error', 500);
   }
+}
+
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
 }

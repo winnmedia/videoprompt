@@ -269,7 +269,7 @@ export async function registerFullProject(
 ): Promise<ContentRegistrationResult> {
   const results: ContentRegistrationResult[] = [];
   let overallSuccess = true;
-  let messages: string[] = [];
+  const messages: string[] = [];
 
   try {
     // 1. 시나리오 등록
