@@ -69,8 +69,20 @@ export function TemplateSelector({
       return;
     }
 
+    // 중복 이름 체크
+    const isDuplicate = userTemplates.some(template => 
+      template.name.toLowerCase() === templateName.trim().toLowerCase()
+    );
+    
+    if (isDuplicate) {
+      alert('이미 존재하는 템플릿 이름입니다. 다른 이름을 사용해주세요.');
+      return;
+    }
+
+    setLoading(true);
+    
     try {
-      onSaveAsTemplate({
+      await onSaveAsTemplate({
         name: templateName.trim(),
         description: templateDescription.trim() || `사용자 정의 ${currentStoryInput.genre} 템플릿`,
         storyInput: currentStoryInput
@@ -83,10 +95,39 @@ export function TemplateSelector({
       // 템플릿 목록 다시 불러오기
       await loadUserTemplates();
       
+      alert(`"${templateName.trim()}" 템플릿이 성공적으로 저장되었습니다! 🎉`);
       onClose();
     } catch (error) {
       console.error('템플릿 저장 실패:', error);
-      alert('템플릿 저장에 실패했습니다.');
+      alert('템플릿 저장에 실패했습니다. 네트워크 연결을 확인해주세요.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId: string, templateName: string) => {
+    if (!confirm(`"${templateName}" 템플릿을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) {
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      const response = await fetch(`/api/templates/${templateId}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        alert(`"${templateName}" 템플릿이 삭제되었습니다.`);
+        await loadUserTemplates(); // 목록 새로고침
+      } else {
+        throw new Error('삭제 실패');
+      }
+    } catch (error) {
+      console.error('템플릿 삭제 실패:', error);
+      alert('템플릿 삭제에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -141,15 +182,30 @@ export function TemplateSelector({
               {userTemplates.map((template) => (
                 <div
                   key={template.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow-lg hover:border-green-300 transition-all cursor-pointer bg-gradient-to-br from-white to-green-50"
-                  onClick={() => handleTemplateSelect(template)}
+                  className="border border-gray-200 rounded-lg p-4 hover:shadow-lg hover:border-green-300 transition-all bg-gradient-to-br from-white to-green-50 relative group"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-semibold text-gray-900 text-sm">{template.name}</h4>
-                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                      내 템플릿
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                        내 템플릿
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteTemplate(template.id, template.name);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 text-xs px-2 py-1 rounded transition-all"
+                        title="템플릿 삭제"
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   </div>
+                  <div 
+                    className="cursor-pointer" 
+                    onClick={() => handleTemplateSelect(template)}
+                  >
                   <p className="text-gray-600 text-xs mb-3 leading-relaxed">{template.description}</p>
                   
                   {/* 템플릿 미리보기 */}
@@ -158,6 +214,7 @@ export function TemplateSelector({
                     <div><span className="font-medium text-gray-700">타겟:</span> <span className="text-green-600">{template.template.target}</span></div>
                     <div><span className="font-medium text-gray-700">분위기:</span> <span className="text-green-600">{template.template.toneAndManner.join(', ')}</span></div>
                     <div><span className="font-medium text-gray-700">시간:</span> <span className="text-green-600">{template.template.duration}</span></div>
+                  </div>
                   </div>
                 </div>
               ))}

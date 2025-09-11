@@ -6,6 +6,7 @@ export { FormError } from './FormError';
 export { Header } from './Header';
 export { Input } from './input';
 export { Loading } from './Loading';
+export { LoadingSpinner, LoadingOverlay, InlineLoadingSpinner } from './LoadingSpinner';
 export { Logo } from './Logo';
 export { Icon } from './Icon';
 export { IntegrationGrid } from './IntegrationGrid';
@@ -18,6 +19,7 @@ export { DataTable } from './data-table';
 export { ToastProvider, useToast } from './Toast';
 export { AutoSaveStatus } from './AutoSaveStatus';
 export { ErrorBoundary, withErrorBoundary } from './ErrorBoundary';
+export { ErrorFallback, ErrorCard } from './ErrorFallback';
 
 // Email Verification Components
 export { VerificationCodeInput } from './VerificationCodeInput';
