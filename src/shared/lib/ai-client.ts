@@ -450,7 +450,7 @@ export class AIServiceManager {
 
   getCurrentModel(): string {
     if (this.openaiClient) return 'gpt-4';
-    if (this.geminiClient) return 'gemini-pro';
+    if (this.geminiClient) return 'gemini-1.5-flash';
     return 'mock';
   }
 }
