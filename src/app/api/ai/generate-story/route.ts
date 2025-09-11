@@ -20,12 +20,28 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Zod 스키마 정의
+// Zod 스키마 정의 - 빈 문자열을 기본값으로 변환하도록 개선
 const StoryRequestSchema = z.object({
-  story: z.string().min(10, '스토리는 최소 10자 이상이어야 합니다'),
-  genre: z.string().min(1, '장르는 필수입니다'),
-  tone: z.string().min(1, '톤앤매너는 필수입니다'),
-  target: z.string().min(1, '타겟 관객은 필수입니다'),
+  story: z.string()
+    .transform(val => val?.trim() || '')
+    .refine(val => val.length >= 5, {
+      message: '스토리는 최소 5자 이상 입력해주세요'
+    }),
+  genre: z.string()
+    .transform(val => val?.trim() || '드라마')
+    .refine(val => val.length > 0, {
+      message: '장르를 선택해주세요'
+    }),
+  tone: z.string()
+    .transform(val => val?.trim() || '일반적')
+    .refine(val => val.length > 0, {
+      message: '톤앤매너를 선택해주세요'
+    }),
+  target: z.string()
+    .transform(val => val?.trim() || '일반 시청자')
+    .refine(val => val.length > 0, {
+      message: '타겟 관객을 입력해주세요'
+    }),
   duration: z.string().optional(),
   format: z.string().optional(),
   tempo: z.string().optional(),
@@ -80,10 +96,18 @@ export async function POST(request: NextRequest) {
     // 입력 데이터 검증
     const validationResult = StoryRequestSchema.safeParse(body);
     if (!validationResult.success) {
-      return NextResponse.json(
-        createValidationErrorResponse(validationResult.error),
-        { status: 400 }
-      );
+      const errorDetails = validationResult.error.issues.map((issue: any) => ({
+        field: issue.path.join('.'),
+        message: issue.message
+      }));
+      
+      return NextResponse.json({
+        error: '입력 정보를 확인해주세요',
+        details: errorDetails,
+        userMessage: errorDetails.length === 1 
+          ? errorDetails[0].message 
+          : '필수 정보를 모두 입력해주세요'
+      }, { status: 400 });
     }
 
     const { story, genre, tone, target, duration, format, tempo, developmentMethod, developmentIntensity, projectId, saveAsProject, projectTitle } = validationResult.data;
