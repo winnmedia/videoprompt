@@ -108,7 +108,7 @@ export async function generateStorySteps({
 
   onLoadingStart?.('AI가 스토리를 생성하고 있습니다...');
 
-  const requestPromise = withDeduplication(cacheKey, async (): Promise<StoryStep[]> => {
+  const requestPromise = withDeduplication(cacheKey, async () => {
     try {
     const response = await safeFetch('/api/ai/generate-story', {
       method: 'POST',
@@ -176,7 +176,7 @@ export async function generateStorySteps({
   } finally {
     onLoadingEnd?.();
   }
-  })();
+  });
 
   // 요청을 pendingRequests에 등록
   pendingRequests.set(cacheKey, requestPromise);

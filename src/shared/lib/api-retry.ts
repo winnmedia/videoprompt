@@ -116,8 +116,15 @@ export async function safeFetch(
   return withRetry(async () => {
     apiLimiter.recordRequest();
     
+    // 클라이언트 사이드에서 토큰 가져오기
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    
     const response = await fetch(url, {
       ...options,
+      headers: {
+        ...options?.headers,
+        ...(token && { Authorization: `Bearer ${token}` })
+      },
       signal: AbortSignal.timeout(30000) // 30초 타임아웃
     });
     
