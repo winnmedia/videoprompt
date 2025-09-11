@@ -38,7 +38,18 @@ export async function GET(req: NextRequest) {
       return failure('NOT_FOUND', '사용자를 찾을 수 없습니다.', 404, undefined, traceId);
     }
 
-    return success(user, 200, traceId);
+    // 🚨 토큰 동기화: 새 토큰 생성 및 반환으로 클라이언트 동기화 보장
+    const { signSessionToken } = await import('@/shared/lib/auth');
+    const token = signSessionToken({ 
+      userId: user.id, 
+      email: user.email, 
+      username: user.username 
+    });
+    
+    return success({ 
+      ...user,
+      token // 클라이언트에서 localStorage 동기화용
+    }, 200, traceId);
   } catch (error: any) {
     return failure('UNKNOWN', error?.message || 'Server error', 500);
   }

@@ -43,6 +43,10 @@ function LoginForm() {
       if (data.ok) {
         // 로그인 성공 - 사용자 정보를 스토어에 저장
         if (data.data) {
+          // 🚨 토큰 동기화: localStorage에 토큰 저장
+          if (data.data.token && typeof window !== 'undefined') {
+            localStorage.setItem('token', data.data.token);
+          }
           setUser(data.data);
         }
         router.push('/');

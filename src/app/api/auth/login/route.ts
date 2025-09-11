@@ -52,7 +52,12 @@ export async function POST(req: NextRequest) {
 
     // 세션 쿠키 발급 (HttpOnly)
     const token = signSessionToken({ userId: user.id, email: user.email, username: user.username });
-    const res = success({ id: user.id, email: user.email, username: user.username }, 200, traceId);
+    const res = success({ 
+      id: user.id, 
+      email: user.email, 
+      username: user.username,
+      token // 🚨 토큰 동기화: 클라이언트에서 localStorage에 저장할 수 있도록 토큰 포함
+    }, 200, traceId);
     (res as NextResponse).cookies.set('session', token, {
       httpOnly: true,
       sameSite: 'lax',
