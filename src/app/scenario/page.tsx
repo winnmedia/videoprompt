@@ -18,11 +18,11 @@ import {
   extractStoryboardConfig,
   type StoryboardConfig,
   type ShotPromptOptions 
-} from '@/lib/utils/prompt-consistency';
+} from '@/shared/lib/prompt-consistency';
 import {
   StoryboardGallery,
   GenerateStoryboardButton
-} from '@/components/storyboard';
+} from '@/widgets/storyboard';
 import { StoryInput, StoryStep, Shot, InsertShot, StoryboardShot, StoryTemplate } from '@/entities/scenario';
 import { generateStorySteps, generateShots } from '@/features/scenario';
 import { StoryInputForm, StoryStepsEditor, ShotsGrid } from '@/widgets/scenario';

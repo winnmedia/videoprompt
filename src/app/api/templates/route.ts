@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { prisma } from '@/lib/db';
 import { StoryInput } from '@/entities/scenario';
+import { getUserIdFromRequest } from '@/shared/lib/auth';
 
 const CreateTemplateSchema = z.object({
   name: z.string().min(1, '템플릿 이름을 입력해주세요'),
@@ -30,7 +31,9 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const category = searchParams.get('category');
-    const userId = req.headers.get('user-id'); // 인증 구현 후 실제 사용자 ID 사용
+    
+    // 🚨 보안 긴급 수정: 토큰 기반 인증으로 변경 (선택적)
+    const userId = getUserIdFromRequest(req);
 
     const whereClause = {
       AND: [
@@ -64,14 +67,22 @@ export async function POST(req: NextRequest) {
   
   try {
     const body = await req.json();
-    const userId = req.headers.get('user-id'); // 인증 구현 후 실제 사용자 ID 사용
+    
+    // 🚨 보안 긴급 수정: 토큰 기반 인증으로 변경
+    const userId = getUserIdFromRequest(req);
+    if (!userId) {
+      return NextResponse.json(
+        { error: '인증이 필요합니다' },
+        { status: 401 }
+      );
+    }
     
     const validatedData = CreateTemplateSchema.parse(body);
     
     const template = await prisma.storyTemplate.create({
       data: {
         ...validatedData,
-        userId: userId || null,
+        userId: userId,
       },
     });
 

@@ -34,7 +34,10 @@ model Project {
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
   userId       String    @map("user_id")
-  tags         Json
+  tags         Json?
+  scenario     String?
+  prompt       String?
+  video        String?
   user         User      @relation(fields: [userId], references: [id])
   scenes       Scene[]
   timeline     Timeline?
@@ -211,16 +214,18 @@ model PasswordReset {
 model StoryTemplate {
   id           String   @id @default(uuid())
   name         String
-  description  String
-  category     String
+  description  String?
+  category     String   // advertisement, vlog, tutorial, custom
+  template     Json     // StoryInput 데이터 저장
   thumbnailUrl String?  @map("thumbnail_url")
-  isPublic     Boolean  @default(true) @map("is_public")
+  isPublic     Boolean  @default(false) @map("is_public")
   userId       String?  @map("user_id")
+  downloads    Int      @default(0)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
-  template     Json
 
   @@index([category])
   @@index([userId])
   @@index([isPublic])
+  @@map("story_templates")
 }
