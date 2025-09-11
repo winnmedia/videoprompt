@@ -72,49 +72,103 @@ export async function POST(request: NextRequest) {
 
     const file = videoFile;
 
-    // 파일 검증 통과 - Railway 백엔드로 전송 준비
+    // Railway 백엔드로 직접 프록시 전송
     const uploadId = crypto.randomUUID();
     const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const railwayUploadUrl = `${process.env.RAILWAY_BACKEND_URL}/api/upload/video`;
+    
+    // Railway 백엔드 URL 확인
+    const railwayBackendUrl = process.env.RAILWAY_BACKEND_URL;
+    if (!railwayBackendUrl) {
+      return NextResponse.json(
+        createErrorResponse('CONFIG_ERROR', 'Railway 백엔드 설정이 누락되었습니다.'), 
+        { status: 500 }
+      );
+    }
 
-    // 업로드 세션 정보 생성
-    const uploadSession = {
-      uploadId,
-      originalFileName: file.name,
-      sanitizedFileName,
-      fileSize: file.size,
-      fileType: file.type,
-      status: 'pending' as const,
-      createdAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 1000 * 60 * 60).toISOString(), // 1시간 후 만료
-    };
+    try {
+      // Railway 백엔드로 파일 프록시 전송
+      const railwayFormData = new FormData();
+      railwayFormData.append('video', file);
+      railwayFormData.append('uploadId', uploadId);
+      railwayFormData.append('originalFileName', file.name);
+      railwayFormData.append('sanitizedFileName', sanitizedFileName);
 
-    console.log('대용량 영상 업로드 세션 생성:', {
-      uploadId,
-      originalFileName: file.name,
-      fileSize: `${Math.round(file.size / 1024 / 1024)}MB`,
-      fileType: file.type,
-    });
+      console.log('Railway 백엔드로 파일 전송 시작:', {
+        uploadId,
+        originalFileName: file.name,
+        fileSize: `${Math.round(file.size / 1024 / 1024)}MB`,
+        fileType: file.type,
+        railwayUrl: `${railwayBackendUrl}/api/upload/video`,
+      });
 
-    const responseData = {
-      ok: true,
-      uploadId,
-      uploadUrl: railwayUploadUrl,
-      videoUrl: `${process.env.RAILWAY_BACKEND_URL}/api/videos/${uploadId}`,
-      fileName: sanitizedFileName,
-      originalFileName: file.name,
-      fileSize: file.size,
-      fileType: file.type,
-      uploadSession,
-      instructions: {
-        message: '대용량 파일은 Railway 백엔드로 직접 업로드됩니다.',
-        maxRetries: 3,
-        chunkSize: '50MB',
-        timeout: 900000, // 15분 (1GB 대용량 파일 고려)
+      const railwayResponse = await fetch(`${railwayBackendUrl}/api/upload/video`, {
+        method: 'POST',
+        body: railwayFormData,
+        headers: {
+          'Authorization': `Bearer ${process.env.RAILWAY_API_TOKEN || ''}`,
+        },
+      });
+
+      if (!railwayResponse.ok) {
+        const errorText = await railwayResponse.text();
+        console.error('Railway 백엔드 업로드 실패:', railwayResponse.status, errorText);
+        
+        return NextResponse.json(
+          createErrorResponse(
+            'RAILWAY_UPLOAD_FAILED', 
+            `백엔드 업로드 실패: ${railwayResponse.status}`
+          ), 
+          { status: railwayResponse.status }
+        );
       }
-    };
 
-    return NextResponse.json(responseData);
+      const railwayResult = await railwayResponse.json();
+      
+      console.log('Railway 백엔드 업로드 성공:', {
+        uploadId,
+        videoUrl: railwayResult.videoUrl,
+      });
+
+      // 성공 응답
+      const responseData = {
+        ok: true,
+        uploadId,
+        videoUrl: railwayResult.videoUrl || `${railwayBackendUrl}/api/videos/${uploadId}`,
+        fileName: sanitizedFileName,
+        originalFileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        uploadSession: {
+          uploadId,
+          originalFileName: file.name,
+          sanitizedFileName,
+          fileSize: file.size,
+          fileType: file.type,
+          status: 'completed' as const,
+          createdAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(), // 24시간 후 만료
+        },
+        instructions: {
+          message: '파일이 Railway 백엔드에 성공적으로 업로드되었습니다.',
+          maxRetries: 3,
+          chunkSize: '50MB',
+          timeout: 900000,
+        }
+      };
+
+      return NextResponse.json(responseData);
+
+    } catch (fetchError) {
+      console.error('Railway 백엔드 연결 오류:', fetchError);
+      
+      return NextResponse.json(
+        createErrorResponse(
+          'RAILWAY_CONNECTION_FAILED', 
+          'Railway 백엔드에 연결할 수 없습니다.'
+        ), 
+        { status: 502 }
+      );
+    }
 
   } catch (error) {
     console.error('영상 업로드 준비 오류:', error);

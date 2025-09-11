@@ -9,7 +9,7 @@ const items = [
   { href: '/', label: '홈' },
   { href: '/scenario', label: 'AI 영상 기획' },
   { href: '/prompt-generator', label: '프롬프트 생성기' },
-  { href: '/workflow', label: 'AI 영상 생성' },
+  // { href: '/workflow', label: 'AI 영상 생성' }, // 일시 비활성화 - VEO3 비용 절감
   { href: '/feedback', label: '영상 피드백' },
   { href: '/planning', label: '콘텐츠 관리' },
 ];

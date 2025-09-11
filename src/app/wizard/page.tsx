@@ -2391,15 +2391,16 @@ export default function SceneWizardPage() {
                             프롬프트 복사
                           </Button>
 
-                          {/* Veo3 동영상 생성 버튼 */}
+                          {/* Veo3 동영상 생성 버튼 - 일시 비활성화 */}
                           <Button
                             variant="outline"
-                            onClick={handleVeoCreate}
-                            className="flex-1"
-                            title="Google Veo 3로 동영상 생성"
+                            onClick={() => alert('VEO3 서비스가 일시적으로 중단되었습니다.')}
+                            className="flex-1 opacity-50 cursor-not-allowed"
+                            title="VEO3 서비스 일시 중단"
+                            disabled
                           >
-                            <Icon name="play" size="sm" className="mr-2" />
-                            Veo3 생성
+                            <Icon name="pause" size="sm" className="mr-2" />
+                            Veo3 (중단)
                           </Button>
 
                           {/* Seedance 영상 생성 버튼 */}

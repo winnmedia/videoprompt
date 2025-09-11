@@ -18,6 +18,16 @@ export type VeoVideoResponse = {
 
 // Google Veo 3 API를 통한 동영상 생성
 export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVideoResponse> {
+  // 임시 차단 - VEO3 비용 절감
+  console.log('DEBUG: VEO3 서비스가 일시적으로 비활성화되었습니다.');
+  return {
+    ok: false,
+    error: 'VEO3 서비스가 일시적으로 비활성화되었습니다. 서비스 개선을 위해 잠시 중단된 상태입니다.',
+    operationId: undefined,
+    videoUrl: undefined
+  };
+
+  /* 임시 주석 처리 - 나중에 복구용
   const {
     prompt,
     aspectRatio = '16:9',
@@ -181,6 +191,16 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
 
 // Veo 2 operation 상태 확인 및 동영상 다운로드
 export async function checkVeoVideoStatus(operationId: string): Promise<VeoVideoResponse> {
+  // 임시 차단 - VEO3 비용 절감
+  console.log('DEBUG: VEO3 상태 확인 서비스가 일시적으로 비활성화되었습니다.');
+  return {
+    ok: false,
+    error: 'VEO3 서비스가 일시적으로 비활성화되었습니다. 서비스 개선을 위해 잠시 중단된 상태입니다.',
+    operationId: undefined,
+    videoUrl: undefined
+  };
+
+  /* 임시 주석 처리 - 나중에 복구용
   const apiKey = process.env.GOOGLE_GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) {
     return {

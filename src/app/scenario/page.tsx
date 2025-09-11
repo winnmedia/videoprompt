@@ -57,7 +57,7 @@ export default function ScenarioPage() {
   const [showCustomToneInput, setShowCustomToneInput] = useState(false);
   const [showCustomGenreInput, setShowCustomGenreInput] = useState(false);
 
-  // 자동 저장을 위한 데이터를 Zustand 스토어에만 저장
+  // 자동 저장을 위한 데이터베이스 저장 훅
   const autoSaveData = useMemo(() => {
     // 데이터가 있는 경우에만 프로젝트 스토어에 자동 저장
     if (storyInput.title || storyInput.oneLineStory || storySteps.length > 0) {
@@ -90,6 +90,82 @@ export default function ScenarioPage() {
       shots,
     };
   }, [storyInput, storySteps, shots, project]);
+
+  // debounced 자동 저장 로직 추가
+  const [autoSaveTimer, setAutoSaveTimer] = useState<NodeJS.Timeout | null>(null);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
+
+  // 자동 저장 함수
+  const saveToDatabase = async (storyData: typeof autoSaveData) => {
+    if (!storyData.title || !storyData.oneLineStory) return;
+    
+    try {
+      setIsAutoSaving(true);
+      
+      const response = await fetch('/api/planning/stories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: storyData.title,
+          oneLineStory: storyData.oneLineStory,
+          genre: storyData.genre,
+          tone: storyData.toneAndManner.join(', '),
+          target: storyData.target,
+          structure: storyData.storySteps.length > 0 ? Object.fromEntries(
+            storyData.storySteps.map((step, index) => [
+              `act${index + 1}`,
+              {
+                title: step.title,
+                description: step.content,
+                emotional_arc: step.goal,
+              },
+            ])
+          ) : undefined,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('스토리 자동 저장 성공:', result.id);
+        // 성공 시 저장된 ID를 프로젝트 스토어에 저장
+        if (result.id) {
+          project.setStoryId?.(result.id);
+        }
+      } else {
+        console.warn('스토리 자동 저장 실패:', response.status);
+      }
+    } catch (error) {
+      console.warn('스토리 자동 저장 오류:', error);
+    } finally {
+      setIsAutoSaving(false);
+    }
+  };
+
+  // debounced 자동 저장 트리거
+  React.useEffect(() => {
+    // 이전 타이머 정리
+    if (autoSaveTimer) {
+      clearTimeout(autoSaveTimer);
+    }
+
+    // 새로운 타이머 설정 (2초 지연)
+    const newTimer = setTimeout(() => {
+      if (autoSaveData.title && autoSaveData.oneLineStory) {
+        saveToDatabase(autoSaveData);
+      }
+    }, 2000);
+
+    setAutoSaveTimer(newTimer);
+
+    // cleanup
+    return () => {
+      if (newTimer) {
+        clearTimeout(newTimer);
+      }
+    };
+  }, [autoSaveData]);
 
   // 수동 저장 기능
   const [isSaving, setIsSaving] = useState(false);
@@ -1004,14 +1080,16 @@ export default function ScenarioPage() {
       <div className="bg-white border-b">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-12 items-center justify-end space-x-4">
-            {lastSaved && (
+            {(lastSaved || isAutoSaving) && (
               <div className="hidden sm:flex items-center space-x-2 text-sm" role="status" aria-label="저장 상태">
-                <div className="h-2 w-2 rounded-full bg-success-500" aria-hidden="true" />
+                <div className={`h-2 w-2 rounded-full ${isAutoSaving ? 'bg-blue-500 animate-pulse' : 'bg-success-500'}`} aria-hidden="true" />
                 <span className="text-gray-600">
-                  마지막 저장: {lastSaved.toLocaleTimeString('ko-KR', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  {isAutoSaving ? '자동 저장 중...' : lastSaved ? 
+                    `마지막 저장: ${lastSaved.toLocaleTimeString('ko-KR', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}` : ''
+                  }
                 </span>
               </div>
             )}
