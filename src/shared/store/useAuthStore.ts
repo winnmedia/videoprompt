@@ -56,8 +56,17 @@ export const useAuthStore = create<AuthState>()(
       checkAuth: async () => {
         const { isLoading, isAuthenticated } = get();
         
-        // 이미 로딩 중이거나 인증된 상태면 중복 요청 방지
-        if (isLoading) return;
+        // $300 사건 방지: 강력한 중복 방지
+        if (isLoading) {
+          console.warn('Auth check already in progress, skipping');
+          return;
+        }
+
+        // 이미 인증된 경우 재확인 스킵 (캐싱)
+        if (isAuthenticated) {
+          console.log('Already authenticated, skipping check');
+          return;
+        }
 
         set({ isLoading: true });
 
@@ -79,6 +88,13 @@ export const useAuthStore = create<AuthState>()(
                 isAuthenticated: false 
               });
             }
+          } else if (response.status === 401) {
+            // 401 에러 시 재시도 없이 바로 미인증 처리
+            console.log('Unauthorized - user not logged in');
+            set({ 
+              user: null, 
+              isAuthenticated: false 
+            });
           } else {
             set({ 
               user: null, 
@@ -87,6 +103,7 @@ export const useAuthStore = create<AuthState>()(
           }
         } catch (error) {
           console.error('Auth check error:', error);
+          // 에러 발생 시 재시도 없이 미인증 처리
           set({ 
             user: null, 
             isAuthenticated: false 
