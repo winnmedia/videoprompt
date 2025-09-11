@@ -44,6 +44,11 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           console.error('Logout error:', error);
         } finally {
+          // 🚨 토큰 동기화: localStorage에서 토큰 제거
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('token');
+          }
+          
           // 로컬 상태 초기화
           set({ 
             user: null, 
@@ -78,6 +83,11 @@ export const useAuthStore = create<AuthState>()(
           if (response.ok) {
             const data = await response.json();
             if (data.ok && data.data) {
+              // 🚨 토큰 동기화: 인증 성공 시 토큰을 localStorage에 저장
+              if (data.token && typeof window !== 'undefined') {
+                localStorage.setItem('token', data.token);
+              }
+              
               set({ 
                 user: data.data, 
                 isAuthenticated: true 
@@ -89,8 +99,12 @@ export const useAuthStore = create<AuthState>()(
               });
             }
           } else if (response.status === 401) {
-            // 401 에러 시 재시도 없이 바로 미인증 처리
+            // 401 에러 시 재시도 없이 바로 미인증 처리 + 토큰 제거
             console.log('Unauthorized - user not logged in');
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('token');
+            }
+            
             set({ 
               user: null, 
               isAuthenticated: false 

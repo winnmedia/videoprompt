@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
+import { getUserIdFromRequest } from '@/shared/lib/auth';
 
 const UpdateTemplateSchema = z.object({
   name: z.string().min(1, '템플릿 이름을 입력해주세요').optional(),
@@ -56,7 +57,15 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await req.json();
-    const userId = req.headers.get('user-id'); // 인증 구현 후 실제 사용자 ID 사용
+    
+    // 🚨 보안 긴급 수정: 토큰 기반 인증으로 변경
+    const userId = getUserIdFromRequest(req);
+    if (!userId) {
+      return NextResponse.json(
+        { error: '인증이 필요합니다' },
+        { status: 401 }
+      );
+    }
     
     const validatedData = UpdateTemplateSchema.parse(body);
 
@@ -64,7 +73,7 @@ export async function PUT(
     const existingTemplate = await prisma.storyTemplate.findFirst({
       where: {
         id,
-        userId: userId || null,
+        userId: userId,
       },
     });
 
@@ -107,13 +116,21 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const userId = req.headers.get('user-id'); // 인증 구현 후 실제 사용자 ID 사용
+    
+    // 🚨 보안 긴급 수정: 토큰 기반 인증으로 변경
+    const userId = getUserIdFromRequest(req);
+    if (!userId) {
+      return NextResponse.json(
+        { error: '인증이 필요합니다' },
+        { status: 401 }
+      );
+    }
 
     // 권한 확인: 사용자가 소유한 템플릿만 삭제 가능
     const existingTemplate = await prisma.storyTemplate.findFirst({
       where: {
         id,
-        userId: userId || null,
+        userId: userId,
       },
     });
 

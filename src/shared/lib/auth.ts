@@ -12,10 +12,10 @@ type SessionPayload = {
 const getSecret = (): string => {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
-    console.error('❌ JWT_SECRET environment variable is required');
-    // 임시로 기본값 사용하여 서버 시작 가능하도록 함
-    console.warn('⚠️  Using fallback JWT_SECRET - PRODUCTION DEPLOYMENT NEEDED');
-    return 'temp-fallback-jwt-secret-replace-with-proper-env-var';
+    // 🚨 보안 긴급 수정: 프로덕션에서 JWT_SECRET 필수
+    const error = new Error('JWT_SECRET environment variable is required. Set it in your .env file or Vercel dashboard.');
+    console.error('❌ CRITICAL SECURITY ERROR:', error.message);
+    throw error;
   }
   return secret;
 };
