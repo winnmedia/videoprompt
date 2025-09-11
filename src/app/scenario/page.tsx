@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { extractSceneComponents } from '@/shared/lib';
 import { Button, ErrorBoundary } from '@/shared/ui';
 import { useProjectStore } from '@/entities/project';
@@ -56,43 +56,72 @@ export default function ScenarioPage() {
   const [showCustomToneInput, setShowCustomToneInput] = useState(false);
   const [showCustomGenreInput, setShowCustomGenreInput] = useState(false);
 
-  // 자동 저장을 위한 데이터베이스 저장 훅
-  const autoSaveData = useMemo(() => {
-    // 데이터가 있는 경우에만 프로젝트 스토어에 자동 저장
-    if (storyInput.title || storyInput.oneLineStory || storySteps.length > 0) {
-      project.setScenario({
-        title: storyInput.title,
-        story: storyInput.oneLineStory,
-        tone: storyInput.toneAndManner,
-        genre: storyInput.genre,
-        target: storyInput.target,
-        format: storyInput.format,
-        tempo: storyInput.tempo,
-        developmentMethod: storyInput.developmentMethod,
-        developmentIntensity: storyInput.developmentIntensity,
-        durationSec: parseInt(storyInput.duration, 10) || undefined,
-      });
-    }
-    
-    return {
-      title: storyInput.title,
-      oneLineStory: storyInput.oneLineStory,
-      toneAndManner: storyInput.toneAndManner,
-      genre: storyInput.genre,
-      target: storyInput.target,
-      duration: storyInput.duration,
-      format: storyInput.format,
-      tempo: storyInput.tempo,
-      developmentMethod: storyInput.developmentMethod,
-      developmentIntensity: storyInput.developmentIntensity,
-      storySteps,
-      shots,
-    };
-  }, [storyInput, storySteps, shots, project]);
+  // 자동 저장용 데이터 메모이제이션 (side effect 제거)
+  const autoSaveData = useMemo(() => ({
+    title: storyInput.title,
+    oneLineStory: storyInput.oneLineStory,
+    toneAndManner: storyInput.toneAndManner,
+    genre: storyInput.genre,
+    target: storyInput.target,
+    duration: storyInput.duration,
+    format: storyInput.format,
+    tempo: storyInput.tempo,
+    developmentMethod: storyInput.developmentMethod,
+    developmentIntensity: storyInput.developmentIntensity,
+    storySteps,
+    shots,
+  }), [storyInput, storySteps, shots]);
 
-  // debounced 자동 저장 로직 추가
+  // 자동 저장을 위한 상태
   const [autoSaveTimer, setAutoSaveTimer] = useState<NodeJS.Timeout | null>(null);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
+
+  // 프로젝트 스토어 자동 저장 로직 (디바운싱 적용)
+  useEffect(() => {
+    // 데이터가 있는 경우에만 자동 저장
+    if (storyInput.title || storyInput.oneLineStory || storySteps.length > 0) {
+      // 기존 타이머 정리
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+      }
+
+      // 1초 디바운싱 적용
+      const timer = setTimeout(() => {
+        try {
+          project.setScenario({
+            title: storyInput.title,
+            story: storyInput.oneLineStory,
+            // tone 필드 안전하게 처리 - 배열을 문자열로 변환
+            tone: Array.isArray(storyInput.toneAndManner) 
+              ? storyInput.toneAndManner.join(', ')
+              : storyInput.toneAndManner || '',
+            genre: storyInput.genre,
+            target: storyInput.target,
+            format: storyInput.format,
+            tempo: storyInput.tempo,
+            developmentMethod: storyInput.developmentMethod,
+            developmentIntensity: storyInput.developmentIntensity,
+            // duration 안전하게 파싱
+            durationSec: storyInput.duration && storyInput.duration.trim() 
+              ? parseInt(storyInput.duration, 10) || undefined
+              : undefined,
+          });
+        } catch (error) {
+          console.error('프로젝트 스토어 저장 중 오류:', error);
+          toast.error('프로젝트 저장 중 오류가 발생했습니다.');
+        }
+      }, 1000);
+
+      setAutoSaveTimer(timer);
+    }
+
+    // cleanup 함수
+    return () => {
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+      }
+    };
+  }, [storyInput, storySteps, project, toast]); // autoSaveTimer를 의존성에서 제외
 
   // 자동 저장 함수
   const saveToDatabase = async (storyData: typeof autoSaveData) => {
@@ -110,7 +139,9 @@ export default function ScenarioPage() {
           title: storyData.title,
           oneLineStory: storyData.oneLineStory,
           genre: storyData.genre,
-          tone: storyData.toneAndManner.join(', '),
+          tone: Array.isArray(storyData.toneAndManner) 
+            ? storyData.toneAndManner.join(', ')
+            : storyData.toneAndManner || '',
           target: storyData.target,
           structure: storyData.storySteps.length > 0 ? Object.fromEntries(
             storyData.storySteps.map((step, index) => [
