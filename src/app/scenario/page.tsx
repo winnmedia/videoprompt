@@ -21,8 +21,7 @@ import {
 } from '@/lib/utils/prompt-consistency';
 import {
   StoryboardGallery,
-  GenerateStoryboardButton,
-  StoryboardProgress
+  GenerateStoryboardButton
 } from '@/components/storyboard';
 import { StoryInput, StoryStep, Shot, InsertShot, StoryboardShot } from '@/entities/scenario';
 import { generateStorySteps, generateShots } from '@/features/scenario';
@@ -504,7 +503,7 @@ export default function ScenarioPage() {
   const [storyboardConfig, setStoryboardConfig] = useState<StoryboardConfig | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState<Record<string, boolean>>({});
   const [storyboardShots, setStoryboardShots] = useState<StoryboardShot[]>([]);
-  const [storyboardProgress, setStoryboardProgress] = useState<any[]>([]);
+  // const [storyboardProgress, setStoryboardProgress] = useState<any[]>([]); // 일괄 생성 제거로 미사용
 
   // 스토리보드 관련 핸들러들 (일괄 생성 제거됨)
   
@@ -1661,13 +1660,7 @@ export default function ScenarioPage() {
         {/* 3단계: 12개 숏트 편집 및 스토리보드 생성 */}
         {currentStep === 3 && (
           <div className="space-y-8">
-            {/* 스토리보드 진행 상태 */}
-            {isBatchGenerating && (
-              <StoryboardProgress
-                steps={storyboardProgress}
-                className="mb-6"
-              />
-            )}
+            {/* 스토리보드 진행 상태 - 일괄 생성 제거로 비활성화 */}
             
             {/* 스토리보드 갤러리 섹션 */}
             <div className="card p-4 sm:p-6">
@@ -1726,7 +1719,7 @@ export default function ScenarioPage() {
 
             {/* 숏트 그리드 - 3열×4행 */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-              {shots.map((shot, index) => (
+              {shots.map((shot) => (
                 <div key={shot.id} className="card-hover p-4">
                   {/* 콘티 이미지 프레임 */}
                   <div className="mb-4">
