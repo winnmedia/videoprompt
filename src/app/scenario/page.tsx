@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { extractSceneComponents } from '@/shared/lib';
-import { Button, ErrorBoundary } from '@/shared/ui';
+import { Button, ErrorBoundary, LoadingOverlay, LoadingSpinner } from '@/shared/ui';
 import { useProjectStore } from '@/entities/project';
 import { Icon } from '@/shared/ui';
 import { Logo } from '@/shared/ui';
@@ -49,6 +49,7 @@ export default function ScenarioPage() {
   const [storySteps, setStorySteps] = useState<StoryStep[]>([]);
   const [shots, setShots] = useState<Shot[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
   
   // 사용자 입력 상태 추가
   const [customTone, setCustomTone] = useState('');
@@ -237,7 +238,6 @@ export default function ScenarioPage() {
   // 에러 상태 추가
   const [error, setError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<'network' | 'server' | 'client' | null>(null);
-  const [loadingMessage, setLoadingMessage] = useState('');
   const [retryCount, setRetryCount] = useState(0);
 
   // API 응답을 StoryStep 형식으로 변환하는 함수
@@ -1500,6 +1500,13 @@ export default function ScenarioPage() {
         )}
       </main>
     </div>
+    
+    {/* 로딩 오버레이 */}
+    <LoadingOverlay 
+      visible={loading} 
+      message={loadingMessage || 'AI가 처리 중입니다...'} 
+    />
+    
     </ErrorBoundary>
   );
 }
