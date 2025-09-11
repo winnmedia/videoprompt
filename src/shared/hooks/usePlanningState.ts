@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import type { PlanningState, PlanningItem, VideoItem, ScenarioItem, PromptItem, ImageAsset } from '@/entities/planning';
+import { safeFetch } from '@/shared/lib/api-retry';
 
 export function usePlanningState() {
   const [activeTab, setActiveTab] = useState<'scenario' | 'prompt' | 'image' | 'video'>('scenario');
@@ -44,9 +45,9 @@ export function usePlanningState() {
     try {
       // 실제 API 호출로 데이터 로딩
       const [scenariosRes, promptsRes, videosRes] = await Promise.all([
-        fetch('/api/planning/scenarios'),
-        fetch('/api/planning/prompt'), 
-        fetch('/api/planning/videos')
+        safeFetch('/api/planning/scenarios'),
+        safeFetch('/api/planning/prompt'), 
+        safeFetch('/api/planning/videos')
       ]);
 
       // 시나리오 데이터 처리

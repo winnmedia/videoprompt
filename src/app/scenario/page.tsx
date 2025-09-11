@@ -26,6 +26,7 @@ import {
 import { StoryInput, StoryStep, Shot, InsertShot, StoryboardShot, StoryTemplate } from '@/entities/scenario';
 import { generateStorySteps, generateShots } from '@/features/scenario';
 import { StoryInputForm, StoryStepsEditor, ShotsGrid } from '@/widgets/scenario';
+import { safeFetch } from '@/shared/lib/api-retry';
 
 // 타입들은 이제 entities 레이어에서 가져옴
 
@@ -131,7 +132,7 @@ export default function ScenarioPage() {
     try {
       setIsAutoSaving(true);
       
-      const response = await fetch('/api/planning/stories', {
+      const response = await safeFetch('/api/planning/stories', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -403,7 +404,7 @@ export default function ScenarioPage() {
   // 현재 설정을 템플릿으로 저장
   const handleSaveAsTemplate = async (templateData: { name: string; description: string; storyInput: StoryInput }) => {
     try {
-      const response = await fetch('/api/templates', {
+      const response = await safeFetch('/api/templates', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -657,7 +658,7 @@ export default function ScenarioPage() {
         
       } else {
         // JSON 형식으로 다운로드
-        const res = await fetch('/api/planning/export', {
+        const res = await safeFetch('/api/planning/export', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -752,7 +753,7 @@ export default function ScenarioPage() {
           let response: Response;
           
           try {
-            response = await fetch('/api/imagen/preview', {
+            response = await safeFetch('/api/imagen/preview', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -967,7 +968,7 @@ export default function ScenarioPage() {
       }
 
       // Call the real API
-      const response = await fetch('/api/imagen/preview', {
+      const response = await safeFetch('/api/imagen/preview', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1037,7 +1038,7 @@ export default function ScenarioPage() {
         return;
       }
 
-      const response = await fetch('/api/ai/generate-inserts', {
+      const response = await safeFetch('/api/ai/generate-inserts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
