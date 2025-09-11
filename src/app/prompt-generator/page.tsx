@@ -872,15 +872,37 @@ const PromptGeneratorPage: React.FC = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setShowStories(false)}
+                  onClick={() => {
+                    // 스토리가 없으면 /scenario로 리다이렉트
+                    if (stories.length === 0 && !project.scenario?.title) {
+                      window.location.href = '/scenario';
+                    } else {
+                      setShowStories(false);
+                    }
+                  }}
                 >
-                  건너뛰기
+                  {stories.length === 0 && !project.scenario?.title ? '스토리 생성하기' : '건너뛰기'}
                 </Button>
               </div>
             </div>
             <p className="mt-2 text-gray-600">
               기존에 생성된 스토리를 선택하여 프롬프트로 변환하거나, 새로운 스토리를 생성하세요.
             </p>
+            
+            {/* 스토리가 없을 때 경고 메시지 */}
+            {stories.length === 0 && !project.scenario?.title && (
+              <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="flex items-center space-x-2 text-amber-800">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  <span className="font-medium">스토리 선택 필요</span>
+                </div>
+                <p className="mt-2 text-sm text-amber-700">
+                  프롬프트 생성을 위해서는 먼저 스토리를 선택하거나 새로 생성해야 합니다.
+                </p>
+              </div>
+            )}
           </div>
           
           <div className="p-6">

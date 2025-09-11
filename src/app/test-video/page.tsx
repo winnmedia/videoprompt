@@ -98,7 +98,7 @@ export default function TestVideoPage() {
                 >
                   <option value="auto">자동 선택</option>
                   <option value="seedance">Seedance</option>
-                  <option value="veo">Google Veo3</option>
+                  <option value="veo" disabled>Google Veo3 (일시 중단)</option>
                   <option value="mock">Mock (테스트용)</option>
                 </select>
               </div>

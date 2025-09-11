@@ -163,7 +163,7 @@ export function WorkflowWizard() {
                   })}
                 >
                   <option value="seedance">Seedance</option>
-                  <option value="veo3">VEO3</option>
+                  <option value="veo3" disabled>VEO3 (일시 중단)</option>
                 </select>
               </div>
             </div>

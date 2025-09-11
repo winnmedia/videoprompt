@@ -38,84 +38,79 @@ export function usePlanningState() {
   const [createItemType, setCreateItemType] = useState<'scenario' | 'prompt' | 'image' | 'video'>('scenario');
   const [newItemData, setNewItemData] = useState<Partial<PlanningItem>>({});
 
-  // 데이터 로딩 함수
+  // 데이터 로딩 함수 (실제 API 호출)
   const loadPlanningData = async () => {
     setLoading(true);
     try {
-      // Mock 데이터 로딩 로직 (실제 API 호출로 대체 예정)
-      const sampleScenarios: ScenarioItem[] = [
-        {
-          id: 'sc-1',
-          title: 'E-commerce 상품 소개',
-          version: 'v1.2',
-          author: 'Marketing Team',
-          updatedAt: new Date().toISOString(),
-          hasFourStep: true,
-          hasTwelveShot: true,
-          pdfUrl: '/api/planning/export/sc-1.pdf'
-        },
-        {
-          id: 'sc-2', 
-          title: '브랜드 스토리텔링',
-          version: 'v2.0',
-          author: 'Creative Team',
-          updatedAt: new Date(Date.now() - 86400000).toISOString(),
-          hasFourStep: false,
-          hasTwelveShot: true
-        }
-      ];
+      // 실제 API 호출로 데이터 로딩
+      const [scenariosRes, promptsRes, videosRes] = await Promise.all([
+        fetch('/api/planning/scenarios'),
+        fetch('/api/planning/prompt'), 
+        fetch('/api/planning/videos')
+      ]);
 
-      const samplePrompts: PromptItem[] = [
-        {
-          id: 'pr-1',
-          scenarioTitle: 'E-commerce 상품 소개',
-          version: 'v1.2',
-          keywordCount: 15,
-          shotCount: 12,
-          quality: 'premium',
-          createdAt: new Date().toISOString(),
-          jsonUrl: '/api/planning/prompt/pr-1.json'
-        }
-      ];
+      // 시나리오 데이터 처리
+      if (scenariosRes.ok) {
+        const scenariosData = await scenariosRes.json();
+        const scenarios: ScenarioItem[] = scenariosData.scenarios?.map((s: any) => ({
+          id: s.id,
+          title: s.title,
+          version: s.version || 'v1.0',
+          author: s.userId || 'User',
+          updatedAt: s.updatedAt,
+          hasFourStep: !!s.structure4,
+          hasTwelveShot: !!s.shots12,
+          pdfUrl: s.pdfUrl
+        })) || [];
+        setScenarioItems(scenarios);
+      }
 
-      const sampleVideos: VideoItem[] = [
-        {
-          id: 'vid-1',
-          title: 'E-commerce 상품 소개 - 메인',
-          prompt: '고품질 상품 소개 영상을 위한 프롬프트...',
-          provider: 'seedance',
-          duration: 30,
-          aspectRatio: '16:9',
-          status: 'completed',
-          videoUrl: '/videos/sample-1.mp4',
-          thumbnailUrl: '/thumbnails/sample-1.jpg',
-          createdAt: new Date().toISOString(),
-          completedAt: new Date().toISOString(),
-          jobId: 'job-123'
-        }
-      ];
+      // 프롬프트 데이터 처리
+      if (promptsRes.ok) {
+        const promptsData = await promptsRes.json();
+        const prompts: PromptItem[] = promptsData.prompts?.map((p: any) => ({
+          id: p.id,
+          scenarioTitle: p.scenarioId || 'Unknown',
+          version: p.version?.toString() || 'v1.0',
+          keywordCount: p.metadata?.keywords?.length || 0,
+          shotCount: p.timeline?.length || 0,
+          quality: p.metadata?.quality || 'standard',
+          createdAt: p.createdAt,
+          jsonUrl: `/api/planning/prompt/${p.id}.json`
+        })) || [];
+        setPromptItems(prompts);
+      }
 
-      const sampleImages: ImageAsset[] = [
-        {
-          id: 'img-1',
-          title: '상품 이미지 A',
-          filename: 'product-a.jpg',
-          fileSize: 245760,
-          dimensions: '1920x1080',
-          format: 'JPG',
-          createdAt: new Date().toISOString(),
-          tags: ['product', 'e-commerce'],
-          url: '/images/product-a.jpg'
-        }
-      ];
+      // 비디오 데이터 처리
+      if (videosRes.ok) {
+        const videosData = await videosRes.json();
+        const videos: VideoItem[] = videosData.videos?.map((v: any) => ({
+          id: v.id,
+          title: v.title || 'Untitled Video',
+          prompt: v.prompt || '',
+          provider: v.provider,
+          duration: v.duration,
+          aspectRatio: '16:9', // 기본값
+          status: v.status,
+          videoUrl: v.url,
+          thumbnailUrl: v.thumbnailUrl,
+          createdAt: v.createdAt,
+          completedAt: v.completedAt,
+          jobId: v.jobId
+        })) || [];
+        setVideoItems(videos);
+      }
 
-      setScenarioItems(sampleScenarios);
-      setPromptItems(samplePrompts);
-      setVideoItems(sampleVideos);
-      setImageItems(sampleImages);
+      // 이미지 자산은 별도 API 없으므로 빈 배열로 설정
+      setImageItems([]);
       
     } catch (error) {
       console.error('Planning 데이터 로딩 실패:', error);
+      // 에러 발생 시 빈 배열로 초기화
+      setScenarioItems([]);
+      setPromptItems([]);
+      setVideoItems([]);
+      setImageItems([]);
     } finally {
       setLoading(false);
     }

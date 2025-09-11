@@ -36,9 +36,11 @@ export function Header() {
             <Link href="/scenario" className="font-medium text-gray-700 hover:text-primary-600">
               AI 영상 기획
             </Link>
+            {/* 일시 비활성화 - VEO3 비용 절감
             <Link href="/workflow" className="font-medium text-gray-700 hover:text-primary-600">
               영상 생성
             </Link>
+            */}
             <Link href="/feedback" className="font-medium text-gray-700 hover:text-primary-600">
               영상 피드백
             </Link>
