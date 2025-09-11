@@ -1,7 +1,7 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createResponse, success } from '@/shared/lib/api';
-import { prisma } from '@/shared/lib/prisma';
+import { success, failure, getTraceId } from '@/shared/lib/api-response';
+import { prisma } from '@/lib/db';
 import { StoryInput } from '@/entities/scenario';
 
 const CreateTemplateSchema = z.object({
@@ -25,7 +25,7 @@ const CreateTemplateSchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
-  const traceId = crypto.randomUUID();
+  const traceId = getTraceId(req);
   
   try {
     const { searchParams } = new URL(req.url);
@@ -49,19 +49,18 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: 'desc' },
     });
 
-    return success({ templates }, 200, traceId);
+    return NextResponse.json({ templates }, { status: 200 });
   } catch (error) {
     console.error('[Templates API] GET error:', error);
-    return createResponse(
+    return NextResponse.json(
       { error: '템플릿 조회에 실패했습니다' },
-      500,
-      traceId
+      { status: 500 }
     );
   }
 }
 
 export async function POST(req: NextRequest) {
-  const traceId = crypto.randomUUID();
+  const traceId = getTraceId(req);
   
   try {
     const body = await req.json();
@@ -76,29 +75,27 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return success({ template }, 201, traceId);
+    return NextResponse.json({ template }, { status: 201 });
   } catch (error) {
     console.error('[Templates API] POST error:', error);
     
     if (error instanceof z.ZodError) {
-      return createResponse(
+      return NextResponse.json(
         { 
           error: '입력값이 올바르지 않습니다',
-          details: error.errors
+          details: error.issues
         },
-        400,
-        traceId
+        { status: 400 }
       );
     }
     
-    return createResponse(
+    return NextResponse.json(
       { error: '템플릿 저장에 실패했습니다' },
-      500,
-      traceId
+      { status: 500 }
     );
   }
 }
 
 export async function OPTIONS() {
-  return createResponse(null, 200);
+  return NextResponse.json(null, { status: 200 });
 }

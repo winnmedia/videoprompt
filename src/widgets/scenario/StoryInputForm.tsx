@@ -23,7 +23,7 @@ interface StoryInputFormProps {
   showCustomGenreInput: boolean;
   setShowCustomGenreInput: (value: boolean) => void;
   onTemplateSelect: (template: StoryTemplate) => void;
-  onSaveAsTemplate: (storyInput: StoryInput) => void;
+  onSaveAsTemplate: (templateData: { name: string; description: string; storyInput: StoryInput }) => void;
 }
 
 // 옵션 상수들
