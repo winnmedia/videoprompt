@@ -276,36 +276,42 @@ export function StoryInputForm({
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-900">장르</label>
               {showCustomGenreInput ? (
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={customGenre}
-                    onChange={(e) => setCustomGenre(e.target.value)}
-                    placeholder="새로운 장르를 입력하세요"
-                    className="flex-1 rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        handleCustomGenreSet();
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleCustomGenreSet}
-                    className="px-4 py-3 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                  >
-                    추가
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCustomGenreInput(false);
-                      setCustomGenre('');
-                    }}
-                    className="px-4 py-3 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-200"
-                  >
-                    취소
-                  </button>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={customGenre}
+                      onChange={(e) => setCustomGenre(e.target.value)}
+                      placeholder="새로운 장르를 입력하세요"
+                      className="flex-1 rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          handleCustomGenreSet();
+                        }
+                      }}
+                      autoFocus
+                    />
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCustomGenreInput(false);
+                        setCustomGenre('');
+                      }}
+                      className="px-3 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-200"
+                    >
+                      취소
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCustomGenreSet}
+                      disabled={!customGenre.trim()}
+                      className="px-3 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      추가
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <select
@@ -329,7 +335,7 @@ export function StoryInputForm({
                 </select>
               )}
               {storyInput.genre && !genreOptions.includes(storyInput.genre) && (
-                <div className="mt-2">
+                <div className="mt-2 flex items-center gap-2">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-800">
                     커스텀: {storyInput.genre}
                     <button
@@ -341,6 +347,16 @@ export function StoryInputForm({
                       <span aria-hidden="true">×</span>
                     </button>
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCustomGenreInput(false);
+                      setCustomGenre('');
+                    }}
+                    className="text-xs text-brand-600 hover:text-brand-700 underline"
+                  >
+                    다른 장르 선택
+                  </button>
                 </div>
               )}
             </div>
