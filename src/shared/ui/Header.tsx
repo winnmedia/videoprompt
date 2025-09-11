@@ -11,10 +11,10 @@ export function Header() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, checkAuth, logout } = useAuthStore();
 
-  // 컴포넌트 마운트 시 인증 상태 확인
+  // 컴포넌트 마운트 시 인증 상태 확인 (한 번만)
   useEffect(() => {
     checkAuth();
-  }, [checkAuth]);
+  }, []); // $300 사건 수정: 의존성 배열을 빈 배열로 변경
 
   const handleLogout = async () => {
     await logout();

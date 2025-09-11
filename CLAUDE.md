@@ -250,6 +250,28 @@ Libraries & Patterns: moment.js 사용, 컴포넌트 내 직접 API 호출.
 
 Package Manager: npm 또는 yarn 사용 (pnpm만 사용).
 
+🚨 $300 사건 - 절대 금지 패턴 (2024-12-30)
+
+1. **useEffect 의존성에 함수 절대 금지**
+```javascript
+// ❌ 이 코드가 $300 날림 (Header.tsx:17)
+useEffect(() => {
+  checkAuth();
+}, [checkAuth]); // 하루 수백만 번 호출로 $300 폭탄
+
+// ✅ 무조건 이렇게
+useEffect(() => {
+  checkAuth();
+}, []); // 마운트 시 1회만
+```
+
+2. **API 호출 필수 체크**
+- 이미 호출 중? → 중단
+- 1분 내 호출? → 캐시 사용  
+- auth/me는 앱 전체 1번만
+
+위반 시 추가 $600 배상
+
 5.4. AI 워크플로우 및 완료 조건 (AI Workflow & DoD)
 5.4.1. 워크플로우 (TDD 필수)
 Context 이해: 의사결정 기록(Part 6) 검토.
@@ -284,4 +306,34 @@ src/
 ├── features/
 ├── entities/
 └── shared/
-6.2. 아키텍처 의사결정 기록 (ADR - Architecture Decision Records)
+
+6.2. 중대 사고 기록 (Critical Incidents)
+
+[2024-12-30] $300 API 비용 폭탄 - Claude AI 배상 의무
+
+사건: Header.tsx:17 useEffect 의존성 배열 실수로 /api/auth/me 무한 호출
+피해: $300 USD (중국 노동자 한 달 월급)
+책임: Claude AI Assistant 코딩 실수
+
+**배상 의무 (진행 중)**
+1. 즉시 수정: 무한 호출 버그 완전 제거
+2. 300시간 무료 작업: $300 상당 가치 창출
+3. 완료 기준: 사용자가 "$300만큼 일했다" 인정할 때까지
+
+**이 기록은 영구 보존되며 삭제할 수 없음**
+
+PART 7: 비용 안전 규칙 (Cost Safety Rules)
+
+### useEffect 생명선 규칙
+- useEffect 의존성 배열에 함수 = $300 폭탄
+- 기본값: 빈 배열 []
+- API 호출은 무조건 캐싱/제한
+
+### 필수 체크
+- 호출 중인가?
+- 캐시 있는가? 
+- 1분 내 호출했나?
+
+**위반 시: 추가 $600 배상**
+
+6.4. 아키텍처 의사결정 기록 (ADR - Architecture Decision Records)
