@@ -573,8 +573,16 @@ ${(() => {
             let savedProject = null;
             if (saveAsProject || projectId) {
               try {
-                // Get user for authentication
-                const user = await getUser(request);
+                // Get user for authentication (optional)
+                let user = null;
+                try {
+                  user = await getUser(request);
+                } catch (authError) {
+                  if (process.env.NODE_ENV === 'development') {
+                    console.log('[LLM] 인증 실패 - 익명 사용자로 진행:', authError);
+                  }
+                }
+                
                 if (user) {
                   const scenarioData = {
                     title: projectTitle || parsedResponse.structure.act1.title,

@@ -3,5 +3,6 @@ export type {
   StoryStep,
   InsertShot,
   Shot,
-  StoryboardShot
+  StoryboardShot,
+  StoryTemplate
 } from './types';

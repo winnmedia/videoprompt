@@ -55,3 +55,16 @@ export interface StoryboardShot {
   duration?: number;
   index: number;
 }
+
+export interface StoryTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: 'advertisement' | 'vlog' | 'tutorial' | 'custom';
+  thumbnailUrl?: string;
+  isPublic: boolean;
+  userId?: string;
+  createdAt: string;
+  updatedAt: string;
+  template: StoryInput;
+}

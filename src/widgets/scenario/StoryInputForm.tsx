@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
-import { StoryInput } from '@/entities/scenario';
+import React, { useState } from 'react';
+import { StoryInput, StoryTemplate } from '@/entities/scenario';
 import { Button } from '@/shared/ui';
+import { TemplateSelector } from './TemplateSelector';
 
 interface StoryInputFormProps {
   storyInput: StoryInput;
@@ -21,6 +22,8 @@ interface StoryInputFormProps {
   setCustomGenre: (value: string) => void;
   showCustomGenreInput: boolean;
   setShowCustomGenreInput: (value: boolean) => void;
+  onTemplateSelect: (template: StoryTemplate) => void;
+  onSaveAsTemplate: (storyInput: StoryInput) => void;
 }
 
 // 옵션 상수들
@@ -77,8 +80,11 @@ export function StoryInputForm({
   customGenre,
   setCustomGenre,
   showCustomGenreInput,
-  setShowCustomGenreInput
+  setShowCustomGenreInput,
+  onTemplateSelect,
+  onSaveAsTemplate
 }: StoryInputFormProps) {
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const handleToneRemove = (toneToRemove: string) => {
     const newTones = storyInput.toneAndManner.filter(tone => tone !== toneToRemove);
     onInputChange('toneAndManner', newTones);
@@ -118,7 +124,16 @@ export function StoryInputForm({
 
   return (
     <div className="card p-4 sm:p-6" aria-busy={loading} aria-live="polite">
-      <h2 className="mb-6 text-xl font-semibold text-gray-900">스토리 입력</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold text-gray-900">스토리 입력</h2>
+        <Button
+          onClick={() => setShowTemplateSelector(true)}
+          variant="secondary"
+          className="text-sm"
+        >
+          템플릿 선택
+        </Button>
+      </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* 기본 정보 */}
@@ -544,6 +559,15 @@ export function StoryInputForm({
           )}
         </Button>
       </div>
+
+      {/* 템플릿 선택 모달 */}
+      <TemplateSelector
+        isVisible={showTemplateSelector}
+        onClose={() => setShowTemplateSelector(false)}
+        onSelect={onTemplateSelect}
+        onSaveAsTemplate={onSaveAsTemplate}
+        currentStoryInput={storyInput}
+      />
     </div>
   );
 }

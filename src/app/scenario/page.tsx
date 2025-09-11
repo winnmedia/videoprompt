@@ -23,7 +23,7 @@ import {
   StoryboardGallery,
   GenerateStoryboardButton
 } from '@/components/storyboard';
-import { StoryInput, StoryStep, Shot, InsertShot, StoryboardShot } from '@/entities/scenario';
+import { StoryInput, StoryStep, Shot, InsertShot, StoryboardShot, StoryTemplate } from '@/entities/scenario';
 import { generateStorySteps, generateShots } from '@/features/scenario';
 import { StoryInputForm, StoryStepsEditor, ShotsGrid } from '@/widgets/scenario';
 
@@ -380,6 +380,44 @@ export default function ScenarioPage() {
   const handleToneRemove = (toneToRemove: string) => {
     const newTones = storyInput.toneAndManner.filter(tone => tone !== toneToRemove);
     handleStoryInputChange('toneAndManner', newTones);
+  };
+
+  // 템플릿 선택 처리
+  const handleTemplateSelect = (template: StoryTemplate) => {
+    setStoryInput(template.template);
+    toast.success(`"${template.name}" 템플릿이 적용되었습니다.`, '템플릿 적용');
+  };
+
+  // 현재 설정을 템플릿으로 저장
+  const handleSaveAsTemplate = async (templateData: { name: string; description: string; storyInput: StoryInput }) => {
+    try {
+      const response = await fetch('/api/templates', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: templateData.name,
+          description: templateData.description,
+          category: 'custom',
+          template: templateData.storyInput,
+          isPublic: false,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || '템플릿 저장에 실패했습니다');
+      }
+
+      const result = await response.json();
+      toast.success(`"${templateData.name}" 템플릿이 성공적으로 저장되었습니다.`, '템플릿 저장');
+    } catch (error) {
+      console.error('Template save error:', error);
+      const errorMessage = error instanceof Error ? error.message : '템플릿 저장에 실패했습니다.';
+      toast.error(errorMessage, '저장 실패');
+      throw error; // TemplateSelector에서 에러 처리할 수 있도록
+    }
   };
 
   // 2단계: 4단계 스토리 생성
@@ -1134,60 +1172,30 @@ export default function ScenarioPage() {
 
         {/* 1단계: 스토리 입력 */}
         {currentStep === 1 && (
-          <div className="card p-4 sm:p-6" aria-busy={loading} aria-live="polite">
-            <h2 className="mb-6 text-xl font-semibold text-gray-900">스토리 입력</h2>
+          <StoryInputForm
+            storyInput={storyInput}
+            onInputChange={handleStoryInputChange}
+            onSubmit={handleGenerateStorySteps}
+            loading={loading}
+            error={error}
+            errorType={errorType}
+            retryCount={retryCount}
+            onRetry={handleRetry}
+            customTone={customTone}
+            setCustomTone={setCustomTone}
+            showCustomToneInput={showCustomToneInput}
+            setShowCustomToneInput={setShowCustomToneInput}
+            customGenre={customGenre}
+            setCustomGenre={setCustomGenre}
+            showCustomGenreInput={showCustomGenreInput}
+            setShowCustomGenreInput={setShowCustomGenreInput}
+            onTemplateSelect={handleTemplateSelect}
+            onSaveAsTemplate={handleSaveAsTemplate}
+          />
+        )}
+        
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              {/* 기본 정보 */}
-              <div className="space-y-4">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-900">제목</label>
-                  <input
-                    type="text"
-                    value={storyInput.title}
-                    onChange={(e) => handleStoryInputChange('title', e.target.value)}
-                    className="w-full rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                    placeholder="시나리오 제목을 입력하세요"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-900">
-                    한 줄 스토리
-                  </label>
-                  <textarea
-                    value={storyInput.oneLineStory}
-                    onChange={(e) => handleStoryInputChange('oneLineStory', e.target.value)}
-                    rows={3}
-                    className="w-full rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                    placeholder="스토리의 핵심을 한 줄로 요약하세요"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-900">타겟</label>
-                  <input
-                    type="text"
-                    value={storyInput.target}
-                    onChange={(e) => handleStoryInputChange('target', e.target.value)}
-                    className="w-full rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                    placeholder="타겟 시청자"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-900">분량</label>
-                  <input
-                    type="text"
-                    value={storyInput.duration}
-                    onChange={(e) => handleStoryInputChange('duration', e.target.value)}
-                    className="w-full rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                    placeholder="예: 30초, 60초, 90초"
-                  />
-                </div>
-              </div>
-
-              {/* 스타일 및 전개 */}
+        {/* 2단계: 4단계 스토리 검토/수정 */}
               <div className="space-y-4">
                 <div>
                   <label className="mb-3 block text-sm font-medium text-gray-900">
