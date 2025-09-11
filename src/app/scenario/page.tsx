@@ -131,7 +131,7 @@ export default function ScenarioPage() {
         console.log('스토리 자동 저장 성공:', result.id);
         // 성공 시 저장된 ID를 프로젝트 스토어에 저장
         if (result.id) {
-          project.setStoryId?.(result.id);
+          project.setScenarioId(result.id);
         }
       } else {
         console.warn('스토리 자동 저장 실패:', response.status);
