@@ -64,7 +64,7 @@ const PromptGeneratorPage: React.FC = () => {
   const [stories, setStories] = useState<Story[]>([]);
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [storiesLoading, setStoriesLoading] = useState(false);
-  const [showStories, setShowStories] = useState(true);
+  const [showStories, setShowStories] = useState(true); // 항상 true로 시작
   
   // v3.1 상태 (새로운 기능)
   const [v31Mode, setV31Mode] = useState(false);
@@ -129,14 +129,14 @@ const PromptGeneratorPage: React.FC = () => {
       };
       
       setSelectedStory(storeStory);
-      setShowStories(false);
+      // 스토리 리스트는 항상 표시 유지
     }
   }, [project]);
 
   // 스토리 선택 핸들러
   const handleStorySelect = (story: Story) => {
     setSelectedStory(story);
-    setShowStories(false);
+    // 스토리 리스트는 항상 표시 유지
     
     // v31Mode에 따라 선택된 스토리를 상태에 반영
     if (v31Mode) {
@@ -877,10 +877,10 @@ const PromptGeneratorPage: React.FC = () => {
                     // 스토리가 없으면 /scenario로 리다이렉트
                     if (stories.length === 0 && !project.scenario?.title) {
                       window.location.href = '/scenario';
-                    } else {
-                      setShowStories(false);
                     }
+                    // 스토리 리스트는 항상 표시 유지 - "건너뛰기" 버튼 제거
                   }}
+                  className="hidden" // 버튼 숨김
                 >
                   {stories.length === 0 && !project.scenario?.title ? '스토리 생성하기' : '건너뛰기'}
                 </Button>

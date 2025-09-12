@@ -32,20 +32,20 @@ export function ShotsGrid({
         <div key={shot.id} className="card-hover p-4">
           {/* 콘티 이미지 프레임 */}
           <div className="mb-4">
-            <div className="border-border relative flex min-h-32 items-center justify-center overflow-hidden rounded-lg border-2 border-dashed bg-gray-50">
+            <div className="border-border relative flex min-h-40 items-center justify-center overflow-hidden rounded-lg border-2 border-dashed bg-gray-50">
               {shot.contiImage ? (
                 <div className="relative w-full">
                   <img
                     src={shot.contiImage}
-                    alt="Conti"
-                    className="h-32 w-full object-cover"
+                    alt={`${shot.title} 콘티`}
+                    className="h-40 w-full object-cover"
                   />
                   <div className="absolute right-2 top-2 flex space-x-1">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => onGenerateContiImage(shot.id)}
-                      className="btn-secondary bg-white/80 px-2 py-1 text-xs hover:bg-white"
+                      className="bg-white/90 px-2 py-1 text-xs shadow-lg hover:bg-white"
                       disabled={isGeneratingImage[shot.id]}
                     >
                       {isGeneratingImage[shot.id] ? '생성 중...' : '재생성'}
@@ -54,22 +54,23 @@ export function ShotsGrid({
                       variant="outline"
                       size="sm"
                       onClick={() => handleDownloadImage(shot.contiImage!, shot.id)}
-                      className="btn-secondary bg-white/80 px-2 py-1 text-xs hover:bg-white"
+                      className="bg-white/90 px-2 py-1 text-xs shadow-lg hover:bg-white"
                     >
                       다운로드
                     </Button>
                   </div>
                 </div>
               ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <Icon name="image" className="mx-auto text-gray-400" />
-                  <p className="mt-2 text-sm text-text-lighter">콘티 이미지를 생성하세요</p>
-                  <div className="mt-4 flex space-x-2">
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
+                  <Icon name="image" className="mb-3 h-8 w-8 text-gray-400" />
+                  <p className="mb-4 text-center text-sm text-gray-500">
+                    콘티 이미지를 생성해보세요
+                  </p>
+                  {/* 콘티 생성 버튼을 프레임 정중앙에 큰 버튼으로 배치 */}
+                  <div className="flex flex-col space-y-2">
                     <Button
-                      variant="outline"
-                      size="sm"
                       onClick={() => onGenerateContiImage(shot.id)}
-                      className="btn-secondary"
+                      className="bg-brand-500 px-6 py-3 text-white hover:bg-brand-600"
                       disabled={isGeneratingImage[shot.id]}
                     >
                       {isGeneratingImage[shot.id] ? '생성 중...' : '콘티 생성'}
@@ -78,9 +79,9 @@ export function ShotsGrid({
                       variant="outline"
                       size="sm"
                       onClick={() => onGenerateInsertShots(shot.id)}
-                      className="btn-secondary"
+                      className="text-xs text-gray-600"
                     >
-                      인서트
+                      인서트 추가
                     </Button>
                   </div>
                 </div>

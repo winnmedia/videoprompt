@@ -27,7 +27,7 @@ interface PdfData {
 }
 
 /**
- * HTML 문서를 생성하여 한글 폰트로 렌더링된 PDF 생성
+ * HTML 문서를 생성하여 한글 폰트로 렌더링된 PDF 생성 (페이지 분할 지원)
  */
 function createPrintableHTML(data: PdfData): string {
   return `
@@ -48,156 +48,220 @@ function createPrintableHTML(data: PdfData): string {
           
           body {
             font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
+            line-height: 1.5;
             color: #1a1a1a;
             background: white;
-            padding: 40px;
-            max-width: 210mm; /* A4 width */
+            padding: 0;
+            width: 210mm; /* A4 width */
+          }
+          
+          .page {
+            min-height: 297mm; /* A4 height */
+            padding: 20mm;
+            page-break-after: always;
+            position: relative;
+          }
+          
+          .page:last-child {
+            page-break-after: avoid;
           }
           
           .header {
-            margin-bottom: 30px;
-            padding-bottom: 20px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
             border-bottom: 2px solid #e5e5e5;
           }
           
           .title {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 700;
             color: #2563eb;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
           }
           
           .date {
-            font-size: 12px;
+            font-size: 11px;
             color: #6b7280;
           }
           
           .section {
-            margin-bottom: 30px;
+            margin-bottom: 25px;
+            break-inside: avoid;
           }
           
           .section-title {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
             color: #374151;
-            margin-bottom: 15px;
-            padding-bottom: 8px;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
             border-bottom: 1px solid #d1d5db;
           }
           
           .info-item {
-            margin-bottom: 8px;
-            font-size: 14px;
+            margin-bottom: 6px;
+            font-size: 13px;
           }
           
           .info-label {
             font-weight: 500;
             color: #4b5563;
             display: inline-block;
-            min-width: 80px;
+            min-width: 70px;
           }
           
           .step-item {
-            margin-bottom: 20px;
-            padding: 15px;
+            margin-bottom: 15px;
+            padding: 12px;
             background: #f8fafc;
-            border-left: 4px solid #2563eb;
-            border-radius: 0 6px 6px 0;
+            border-left: 3px solid #2563eb;
+            border-radius: 0 4px 4px 0;
+            break-inside: avoid;
           }
           
           .step-title {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
             color: #1e40af;
-            margin-bottom: 8px;
-          }
-          
-          .step-summary {
-            font-size: 14px;
-            color: #4b5563;
-            line-height: 1.5;
-          }
-          
-          .shot-item {
-            margin-bottom: 15px;
-            padding: 12px;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-          }
-          
-          .shot-title {
-            font-size: 15px;
-            font-weight: 500;
-            color: #1f2937;
             margin-bottom: 6px;
           }
           
-          .shot-description {
+          .step-summary {
             font-size: 13px;
-            color: #6b7280;
+            color: #4b5563;
             line-height: 1.4;
           }
           
-          .footer {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #e5e5e5;
+          .shot-item {
+            margin-bottom: 12px;
+            padding: 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            break-inside: avoid;
+          }
+          
+          .shot-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #1f2937;
+            margin-bottom: 4px;
+          }
+          
+          .shot-description {
             font-size: 12px;
+            color: #6b7280;
+            line-height: 1.3;
+          }
+          
+          .page-number {
+            position: absolute;
+            bottom: 10mm;
+            right: 20mm;
+            font-size: 10px;
             color: #9ca3af;
-            text-align: center;
+          }
+          
+          .footer {
+            position: absolute;
+            bottom: 10mm;
+            left: 20mm;
+            font-size: 10px;
+            color: #9ca3af;
           }
           
           @media print {
-            body { 
-              padding: 20px;
-              font-size: 13px;
+            .page {
+              margin: 0;
+              padding: 15mm;
             }
-            .title { font-size: 20px; }
-            .section-title { font-size: 16px; }
+            .title { font-size: 18px; }
+            .section-title { font-size: 14px; }
+            .info-item { font-size: 11px; }
+            .step-item { font-size: 11px; }
+            .shot-item { font-size: 11px; }
           }
         </style>
       </head>
       <body>
-        <div class="header">
-          <div class="title">${data.title}</div>
-          <div class="date">생성일시: ${data.generatedAt}</div>
-        </div>
-        
-        <div class="section">
-          <div class="section-title">기본 정보</div>
-          ${data.scenario.title ? `<div class="info-item"><span class="info-label">제목:</span> ${data.scenario.title}</div>` : ''}
-          ${data.scenario.oneLine ? `<div class="info-item"><span class="info-label">로그라인:</span> ${data.scenario.oneLine}</div>` : ''}
-          ${data.scenario.version ? `<div class="info-item"><span class="info-label">버전:</span> ${data.scenario.version}</div>` : ''}
-        </div>
-        
-        ${data.scenario.structure4 && data.scenario.structure4.length > 0 ? `
-          <div class="section">
-            <div class="section-title">구성 (4단계)</div>
-            ${data.scenario.structure4.map((step, idx) => `
-              <div class="step-item">
-                <div class="step-title">${idx + 1}. ${step.title || ''}</div>
-                ${step.summary ? `<div class="step-summary">${step.summary}</div>` : ''}
-              </div>
-            `).join('')}
+        <!-- 첫 번째 페이지 -->
+        <div class="page">
+          <div class="header">
+            <div class="title">${data.title}</div>
+            <div class="date">생성일시: ${data.generatedAt}</div>
           </div>
-        ` : ''}
-        
-        ${data.shots && data.shots.length > 0 ? `
+          
           <div class="section">
-            <div class="section-title">숏트 요약</div>
-            ${data.shots.slice(0, 12).map((shot, idx) => `
+            <div class="section-title">기본 정보</div>
+            ${data.scenario.title ? `<div class="info-item"><span class="info-label">제목:</span> ${data.scenario.title}</div>` : ''}
+            ${data.scenario.oneLine ? `<div class="info-item"><span class="info-label">로그라인:</span> ${data.scenario.oneLine}</div>` : ''}
+            ${data.scenario.version ? `<div class="info-item"><span class="info-label">버전:</span> ${data.scenario.version}</div>` : ''}
+          </div>
+          
+          ${data.scenario.structure4 && data.scenario.structure4.length > 0 ? `
+            <div class="section">
+              <div class="section-title">구성 (4단계)</div>
+              ${data.scenario.structure4.slice(0, 2).map((step, idx) => `
+                <div class="step-item">
+                  <div class="step-title">${idx + 1}. ${step.title || ''}</div>
+                  ${step.summary ? `<div class="step-summary">${step.summary}</div>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+          
+          <div class="footer">VLANET - AI 영상 플랫폼</div>
+          <div class="page-number">1</div>
+        </div>
+
+        <!-- 두 번째 페이지 (나머지 구성 + 숏트 시작) -->
+        ${(data.scenario.structure4 && data.scenario.structure4.length > 2) || (data.shots && data.shots.length > 0) ? `
+        <div class="page">
+          ${data.scenario.structure4 && data.scenario.structure4.length > 2 ? `
+            <div class="section">
+              <div class="section-title">구성 (4단계) - 계속</div>
+              ${data.scenario.structure4.slice(2).map((step, idx) => `
+                <div class="step-item">
+                  <div class="step-title">${idx + 3}. ${step.title || ''}</div>
+                  ${step.summary ? `<div class="step-summary">${step.summary}</div>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+          
+          ${data.shots && data.shots.length > 0 ? `
+            <div class="section">
+              <div class="section-title">숏트 요약 (1-6)</div>
+              ${data.shots.slice(0, 6).map((shot, idx) => `
+                <div class="shot-item">
+                  <div class="shot-title">#${idx + 1} ${shot.title || ''}</div>
+                  ${shot.description ? `<div class="shot-description">${shot.description}</div>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+          
+          <div class="footer">VLANET - AI 영상 플랫폼</div>
+          <div class="page-number">2</div>
+        </div>
+        ` : ''}
+
+        <!-- 세 번째 페이지 (나머지 숏트) -->
+        ${data.shots && data.shots.length > 6 ? `
+        <div class="page">
+          <div class="section">
+            <div class="section-title">숏트 요약 (7-12)</div>
+            ${data.shots.slice(6, 12).map((shot, idx) => `
               <div class="shot-item">
-                <div class="shot-title">#${idx + 1} ${shot.title || ''}</div>
+                <div class="shot-title">#${idx + 7} ${shot.title || ''}</div>
                 ${shot.description ? `<div class="shot-description">${shot.description}</div>` : ''}
               </div>
             `).join('')}
           </div>
-        ` : ''}
-        
-        <div class="footer">
-          VLANET - AI 영상 플랫폼
+          
+          <div class="footer">VLANET - AI 영상 플랫폼</div>
+          <div class="page-number">3</div>
         </div>
+        ` : ''}
       </body>
     </html>
   `;
@@ -237,35 +301,64 @@ export async function generatePlanningPDF(data: PdfData): Promise<void> {
     // 추가 대기시간으로 안정성 확보
     await new Promise(resolve => setTimeout(resolve, 500));
     
-    // html2canvas로 캔버스 생성 (메모리 효율적인 옵션 적용)
+    // 전체 문서의 실제 높이를 측정
+    const totalHeight = iframeDoc.body.scrollHeight;
+    const pageHeight = 1123; // A4 height in pixels at 96 DPI (297mm)
+    const pageWidth = 794; // A4 width in pixels at 96 DPI (210mm)
+    
+    // html2canvas로 캔버스 생성 (전체 높이 포함)
     const canvas = await html2canvas(iframeDoc.body, {
       scale: 2, // 고품질 렌더링
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
-      width: 794, // A4 width in pixels at 96 DPI
-      height: 1123, // A4 height in pixels at 96 DPI
-      logging: false, // 성능 향상을 위한 로그 비활성화
-      removeContainer: true, // 메모리 정리
+      width: pageWidth,
+      height: totalHeight, // 전체 높이 사용
+      logging: false,
+      removeContainer: true,
     });
     
     // iframe 제거
     document.body.removeChild(iframe);
     
     // PDF 생성
-    const imgData = canvas.toDataURL('image/png', 0.8); // 압축률 조정으로 파일 크기 최적화
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
       format: 'a4',
-      compress: true // PDF 압축 활성화
+      compress: true
     });
     
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
+    const pdfPageWidth = pdf.internal.pageSize.getWidth();
+    const pdfPageHeight = pdf.internal.pageSize.getHeight();
     
-    // 이미지를 PDF에 추가 (전체 페이지 크기에 맞춤)
-    pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight);
+    // 캔버스를 페이지별로 분할하여 PDF에 추가
+    const totalPages = Math.ceil(canvas.height / (pageHeight * 2)); // scale 2를 고려
+    
+    for (let page = 0; page < totalPages; page++) {
+      if (page > 0) {
+        pdf.addPage();
+      }
+      
+      // 각 페이지에 해당하는 캔버스 영역을 추출
+      const pageCanvas = document.createElement('canvas');
+      pageCanvas.width = canvas.width;
+      pageCanvas.height = pageHeight * 2; // scale 2를 고려
+      
+      const pageCtx = pageCanvas.getContext('2d');
+      if (pageCtx) {
+        pageCtx.drawImage(
+          canvas,
+          0, page * pageHeight * 2, // 소스 y 위치
+          canvas.width, pageHeight * 2, // 소스 크기
+          0, 0, // 대상 위치
+          pageCanvas.width, pageCanvas.height // 대상 크기
+        );
+        
+        const pageImgData = pageCanvas.toDataURL('image/png', 0.8);
+        pdf.addImage(pageImgData, 'PNG', 0, 0, pdfPageWidth, pdfPageHeight);
+      }
+    }
     
     // 캔버스 메모리 정리
     canvas.width = 0;
@@ -326,24 +419,28 @@ export async function generatePlanningPDFWithProgress(
     await new Promise(resolve => setTimeout(resolve, 500));
     onProgress?.(55);
     
-    // html2canvas로 캔버스 생성
+    // 전체 문서의 실제 높이를 측정
+    const totalHeight = iframeDoc.body.scrollHeight;
+    const pageHeight = 1123; // A4 height in pixels at 96 DPI
+    const pageWidth = 794; // A4 width in pixels at 96 DPI
+    
+    // html2canvas로 캔버스 생성 (전체 높이 포함)
     const canvas = await html2canvas(iframeDoc.body, {
       scale: 2,
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
-      width: 794,
-      height: 1123,
+      width: pageWidth,
+      height: totalHeight,
       logging: false,
       removeContainer: true,
     });
-    onProgress?.(75);
+    onProgress?.(70);
     
     // iframe 제거
     document.body.removeChild(iframe);
     
     // PDF 생성
-    const imgData = canvas.toDataURL('image/png', 0.8);
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
@@ -351,11 +448,39 @@ export async function generatePlanningPDFWithProgress(
       compress: true
     });
     
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
+    const pdfPageWidth = pdf.internal.pageSize.getWidth();
+    const pdfPageHeight = pdf.internal.pageSize.getHeight();
     
-    pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight);
-    onProgress?.(90);
+    // 캔버스를 페이지별로 분할하여 PDF에 추가
+    const totalPages = Math.ceil(canvas.height / (pageHeight * 2));
+    
+    for (let page = 0; page < totalPages; page++) {
+      if (page > 0) {
+        pdf.addPage();
+      }
+      
+      // 각 페이지에 해당하는 캔버스 영역을 추출
+      const pageCanvas = document.createElement('canvas');
+      pageCanvas.width = canvas.width;
+      pageCanvas.height = pageHeight * 2;
+      
+      const pageCtx = pageCanvas.getContext('2d');
+      if (pageCtx) {
+        pageCtx.drawImage(
+          canvas,
+          0, page * pageHeight * 2, 
+          canvas.width, pageHeight * 2, 
+          0, 0, 
+          pageCanvas.width, pageCanvas.height 
+        );
+        
+        const pageImgData = pageCanvas.toDataURL('image/png', 0.8);
+        pdf.addImage(pageImgData, 'PNG', 0, 0, pdfPageWidth, pdfPageHeight);
+      }
+      
+      // 페이지 처리 진행률 업데이트
+      onProgress?.(75 + (page / totalPages) * 15);
+    }
     
     // 캔버스 메모리 정리
     canvas.width = 0;
