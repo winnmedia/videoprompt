@@ -3,6 +3,8 @@
  * Vercel의 10초 타임아웃 제한을 우회하기 위한 폴링 패턴 구현
  */
 
+import { safeFetch } from '@/shared/lib/api-retry';
+
 interface ImageGenerationRequest {
   prompt: string;
   aspectRatio?: string;
@@ -113,7 +115,7 @@ export async function generateImageWithPolling(
     // 1. 이미지 생성 요청 시작
     onProgress?.(5, '이미지 생성 요청 시작...');
     
-    const startResponse = await fetch('/api/imagen/preview', {
+    const startResponse = await safeFetch('/api/imagen/preview', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -177,7 +179,7 @@ export async function generateImageWithPolling(
 
           onProgress?.(10 + (retryCount / maxRetries) * 80, '이미지 생성 진행 중...');
 
-          const statusResponse = await fetch(`/api/imagen/status/${jobId}`, {
+          const statusResponse = await safeFetch(`/api/imagen/status/${jobId}`, {
             signal: abortController?.signal
           });
           

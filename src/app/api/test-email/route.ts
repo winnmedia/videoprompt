@@ -24,6 +24,11 @@ const TestEmailSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  // 🔒 프로덕션 환경에서 테스트 엔드포인트 차단
+  if (process.env.NODE_ENV === 'production' && !process.env.ALLOW_TEST_ENDPOINTS) {
+    return failure('Test endpoints are not available in production', 'ACCESS_DENIED', 404);
+  }
+
   const traceId = getTraceId(req);
   
   console.log(`[TestEmail ${traceId}] 🧪 이메일 서비스 테스트 시작`);

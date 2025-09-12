@@ -4,6 +4,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { safeFetch } from '@/shared/lib/api-retry';
 import { useAppDispatch } from '../../store';
 import {
   initializeGenerationState,
@@ -302,7 +303,7 @@ export function useStoryboard(projectId: string) {
     queryKey: queryKeys.storyboard(projectId),
     queryFn: async () => {
       // API 호출 (실제 구현 필요)
-      const response = await fetch(`/api/storyboards/${projectId}`);
+      const response = await safeFetch(`/api/storyboards/${projectId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch storyboard');
       }
@@ -320,7 +321,7 @@ export function useGenerationHistory(projectId: string) {
     queryKey: queryKeys.generationHistory(projectId),
     queryFn: async () => {
       // API 호출 (실제 구현 필요)
-      const response = await fetch(`/api/storyboards/${projectId}/history`);
+      const response = await safeFetch(`/api/storyboards/${projectId}/history`);
       if (!response.ok) {
         throw new Error('Failed to fetch generation history');
       }

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/shared/ui';
 import { Icon } from '@/shared/ui';
+import { safeFetch } from '@/shared/lib/api-retry';
 
 interface QueueItem {
   id: string;
@@ -41,7 +42,7 @@ export default function QueuePage() {
 
   const loadQueueData = async () => {
     try {
-      const response = await fetch('/api/queue/list', {
+      const response = await safeFetch('/api/queue/list', {
         credentials: 'include',
       });
       
@@ -61,7 +62,7 @@ export default function QueuePage() {
 
   const handleRetry = async (itemId: string) => {
     try {
-      const response = await fetch(`/api/queue/retry/${itemId}`, {
+      const response = await safeFetch(`/api/queue/retry/${itemId}`, {
         method: 'POST',
         credentials: 'include',
       });
@@ -78,7 +79,7 @@ export default function QueuePage() {
     if (!confirm('이 작업을 취소하시겠습니까?')) return;
     
     try {
-      const response = await fetch(`/api/queue/cancel/${itemId}`, {
+      const response = await safeFetch(`/api/queue/cancel/${itemId}`, {
         method: 'POST',
         credentials: 'include',
       });

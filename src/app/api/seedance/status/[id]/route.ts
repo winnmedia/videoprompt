@@ -78,7 +78,6 @@ export async function GET(_req: Request, context: any) {
 
       console.error('DEBUG: Railway 백엔드 status 연결 실패:', fetchError);
 
-      // 배포 환경에서는 에러를 그대로 반환 (Mock 모드 없음)
       return NextResponse.json(
         {
           ok: false,

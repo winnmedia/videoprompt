@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useRef } from 'react';
 import { Icon } from '@/shared/ui';
+import { safeFetch } from '@/shared/lib/api-retry';
 
 interface ImageUploaderProps {
   onImageUploaded: (imageUrl: string) => void;
@@ -83,7 +84,7 @@ export function ImageUploader({
         const formData = new FormData();
         formData.append('image', file);
 
-        const response = await fetch('/api/upload/image', {
+        const response = await safeFetch('/api/upload/image', {
           method: 'POST',
           body: formData,
         });

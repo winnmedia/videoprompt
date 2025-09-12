@@ -11,6 +11,14 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // 🔒 프로덕션 환경에서 테스트 API 차단
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ 
+      ok: false, 
+      message: 'Test API not available in production' 
+    }, { status: 404 });
+  }
+
   // X-Test-Mode 헤더가 있을 때만 동작
   const testMode = request.headers.get('X-Test-Mode');
   if (testMode !== '1') {

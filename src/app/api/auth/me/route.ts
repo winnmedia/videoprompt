@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { getUserIdFromRequest } from '@/shared/lib/auth';
+import { validateResponse, AuthSuccessResponseContract } from '@/shared/contracts/auth.contract';
 
 export const runtime = 'nodejs';
 
@@ -46,10 +47,25 @@ export async function GET(req: NextRequest) {
       username: user.username 
     });
     
-    return success({ 
-      ...user,
-      token // 클라이언트에서 localStorage 동기화용
-    }, 200, traceId);
+    // 🔥 401 오류 해결: 데이터 계약 준수 - login API와 동일한 구조
+    const responseData = {
+      ok: true as const,
+      data: {
+        ...user,
+        token // 클라이언트에서 localStorage 동기화용
+      },
+      traceId,
+      timestamp: new Date().toISOString()
+    };
+    
+    // 계약 검증 후 반환
+    const validatedResponse = validateResponse(
+      AuthSuccessResponseContract, 
+      responseData, 
+      'auth/me API response'
+    );
+    
+    return NextResponse.json(validatedResponse);
   } catch (error: any) {
     return failure('UNKNOWN', error?.message || 'Server error', 500);
   }

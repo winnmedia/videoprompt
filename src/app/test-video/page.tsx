@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/shared/ui';
+import { safeFetch } from '@/shared/lib/api-retry';
 
 export default function TestVideoPage() {
   const [prompt, setPrompt] = useState('a beautiful sunset over mountains');
@@ -16,7 +17,7 @@ export default function TestVideoPage() {
     setResult(null);
 
     try {
-      const response = await fetch('/api/video/create', {
+      const response = await safeFetch('/api/video/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

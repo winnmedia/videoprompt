@@ -3,7 +3,7 @@
 if (typeof window === 'undefined') {
   try {
     // Node 18+: setDefaultResultOrder
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     const dns = require('dns');
     if (typeof dns.setDefaultResultOrder === 'function') {
       dns.setDefaultResultOrder('ipv4first');

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
+import { safeFetch } from '@/shared/lib/api-retry';
 
 type ProviderStatus = { name: string; key: string; healthy: boolean; latencyMs: number; failureRate: number };
 
@@ -17,7 +18,7 @@ export function AdminClient() {
         range: filters.range,
         q: filters.q,
       });
-      const res = await fetch(`/api/admin/search?${params.toString()}`, { cache: 'no-store' });
+      const res = await safeFetch(`/api/admin/search?${params.toString()}`, { cache: 'no-store' });
       const json = await res.json();
       setResults({ videos: json.videos ?? [] });
     } finally {
@@ -88,7 +89,7 @@ function ProviderStatusSection() {
     const run = async () => {
       setLoading(true);
       try {
-        const res = await fetch('/api/admin/providers/health', { cache: 'no-store' });
+        const res = await safeFetch('/api/admin/providers/health', { cache: 'no-store' });
         const json = await res.json();
         setProviders(json.providers ?? []);
       } finally {
@@ -167,7 +168,7 @@ function RetryDemo() {
   const onRetry = async () => {
     setMessage(null);
     try {
-      const res = await fetch(`/api/admin/video-assets/${encodeURIComponent(videoId)}/retry`, {
+      const res = await safeFetch(`/api/admin/video-assets/${encodeURIComponent(videoId)}/retry`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
       });

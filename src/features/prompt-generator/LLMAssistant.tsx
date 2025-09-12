@@ -7,6 +7,7 @@ import {
   type AIResponse,
 } from '@/types/video-prompt';
 import { cn } from '@/shared/lib/utils';
+import { safeFetch } from '@/shared/lib/api-retry';
 
 interface LLMAssistantProps {
   state: PromptGenerationState;
@@ -33,7 +34,7 @@ export const LLMAssistant: React.FC<LLMAssistantProps> = ({
     setIsGeneratingSuggestions(true);
 
     try {
-      const response = await fetch('/api/generate/suggestions', {
+      const response = await safeFetch('/api/generate/suggestions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(state)
