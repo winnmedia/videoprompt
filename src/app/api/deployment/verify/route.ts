@@ -119,14 +119,15 @@ export async function POST() {
     const path = await import('path');
     const apiDir = path.join(process.cwd(), 'src/app/api');
     
-    function countApiRoutes(dir: string): number {
+    async function countApiRoutes(dir: string): Promise<number> {
       let count = 0;
       try {
-        const files = fs.readdirSync(dir);
+        const files = await fs.readdir(dir);
         for (const file of files) {
           const filePath = path.join(dir, file);
-          if (fs.statSync(filePath).isDirectory()) {
-            count += countApiRoutes(filePath);
+          const stats = await fs.stat(filePath);
+          if (stats.isDirectory()) {
+            count += await countApiRoutes(filePath);
           } else if (file === 'route.ts' || file === 'route.js') {
             count++;
           }
@@ -137,7 +138,7 @@ export async function POST() {
       return count;
     }
 
-    buildVerification.buildChecks.apiRoutesCount = countApiRoutes(apiDir);
+    buildVerification.buildChecks.apiRoutesCount = await countApiRoutes(apiDir);
   } catch (error) {
     buildVerification.buildChecks.serverlessOptimized = false;
   }

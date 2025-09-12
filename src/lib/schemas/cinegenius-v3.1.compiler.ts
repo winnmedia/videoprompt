@@ -5,7 +5,7 @@
  * 우선순위 기반 렌더링, 오디오 신택스 처리, 프롬프트 길이 최적화를 지원합니다.
  */
 
-// @ts-nocheck
+// Migrated from @ts-nocheck - using specific type assertions where needed
 
 import type { 
   CineGeniusV31, 
@@ -117,12 +117,17 @@ export class CineGeniusV31Compiler {
       const warnings: string[] = [];
       
       // Veo 3 특화 검증 (안전한 접근)
-      if (data.generationControl?.audioLayers?.length && data.generationControl.audioLayers.length > VEO_LIMITS.MAX_AUDIO_LAYERS) {
-        warnings.push(`오디오 레이어 수가 ${VEO_LIMITS.MAX_AUDIO_LAYERS}개를 초과합니다.`);
+      // AudioLayers는 promptBlueprint.timeline[]에 있음
+      const timelineItems = data.promptBlueprint?.timeline;
+      if (timelineItems && Array.isArray(timelineItems) && timelineItems.length > VEO_LIMITS.MAX_AUDIO_LAYERS) {
+        warnings.push(`타임라인 항목 수가 ${VEO_LIMITS.MAX_AUDIO_LAYERS}개를 초과합니다.`);
       }
 
-      if (data.promptBlueprint?.elements?.length && data.promptBlueprint.elements.length > VEO_LIMITS.OPTIMAL_ELEMENT_COUNT) {
-        warnings.push(`시각 요소 수가 최적 개수(${VEO_LIMITS.OPTIMAL_ELEMENT_COUNT}개)를 초과합니다.`);
+      // elements는 {characters: [], coreObjects: []} 구조
+      const elements = data.promptBlueprint?.elements;
+      const totalElementsCount = (elements?.characters?.length || 0) + (elements?.coreObjects?.length || 0);
+      if (totalElementsCount > VEO_LIMITS.OPTIMAL_ELEMENT_COUNT) {
+        warnings.push(`시각 요소 수가 최적 개수(${VEO_LIMITS.OPTIMAL_ELEMENT_COUNT}개)를 초과합니다. (현재: ${totalElementsCount}개)`);
       }
 
       return {
@@ -147,23 +152,33 @@ export class CineGeniusV31Compiler {
 
     return {
       // 핵심 시각 요소 (최고 우선순위) - 안전한 접근
-      visualCore: promptBlueprint?.elements
-        ?.filter((element: any) => element.priority >= VEO_LIMITS.MIN_PRIORITY_THRESHOLD)
-        ?.sort((a: any, b: any) => b.priority - a.priority) || [],
+      visualCore: (() => {
+        const elements = promptBlueprint?.elements;
+        if (!elements) return [];
+        
+        const allElements = [
+          ...(elements.characters || []).map((char: any) => ({ ...char, type: 'character', priority: char.priority || 5 })),
+          ...(elements.coreObjects || []).map((obj: any) => ({ ...obj, type: 'object', priority: obj.priority || 3 }))
+        ];
+        
+        return allElements
+          .filter((element: any) => element.priority >= VEO_LIMITS.MIN_PRIORITY_THRESHOLD)
+          .sort((a: any, b: any) => b.priority - a.priority);
+      })(),
 
       // 카메라 워크 - 안전한 접근
       cameraWork: {
-        movement: promptBlueprint?.cameraPlan?.movement || 'static',
-        angle: promptBlueprint?.cameraPlan?.angle || 'medium',
-        instructions: this.buildCameraInstructions(promptBlueprint?.cameraPlan || {})
+        movement: promptBlueprint?.metadata?.cameraPlan?.movementSummary || 'static',
+        angle: 'medium', // cameraPlan에 angle 정보 없음, 기본값 사용
+        instructions: this.buildCameraInstructions(promptBlueprint?.metadata?.cameraPlan || {})
       },
 
-      // 환경 설정 - 안전한 접근
+      // 환경 설정 - 안전한 접근  
       environment: {
-        lighting: promptBlueprint?.spatialContext?.lighting || 'natural',
-        weather: promptBlueprint?.spatialContext?.weather || 'clear',
-        timeOfDay: promptBlueprint?.spatialContext?.timeOfDay || 'day',
-        location: promptBlueprint?.spatialContext?.placeDescription || ''
+        lighting: promptBlueprint?.metadata?.spatialContext?.lighting || 'natural',
+        weather: promptBlueprint?.metadata?.spatialContext?.weather || 'clear',
+        timeOfDay: 'day', // spatialContext에 timeOfDay 없음, 기본값 사용
+        location: promptBlueprint?.metadata?.spatialContext?.placeDescription || ''
       },
 
       // 스타일 지시사항 - 안전한 접근
@@ -173,12 +188,12 @@ export class CineGeniusV31Compiler {
         mood: promptBlueprint?.metadata?.baseStyle?.mood || 'neutral'
       },
 
-      // 오디오 레이어 - 안전한 접근
-      audio: this.options.includeAudioLayers && generationControl?.audioLayers ? 
-        this.extractAudioSyntax(generationControl.audioLayers) : null,
+      // 오디오 레이어 - 안전한 접근 (timeline에서 추출)
+      audio: this.options.includeAudioLayers && promptBlueprint?.timeline ? 
+        this.extractAudioSyntaxFromTimeline(promptBlueprint.timeline) : null,
 
-      // Veo 특화 설정 - 안전한 접근
-      veoConfig: generationControl?.veoOptimization || {}
+      // Veo 특화 설정 - 안전한 접근 (generationControl에 veoOptimization 없음)
+      veoConfig: {}
     };
   }
 
@@ -236,14 +251,14 @@ export class CineGeniusV31Compiler {
   /**
    * 카메라 지시사항 구축
    */
-  private buildCameraInstructions(cinematography: any): VeoCameraInstruction[] {
+  private buildCameraInstructions(cameraPlan: any): VeoCameraInstruction[] {
     const instructions: VeoCameraInstruction[] = [];
 
-    if (cinematography.cameraMovement && cinematography.cameraMovement !== 'static') {
+    if (cameraPlan.movementSummary && cameraPlan.movementSummary !== 'static') {
       instructions.push({
-        movement: cinematography.cameraMovement,
-        angle: cinematography.cameraAngle,
-        duration: cinematography.duration || 5,
+        movement: cameraPlan.movementSummary,
+        angle: 'medium', // cameraPlan에 angle 정보 없음
+        duration: 5, // 기본값 사용
         priority: PRIORITY_WEIGHTS.CAMERA_MOVEMENT
       });
     }
@@ -252,7 +267,41 @@ export class CineGeniusV31Compiler {
   }
 
   /**
-   * 오디오 신택스 추출
+   * 타임라인에서 오디오 신택스 추출
+   */
+  private extractAudioSyntaxFromTimeline(timeline: any[]): VeoAudioSyntax {
+    const syntax: VeoAudioSyntax = {
+      sfx: [],
+      music: [],
+      dialogue: []
+    };
+
+    timeline.slice(0, VEO_LIMITS.MAX_AUDIO_LAYERS).forEach(item => {
+      const audioLayers = item.audioLayers;
+      if (audioLayers) {
+        // diegetic (현장음) -> SFX
+        if (audioLayers.diegetic) {
+          syntax.sfx.push(`[SFX: ${audioLayers.diegetic}]`);
+        }
+        // non_diegetic (비현장음) -> Music
+        if (audioLayers.non_diegetic) {
+          syntax.music.push(`[Music: ${audioLayers.non_diegetic}]`);
+        }
+        // voice (대사) -> Dialogue
+        if (audioLayers.voice) {
+          syntax.dialogue.push({
+            speaker: 'Character',
+            text: audioLayers.voice
+          });
+        }
+      }
+    });
+
+    return syntax;
+  }
+
+  /**
+   * 오디오 신택스 추출 (기존 메서드 - 호환성 유지)
    */
   private extractAudioSyntax(audioLayers: any[]): VeoAudioSyntax {
     const syntax: VeoAudioSyntax = {

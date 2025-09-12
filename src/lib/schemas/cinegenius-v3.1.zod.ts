@@ -8,7 +8,7 @@
  * @author CineGenius Team
  */
 
-// @ts-nocheck
+// Migrated from @ts-nocheck - using proper type definitions
 
 import { z } from 'zod';
 

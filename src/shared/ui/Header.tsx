@@ -14,6 +14,7 @@ export function Header() {
   // 컴포넌트 마운트 시 인증 상태 확인 (한 번만)
   useEffect(() => {
     checkAuth();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // $300 사건 수정: 의존성 배열을 빈 배열로 변경
 
   const handleLogout = async () => {

@@ -83,25 +83,23 @@ export default function FeedbackPage() {
       createdAt: string;
     }>
   >([]);
+  // 댓글 폴링을 위한 작은 함수
+  const fetchComments = async (videoId: string) => {
+    try {
+      if (!videoId) return;
+      const res = await fetch(
+        `/api/comments?targetType=video&targetId=${encodeURIComponent(videoId)}`,
+      );
+      const js = await res.json();
+      if (js?.ok && Array.isArray(js.data)) setComments(js.data);
+    } catch {}
+  };
+
   useEffect(() => {
-    let timer: NodeJS.Timeout;
     const videoId = new URL(window.location.href).searchParams.get('videoId') || versions[0]?.id;
-    const fetchComments = async () => {
-      try {
-        if (!videoId) return;
-        const res = await fetch(
-          `/api/comments?targetType=video&targetId=${encodeURIComponent(videoId)}`,
-        );
-        const js = await res.json();
-        if (js?.ok && Array.isArray(js.data)) setComments(js.data);
-      } catch {}
-    };
-    fetchComments();
-    const intervalTimer = setInterval(fetchComments, 5000);
-    timer = intervalTimer;
-    return () => {
-      if (timer) clearInterval(timer);
-    };
+    fetchComments(videoId);
+    const timer = setInterval(() => fetchComments(videoId), 5000);
+    return () => clearInterval(timer);
   }, [versions]);
 
   const [activeVersionId, setActiveVersionId] = useState<string>(versions[0].id);
