@@ -13,7 +13,7 @@ export default function DocsPage() {
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         <div className="text-center">
           <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl">
-            📚 문서
+            문서
           </h1>
           <p className="mt-4 text-xl text-gray-600">
             VideoPrompt 서비스 사용 가이드
@@ -22,7 +22,7 @@ export default function DocsPage() {
 
         <div className="mt-12 grid gap-8 md:grid-cols-2">
           <div className="rounded-lg bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-semibold text-gray-900">🚀 시작하기</h2>
+            <h2 className="text-2xl font-semibold text-gray-900">시작하기</h2>
             <p className="mt-4 text-gray-600">
               VideoPrompt를 처음 사용하시나요? 기본 사용법을 알아보세요.
             </p>
@@ -37,7 +37,7 @@ export default function DocsPage() {
           </div>
 
           <div className="rounded-lg bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-semibold text-gray-900">🎬 시나리오 작성</h2>
+            <h2 className="text-2xl font-semibold text-gray-900">시나리오 작성</h2>
             <p className="mt-4 text-gray-600">
               AI를 활용한 시나리오 작성 방법을 배워보세요.
             </p>
@@ -52,7 +52,7 @@ export default function DocsPage() {
           </div>
 
           <div className="rounded-lg bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-semibold text-gray-900">🎥 영상 생성</h2>
+            <h2 className="text-2xl font-semibold text-gray-900">영상 생성</h2>
             <p className="mt-4 text-gray-600">
               AI를 활용한 영상 생성 워크플로우를 확인하세요.
             </p>
@@ -67,7 +67,7 @@ export default function DocsPage() {
           </div>
 
           <div className="rounded-lg bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-semibold text-gray-900">💬 피드백</h2>
+            <h2 className="text-2xl font-semibold text-gray-900">피드백</h2>
             <p className="mt-4 text-gray-600">
               팀원들과 영상에 대한 피드백을 공유하세요.
             </p>
@@ -83,7 +83,7 @@ export default function DocsPage() {
         </div>
 
         <div className="mt-12 rounded-lg bg-white p-8 shadow-sm">
-          <h2 className="text-2xl font-semibold text-gray-900">❓ 자주 묻는 질문</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">자주 묻는 질문</h2>
           <div className="mt-6 space-y-4">
             <div>
               <h3 className="text-lg font-medium text-gray-900">
