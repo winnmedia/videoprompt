@@ -52,7 +52,8 @@ export const StorySuccessResponseContract = z.object({
   // 확장된 필드들 (선택사항)
   core_themes: z.array(z.string()).optional(),
   signature_elements: z.array(z.string()).optional(),
-  project: ProjectInfoContract.optional()
+  // null과 undefined 모두 허용 - Railway API에서 null 반환 시 호환성 보장
+  project: ProjectInfoContract.nullable().optional()
 });
 
 // 스토리 생성 에러 응답

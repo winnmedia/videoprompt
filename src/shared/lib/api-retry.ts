@@ -106,6 +106,15 @@ export async function safeFetch(
 ): Promise<Response> {
   const startTime = Date.now();
   
+  // API Base URL 자동 적용 (상대경로인 경우)
+  const fullUrl = url.startsWith('http') ? url : 
+    `${process.env.NEXT_PUBLIC_API_BASE || 'https://videoprompt-production.up.railway.app'}${url}`;
+  
+  // Development 환경에서만 디버그 로그 출력
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[API] 호출 URL: ${fullUrl}`);
+  }
+  
   // Rate limiting 체크
   if (!apiLimiter.canMakeRequest()) {
     const resetTime = apiLimiter.getResetTime();
@@ -129,7 +138,7 @@ export async function safeFetch(
     // 클라이언트 사이드에서 토큰 가져오기
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     
-    const response = await fetch(url, {
+    const response = await fetch(fullUrl, {
       ...options,
       headers: {
         ...options?.headers,
@@ -142,19 +151,19 @@ export async function safeFetch(
     const method = options?.method || 'GET';
     
     // API 호출 모니터링 추적
-    monitoring.trackApiCall(url, method, response.status, duration);
+    monitoring.trackApiCall(fullUrl, method, response.status, duration);
     
     if (!response.ok) {
       monitoring.trackError(
         `HTTP ${response.status}: ${response.statusText}`,
-        { url, method, status: response.status, duration },
+        { url: fullUrl, method, status: response.status, duration },
         response.status >= 500 ? 'high' : 'medium'
       );
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
     // 성능 추적
-    monitoring.trackPerformance('api_response_time', duration, { url, method });
+    monitoring.trackPerformance('api_response_time', duration, { url: fullUrl, method });
     
     return response;
   }, retryOptions);

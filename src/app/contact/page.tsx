@@ -93,7 +93,7 @@ export default function ContactPage() {
           <h2 className="text-2xl font-semibold text-gray-900">🔗 유용한 링크</h2>
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             <a
-              href="/docs"
+              href="/manual"
               className="flex items-center rounded-lg border border-gray-200 p-4 hover:bg-gray-50"
             >
               <div className="text-2xl">📚</div>

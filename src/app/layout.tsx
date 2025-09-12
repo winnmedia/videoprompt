@@ -94,7 +94,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <h3 className="mb-2 font-medium text-gray-800">지원</h3>
                   <ul className="space-y-1">
                     <li>
-                      <Link href="/docs" className="hover:text-brand-600">
+                      <Link href="/manual" className="hover:text-brand-600">
                         문서
                       </Link>
                     </li>
