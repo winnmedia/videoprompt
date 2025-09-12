@@ -183,6 +183,7 @@ export async function POST(request: NextRequest) {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://www.vridge.kr',
             },
             body: JSON.stringify({
               contents: [
