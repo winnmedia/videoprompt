@@ -26,18 +26,19 @@ const SUPPORTED_VIDEO_TYPES = [
   'video/x-ms-wmv', // .wmv
 ];
 
-// 파일 크기 제한: 1GB (대용량 영상 파일 대응)
-const MAX_FILE_SIZE = 1024 * 1024 * 1024;
+// 파일 크기 제한: 4MB (Vercel 서버리스 함수 제한 고려)
+const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB
 
 export async function POST(request: NextRequest) {
   try {
     // Content-Length 기반 사전 검증으로 대용량 파일 업로드 방지
     const contentLength = request.headers.get('content-length');
     if (contentLength && parseInt(contentLength) > MAX_FILE_SIZE) {
+      const fileSizeMB = Math.round(parseInt(contentLength) / 1024 / 1024 * 100) / 100; // 소수점 2자리
       return NextResponse.json(
         createErrorResponse(
           'FILE_TOO_LARGE', 
-          `파일 크기가 1GB를 초과합니다. (${Math.round(parseInt(contentLength) / 1024 / 1024)}MB)`
+          `파일 크기가 허용 한도를 초과합니다.\n현재: ${fileSizeMB}MB, 최대: 4MB\n\nVercel 플랫폼 제한으로 더 작은 파일을 업로드해주세요.`
         ), 
         { status: 413 }
       );

@@ -138,10 +138,11 @@ export default function FeedbackPage() {
       return;
     }
     
-    // 파일 크기 체크 (100MB 제한)
-    const maxSize = 100 * 1024 * 1024; // 100MB
+    // 파일 크기 체크 (Vercel 서버리스 함수 제한 고려하여 4MB로 제한)
+    const maxSize = 4 * 1024 * 1024; // 4MB (Vercel body size limit)
     if (file.size > maxSize) {
-      alert('파일 크기가 너무 큽니다. 100MB 이하의 파일을 선택해주세요.');
+      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+      alert(`파일 크기가 너무 큽니다. (현재: ${fileSizeMB}MB)\n\nVercel 플랫폼 제한으로 4MB 이하의 파일만 업로드 가능합니다.\n\n대용량 파일은 다음 방법을 고려해주세요:\n• 비디오 압축 도구 사용\n• 해상도 또는 비트레이트 줄이기\n• 외부 스토리지 서비스 이용`);
       return;
     }
     
@@ -186,16 +187,18 @@ export default function FeedbackPage() {
     } catch (error: any) {
       console.error('비디오 업로드 오류:', error);
       
-      // 오류 타입별 메시지
+      // 오류 타입별 상세 메시지
       let errorMessage = '비디오 업로드에 실패했습니다.';
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        errorMessage += ' 네트워크 연결을 확인해주세요.';
-      } else if (error.message.includes('413')) {
-        errorMessage += ' 파일 크기가 너무 큽니다.';
+        errorMessage += '\n\n네트워크 연결을 확인해주세요.';
+      } else if (error.message.includes('413') || error.message.includes('Content Too Large')) {
+        errorMessage = `파일 크기가 플랫폼 제한을 초과합니다.\n\nVercel 플랫폼에서는 4MB 이하의 파일만 업로드 가능합니다.\n\n해결 방법:\n• 비디오 압축 (권장: H.264 코덱)\n• 해상도 낮추기 (720p 이하 권장)\n• 길이 단축 (1-2분 이하)\n• 외부 스토리지 서비스 이용`;
       } else if (error.message.includes('415')) {
-        errorMessage += ' 지원되지 않는 파일 형식입니다.';
+        errorMessage += '\n\n지원되지 않는 파일 형식입니다.\n지원 형식: MP4, WebM, MOV';
       } else if (error.message.includes('timeout')) {
-        errorMessage += ' 업로드 시간이 초과되었습니다.';
+        errorMessage += '\n\n업로드 시간이 초과되었습니다.\n더 작은 파일로 다시 시도해주세요.';
+      } else if (error.message.includes('HTTP 413')) {
+        errorMessage = `서버에서 파일 크기 제한으로 인해 업로드가 거부되었습니다.\n\n현재 제한: 4MB\n\n더 작은 파일로 다시 시도해주세요.`;
       }
       
       alert(errorMessage);
