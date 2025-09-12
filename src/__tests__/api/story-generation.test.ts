@@ -6,26 +6,24 @@
 import { POST } from '@/app/api/ai/generate-story/route';
 import { NextRequest } from 'next/server';
 import { validateStoryResponse, StoryContractViolationError } from '@/shared/contracts/story.contract';
+import { vi, describe, beforeEach, afterEach, test, expect } from 'vitest';
 
-// Mock Prisma
-const mockPrismaUser = {
-  id: 'test-user-id',
-  email: 'test@example.com',
-  username: 'testuser'
-};
-
-jest.mock('@/lib/db', () => ({
+vi.mock('@/lib/db', () => ({
   prisma: {
     project: {
-      update: jest.fn(),
-      create: jest.fn()
+      update: vi.fn(),
+      create: vi.fn()
     }
   }
 }));
 
 // Mock getUser
-jest.mock('@/shared/lib/auth', () => ({
-  getUser: jest.fn().mockResolvedValue(mockPrismaUser)
+vi.mock('@/shared/lib/auth', () => ({
+  getUser: vi.fn().mockResolvedValue({
+    id: 'test-user-id',
+    email: 'test@example.com',
+    username: 'testuser'
+  })
 }));
 
 // Mock 환경변수
@@ -36,7 +34,7 @@ const mockEnv = {
 
 describe('POST /api/ai/generate-story', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // 환경변수 모킹
     Object.entries(mockEnv).forEach(([key, value]) => {
@@ -44,17 +42,17 @@ describe('POST /api/ai/generate-story', () => {
     });
 
     // console.error 모킹 (테스트 출력 정리)
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'log').mockImplementation(() => {});
   });
 
   afterEach(() => {
     // console 모킹 해제
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('❌ RED Phase: 실패 테스트 먼저 작성', () => {
-    it('빈 요청 바디 시 400 에러 반환 (Zod 검증 실패)', async () => {
+    test('빈 요청 바디 시 400 에러 반환 (Zod 검증 실패)', async () => {
       const request = new NextRequest('http://localhost:3000/api/ai/generate-story', {
         method: 'POST',
         body: JSON.stringify({}),
@@ -69,7 +67,7 @@ describe('POST /api/ai/generate-story', () => {
       expect(data.message).toContain('스토리를 입력해주세요');
     });
 
-    it('API 키 누락 시 400 에러 반환', async () => {
+    test('API 키 누락 시 400 에러 반환', async () => {
       // 환경변수 제거
       delete process.env.GOOGLE_GEMINI_API_KEY;
 
@@ -91,7 +89,7 @@ describe('POST /api/ai/generate-story', () => {
       expect(data.error).toContain('AI 서비스가 구성되지 않았습니다');
     });
 
-    it('잘못된 API 키 형식 시 400 에러 반환', async () => {
+    test('잘못된 API 키 형식 시 400 에러 반환', async () => {
       process.env.GOOGLE_GEMINI_API_KEY = 'invalid-key-format';
 
       const request = new NextRequest('http://localhost:3000/api/ai/generate-story', {
@@ -114,7 +112,7 @@ describe('POST /api/ai/generate-story', () => {
   });
 
   describe('✅ GREEN Phase: 최소 구현으로 테스트 통과', () => {
-    it('유효한 요청에 대해 기본값 적용', async () => {
+    test('유효한 요청에 대해 기본값 적용', async () => {
       const request = new NextRequest('http://localhost:3000/api/ai/generate-story', {
         method: 'POST',
         body: JSON.stringify({
@@ -180,7 +178,7 @@ describe('POST /api/ai/generate-story', () => {
       expect(data.structure.act4).toBeDefined();
     });
 
-    it('Zod 스키마 기본값이 올바르게 적용됨', async () => {
+    test('Zod 스키마 기본값이 올바르게 적용됨', async () => {
       const request = new NextRequest('http://localhost:3000/api/ai/generate-story', {
         method: 'POST',
         body: JSON.stringify({
@@ -231,7 +229,7 @@ describe('POST /api/ai/generate-story', () => {
   });
 
   describe('🔧 REFACTOR Phase: 계약 검증 및 에러 처리', () => {
-    it('응답 스키마 검증이 올바르게 작동함', () => {
+    test('응답 스키마 검증이 올바르게 작동함', () => {
       const validResponse = {
         structure: {
           act1: { title: '시작', description: '설명', key_elements: ['요소'], emotional_arc: '감정' },
@@ -248,7 +246,7 @@ describe('POST /api/ai/generate-story', () => {
       expect(() => validateStoryResponse(validResponse)).not.toThrow();
     });
 
-    it('잘못된 응답 구조 시 계약 위반 에러 발생', () => {
+    test('잘못된 응답 구조 시 계약 위반 에러 발생', () => {
       const invalidResponse = {
         structure: {
           act1: { title: '시작' }, // key_elements, description, emotional_arc 누락
@@ -262,7 +260,7 @@ describe('POST /api/ai/generate-story', () => {
   });
 
   describe('🌐 실제 시나리오 테스트', () => {
-    it('빈 tone 배열 조인 시 기본값 적용', async () => {
+    test('빈 tone 배열 조인 시 기본값 적용', async () => {
       const request = new NextRequest('http://localhost:3000/api/ai/generate-story', {
         method: 'POST',
         body: JSON.stringify({
@@ -312,7 +310,7 @@ describe('POST /api/ai/generate-story', () => {
 
 describe('계약 검증 유틸리티 테스트', () => {
   describe('validateStoryResponse', () => {
-    it('완전한 응답 구조 검증 성공', () => {
+    test('완전한 응답 구조 검증 성공', () => {
       const completeResponse = {
         structure: {
           act1: {
@@ -350,7 +348,7 @@ describe('계약 검증 유틸리티 테스트', () => {
       expect(result).toEqual(completeResponse);
     });
 
-    it('필수 필드 누락 시 검증 실패', () => {
+    test('필수 필드 누락 시 검증 실패', () => {
       const incompleteResponse = {
         structure: {
           act1: {
@@ -366,7 +364,7 @@ describe('계약 검증 유틸리티 테스트', () => {
         .toThrow(StoryContractViolationError);
     });
 
-    it('빈 배열 필드 시 검증 실패', () => {
+    test('빈 배열 필드 시 검증 실패', () => {
       const responseWithEmptyArray = {
         structure: {
           act1: { title: '시작', description: '설명', key_elements: [], emotional_arc: '감정' }, // 빈 배열
