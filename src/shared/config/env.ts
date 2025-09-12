@@ -39,7 +39,7 @@ const EnvSchema = z.object({
     
   // SendGrid 이메일 설정
   SENDGRID_API_KEY: z.string().optional(),
-  DEFAULT_FROM_EMAIL: z.string().email().optional(),
+  DEFAULT_FROM_EMAIL: z.string().optional(),
   
   // Railway 백엔드 URL
   RAILWAY_BACKEND_URL: z.string().url().default('https://videoprompt-production.up.railway.app'),
