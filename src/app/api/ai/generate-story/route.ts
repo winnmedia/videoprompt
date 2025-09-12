@@ -656,8 +656,8 @@ ${(() => {
               project: savedProject ? {
                 id: savedProject.id,
                 title: savedProject.title,
-                saved: true
-              } : null
+                saved: true as const
+              } : undefined
             };
             
             return NextResponse.json(response);
