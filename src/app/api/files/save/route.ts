@@ -34,11 +34,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log('DEBUG: 파일 저장 요청:', {
-      urlCount: urls.length,
-      prefix,
-      subDirectory,
-    });
 
     // 단일 파일 저장
     if (urls.length === 1) {
@@ -123,7 +118,6 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const subDirectory = searchParams.get('directory') || '';
 
-    console.log('DEBUG: 저장된 파일 목록 조회:', { subDirectory });
 
     // 간단한 파일 목록 반환 (실제 구현에서는 데이터베이스에서 조회)
     return NextResponse.json(

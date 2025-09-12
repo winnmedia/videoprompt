@@ -1,13 +1,27 @@
 import { z } from 'zod';
 
-// 런타임 환경변수 스키마
+// 런타임 환경변수 스키마 (확장됨)
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
-  GOOGLE_GEMINI_API_KEY: z.string().min(1, 'GOOGLE_GEMINI_API_KEY is required').optional(),
+  NEXT_PUBLIC_APP_URL: z.string().url().optional(),
+  
+  // AI 서비스 API 키들
+  GOOGLE_GEMINI_API_KEY: z.string().optional(),
+  GOOGLE_API_KEY: z.string().optional(),
+  GOOGLE_IMAGE_MODEL: z.string().default('imagen-4.0-generate-preview-06-06'),
   VEO_PROVIDER: z.enum(['google']).optional(),
+  
+  // 비디오 생성 서비스
   SEEDANCE_API_KEY: z.string().optional(),
   SEEDANCE_MODEL: z.string().optional(),
+  SEEDANCE_API_BASE: z.string().url().optional(),
+  SEEDANCE_WEBHOOK_SECRET: z.string().optional(),
+  
+  // ModelArk / BytePlus
+  MODELARK_API_KEY: z.string().optional(),
+  MODELARK_API_BASE: z.string().url().default('https://api.byteplusapi.com'),
+  
   // 백엔드 마이그레이션: Prisma 접속 문자열 (PostgreSQL, SQLite 지원)
   DATABASE_URL: z
     .string()
@@ -28,8 +42,18 @@ const EnvSchema = z.object({
   DEFAULT_FROM_EMAIL: z.string().email().optional(),
   
   // Railway 백엔드 URL
-  RAILWAY_BACKEND_URL: z.string().url().optional(),
+  RAILWAY_BACKEND_URL: z.string().url().default('https://videoprompt-production.up.railway.app'),
   NEXT_PUBLIC_API_BASE: z.string().url().optional(),
+  
+  // Vercel 환경
+  VERCEL_ENV: z.string().optional(),
+  VERCEL_REGION: z.string().optional(),
+  VERCEL_URL: z.string().optional(),
+  
+  // 테스트/디버그 설정
+  ALLOW_TEST_ENDPOINTS: z.string().optional(),
+  E2E_FAST_PREVIEW: z.string().optional(),
+  INTEGRATION_TEST: z.string().optional(),
 });
 
 type Env = z.infer<typeof EnvSchema>;
@@ -51,3 +75,56 @@ export function getEnv(): Readonly<Env> {
 export function assertEnvInitialized() {
   getEnv();
 }
+
+// 환경변수 헬퍼 함수들
+export const envUtils = {
+  // 필수 환경변수 (없으면 에러)
+  required: (key: keyof Env) => {
+    const env = getEnv();
+    const value = env[key];
+    if (!value) {
+      throw new Error(`필수 환경변수 ${key}가 설정되지 않았습니다.`);
+    }
+    return value as string;
+  },
+  
+  // 선택적 환경변수 (기본값 제공)
+  optional: (key: keyof Env, defaultValue: string = '') => {
+    const env = getEnv();
+    return (env[key] as string) || defaultValue;
+  },
+  
+  // Boolean 환경변수
+  boolean: (key: keyof Env, defaultValue: boolean = false) => {
+    const env = getEnv();
+    const value = env[key] as string;
+    if (!value) return defaultValue;
+    return ['1', 'true', 'TRUE', 'yes', 'YES'].includes(value);
+  }
+};
+
+// 프로덕션 환경 확인
+export const isProd = getEnv().NODE_ENV === 'production';
+export const isDev = getEnv().NODE_ENV === 'development';
+export const isTest = getEnv().NODE_ENV === 'test';
+
+// AI 서비스별 API 키 가져오기 (우선순위 적용)
+export const getAIApiKeys = () => {
+  const env = getEnv();
+  return {
+    gemini: env.GOOGLE_GEMINI_API_KEY || env.GOOGLE_API_KEY,
+    seedance: env.SEEDANCE_API_KEY,
+    modelark: env.MODELARK_API_KEY,
+  };
+};
+
+// 서비스 URL 가져오기
+export const getServiceUrls = () => {
+  const env = getEnv();
+  return {
+    railwayBackend: env.RAILWAY_BACKEND_URL,
+    seedanceApi: env.SEEDANCE_API_BASE,
+    modelarkApi: env.MODELARK_API_BASE,
+    appUrl: env.NEXT_PUBLIC_APP_URL || env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+  };
+};

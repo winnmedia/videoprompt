@@ -810,10 +810,6 @@ export default function SceneWizardPage() {
         return;
       }
 
-      console.log('DEBUG: 이미지 미리보기 시작:', {
-        prompt: veo3Preview.slice(0, 100),
-        hasPrompt: !!veo3Preview.trim(),
-      });
 
       // LLM을 통한 이미지용 프롬프트 변환
       let optimizedPrompt = veo3Preview;
@@ -824,7 +820,6 @@ export default function SceneWizardPage() {
           style: selectedStyle,
           quality: 'high',
         });
-        console.log('DEBUG: LLM 프롬프트 변환 성공:', optimizedPrompt.slice(0, 100));
       } catch (e) {
         console.warn('LLM 이미지 프롬프트 변환 실패, 원본 사용:', e);
       }
@@ -833,14 +828,12 @@ export default function SceneWizardPage() {
       let english = optimizedPrompt;
       try {
         english = await translateToEnglish(optimizedPrompt);
-        console.log('DEBUG: 영어 변환 성공:', english.slice(0, 100));
       } catch (e) {
         console.warn('영어 변환 실패, 원본 사용:', e);
       }
 
       // 이미지 생성 API 호출 (환경별 분기)
       const apiUrl = getApiUrl(API_ENDPOINTS.IMAGEN_PREVIEW);
-      console.log('DEBUG: API 호출 시작:', { apiUrl, prompt: english.slice(0, 100) });
 
       const res = await fetch(apiUrl, {
         method: 'POST',
@@ -853,21 +846,13 @@ export default function SceneWizardPage() {
         }),
       });
 
-      console.log('DEBUG: API 응답 상태:', res.status, res.statusText);
 
       if (!res.ok) {
         const errorText = await res.text();
-        console.error('DEBUG: API 에러 응답:', errorText);
         throw new Error(`API 호출 실패: ${res.status} ${res.statusText}`);
       }
 
       const json = await res.json();
-      console.log('DEBUG: API 응답 데이터:', {
-        ok: json.ok,
-        hasImages: !!json.images,
-        imageCount: json.images?.length || 0,
-        firstImage: json.images?.[0]?.slice(0, 50) || 'none',
-      });
 
       if (!json.ok) {
         throw new Error(json.error || '이미지 생성 실패');
@@ -886,7 +871,6 @@ export default function SceneWizardPage() {
       }
 
       setImagePreviews(validImages);
-      console.log('DEBUG: 이미지 미리보기 설정 완료:', validImages.length);
 
       setStatusKind('success');
       setStatusMsg('이미지 미리보기가 생성되었습니다.');
