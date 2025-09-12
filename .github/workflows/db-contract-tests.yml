@@ -1,0 +1,465 @@
+name: 🗄️ DB 계약 검증 테스트
+
+# Benjamin의 계약 위반 발견사항 대응 자동화
+# - CineGenius v3 지원 SQL이 부분적으로만 적용됨
+# - MigrationLog 테이블이 존재하지 않음
+# - 인덱스 및 제약조건 누락
+# - 수동 마이그레이션 검증 프로세스 부재
+
+on:
+  # PR 생성/업데이트 시 자동 실행
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'prisma/**'
+      - 'src/app/api/**'
+      - 'src/lib/db/**'
+      - 'tests/db/**'
+      - '.github/workflows/db-contract-tests.yml'
+
+  # 메인/개발 브랜치 푸시 시 실행
+  push:
+    branches: [main, develop]
+    paths:
+      - 'prisma/**'
+      - 'src/app/api/**'
+      - 'src/lib/db/**'
+      - 'tests/db/**'
+
+  # 수동 실행 지원
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: '테스트 모드 선택'
+        required: false
+        default: 'full'
+        type: choice
+        options:
+          - 'full'
+          - 'migration-only'
+          - 'api-only'
+
+jobs:
+  # 데이터베이스 연결 및 사전 검증
+  db-connection-test:
+    name: 🔌 DB 연결 테스트
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    outputs:
+      database_url: ${{ steps.setup-db.outputs.database_url }}
+      
+    steps:
+      - name: 📥 체크아웃
+        uses: actions/checkout@v4
+
+      - name: 🔧 Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: 📦 pnpm 설치
+        run: npm install -g pnpm
+
+      - name: 📚 의존성 설치
+        run: pnpm install --frozen-lockfile
+
+      - name: 🗄️ 데이터베이스 설정
+        id: setup-db
+        run: |
+          echo "database_url=postgresql://test_user:test_password@localhost:5432/test_db" >> $GITHUB_OUTPUT
+          
+      - name: 🔍 DB 연결 테스트
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+        run: |
+          # PostgreSQL 클라이언트로 연결 테스트
+          PGPASSWORD=test_password psql -h localhost -p 5432 -U test_user -d test_db -c "SELECT version();"
+
+      - name: 📋 Prisma 스키마 적용
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+        run: |
+          pnpm prisma db push --accept-data-loss
+
+      - name: ✅ 기본 테이블 존재 확인
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+        run: |
+          PGPASSWORD=test_password psql -h localhost -p 5432 -U test_user -d test_db -c "
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name IN ('User', 'Project', 'Prompt', 'VideoAsset', 'Comment', 'ShareToken')
+            ORDER BY table_name;
+          "
+
+  # 마이그레이션 무결성 검증
+  migration-integrity:
+    name: 🔄 마이그레이션 무결성 검증
+    runs-on: ubuntu-latest
+    needs: db-connection-test
+    if: github.event.inputs.test_mode == 'full' || github.event.inputs.test_mode == 'migration-only' || github.event.inputs.test_mode == ''
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: 📥 체크아웃
+        uses: actions/checkout@v4
+
+      - name: 🔧 Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: 📦 pnpm 설치
+        run: npm install -g pnpm
+
+      - name: 📚 의존성 설치
+        run: pnpm install --frozen-lockfile
+
+      - name: 📋 Prisma 스키마 적용
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+        run: |
+          pnpm prisma db push --accept-data-loss
+
+      - name: 🧪 마이그레이션 무결성 테스트 실행
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+          NODE_ENV: test
+        run: |
+          npx jest --config=tests/db/jest.config.js tests/db/migration-integrity.test.ts --ci --coverage=false
+
+      - name: 📊 테스트 결과 아티팩트 업로드
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-integrity-results
+          path: test-results/db/
+          retention-days: 7
+
+  # 스키마 위험 시나리오 테스트
+  schema-risk-scenarios:
+    name: ⚠️ 스키마 위험 시나리오 검증
+    runs-on: ubuntu-latest
+    needs: migration-integrity
+    if: github.event.inputs.test_mode == 'full' || github.event.inputs.test_mode == 'migration-only' || github.event.inputs.test_mode == ''
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: 📥 체크아웃
+        uses: actions/checkout@v4
+
+      - name: 🔧 Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: 📦 pnpm 설치
+        run: npm install -g pnpm
+
+      - name: 📚 의존성 설치
+        run: pnpm install --frozen-lockfile
+
+      - name: 📋 Prisma 스키마 적용
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+        run: |
+          pnpm prisma db push --accept-data-loss
+
+      - name: 🧪 스키마 위험 시나리오 테스트 실행
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+          NODE_ENV: test
+        run: |
+          npx jest --config=tests/db/jest.config.js tests/db/schema-risk-scenarios.test.ts --ci --coverage=false
+
+      - name: 📊 테스트 결과 아티팩트 업로드
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: schema-risk-results
+          path: test-results/db/
+          retention-days: 7
+
+  # API 계약 검증
+  api-contract-validation:
+    name: 🔗 API 계약 검증
+    runs-on: ubuntu-latest
+    needs: db-connection-test
+    if: github.event.inputs.test_mode == 'full' || github.event.inputs.test_mode == 'api-only' || github.event.inputs.test_mode == ''
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: 📥 체크아웃
+        uses: actions/checkout@v4
+
+      - name: 🔧 Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: 📦 pnpm 설치
+        run: npm install -g pnpm
+
+      - name: 📚 의존성 설치
+        run: pnpm install --frozen-lockfile
+
+      - name: 📋 Prisma 스키마 적용
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+        run: |
+          pnpm prisma db push --accept-data-loss
+
+      - name: 🧪 API 계약 검증 테스트 실행
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+          NODE_ENV: test
+        run: |
+          npx jest --config=tests/db/jest.config.js tests/db/api-contract-validation.test.ts --ci --coverage=false
+
+      - name: 📊 테스트 결과 아티팩트 업로드
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-contract-results
+          path: test-results/db/
+          retention-days: 7
+
+  # 롤백 안전성 검증
+  rollback-safety:
+    name: 🔄 롤백 안전성 검증
+    runs-on: ubuntu-latest
+    needs: [migration-integrity, schema-risk-scenarios]
+    if: github.event.inputs.test_mode == 'full' || github.event.inputs.test_mode == 'migration-only' || github.event.inputs.test_mode == ''
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: 📥 체크아웃
+        uses: actions/checkout@v4
+
+      - name: 🔧 Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: 📦 pnpm 설치
+        run: npm install -g pnpm
+
+      - name: 📚 의존성 설치
+        run: pnpm install --frozen-lockfile
+
+      - name: 📋 Prisma 스키마 적용
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+        run: |
+          pnpm prisma db push --accept-data-loss
+
+      - name: 🧪 롤백 안전성 테스트 실행
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+          NODE_ENV: test
+        run: |
+          npx jest --config=tests/db/jest.config.js tests/db/rollback-safety.test.ts --ci --coverage=false
+
+      - name: 📊 테스트 결과 아티팩트 업로드
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rollback-safety-results
+          path: test-results/db/
+          retention-days: 7
+
+  # 전체 결과 리포트 생성
+  final-report:
+    name: 📋 DB 계약 검증 리포트
+    runs-on: ubuntu-latest
+    needs: [migration-integrity, schema-risk-scenarios, api-contract-validation, rollback-safety]
+    if: always()
+
+    steps:
+      - name: 📥 모든 테스트 결과 다운로드
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*-results"
+          merge-multiple: true
+          path: all-test-results/
+
+      - name: 📊 최종 리포트 생성
+        run: |
+          echo "# 🗄️ DB 계약 검증 테스트 결과" > REPORT.md
+          echo "" >> REPORT.md
+          echo "## 📝 테스트 개요" >> REPORT.md
+          echo "" >> REPORT.md
+          echo "Benjamin의 계약 위반 발견사항에 대한 자동화된 검증:" >> REPORT.md
+          echo "" >> REPORT.md
+          echo "✅ **통과한 테스트들:**" >> REPORT.md
+          
+          # 각 테스트 결과 요약
+          if [ "${{ needs.migration-integrity.result }}" == "success" ]; then
+            echo "- 마이그레이션 무결성 검증" >> REPORT.md
+          fi
+          
+          if [ "${{ needs.schema-risk-scenarios.result }}" == "success" ]; then
+            echo "- 스키마 위험 시나리오 검증" >> REPORT.md
+          fi
+          
+          if [ "${{ needs.api-contract-validation.result }}" == "success" ]; then
+            echo "- API 계약 검증" >> REPORT.md
+          fi
+          
+          if [ "${{ needs.rollback-safety.result }}" == "success" ]; then
+            echo "- 롤백 안전성 검증" >> REPORT.md
+          fi
+          
+          echo "" >> REPORT.md
+          echo "❌ **실패한 테스트들:**" >> REPORT.md
+          
+          if [ "${{ needs.migration-integrity.result }}" == "failure" ]; then
+            echo "- 마이그레이션 무결성 검증 (CineGenius v3.1 필드 누락 가능성)" >> REPORT.md
+          fi
+          
+          if [ "${{ needs.schema-risk-scenarios.result }}" == "failure" ]; then
+            echo "- 스키마 위험 시나리오 검증 (데이터 손실 위험)" >> REPORT.md
+          fi
+          
+          if [ "${{ needs.api-contract-validation.result }}" == "failure" ]; then
+            echo "- API 계약 검증 (API-DB 스키마 불일치)" >> REPORT.md
+          fi
+          
+          if [ "${{ needs.rollback-safety.result }}" == "failure" ]; then
+            echo "- 롤백 안전성 검증 (롤백 시 데이터 손실 위험)" >> REPORT.md
+          fi
+          
+          echo "" >> REPORT.md
+          echo "## 🛠️ 권장 조치사항" >> REPORT.md
+          echo "" >> REPORT.md
+          echo "실패한 테스트가 있다면:" >> REPORT.md
+          echo "1. \`prisma/migrations/000001_add_cinegenius_v3_support.sql\` 스크립트 실행" >> REPORT.md
+          echo "2. MigrationLog 테이블 생성 확인" >> REPORT.md
+          echo "3. API 응답 스키마와 DB 스키마 동기화" >> REPORT.md
+          echo "4. 인덱스 및 제약조건 추가 검토" >> REPORT.md
+
+      - name: 📋 리포트 출력
+        run: cat REPORT.md
+
+      - name: 📤 최종 리포트 아티팩트 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-db-contract-report
+          path: |
+            REPORT.md
+            all-test-results/
+          retention-days: 30
+
+      - name: 📧 PR 댓글로 결과 알림 (PR인 경우)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('REPORT.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });
+
+  # 실패 시 슬랙 알림 (선택사항)
+  notify-failure:
+    name: 📢 실패 알림
+    runs-on: ubuntu-latest
+    needs: [migration-integrity, schema-risk-scenarios, api-contract-validation, rollback-safety]
+    if: failure() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+
+    steps:
+      - name: 📧 실패 알림 (로그로 대체)
+        run: |
+          echo "🚨 DB 계약 검증 실패!"
+          echo "💥 브랜치: ${{ github.ref }}"
+          echo "📝 커밋: ${{ github.sha }}"
+          echo ""
+          echo "실패한 작업들:"
+          echo "- 마이그레이션 무결성: ${{ needs.migration-integrity.result }}"
+          echo "- 스키마 위험 시나리오: ${{ needs.schema-risk-scenarios.result }}"
+          echo "- API 계약 검증: ${{ needs.api-contract-validation.result }}"
+          echo "- 롤백 안전성: ${{ needs.rollback-safety.result }}"
+          echo ""
+          echo "즉시 확인이 필요합니다!"
