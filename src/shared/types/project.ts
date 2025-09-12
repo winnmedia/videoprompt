@@ -52,4 +52,8 @@ export interface ProjectPipelineState {
   versions: VersionMeta[];
   createdAt: string;
   updatedAt: string;
+  // External ID references for linking with other services
+  scenarioId?: string;  // AI 시나리오 생성 서비스 ID
+  promptId?: string;    // 프롬프트 생성 서비스 ID
+  videoAssetId?: string; // 영상 에셋 관리 시스템 ID
 }

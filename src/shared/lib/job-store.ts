@@ -33,8 +33,23 @@ function setupCleanup() {
   }, CLEANUP_INTERVAL);
 }
 
+// 클린업 중지 함수
+export function stopCleanup() {
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+    cleanupInterval = null;
+  }
+}
+
 // 클린업 설정 초기화
 setupCleanup();
+
+// 프로세스 종료 시 클린업
+if (typeof process !== 'undefined') {
+  process.on('beforeExit', stopCleanup);
+  process.on('SIGTERM', stopCleanup);
+  process.on('SIGINT', stopCleanup);
+}
 
 /**
  * 작업 상태를 업데이트하는 함수

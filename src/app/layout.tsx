@@ -6,6 +6,7 @@ import { Logo, ToastProvider } from '@/shared/ui';
 import { MainNav } from '@/components/layout/MainNav';
 import { AuthProvider } from '@/components/providers/AuthProvider';
 import { AuthErrorBoundary } from '@/components/error-boundaries/AuthErrorBoundary';
+import { MonitoringDashboard } from '@/widgets/monitoring-dashboard';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -119,6 +120,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </AuthErrorBoundary>
           </AuthProvider>
         </ToastProvider>
+        <MonitoringDashboard />
       </body>
     </html>
   );

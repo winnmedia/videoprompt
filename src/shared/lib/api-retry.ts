@@ -2,6 +2,8 @@
  * API 재시도 유틸리티 - $300 사건 방지용 안전장치
  */
 
+import { monitoring } from './monitoring';
+
 interface RetryOptions {
   maxRetries?: number;
   initialDelay?: number;
@@ -102,10 +104,18 @@ export async function safeFetch(
   options?: RequestInit,
   retryOptions?: RetryOptions
 ): Promise<Response> {
+  const startTime = Date.now();
+  
   // Rate limiting 체크
   if (!apiLimiter.canMakeRequest()) {
     const resetTime = apiLimiter.getResetTime();
     const waitTime = Math.max(0, resetTime - Date.now());
+    
+    monitoring.trackError(
+      `API 호출 제한 초과: ${url}`, 
+      { url, remainingRequests: apiLimiter.getRemainingRequests(), waitTime },
+      'high'
+    );
     
     throw new Error(
       `API 호출 제한 초과. ${Math.ceil(waitTime / 1000)}초 후 다시 시도해주세요. ` +
@@ -128,9 +138,23 @@ export async function safeFetch(
       signal: AbortSignal.timeout(30000) // 30초 타임아웃
     });
     
+    const duration = Date.now() - startTime;
+    const method = options?.method || 'GET';
+    
+    // API 호출 모니터링 추적
+    monitoring.trackApiCall(url, method, response.status, duration);
+    
     if (!response.ok) {
+      monitoring.trackError(
+        `HTTP ${response.status}: ${response.statusText}`,
+        { url, method, status: response.status, duration },
+        response.status >= 500 ? 'high' : 'medium'
+      );
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
+    
+    // 성능 추적
+    monitoring.trackPerformance('api_response_time', duration, { url, method });
     
     return response;
   }, retryOptions);

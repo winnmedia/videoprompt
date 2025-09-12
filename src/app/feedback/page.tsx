@@ -84,7 +84,7 @@ export default function FeedbackPage() {
     }>
   >([]);
   useEffect(() => {
-    let timer: any;
+    let timer: NodeJS.Timeout;
     const videoId = new URL(window.location.href).searchParams.get('videoId') || versions[0]?.id;
     const fetchComments = async () => {
       try {
@@ -98,7 +98,9 @@ export default function FeedbackPage() {
     };
     fetchComments();
     timer = setInterval(fetchComments, 5000);
-    return () => timer && clearInterval(timer);
+    return () => {
+      if (timer) clearInterval(timer);
+    };
   }, [versions]);
 
   const [activeVersionId, setActiveVersionId] = useState<string>(versions[0].id);

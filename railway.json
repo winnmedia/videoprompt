@@ -11,8 +11,8 @@
   "services": [
     {
       "name": "web",
-      "startCommand": "npm run start",
-      "buildCommand": "npm run prisma:generate && npm run build",
+      "startCommand": "pnpm start",
+      "buildCommand": "pnpm prisma:generate && pnpm build",
       "envVars": [{ "key": "NODE_ENV", "value": "production" }]
     }
   ]

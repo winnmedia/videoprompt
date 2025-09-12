@@ -4,10 +4,10 @@ const nextConfig = {
   // Next.js 15: serverExternalPackages supersedes experimental.serverComponentsExternalPackages
   serverExternalPackages: ['@prisma/client'],
 
-  // 🚨 보안 긴급 수정: 품질 게이트 복원 (단계적 적용)
+  // 품질 게이트 활성화 - ESLint 검증 복원
   eslint: {
-    // 경고는 허용하되 오류는 차단 - 점진적 품질 개선
-    ignoreDuringBuilds: true,
+    // 품질 게이트 복원으로 빌드 시 ESLint 오류 차단
+    ignoreDuringBuilds: false,
   },
 
   // 대용량 파일 업로드를 위한 실험적 설정
