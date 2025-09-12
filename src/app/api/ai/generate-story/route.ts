@@ -6,6 +6,7 @@ import {
   createValidationErrorResponse,
   createErrorResponse 
 } from '@/shared/schemas/api.schema';
+import { withCors } from '@/shared/lib/cors';
 
 // Exponential backoff 유틸리티
 function exponentialBackoff(attempt: number): number {
@@ -88,7 +89,7 @@ interface StoryResponse {
   target_audience_insights: string[];
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withCors(async (request: NextRequest) => {
   try {
     const body = await request.json();
     
@@ -705,7 +706,7 @@ ${(() => {
       details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
     }, { status: 500 });
   }
-}
+});
 
 // 기본 구조 생성 함수는 제거됨 (LLM 강제화)
 // 아래 함수는 더 이상 사용되지 않지만, 타입 체크를 위해 남겨둠
