@@ -1,0 +1,45 @@
+VideoPlanet CineGenius v3 Migration Report
+==========================================
+Date: Sat Sep 13 01:20:36 KST 2025
+Migration ID: 001_cinegenius_v3_schema_upgrade
+
+Schema Changes:
+--------------
+VideoAsset Table:
+  + generation_metadata (JSONB) - AI generation metadata
+  + quality_score (DECIMAL(3,2)) - Quality scoring 0.0-10.0
+
+ShareToken Table:
+  + permissions (JSONB) - Granular access control
+
+Comment Table:
+  + comment_type (TEXT) - Comment categorization
+  + feedback_data (JSONB) - Structured feedback data
+  + rating (INTEGER) - 1-5 star rating system
+
+Performance Optimizations:
+-------------------------
+Added 7 database indexes:
+  - idx_prompt_cinegenius_version
+  - idx_videoasset_status_provider
+  - idx_videoasset_quality_score
+  - idx_comment_type_target
+  - idx_comment_rating
+  - idx_sharetoken_role_target
+  - idx_sharetoken_active
+
+Data Integrity:
+--------------
+Added 3 check constraints:
+  - VideoAsset provider validation
+  - VideoAsset status validation
+  - ShareToken role validation
+
+Rollback Information:
+--------------------
+Rollback script: migrations/rollback/001_rollback_cinegenius_v3_schema_upgrade.sql
+Backup location: [0;34m[2025-09-13 01:20:23][0m Creating database backup...
+[0;32m[SUCCESS][0m Backup created: /home/winnmedia/videoprompt/migrations/backups/backup_20250913_012023.sql
+/home/winnmedia/videoprompt/migrations/backups/backup_20250913_012023.sql
+
+Migration Status: COMPLETED SUCCESSFULLY

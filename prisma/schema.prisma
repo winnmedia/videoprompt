@@ -21,8 +21,8 @@ model User {
   verifiedAt         DateTime?           @map("verified_at")
   emailVerifications EmailVerification[]
   passwordResets     PasswordReset[]
-  refreshTokens      RefreshToken[]
   projects           Project[]
+  refreshTokens      RefreshToken[]
 }
 
 model Project {
@@ -122,41 +122,54 @@ model Prompt {
 }
 
 model VideoAsset {
-  id        String   @id @default(uuid())
-  promptId  String   @map("prompt_id")
-  provider  String
-  status    String
-  url       String?
-  codec     String?
-  duration  Int?
-  version   Int      @default(1)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  userId    String?  @map("user_id")
-  prompt    Prompt   @relation(fields: [promptId], references: [id])
+  id                  String   @id @default(uuid())
+  promptId            String   @map("prompt_id")
+  provider            String
+  status              String
+  url                 String?
+  codec               String?
+  duration            Int?
+  version             Int      @default(1)
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  userId              String?  @map("user_id")
+  generation_metadata Json     @default("{}")
+  quality_score       Decimal? @default(0.0) @db.Decimal(3, 2)
+  prompt              Prompt   @relation(fields: [promptId], references: [id])
+
+  @@index([status, provider], map: "idx_videoasset_status_provider")
 }
 
 model ShareToken {
-  id         String   @id @default(uuid())
-  token      String   @unique
-  role       String
-  nickname   String?
-  targetType String
-  targetId   String
-  expiresAt  DateTime @map("expires_at")
-  createdAt  DateTime @default(now()) @map("created_at")
-  userId     String?  @map("user_id")
+  id          String   @id @default(uuid())
+  token       String   @unique
+  role        String
+  nickname    String?
+  targetType  String
+  targetId    String
+  expiresAt   DateTime @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  userId      String?  @map("user_id")
+  permissions Json     @default("{\"read\": true, \"share\": false, \"write\": false}")
+
+  @@index([token, expiresAt], map: "idx_sharetoken_active")
+  @@index([role, targetType, targetId], map: "idx_sharetoken_role_target")
 }
 
 model Comment {
-  id         String   @id @default(uuid())
-  targetType String
-  targetId   String
-  author     String?
-  text       String
-  timecode   String?
-  createdAt  DateTime @default(now()) @map("created_at")
-  userId     String?  @map("user_id")
+  id            String   @id @default(uuid())
+  targetType    String
+  targetId      String
+  author        String?
+  text          String
+  timecode      String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  userId        String?  @map("user_id")
+  comment_type  String?  @default("general")
+  feedback_data Json?
+  rating        Int?
+
+  @@index([comment_type, targetType, targetId], map: "idx_comment_type_target")
 }
 
 model Story {
@@ -216,7 +229,7 @@ model RefreshToken {
   id        String    @id @default(uuid())
   token     String    @unique
   userId    String    @map("user_id")
-  deviceId  String?   @map("device_id") // 멀티 디바이스 세션 관리
+  deviceId  String?   @map("device_id")
   userAgent String?   @map("user_agent")
   ipAddress String?   @map("ip_address")
   expiresAt DateTime  @map("expires_at")
@@ -235,8 +248,8 @@ model StoryTemplate {
   id           String   @id @default(uuid())
   name         String
   description  String?
-  category     String   // advertisement, vlog, tutorial, custom
-  template     Json     // StoryInput 데이터 저장
+  category     String
+  template     Json
   thumbnailUrl String?  @map("thumbnail_url")
   isPublic     Boolean  @default(false) @map("is_public")
   userId       String?  @map("user_id")
@@ -248,4 +261,21 @@ model StoryTemplate {
   @@index([userId])
   @@index([isPublic])
   @@map("story_templates")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model MigrationLog {
+  id                Int      @id @default(autoincrement())
+  migration_id      String   @unique @db.VarChar(100)
+  migration_name    String   @db.VarChar(255)
+  applied_at        DateTime @default(now())
+  rollback_script   String?
+  checksum          String   @db.VarChar(64)
+  execution_time_ms Int?     @default(0)
+  status            String?  @default("APPLIED") @db.VarChar(20)
+  metadata          Json?    @default("{}")
+  created_by        String?  @default("system") @db.VarChar(100)
+
+  @@index([applied_at], map: "idx_migration_log_applied_at")
+  @@index([status], map: "idx_migration_log_status")
 }

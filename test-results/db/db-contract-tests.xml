@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="jest tests" tests="18" failures="11" errors="0" time="2.741">
+  <testsuite name="데이터베이스 마이그레이션 무결성 검증" errors="0" failures="11" skipped="0" timestamp="2025-09-12T16:23:23" time="2.523" tests="18">
+    <testcase classname="데이터베이스 마이그레이션 무결성 검증 › CineGenius v3.1 스키마 계약 검증 › VideoAsset 테이블" name="generation_metadata 필드가 존재해야 함" time="0.107">
+    </testcase>
+    <testcase classname="데이터베이스 마이그레이션 무결성 검증 › CineGenius v3.1 스키마 계약 검증 › VideoAsset 테이블" name="quality_score 필드가 존재하고 DECIMAL(3,2) 타입이어야 함" time="0.102">
+    </testcase>
+    <testcase classname="데이터베이스 마이그레이션 무결성 검증 › CineGenius v3.1 스키마 계약 검증 › VideoAsset 테이블" name="quality_score 인덱스가 존재해야 함" time="0.099">
+      <failure>Error: expect(received).toHaveLength(expected)
+
+Expected length: 1
+Received length: 0
+Received array:  []
+    at Object.&lt;anonymous&gt; (/home/winnmedia/videoprompt/tests/db/migration-integrity.test.ts:83:29)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
+    </testcase>
+    <testcase classname="데이터베이스 마이그레이션 무결성 검증 › CineGenius v3.1 스키마 계약 검증 › ShareToken 테이블" name="permissions 필드가 존재하고 기본값이 설정되어야 함" time="0.1">
+      <failure>Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: &quot;canView&quot;
+Received string:    &quot;&apos;{\&quot;read\&quot;: true, \&quot;share\&quot;: false, \&quot;write\&quot;: false}&apos;::jsonb&quot;
+    at Object.&lt;anonymous&gt; (/home/winnmedia/videoprompt/tests/db/migration-integrity.test.ts:102:47)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
+    </testcase>
+    <testcase classname="데이터베이스 마이그레이션 무결성 검증 › CineGenius v3.1 스키마 계약 검증 › Comment 테이블" name="comment_type 필드가 존재하고 기본값이 general이어야 함" time="0.1">
+    </testcase>
+    <testcase classname="데이터베이스 마이그레이션 무결성 검증 › CineGenius v3.1 스키마 계약 검증 › Comment 테이블" name="comment_type CHECK 제약조건이 존재해야 함" time="0.1">
+      <failure>Error: expect(received).toHaveLength(expected)
+
+Expected length: 1
+Received length: 0
+Received array:  []
+    at Object.&lt;anonymous&gt; (/home/winnmedia/videoprompt/tests/db/migration-integrity.test.ts:133:29)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
+    </testcase>
+    <testcase classname="데이터베이스 마이그레이션 무결성 검증 › CineGenius v3.1 스키마 계약 검증 › Comment 테이블" name="rating 필드 CHECK 제약조건이 1-5 범위여야 함" time="0.1">
+    </testcase>
+    <testcase classname="데이터베이스 마이그레이션 무결성 검증 › MigrationLog 테이블 존재 검증" name="MigrationLog 테이블이 존재해야 함" time="0.099">
+    </testcase>
+    <testcase classname="데이터베이스 마이그레이션 무결성 검증 › MigrationLog 테이블 존재 검증" name="MigrationLog 테이블의 필수 필드들이 존재해야 함" time="0.2">
+      <failure>Error: expect(received).toHaveLength(expected)
+
+Expected length: 1
+Received length: 0
+Received array:  []
+    at Object.&lt;anonymous&gt; (/home/winnmedia/videoprompt/tests/db/migration-integrity.test.ts:202:29)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
+    </testcase>
+    <testcase classname="데이터베이스 마이그레이션 무결성 검증 › MigrationLog 테이블 존재 검증" name="CineGenius v3.1 마이그레이션 로그가 기록되어야 함" time="0.096">
+      <failure>error: column &quot;version&quot; does not exist
+    at /home/winnmedia/videoprompt/node_modules/.pnpm/pg@8.16.3/node_modules/pg/lib/client.js:545:17
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at Object.&lt;anonymous&gt; (/home/winnmedia/videoprompt/tests/db/migration-integrity.test.ts:215:22)</failure>
+    </testcase>
+    <testcase classname="데이터베이스 마이그레이션 무결성 검증 › Prompt 테이블 인덱스 검증" name="cinegenius_version 인덱스가 존재해야 함" time="0.098">
+    </testcase>
+    <testcase classname="데이터베이스 마이그레이션 무결성 검증 › Prompt 테이블 인덱스 검증" name="project_id 인덱스가 존재해야 함" time="0.097">
+      <failure>Error: expect(received).toHaveLength(expected)
+
+Expected length: 1
+Received length: 0
+Received array:  []
+    at Object.&lt;anonymous&gt; (/home/winnmedia/videoprompt/tests/db/migration-integrity.test.ts:248:27)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
+    </testcase>
+    <testcase classname="데이터베이스 마이그레이션 무결성 검증 › Prompt 테이블 인덱스 검증" name="복합 인덱스 user_id + cinegenius_version이 존재해야 함" time="0.099">
+      <failure>Error: expect(received).toHaveLength(expected)
+
+Expected length: 1
+Received length: 0
+Received array:  []
+    at Object.&lt;anonymous&gt; (/home/winnmedia/videoprompt/tests/db/migration-integrity.test.ts:261:27)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
+    </testcase>
+    <testcase classname="데이터베이스 마이그레이션 무결성 검증 › 데이터 타입 검증 (Zod 연동)" name="JSON/JSONB 필드들이 올바른 타입으로 설정되어야 함" time="0.297">
+    </testcase>
+    <testcase classname="마이그레이션 롤백 안전성 검증" name="마이그레이션 롤백 후 기존 데이터가 보존되어야 함" time="0">
+      <failure>ReferenceError: pgClient is not defined
+    at Object.&lt;anonymous&gt; (/home/winnmedia/videoprompt/tests/db/migration-integrity.test.ts:312:22)
+    at Promise.finally.completed (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:1556:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:1496:10)
+    at _callCircusTest (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:1006:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:946:3)
+    at _runTestsForDescribeBlock (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:829:11)
+    at run (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:1917:21)
+    at jestAdapter (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/runner.js:101:19)
+    at runTestInternal (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-runner@30.1.3/node_modules/jest-runner/build/index.js:275:16)
+    at runTest (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-runner@30.1.3/node_modules/jest-runner/build/index.js:343:7)</failure>
+    </testcase>
+    <testcase classname="마이그레이션 롤백 안전성 검증" name="외래키 제약조건이 유지되어야 함" time="0">
+      <failure>ReferenceError: pgClient is not defined
+    at Object.&lt;anonymous&gt; (/home/winnmedia/videoprompt/tests/db/migration-integrity.test.ts:327:20)
+    at Promise.finally.completed (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:1556:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:1496:10)
+    at _callCircusTest (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:1006:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:946:3)
+    at _runTestsForDescribeBlock (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:829:11)
+    at run (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:1917:21)
+    at jestAdapter (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/runner.js:101:19)
+    at runTestInternal (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-runner@30.1.3/node_modules/jest-runner/build/index.js:275:16)
+    at runTest (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-runner@30.1.3/node_modules/jest-runner/build/index.js:343:7)</failure>
+    </testcase>
+    <testcase classname="Race Condition 방지 검증" name="마이그레이션 실행 중 중복 실행 방지 메커니즘" time="0">
+      <failure>ReferenceError: pgClient is not defined
+    at Object.&lt;anonymous&gt; (/home/winnmedia/videoprompt/tests/db/migration-integrity.test.ts:353:20)
+    at Promise.finally.completed (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:1556:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:1496:10)
+    at _callCircusTest (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:1006:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:946:3)
+    at _runTestsForDescribeBlock (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:829:11)
+    at run (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:1917:21)
+    at jestAdapter (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/runner.js:101:19)
+    at runTestInternal (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-runner@30.1.3/node_modules/jest-runner/build/index.js:275:16)
+    at runTest (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-runner@30.1.3/node_modules/jest-runner/build/index.js:343:7)</failure>
+    </testcase>
+    <testcase classname="Race Condition 방지 검증" name="동시 마이그레이션 실행 시 데이터 일관성 보장" time="0">
+      <failure>ReferenceError: pgClient is not defined
+    at Object.&lt;anonymous&gt; (/home/winnmedia/videoprompt/tests/db/migration-integrity.test.ts:372:20)
+    at Promise.finally.completed (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:1556:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:1496:10)
+    at _callCircusTest (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:1006:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:946:3)
+    at _runTestsForDescribeBlock (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:829:11)
+    at run (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/jestAdapterInit.js:1917:21)
+    at jestAdapter (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-circus@30.1.3/node_modules/jest-circus/build/runner.js:101:19)
+    at runTestInternal (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-runner@30.1.3/node_modules/jest-runner/build/index.js:275:16)
+    at runTest (/home/winnmedia/videoprompt/node_modules/.pnpm/jest-runner@30.1.3/node_modules/jest-runner/build/index.js:343:7)</failure>
+    </testcase>
+  </testsuite>
+</testsuites>
