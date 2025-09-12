@@ -81,7 +81,7 @@ export async function generateImagenPreview(
     try {
       // 지연 의존 로딩(런타임에서만 필요)
        
-      const { GoogleAuth } = require('google-auth-library');
+      const { GoogleAuth } = await import('google-auth-library');
       const auth = new GoogleAuth({
         credentials: JSON.parse(saJson),
         scopes: ['https://www.googleapis.com/auth/cloud-platform'],

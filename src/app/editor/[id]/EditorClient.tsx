@@ -212,7 +212,7 @@ export default function EditorClient({ id }: EditorClientProps) {
               )
             ) : (
               <div className="text-sm text-gray-600">
-                Seedance 작업 정보가 없습니다. 위저드에서 생성 후 "에디터로 열기"를 눌러주세요.
+                Seedance 작업 정보가 없습니다. 위저드에서 생성 후 &ldquo;에디터로 열기&rdquo;를 눌러주세요.
               </div>
             )}
           </div>

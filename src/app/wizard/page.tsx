@@ -2272,7 +2272,7 @@ export default function SceneWizardPage() {
                                     이미지 미리보기를 생성해주세요
                                   </span>
                                   <span className="text-xs text-gray-400">
-                                    "이미지 미리보기" 버튼을 클릭하세요
+                                    &ldquo;이미지 미리보기&rdquo; 버튼을 클릭하세요
                                   </span>
                                 </div>
                               </div>

@@ -40,7 +40,7 @@ export async function GET() {
   let dnsError: string | null = null;
   try {
      
-    const dns = require('dns').promises as typeof import('dns').promises;
+    const { promises: dns } = await import('dns');
     try {
       a4 = await dns.resolve4(new URL(modelarkBase).hostname);
     } catch (e: any) {
