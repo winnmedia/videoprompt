@@ -75,6 +75,9 @@ const nextConfig = {
       { source: '/api/veo/:path*', destination: `${apiBase}/api/veo/:path*` },
       { source: '/api/video/:path*', destination: `${apiBase}/api/video/:path*` },
       { source: '/api/health', destination: `${apiBase}/api/health` },
+      // CORS 해결용 추가 프록시
+      { source: '/api/templates', destination: `${apiBase}/api/templates` },
+      { source: '/api/ai/:path*', destination: `${apiBase}/api/ai/:path*` },
     ];
   },
 };
