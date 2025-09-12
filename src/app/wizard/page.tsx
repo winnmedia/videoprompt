@@ -540,7 +540,7 @@ export default function SceneWizardPage() {
 
       // 단일 씬
       // 최종 프롬프트 미리보기 텍스트를 우선 사용 (한/영 상관없이 마지막에 영어화)
-      let finalText =
+      const finalText =
         veo3Preview && veo3Preview.trim().length > 0
           ? veo3Preview
           : buildVeo3PromptFromWizard({

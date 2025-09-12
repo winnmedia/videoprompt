@@ -1,12 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { apiClient, initializeApiClient } from '@/shared/lib/api-client';
+import { parseAuthResponse } from '@/shared/contracts/auth.contract';
 
 interface User {
   id: string;
   email: string;
   username: string;
-  role: string;
+  role?: string;
   avatarUrl?: string;
+  token?: string;
 }
 
 interface AuthState {
@@ -76,38 +79,21 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
 
         try {
-          const response = await fetch('/api/auth/me', {
-            credentials: 'include',
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            if (data.ok && data.data) {
-              // 🚨 토큰 동기화: 인증 성공 시 토큰을 localStorage에 저장
-              if (data.token && typeof window !== 'undefined') {
-                localStorage.setItem('token', data.token);
-              }
-              
-              set({ 
-                user: data.data, 
-                isAuthenticated: true 
-              });
-            } else {
-              set({ 
-                user: null, 
-                isAuthenticated: false 
-              });
-            }
-          } else if (response.status === 401) {
-            // 401 에러 시 재시도 없이 바로 미인증 처리 + 토큰 제거
-            console.log('Unauthorized - user not logged in');
-            if (typeof window !== 'undefined') {
-              localStorage.removeItem('token');
+          // 🔥 401 오류 해결: ApiClient 사용으로 통합된 토큰 관리
+          const rawResponse = await apiClient.json('/api/auth/me');
+          
+          // 🚨 데이터 계약 검증
+          const validatedData = parseAuthResponse(rawResponse);
+          
+          if (validatedData.ok && validatedData.data) {
+            // 🚨 토큰 동기화: 인증 성공 시 토큰을 localStorage에 저장
+            if (validatedData.data.token && typeof window !== 'undefined') {
+              localStorage.setItem('token', validatedData.data.token);
             }
             
             set({ 
-              user: null, 
-              isAuthenticated: false 
+              user: validatedData.data, 
+              isAuthenticated: true 
             });
           } else {
             set({ 
@@ -117,7 +103,8 @@ export const useAuthStore = create<AuthState>()(
           }
         } catch (error) {
           console.error('Auth check error:', error);
-          // 에러 발생 시 재시도 없이 미인증 처리
+          
+          // 401 오류 시 토큰 제거는 ApiClient에서 자동 처리됨
           set({ 
             user: null, 
             isAuthenticated: false 

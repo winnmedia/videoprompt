@@ -11,7 +11,7 @@ const corsHeaders = {
 };
 
 // 메모리 기반 영상 저장소 (실제로는 데이터베이스 사용)
-let videoStore: Map<string, any> = new Map();
+const videoStore: Map<string, any> = new Map();
 
 export async function OPTIONS() {
   return new NextResponse(null, { headers: corsHeaders });

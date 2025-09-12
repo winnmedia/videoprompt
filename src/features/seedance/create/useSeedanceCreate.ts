@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { getApiUrl, API_ENDPOINTS } from '@/lib/config/api';
+import { safeFetch } from '@/shared/lib/api-retry';
 
 export interface SeedanceCreatePayload {
   prompt: string;
@@ -23,7 +24,7 @@ export function useSeedanceCreate() {
   const createOne = useCallback(async (payload: SeedanceCreatePayload): Promise<string> => {
     setError(null);
     const apiUrl = getApiUrl(API_ENDPOINTS.SEEDANCE_CREATE);
-    const res = await fetch(apiUrl, {
+    const res = await safeFetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

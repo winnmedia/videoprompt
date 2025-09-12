@@ -7,6 +7,7 @@ import { Logo, Button } from '@/shared/ui';
 import { FormError } from '@/shared/ui/FormError';
 import { PasswordInput } from '@/shared/ui/PasswordInput';
 import { PasswordStrengthIndicator } from '@/shared/ui/PasswordStrengthIndicator';
+import { safeFetch } from '@/shared/lib/api-retry';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -27,7 +28,7 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     const validateToken = async () => {
       try {
-        const res = await fetch('/api/auth/verify-reset-token', {
+        const res = await safeFetch('/api/auth/verify-reset-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token }),
@@ -89,7 +90,7 @@ export default function ResetPasswordPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/reset-password', {
+      const res = await safeFetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

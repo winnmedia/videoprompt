@@ -17,6 +17,7 @@ import { createEmptyV31Instance, compilePromptSimple, type CineGeniusV31Simple }
 import { registerPromptContent, type ContentRegistrationResult } from '@/shared/lib/upload-utils';
 import { Button } from '@/shared/ui/button';
 import Link from 'next/link';
+import { safeFetch } from '@/shared/lib/api-retry';
 
 interface Story {
   id: string;
@@ -95,7 +96,7 @@ const PromptGeneratorPage: React.FC = () => {
   const loadStories = async () => {
     setStoriesLoading(true);
     try {
-      const response = await fetch('/api/planning/stories');
+      const response = await safeFetch('/api/planning/stories');
       if (response.ok) {
         const data = await response.json();
         setStories(data.stories || []);

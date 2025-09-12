@@ -3,6 +3,13 @@ export const runtime = 'nodejs';
 import { prisma } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
+  // 🔒 프로덕션 환경에서 테스트 엔드포인트 차단
+  if (process.env.NODE_ENV === 'production' && !process.env.ALLOW_TEST_ENDPOINTS) {
+    return NextResponse.json({
+      error: 'Test endpoints are not available in production'
+    }, { status: 404 });
+  }
+
   try {
     // 환경변수 체크
     const envCheck = {
@@ -43,6 +50,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // 🔒 프로덕션 환경에서 테스트 엔드포인트 차단
+  if (process.env.NODE_ENV === 'production' && !process.env.ALLOW_TEST_ENDPOINTS) {
+    return NextResponse.json({
+      error: 'Test endpoints are not available in production'
+    }, { status: 404 });
+  }
+
   const body = await request.json().catch(() => ({}));
   
   return NextResponse.json({

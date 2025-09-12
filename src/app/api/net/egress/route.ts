@@ -39,7 +39,7 @@ export async function GET() {
   let a6: string[] = [];
   let dnsError: string | null = null;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     const dns = require('dns').promises as typeof import('dns').promises;
     try {
       a4 = await dns.resolve4(new URL(modelarkBase).hostname);

@@ -4,6 +4,7 @@
  */
 
 import type { ProjectPipelineState, ScenarioData, PromptData, VideoData } from '@/shared/types/project';
+import { safeFetch } from '@/shared/lib/api-retry';
 
 // ===============================================
 // 타입 정의
@@ -106,7 +107,7 @@ export async function registerScenarioContent(
       createdAt: new Date().toISOString()
     };
 
-    const response = await fetch('/api/planning/register', {
+    const response = await safeFetch('/api/planning/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -168,7 +169,7 @@ export async function registerPromptContent(
       createdAt: new Date().toISOString()
     };
 
-    const response = await fetch('/api/planning/register', {
+    const response = await safeFetch('/api/planning/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -230,7 +231,7 @@ export async function registerVideoContent(
       createdAt: new Date().toISOString()
     };
 
-    const response = await fetch('/api/planning/register', {
+    const response = await safeFetch('/api/planning/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

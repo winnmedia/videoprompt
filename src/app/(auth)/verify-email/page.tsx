@@ -8,6 +8,7 @@ import { FormError } from '@/shared/ui/FormError';
 import { VerificationCodeInput } from '@/shared/ui/VerificationCodeInput';
 import { ResendEmailButton } from '@/shared/ui/ResendEmailButton';
 import { EmailSentMessage } from '@/shared/ui/EmailSentMessage';
+import { safeFetch } from '@/shared/lib/api-retry';
 
 function VerifyEmailForm() {
   const router = useRouter();
@@ -38,7 +39,7 @@ function VerifyEmailForm() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/verify-email', {
+      const response = await safeFetch('/api/auth/verify-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -66,7 +67,7 @@ function VerifyEmailForm() {
 
   const handleResendEmail = async () => {
     try {
-      const response = await fetch('/api/auth/resend-verification', {
+      const response = await safeFetch('/api/auth/resend-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: userEmail || email }),

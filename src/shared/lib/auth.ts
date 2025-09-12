@@ -40,32 +40,52 @@ export function verifySessionToken(token: string): SessionPayload | null {
 }
 
 export function getUserIdFromRequest(req: NextRequest): string | undefined {
-  // 1) Cookie 우선
-  try {
-    const cookie = req.cookies.get('session')?.value;
-    if (cookie) {
-      const p = verifySessionToken(cookie);
-      if (p?.sub) return p.sub;
-    }
-  } catch {}
-
-  // 2) Authorization: Bearer <token>
+  // 🔥 401 오류 해결: Bearer 토큰 우선 검사 (프로덕션 환경에서 더 안정적)
+  
+  // 1) Authorization: Bearer <token> 우선
   try {
     const auth = req.headers.get('authorization') || req.headers.get('Authorization');
     if (auth && auth.toLowerCase().startsWith('bearer ')) {
       const token = auth.slice(7).trim();
       const p = verifySessionToken(token);
-      if (p?.sub) return p.sub;
+      if (p?.sub) {
+        console.log(`🔑 Bearer token authentication successful: ${p.sub}`);
+        return p.sub;
+      } else {
+        console.warn('🚨 Bearer token verification failed');
+      }
     }
-  } catch {}
+  } catch (error) {
+    console.error('🚨 Bearer token parsing error:', error);
+  }
 
-  // 3) 테스트 헤더(옵션)
+  // 2) Cookie 차선
+  try {
+    const cookie = req.cookies.get('session')?.value;
+    if (cookie) {
+      const p = verifySessionToken(cookie);
+      if (p?.sub) {
+        console.log(`🔑 Cookie authentication successful: ${p.sub}`);
+        return p.sub;
+      } else {
+        console.warn('🚨 Cookie token verification failed');
+      }
+    }
+  } catch (error) {
+    console.error('🚨 Cookie token parsing error:', error);
+  }
+
+  // 3) 테스트 헤더(개발/테스트 환경만)
   const allowHeader = process.env.E2E_DEBUG === '1' || process.env.NODE_ENV === 'test';
   if (allowHeader) {
     const uid = req.headers.get('x-user-id') || undefined;
-    if (uid) return uid;
+    if (uid) {
+      console.log(`🧪 Test header authentication: ${uid}`);
+      return uid;
+    }
   }
 
+  console.warn('🚨 No valid authentication found');
   return undefined;
 }
 

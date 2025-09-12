@@ -3,6 +3,7 @@
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/shared/ui';
 import { Icon } from '@/shared/ui';
+import { safeFetch } from '@/shared/lib/api-retry';
 
 export interface ScenarioDevelopmentResult {
   originalPrompt: string;
@@ -36,7 +37,7 @@ export function ScenarioDeveloper({ onDevelopmentComplete, onError }: ScenarioDe
 
     try {
       // LLM을 통한 시나리오 개발 API 호출
-      const response = await fetch('/api/scenario/develop', {
+      const response = await safeFetch('/api/scenario/develop', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

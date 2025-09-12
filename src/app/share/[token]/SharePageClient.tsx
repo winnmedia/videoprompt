@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/shared/ui';
 import { Icon } from '@/shared/ui';
+import { safeFetch } from '@/shared/lib/api-retry';
 
 interface SharedContent {
   id: string;
@@ -39,7 +40,7 @@ export default function SharePageClient({ token }: SharePageClientProps) {
   const loadSharedContent = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/share/${token}`);
+      const response = await safeFetch(`/api/share/${token}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -66,7 +67,7 @@ export default function SharePageClient({ token }: SharePageClientProps) {
     }
 
     try {
-      const response = await fetch(`/api/share/${token}/comment`, {
+      const response = await safeFetch(`/api/share/${token}/comment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

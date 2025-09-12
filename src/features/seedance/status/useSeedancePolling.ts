@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { safeFetch } from '@/shared/lib/api-retry';
 
 export interface SeedanceStatus {
   status: string;
@@ -39,7 +40,7 @@ export function useSeedancePolling(jobIds: string[], options: UseSeedancePolling
 
     const pollOne = async (id: string) => {
       try {
-        const res = await fetch(`/api/seedance/status/${encodeURIComponent(id)}`);
+        const res = await safeFetch(`/api/seedance/status/${encodeURIComponent(id)}`);
         const json = await res.json();
         if (!cancelRef.current) {
           setStatuses((prev) => ({

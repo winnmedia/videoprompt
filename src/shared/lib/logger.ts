@@ -10,7 +10,7 @@ interface LogPayload {
 function baseLog({ level, message, traceId, meta }: LogPayload) {
   const ts = new Date().toISOString();
   const line = { ts, level, message, ...(traceId ? { traceId } : {}), ...(meta ? { meta } : {}) };
-  // eslint-disable-next-line no-console
+   
   console[level](JSON.stringify(line));
 }
 

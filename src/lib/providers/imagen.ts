@@ -80,7 +80,7 @@ export async function generateImagenPreview(
 
     try {
       // 지연 의존 로딩(런타임에서만 필요)
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+       
       const { GoogleAuth } = require('google-auth-library');
       const auth = new GoogleAuth({
         credentials: JSON.parse(saJson),

@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/shared/ui';
 import { Icon } from '@/shared/ui';
 import { ScenarioDeveloper, ScenarioDevelopmentResult } from './ScenarioDeveloper';
+import { safeFetch } from '@/shared/lib/api-retry';
 
 interface ScenarioWorkflowProps {
   onVideoCreated?: (jobId: string) => void;
@@ -36,7 +37,7 @@ export function ScenarioWorkflow({ onVideoCreated }: ScenarioWorkflowProps) {
     setError(null);
 
     try {
-      const response = await fetch('/api/imagen/preview', {
+      const response = await safeFetch('/api/imagen/preview', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -73,7 +74,7 @@ export function ScenarioWorkflow({ onVideoCreated }: ScenarioWorkflowProps) {
     setError(null);
 
     try {
-      const response = await fetch('/api/seedance/create', {
+      const response = await safeFetch('/api/seedance/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -122,7 +123,7 @@ export function ScenarioWorkflow({ onVideoCreated }: ScenarioWorkflowProps) {
     let timer: any;
     const poll = async () => {
       try {
-        const res = await fetch(`/api/seedance/status/${encodeURIComponent(videoJobId)}`);
+        const res = await safeFetch(`/api/seedance/status/${encodeURIComponent(videoJobId)}`);
         const json = await res.json().catch(() => ({}));
         if (cancelled) return;
         const url: string | undefined = json?.videoUrl || json?.result?.video_url;
@@ -283,7 +284,7 @@ export function ScenarioWorkflow({ onVideoCreated }: ScenarioWorkflowProps) {
                 <div className="space-y-3">
                   <div className="relative aspect-video w-full max-w-2xl overflow-hidden rounded-lg bg-black">
                     {videoUrl ? (
-                      // eslint-disable-next-line jsx-a11y/media-has-caption
+                       
                       <video
                         src={videoUrl}
                         controls

@@ -268,6 +268,193 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      description: Refresh expired access token using httpOnly refresh token
+      tags:
+        - Authentication
+      security: []
+      parameters:
+        - in: cookie
+          name: refresh_token
+          required: true
+          schema:
+            type: string
+          description: HttpOnly refresh token cookie
+      responses:
+        '200':
+          description: New access token generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  data:
+                    type: object
+                    properties:
+                      accessToken:
+                        type: string
+                        description: New JWT access token (15min expiry)
+                      user:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          email:
+                            type: string
+                          username:
+                            type: string
+                  traceId:
+                    type: string
+          headers:
+            Set-Cookie:
+              description: New httpOnly refresh token
+              schema:
+                type: string
+                example: refresh_token=new_token; HttpOnly; Secure; SameSite=Lax; Max-Age=604800
+        '401':
+          description: Invalid, expired, or missing refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_token:
+                  summary: Missing refresh token
+                  value:
+                    status: error
+                    error:
+                      code: MISSING_REFRESH_TOKEN
+                      message: Refresh token이 필요합니다.
+                invalid_token:
+                  summary: Invalid refresh token
+                  value:
+                    status: error
+                    error:
+                      code: INVALID_REFRESH_TOKEN
+                      message: 유효하지 않은 refresh token입니다.
+                expired_token:
+                  summary: Expired refresh token
+                  value:
+                    status: error
+                    error:
+                      code: REFRESH_TOKEN_EXPIRED
+                      message: Refresh token이 만료되었습니다.
+                token_reuse:
+                  summary: Token reuse detected (security breach)
+                  value:
+                    status: error
+                    error:
+                      code: TOKEN_REUSE_DETECTED
+                      message: 토큰 재사용이 감지되었습니다. 보안을 위해 모든 세션이 종료되었습니다.
+
+  /auth/login:
+    post:
+      summary: User login
+      description: Authenticate user and return access + refresh tokens
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                username:
+                  type: string
+                  minLength: 3
+                  maxLength: 32
+                  example: johndoe
+                id:
+                  type: string
+                  example: 123e4567-e89b-12d3-a456-426614174000
+                password:
+                  type: string
+                  minLength: 8
+                  maxLength: 128
+                  example: SecurePass123!
+              oneOf:
+                - required: [email, password]
+                - required: [username, password]
+                - required: [id, password]
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      email:
+                        type: string
+                      username:
+                        type: string
+                      accessToken:
+                        type: string
+                        description: JWT access token (15min expiry)
+                      token:
+                        type: string
+                        description: Legacy token for backward compatibility
+                  traceId:
+                    type: string
+          headers:
+            Set-Cookie:
+              description: HttpOnly refresh token and legacy session cookie
+              schema:
+                type: string
+                example: refresh_token=token_value; HttpOnly; Secure; SameSite=Lax; Max-Age=604800, session=legacy_token; HttpOnly; Secure; SameSite=Lax; Max-Age=604800
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /auth/logout:
+    post:
+      summary: User logout
+      description: Revoke refresh tokens and clear cookies
+      tags:
+        - Authentication
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: cookie
+          name: refresh_token
+          schema:
+            type: string
+          description: HttpOnly refresh token cookie (optional)
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+          headers:
+            Set-Cookie:
+              description: Clear refresh token and session cookies
+              schema:
+                type: string
+                example: refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT, session=; expires=Thu, 01 Jan 1970 00:00:00 GMT
+
 components:
   schemas:
     SuccessResponse:
@@ -335,3 +522,34 @@ components:
             error:
               code: RATE_LIMIT_EXCEEDED
               message: 너무 많은 요청입니다. 잠시 후 다시 시도해주세요.
+
+    Unauthorized:
+      description: Unauthorized request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            status: error
+            error:
+              code: UNAUTHORIZED
+              message: 인증이 필요합니다.
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            status: error
+            error:
+              code: NOT_FOUND
+              message: 요청한 리소스를 찾을 수 없습니다.
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token (Bearer token)
