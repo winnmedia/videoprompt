@@ -1,0 +1,99 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - link "본문으로 건너뛰기" [ref=e2] [cursor=pointer]:
+    - /url: "#main"
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e6]:
+        - link "VLANET Home" [ref=e7] [cursor=pointer]:
+          - /url: /
+          - img "VLANET" [ref=e9] [cursor=pointer]
+        - navigation "주요 내비게이션" [ref=e10]:
+          - link "홈" [ref=e11] [cursor=pointer]:
+            - /url: /
+          - link "AI 영상 기획" [ref=e12] [cursor=pointer]:
+            - /url: /scenario
+          - link "프롬프트 생성기" [ref=e13] [cursor=pointer]:
+            - /url: /prompt-generator
+          - link "영상 피드백" [ref=e14] [cursor=pointer]:
+            - /url: /feedback
+          - link "콘텐츠 관리" [ref=e15] [cursor=pointer]:
+            - /url: /planning
+          - generic [ref=e16]:
+            - link "회원가입" [ref=e17] [cursor=pointer]:
+              - /url: /register
+            - link "로그인" [ref=e18] [cursor=pointer]:
+              - /url: /login
+        - link "무료로 시작하기" [ref=e20] [cursor=pointer]:
+          - /url: /scenario
+    - main [ref=e21]:
+      - generic [ref=e23]:
+        - generic [ref=e24]:
+          - img "VLANET" [ref=e26]
+          - heading "로그인" [level=1] [ref=e27]
+          - paragraph [ref=e28]: VideoPrompt 서비스에 오신 것을 환영합니다
+        - generic [ref=e29]:
+          - generic [ref=e30]:
+            - generic [ref=e31]:
+              - generic [ref=e32]:
+                - text: 이메일
+                - generic [ref=e33]: "*"
+              - textbox "your@email.com" [ref=e35]
+            - generic [ref=e36]:
+              - generic [ref=e37]:
+                - generic [ref=e38]:
+                  - text: 비밀번호
+                  - generic [ref=e39]: "*"
+                - link "비밀번호를 잊으셨나요?" [ref=e40] [cursor=pointer]:
+                  - /url: /forgot-password
+              - textbox "••••••••" [ref=e43]
+            - alert [ref=e44]:
+              - img [ref=e45]
+              - generic [ref=e47]: 로그인에 실패했습니다.
+            - button "로그인" [ref=e48] [cursor=pointer]
+          - generic [ref=e53]: 또는
+          - paragraph [ref=e55]:
+            - text: 아직 계정이 없으신가요?
+            - link "회원가입" [ref=e56] [cursor=pointer]:
+              - /url: /register
+        - link "홈으로 돌아가기" [ref=e58] [cursor=pointer]:
+          - /url: /
+    - contentinfo [ref=e59]:
+      - generic [ref=e60]:
+        - generic [ref=e61]:
+          - generic [ref=e62]: AI 시나리오 · 프롬프트 · 영상 생성 · 피드백까지 한 번에.
+          - generic [ref=e63]:
+            - heading "제품" [level=3] [ref=e64]
+            - list [ref=e65]:
+              - listitem [ref=e66]:
+                - link "AI 영상 기획" [ref=e67] [cursor=pointer]:
+                  - /url: /scenario
+              - listitem [ref=e68]:
+                - link "프롬프트 생성기" [ref=e69] [cursor=pointer]:
+                  - /url: /prompt-generator
+              - listitem [ref=e70]:
+                - link "AI 영상 생성" [ref=e71] [cursor=pointer]:
+                  - /url: /wizard
+              - listitem [ref=e72]:
+                - link "영상 피드백" [ref=e73] [cursor=pointer]:
+                  - /url: /feedback
+              - listitem [ref=e74]:
+                - link "콘텐츠 관리" [ref=e75] [cursor=pointer]:
+                  - /url: /planning
+          - generic [ref=e76]:
+            - heading "지원" [level=3] [ref=e77]
+            - list [ref=e78]:
+              - listitem [ref=e79]:
+                - link "문서" [ref=e80] [cursor=pointer]:
+                  - /url: /docs
+              - listitem [ref=e81]:
+                - link "API" [ref=e82] [cursor=pointer]:
+                  - /url: /api
+              - listitem [ref=e83]:
+                - link "문의" [ref=e84] [cursor=pointer]:
+                  - /url: /contact
+        - generic [ref=e85]: © 2025 vlanet. All rights reserved.
+  - alert [ref=e86]
+```
