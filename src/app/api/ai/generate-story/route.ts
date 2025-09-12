@@ -20,25 +20,26 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Zod 스키마 정의 - 필수 필드는 엄격하게, 선택 필드는 기본값 제공
+// Zod 스키마 정의 - 400 에러 방지를 위해 관대한 검증 + 기본값 제공
 const StoryRequestSchema = z.object({
   story: z.string()
-    .min(1, '스토리를 입력해주세요')
-    .transform(val => val?.trim())
-    .refine(val => val && val.length >= 5, {
-      message: '스토리는 최소 5자 이상 입력해주세요'
-    }),
+    .transform(val => val?.trim() || '')
+    .refine(val => val.length >= 1, {
+      message: '스토리를 입력해주세요 (최소 1자)'
+    })
+    .default('영상 시나리오를 만들어주세요'),
   genre: z.string()
-    .min(1, '장르를 선택해주세요')
-    .transform(val => val?.trim())
+    .transform(val => val?.trim() || '드라마')
     .default('드라마'),
   tone: z.string()
-    .min(1, '톤앤매너를 선택해주세요')  
-    .transform(val => val?.trim())
+    .transform(val => {
+      const cleanVal = val?.trim();
+      // 빈 문자열이나 null/undefined 처리 강화
+      return (!cleanVal || cleanVal === '') ? '일반적' : cleanVal;
+    })
     .default('일반적'),
   target: z.string()
-    .min(1, '타겟 관객을 입력해주세요')
-    .transform(val => val?.trim())
+    .transform(val => val?.trim() || '일반 시청자')
     .default('일반 시청자'),
   duration: z.string().optional().default('60초'),
   format: z.string().optional().default('16:9'),
@@ -118,11 +119,10 @@ export async function POST(request: NextRequest) {
     // 스토리 생성 시작
     // API 키 상태 확인 및 파라미터 검증
 
-    // API 키 유효성 검증
+    // API 키 유효성 검증 (길이 조건 제거 - Gemini API 키는 가변 길이)
     const isValidApiKey = geminiApiKey && 
                          geminiApiKey !== 'your-actual-gemini-key' && 
-                         geminiApiKey.startsWith('AIza') && 
-                         geminiApiKey.length >= 30;
+                         geminiApiKey.startsWith('AIza');
     
     if (!isValidApiKey) {
       if (!geminiApiKey) {
@@ -131,24 +131,27 @@ export async function POST(request: NextRequest) {
           console.error('[LLM] ❌ 환경변수 GOOGLE_GEMINI_API_KEY가 설정되지 않음');
         }
         return NextResponse.json({ 
-          error: 'AI 서비스가 구성되지 않았습니다. 관리자에게 문의하세요.',
-          userMessage: 'LLM 연결 안되고 있음. 환경변수 문제인지 뭔지 분석해줘'
+          error: 'LLM_CONFIG_ERROR',
+          message: 'AI 서비스 구성 오류: API 키가 설정되지 않음',
+          userMessage: 'AI 스토리 생성이 일시적으로 불가능합니다. 잠시 후 다시 시도해주세요.'
         }, { status: 400 });
       } else if (geminiApiKey === 'your-actual-gemini-key') {
         if (process.env.NODE_ENV === 'development') {
           console.error('[LLM] ❌ 플레이스홀더 API 키 감지');
         }
         return NextResponse.json({ 
-          error: 'AI 서비스가 올바르게 구성되지 않았습니다.',
-          userMessage: 'LLM 연결 안되고 있음. API 키가 플레이스홀더로 설정됨'
+          error: 'LLM_CONFIG_ERROR',
+          message: 'AI 서비스 구성 오류: API 키가 플레이스홀더로 설정됨',
+          userMessage: 'AI 스토리 생성이 일시적으로 불가능합니다. 관리자에게 문의하세요.'
         }, { status: 400 });
       } else {
         if (process.env.NODE_ENV === 'development') {
           console.error(`[LLM] ❌ 잘못된 API 키 형식: ${geminiApiKey?.substring(0, 10)}...`);
         }
         return NextResponse.json({ 
-          error: 'AI 서비스 구성 오류입니다.',
-          userMessage: `LLM 연결 안되고 있음. API 키 형식이 잘못됨 (${geminiApiKey?.substring(0, 10)}...)`
+          error: 'LLM_CONFIG_ERROR',
+          message: `AI 서비스 구성 오류: API 키 형식이 잘못됨 (${geminiApiKey?.substring(0, 10)}...)`,
+          userMessage: 'AI 스토리 생성이 일시적으로 불가능합니다. 관리자에게 문의하세요.'
         }, { status: 400 });
       }
     }
