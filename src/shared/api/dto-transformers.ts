@@ -9,7 +9,7 @@ import {
   validateStoryResponse,
   StoryContractViolationError 
 } from '@/shared/contracts/story.contract';
-import { StoryStep } from '@/entities/scenario';
+import { StoryStep, StoryInput } from '@/entities/scenario';
 
 /**
  * API Act DTO를 StoryStep View Model로 변환
@@ -145,7 +145,7 @@ export function transformApiError(
 /**
  * 요청 DTO 변환 - StoryInput을 API 요청 형식으로 변환
  */
-export function transformStoryInputToApiRequest(storyInput: any) {
+export function transformStoryInputToApiRequest(storyInput: StoryInput) {
   return {
     story: storyInput.oneLineStory?.trim() || '영상 시나리오를 만들어주세요',
     genre: storyInput.genre?.trim() || '드라마',
