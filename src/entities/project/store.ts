@@ -81,40 +81,25 @@ export const useProjectStore = create<ProjectStore>()(
         })),
 
       setScenarioId: (id) =>
-        set(
-          (state) =>
-            ({
-              scenario: { ...state.scenario },
-              // store id in scenario metadata via special key
-              // or expand model later; for now store under (as any)
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              ...(state as any),
-              scenarioId: id,
-              updatedAt: nowIso(),
-            }) as any,
-        ),
+        set((state) => ({
+          ...state,
+          scenarioId: id,
+          updatedAt: nowIso(),
+        })),
 
       setPromptId: (id) =>
-        set(
-          (state) =>
-            ({
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              ...(state as any),
-              promptId: id,
-              updatedAt: nowIso(),
-            }) as any,
-        ),
+        set((state) => ({
+          ...state,
+          promptId: id,
+          updatedAt: nowIso(),
+        })),
 
       setVideoAssetId: (id) =>
-        set(
-          (state) =>
-            ({
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              ...(state as any),
-              videoAssetId: id,
-              updatedAt: nowIso(),
-            }) as any,
-        ),
+        set((state) => ({
+          ...state,
+          videoAssetId: id,
+          updatedAt: nowIso(),
+        })),
 
       reset: () => set(() => ({ ...initialState, id: crypto.randomUUID() })),
     }),
@@ -126,9 +111,9 @@ export const useProjectStore = create<ProjectStore>()(
         prompt: state.prompt,
         video: state.video,
         versions: state.versions,
-        scenarioId: (state as any).scenarioId,
-        promptId: (state as any).promptId,
-        videoAssetId: (state as any).videoAssetId,
+        scenarioId: state.scenarioId,
+        promptId: state.promptId,
+        videoAssetId: state.videoAssetId,
         createdAt: state.createdAt,
         updatedAt: state.updatedAt,
       }),

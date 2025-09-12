@@ -1,5 +1,10 @@
 import { StoryInput, StoryStep } from '@/entities/scenario';
 import { safeFetch, withDeduplication } from '@/shared/lib/api-retry';
+import { 
+  transformApiResponseToStorySteps,
+  transformStoryInputToApiRequest,
+  transformApiError
+} from '@/shared/api/dto-transformers';
 
 interface GenerateStoryStepsParams {
   storyInput: StoryInput;
@@ -32,54 +37,11 @@ function getCacheKey(storyInput: StoryInput): string {
   });
 }
 
-// 구조를 스텝으로 변환하는 헬퍼 함수 - API 응답 구조 변경에 대응
+// 레거시 함수 - DTO 변환 계층으로 대체됨
+// @deprecated - transformApiResponseToStorySteps 사용 권장
 function convertStructureToSteps(structure: any): StoryStep[] {
-  // API가 객체 {act1, act2, act3, act4} 형태로 반환하는 경우
-  if (structure && typeof structure === 'object' && !Array.isArray(structure)) {
-    const acts = ['act1', 'act2', 'act3', 'act4'];
-    return acts.map((actKey, index) => {
-      const act = structure[actKey];
-      if (!act) {
-        return {
-          id: `step-${index + 1}`,
-          title: `단계 ${index + 1}`,
-          summary: '내용이 생성되지 않았습니다.',
-          content: '내용이 생성되지 않았습니다.',
-          goal: '목표가 설정되지 않았습니다.',
-          lengthHint: `전체의 ${Math.round(100 / 4)}%`,
-          isEditing: false,
-        };
-      }
-      
-      return {
-        id: `step-${index + 1}`,
-        title: act.title || `단계 ${index + 1}`,
-        summary: act.description ? (act.description.length > 100 
-          ? act.description.substring(0, 100) + '...' 
-          : act.description) : `${index + 1}단계 내용`,
-        content: act.description || '내용이 생성되지 않았습니다.',
-        goal: act.emotional_arc || '목표가 설정되지 않았습니다.',
-        lengthHint: `전체의 ${Math.round(100 / 4)}%`,
-        isEditing: false,
-      };
-    });
-  }
-  
-  // 기존 배열 형태 처리 (하위 호환성)
-  if (Array.isArray(structure)) {
-    return structure.map((step, index) => ({
-      id: `step-${index + 1}`,
-      title: step.title || `단계 ${index + 1}`,
-      summary: step.summary || step.description || '',
-      content: step.content || step.description || '',
-      goal: step.goal || step.emotional_arc || '',
-      lengthHint: step.lengthHint || `전체의 ${Math.round(100 / 4)}%`,
-      isEditing: false,
-    }));
-  }
-  
-  // 빈 배열 반환 (fallback)
-  return [];
+  console.warn('convertStructureToSteps는 deprecated됨. transformApiResponseToStorySteps 사용 권장');
+  return transformApiResponseToStorySteps(structure, 'Legacy convertStructureToSteps');
 }
 
 export async function generateStorySteps({
@@ -115,34 +77,16 @@ export async function generateStorySteps({
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        story: storyInput.oneLineStory || '',
-        genre: storyInput.genre || '드라마',
-        tone: storyInput.toneAndManner && storyInput.toneAndManner.length > 0 
-          ? storyInput.toneAndManner.join(', ')
-          : '일반적',
-        target: storyInput.target || '일반 시청자',
-        duration: storyInput.duration || '30',
-        format: storyInput.format || 'video',
-        tempo: storyInput.tempo || 'moderate',
-        developmentMethod: storyInput.developmentMethod || 'traditional',
-        developmentIntensity: storyInput.developmentIntensity || 'moderate',
-      }),
+      body: JSON.stringify(transformStoryInputToApiRequest(storyInput)),
     }, {
       maxRetries: 2, // 최대 2회 재시도
       initialDelay: 2000 // 2초 대기
     });
 
-    const data = await response.json();
+    const rawData = await response.json();
     
-    // 구조 검증
-    if (!data || !data.structure) {
-      const errorMsg = 'AI가 올바른 응답을 생성하지 못했습니다. 다시 시도해주세요.';
-      onError?.(errorMsg, 'server');
-      throw new Error(errorMsg);
-    }
-    
-    const steps = convertStructureToSteps(data.structure);
+    // DTO 변환 계층을 통한 안전한 데이터 변환
+    const steps = transformApiResponseToStorySteps(rawData, 'Story Generation API');
     
     // 최소한의 단계가 생성되었는지 확인
     if (steps.length === 0) {
@@ -160,7 +104,7 @@ export async function generateStorySteps({
     onSuccess?.(steps, '4단계 스토리가 성공적으로 생성되었습니다!');
     return steps;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다';
+    const errorMessage = transformApiError(error, 'Story Generation API');
     console.error('AI API 호출 실패:', errorMessage);
     
     // 네트워크 에러 처리
@@ -169,9 +113,8 @@ export async function generateStorySteps({
       onError?.(errorMsg, 'network');
       throw new Error(errorMsg);
     } else {
-      const errorMsg = 'AI 서비스 연결에 실패했습니다. 잠시 후 다시 시도해주세요.';
-      onError?.(errorMsg, 'server');
-      throw new Error(errorMsg);
+      onError?.(errorMessage, 'server');
+      throw new Error(errorMessage);
     }
   } finally {
     onLoadingEnd?.();
