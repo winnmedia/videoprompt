@@ -151,13 +151,6 @@ async function processImageGeneration(
       // 진행률 80% 업데이트
       updateJobStatus(jobId, 'processing', 80);
 
-      console.log(`DEBUG: [${jobId}] Railway 응답 수신`, {
-        status: response.status,
-        ok: response.ok,
-        dataOk: data?.ok,
-        hasImageUrl: Boolean(data?.imageUrl),
-        provider: data?.provider,
-      });
 
       // Railway 응답 검증
       if (!data?.ok || !data?.imageUrl) {
@@ -180,7 +173,6 @@ async function processImageGeneration(
 
     } catch (fetchError) {
       clearTimeout(timeoutId);
-      console.error(`DEBUG: [${jobId}] Railway 백엔드 연결 실패:`, fetchError);
       
       // 연결 오류 시 Google Image API 폴백
       const fallback = await tryGoogleImageAPI(prompt, aspectRatio);
@@ -205,19 +197,15 @@ async function processImageGeneration(
 // 이미지 파일 저장 헬퍼 함수
 async function saveImageIfPossible(imageUrl: string, jobId: string): Promise<string | null> {
   try {
-    console.log(`DEBUG: [${jobId}] 이미지 파일 저장 시도:`, imageUrl);
     
     const saveResult = await saveFileFromUrl(imageUrl, `imagen-${Date.now()}-`, 'images');
     
     if (saveResult.success) {
-      console.log(`DEBUG: [${jobId}] 이미지 파일 저장 성공:`, saveResult.fileInfo);
       return saveResult.fileInfo.savedPath;
     } else {
-      console.error(`DEBUG: [${jobId}] 이미지 파일 저장 실패:`, saveResult.error);
       return null;
     }
   } catch (error) {
-    console.error(`DEBUG: [${jobId}] 파일 저장 중 오류:`, error);
     return null;
   }
 }

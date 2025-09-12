@@ -27,10 +27,6 @@ export async function GET(_req: Request, context: any) {
 
       if (!res.ok) {
         const errorText = await res.text();
-        console.error('DEBUG: Railway 백엔드 status 에러:', {
-          status: res.status,
-          error: errorText,
-        });
 
         return NextResponse.json(
           {
@@ -48,26 +44,21 @@ export async function GET(_req: Request, context: any) {
       // 영상이 완성되었고 URL이 있는 경우 파일 저장 시도
       if (data.ok && data.status === 'succeeded' && data.videoUrl) {
         try {
-          console.log('DEBUG: 영상 완성, 파일 저장 시작:', { jobId: id, videoUrl: data.videoUrl });
 
           // 파일 저장 (비동기로 처리하여 응답 지연 방지)
           saveFileFromUrl(data.videoUrl, `seedance-${id}-`, 'videos')
             .then((saveResult) => {
               if (saveResult.success) {
-                console.log('DEBUG: 영상 파일 저장 성공:', saveResult.fileInfo);
 
                 // 저장된 파일 정보를 데이터에 추가
                 data.savedFileInfo = saveResult.fileInfo;
                 data.localPath = saveResult.fileInfo.savedPath;
               } else {
-                console.error('DEBUG: 영상 파일 저장 실패:', saveResult.error);
               }
             })
             .catch((error) => {
-              console.error('DEBUG: 파일 저장 중 오류:', error);
             });
         } catch (error) {
-          console.error('DEBUG: 파일 저장 작업 시작 실패:', error);
           // 파일 저장 실패는 사용자 응답에 영향을 주지 않음
         }
       }
@@ -76,7 +67,6 @@ export async function GET(_req: Request, context: any) {
     } catch (fetchError) {
       clearTimeout(timeoutId);
 
-      console.error('DEBUG: Railway 백엔드 status 연결 실패:', fetchError);
 
       return NextResponse.json(
         {
@@ -89,7 +79,6 @@ export async function GET(_req: Request, context: any) {
       );
     }
   } catch (e: any) {
-    console.error('DEBUG: Seedance status error:', e);
     return NextResponse.json(
       {
         ok: false,

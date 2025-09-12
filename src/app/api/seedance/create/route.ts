@@ -33,12 +33,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log('DEBUG: Seedance create request:', {
-      prompt: prompt.slice(0, 100),
-      aspect_ratio,
-      duration_seconds,
-      model,
-    });
 
     // Railway 백엔드 URL (환경변수에서 가져오기)
     const railwayBackend = process.env.RAILWAY_BACKEND_URL || 'https://videoprompt-production.up.railway.app';
@@ -96,7 +90,6 @@ export async function POST(req: NextRequest) {
       if (data.ok && data.jobId) {
         try {
           // 백그라운드에서 파일 저장 작업 시작
-          console.log('DEBUG: 영상 생성 성공, 파일 저장 작업 시작:', data.jobId);
 
           // 파일 저장은 비동기로 처리 (사용자 응답 지연 방지)
           setTimeout(async () => {
@@ -107,7 +100,6 @@ export async function POST(req: NextRequest) {
                 const statusData = await statusRes.json();
 
                 if (statusData.videoUrl) {
-                  console.log('DEBUG: 영상 URL 발견, 파일 저장 시작:', statusData.videoUrl);
 
                   // 파일 저장
                   const saveResult = await saveFileFromUrl(
@@ -142,7 +134,6 @@ export async function POST(req: NextRequest) {
     } catch (fetchError) {
       clearTimeout(timeoutId);
 
-      console.error('DEBUG: Railway 백엔드 연결 실패:', fetchError);
 
       return NextResponse.json(
         {
