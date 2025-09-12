@@ -23,13 +23,14 @@ const EnvSchema = z.object({
   MODELARK_API_BASE: z.string().url().default('https://api.byteplusapi.com'),
   
   // 백엔드 마이그레이션: Prisma 접속 문자열 (PostgreSQL, SQLite 지원)
+  // 빌드 타임에는 optional, 런타임에 체크
   DATABASE_URL: z
     .string()
-    .min(1, 'DATABASE_URL is required for database operations')
     .refine(
-      (v) => v.startsWith('postgresql://') || v.startsWith('postgres://') || v.startsWith('file:'),
-      'DATABASE_URL must start with postgresql://, postgres://, or file:',
-    ),
+      (v) => !v || v.startsWith('postgresql://') || v.startsWith('postgres://') || v.startsWith('file:'),
+      'DATABASE_URL must start with postgresql://, postgres://, or file: (if provided)',
+    )
+    .optional(),
   
   // JWT 인증 토큰
   JWT_SECRET: z

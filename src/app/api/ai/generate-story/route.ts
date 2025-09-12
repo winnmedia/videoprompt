@@ -93,6 +93,9 @@ export const POST = withCors(async (request: NextRequest) => {
   try {
     const body = await request.json();
     
+    // 데이터베이스 사용 가능 여부 런타임 체크
+    const hasDatabaseUrl = !!process.env.DATABASE_URL;
+    
     // 입력 데이터 검증
     const validationResult = StoryRequestSchema.safeParse(body);
     if (!validationResult.success) {
@@ -591,7 +594,7 @@ ${(() => {
                   }
                 }
                 
-                if (user) {
+                if (user && hasDatabaseUrl) {
                   const scenarioData = {
                     title: projectTitle || parsedResponse.structure.act1.title,
                     story,
@@ -636,7 +639,12 @@ ${(() => {
                   }
                 } else {
                   if (process.env.NODE_ENV === 'development') {
-                    console.log('[LLM] ⚠️ 미인증 사용자 - 프로젝트 저장 건너뜀');
+                    if (!user) {
+                      console.log('[LLM] ⚠️ 미인증 사용자 - 프로젝트 저장 건너뜀');
+                    }
+                    if (!hasDatabaseUrl) {
+                      console.log('[LLM] ⚠️ DATABASE_URL 없음 - 프로젝트 저장 건너뜀');
+                    }
                   }
                 }
               } catch (dbError) {

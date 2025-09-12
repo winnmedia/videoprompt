@@ -57,42 +57,69 @@ function verifyApiRoutes() {
   return { count: routeCount, routes };
 }
 
-// 2. 필수 환경변수 검증 
+// 2. 환경변수 검증 (빌드 시에는 선택적)
 function verifyEnvironmentVariables() {
   console.log('🔐 Verifying environment variables...');
   
   const requiredEnvVars = [
-    'DATABASE_URL',
     'JWT_SECRET',
     'SENDGRID_API_KEY', 
     'NEXT_PUBLIC_APP_URL'
   ];
 
-  const missingVars = [];
-  const presentVars = [];
+  const optionalEnvVars = [
+    'DATABASE_URL'
+  ];
 
+  const missingRequiredVars = [];
+  const presentRequiredVars = [];
+  const missingOptionalVars = [];
+  const presentOptionalVars = [];
+
+  // 필수 환경변수 체크
   for (const envVar of requiredEnvVars) {
     if (process.env[envVar]) {
-      presentVars.push(envVar);
+      presentRequiredVars.push(envVar);
     } else {
-      missingVars.push(envVar);
+      missingRequiredVars.push(envVar);
     }
   }
 
-  console.log(`✅ Present: ${presentVars.length}/${requiredEnvVars.length} required variables`);
-  presentVars.forEach(envVar => console.log(`   ✓ ${envVar}`));
-  
-  if (missingVars.length > 0) {
-    console.log(`⚠️  Missing: ${missingVars.length} variables`);
-    missingVars.forEach(envVar => console.log(`   ✗ ${envVar}`));
-    console.log('\n⚠️  Warning: Missing environment variables detected');
-    console.log('💡 Some features may not work properly without these variables');
-    console.log('📋 Please set these in Vercel dashboard for full functionality');
-    // 경고만 표시하고 빌드 계속 진행
+  // 선택적 환경변수 체크
+  for (const envVar of optionalEnvVars) {
+    if (process.env[envVar]) {
+      presentOptionalVars.push(envVar);
+    } else {
+      missingOptionalVars.push(envVar);
+    }
   }
+
+  console.log(`✅ Required: ${presentRequiredVars.length}/${requiredEnvVars.length} variables`);
+  presentRequiredVars.forEach(envVar => console.log(`   ✓ ${envVar}`));
+  
+  console.log(`ℹ️  Optional: ${presentOptionalVars.length}/${optionalEnvVars.length} variables`);
+  presentOptionalVars.forEach(envVar => console.log(`   ✓ ${envVar}`));
+  
+  if (missingRequiredVars.length > 0) {
+    console.log(`⚠️  Missing required: ${missingRequiredVars.length} variables`);
+    missingRequiredVars.forEach(envVar => console.log(`   ✗ ${envVar}`));
+    console.log('\n⚠️  Warning: Missing required environment variables detected');
+    console.log('💡 Some features may not work properly without these variables');
+    console.log('📋 Please set these in deployment environment for full functionality');
+  }
+
+  if (missingOptionalVars.length > 0) {
+    console.log(`ℹ️  Missing optional: ${missingOptionalVars.length} variables`);
+    missingOptionalVars.forEach(envVar => console.log(`   - ${envVar} (database features disabled)`));
+  }
+
   console.log();
 
-  return { present: presentVars, missing: missingVars };
+  return { 
+    present: [...presentRequiredVars, ...presentOptionalVars], 
+    missing: [...missingRequiredVars, ...missingOptionalVars],
+    missingRequired: missingRequiredVars
+  };
 }
 
 // 3. Next.js 설정 검증
@@ -155,6 +182,7 @@ function generateReport(apiRoutes, envVars) {
   console.log('═'.repeat(40));
   console.log(`API Routes: ${apiRoutes.count} routes detected`);
   console.log(`Environment: ${envVars.present.length}/${envVars.present.length + envVars.missing.length} variables configured`);
+  console.log(`Required Missing: ${envVars.missingRequired?.length || 0} critical variables`);
   console.log(`Platform: Vercel Serverless Functions`);
   console.log(`Runtime: Node.js 20.x`);
   console.log(`Status: ✅ Ready for deployment`);
@@ -164,7 +192,7 @@ function generateReport(apiRoutes, envVars) {
   const buildMeta = {
     timestamp: new Date().toISOString(),
     apiRoutesCount: apiRoutes.count,
-    environmentReady: envVars.missing.length === 0,
+    environmentReady: (envVars.missingRequired?.length || 0) === 0,
     vercelOptimized: true,
     buildVerificationPassed: true
   };
