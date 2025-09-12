@@ -41,18 +41,41 @@ export async function GET(req: NextRequest) {
 
     // 🚨 토큰 동기화: 새 토큰 생성 및 반환으로 클라이언트 동기화 보장
     const { signSessionToken } = await import('@/shared/lib/auth');
-    const token = signSessionToken({ 
+    const jwt = await import('jsonwebtoken');
+    
+    const legacyToken = signSessionToken({ 
       userId: user.id, 
       email: user.email, 
       username: user.username 
     });
+
+    // Access Token 생성 (로그인 API와 동일한 로직)
+    const getJwtSecret = (): string => {
+      const secret = process.env.JWT_SECRET;
+      if (!secret) {
+        throw new Error('JWT_SECRET environment variable is required');
+      }
+      return secret;
+    };
+
+    const accessToken = jwt.default.sign(
+      { 
+        sub: user.id, 
+        email: user.email, 
+        username: user.username,
+        type: 'access'
+      },
+      getJwtSecret(),
+      { expiresIn: '1h' } // Access token: 1시간 (401 오류 해결)
+    );
     
     // 🔥 401 오류 해결: 데이터 계약 준수 - login API와 동일한 구조
     const responseData = {
       ok: true as const,
       data: {
         ...user,
-        token // 클라이언트에서 localStorage 동기화용
+        accessToken, // 새로운 표준 토큰
+        token: legacyToken // 기존 코드 호환성을 위해 유지
       },
       traceId,
       timestamp: new Date().toISOString()

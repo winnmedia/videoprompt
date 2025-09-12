@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSoftPrefetch } from '@/shared/lib/prefetch';
 import { useAuthStore } from '@/shared/store/useAuthStore';
-import { useEffect } from 'react';
 
 const items = [
   { href: '/', label: '홈' },
@@ -17,12 +16,10 @@ const items = [
 export function MainNav() {
   const pathname = usePathname() || '';
   const router = useRouter();
-  const { user, isAuthenticated, isLoading, checkAuth, logout } = useAuthStore();
+  const { user, isAuthenticated, isLoading, logout } = useAuthStore();
 
-  // 컴포넌트 마운트 시 인증 상태 확인 (한 번만 실행)
-  useEffect(() => {
-    checkAuth();
-  }, []); // 빈 의존성 배열로 변경
+  // 🔥 401 오류 해결: 중복 인증 체크 제거
+  // Header.tsx에서 이미 checkAuth()를 호출하므로 중복 호출 방지
 
   const handleLogout = async () => {
     await logout();

@@ -4,6 +4,8 @@ import Link from 'next/link';
 import './globals.css';
 import { Logo, ToastProvider } from '@/shared/ui';
 import { MainNav } from '@/components/layout/MainNav';
+import { AuthProvider } from '@/components/providers/AuthProvider';
+import { AuthErrorBoundary } from '@/components/error-boundaries/AuthErrorBoundary';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -20,6 +22,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ko">
       <body className={`${inter.className} bg-white text-gray-900`}>
         <ToastProvider>
+          <AuthProvider>
+            <AuthErrorBoundary>
           <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-brand-600 focus:px-3 focus:py-2 focus:text-white">본문으로 건너뛰기</a>
           <div className="min-h-screen">
           <header className="border-b border-gray-200 bg-white/80 backdrop-blur">
@@ -112,6 +116,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </footer>
           </div>
+            </AuthErrorBoundary>
+          </AuthProvider>
         </ToastProvider>
       </body>
     </html>
