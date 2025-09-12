@@ -24,13 +24,7 @@ const EnvSchema = z.object({
   
   // 백엔드 마이그레이션: Prisma 접속 문자열 (PostgreSQL, SQLite 지원)
   // 빌드 타임에는 optional, 런타임에 체크
-  DATABASE_URL: z
-    .string()
-    .refine(
-      (v) => !v || v.startsWith('postgresql://') || v.startsWith('postgres://') || v.startsWith('file:'),
-      'DATABASE_URL must start with postgresql://, postgres://, or file: (if provided)',
-    )
-    .optional(),
+  DATABASE_URL: z.string().optional(),
   
   // JWT 인증 토큰
   JWT_SECRET: z

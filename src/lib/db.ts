@@ -1,14 +1,17 @@
 import { PrismaClient } from '@prisma/client';
 
-// 환경 변수 검증
+// 환경 변수 검증 (빌드 타임 로그 최소화)
 const validateDatabaseUrl = (url?: string): string => {
   if (!url) {
-    console.warn('⚠️  DATABASE_URL 환경 변수가 설정되지 않았습니다.');
-    console.warn('⚠️  데이터베이스 기능이 제한됩니다. 환경 변수를 설정하세요.');
+    // 빌드 타임에는 로그 최소화 (NODE_ENV=production일 때)
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('⚠️  DATABASE_URL 환경 변수가 설정되지 않았습니다.');
+      console.warn('⚠️  데이터베이스 기능이 제한됩니다. 환경 변수를 설정하세요.');
+    }
     // 프로덕션에서도 placeholder URL 반환
     return 'postgresql://placeholder:placeholder@placeholder:5432/placeholder';
   }
-  if (!url.startsWith('postgresql://') && !url.startsWith('postgres://')) {
+  if (!url.startsWith('postgresql://') && !url.startsWith('postgres://') && process.env.NODE_ENV !== 'production') {
     console.warn('⚠️  유효하지 않은 DATABASE_URL 형식입니다. 원본 URL 사용:', url);
   }
   return url;
