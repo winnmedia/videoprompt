@@ -10,11 +10,26 @@ import { initializeApiClient } from '@/shared/lib/api-client';
  * 앱 시작 시 한 번만 호출해야 함
  */
 export function initializeAuth(): void {
-  // API 클라이언트에 토큰 공급자 설정
-  initializeApiClient(() => {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem('token');
-  });
+  // API 클라이언트에 토큰 공급자 및 토큰 설정자 설정
+  initializeApiClient(
+    // 토큰 공급자: localStorage에서 토큰 읽기
+    () => {
+      if (typeof window === 'undefined') return null;
+      return localStorage.getItem('token');
+    },
+    // 🔥 401 오류 해결: tokenSetter 추가 - 토큰 갱신 시 localStorage 및 store 동기화
+    (newToken: string) => {
+      if (typeof window === 'undefined') return;
+      
+      // localStorage 업데이트
+      localStorage.setItem('token', newToken);
+      
+      // 🚨 중요: 토큰 갱신 이벤트 발생으로 store 동기화
+      window.dispatchEvent(new CustomEvent('auth:token-updated', { 
+        detail: { token: newToken } 
+      }));
+    }
+  );
   
   // 토큰 무효화 이벤트 리스너 설정
   if (typeof window !== 'undefined') {

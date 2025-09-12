@@ -53,7 +53,7 @@ function signAccessToken(payload: { userId: string; email?: string; username?: s
       type: 'access'
     } as AccessTokenPayload,
     getJwtSecret(),
-    { expiresIn: '15m' } // Access token: 15분
+    { expiresIn: '1h' } // Access token: 1시간 (401 오류 해결)
   );
 }
 
@@ -166,21 +166,30 @@ export async function POST(req: NextRequest) {
       return addCorsHeaders(response);
     }
 
-    // 토큰 재사용 감지 (보안 강화)
+    // 🔥 401 오류 해결: 토큰 재사용 감지에 Grace Period 추가
     if (storedToken.usedAt) {
-      // 모든 사용자 토큰 취소 (토큰 탈취 의심)
-      await prisma.refreshToken.deleteMany({
-        where: { userId: storedToken.userId }
-      });
+      const gracePeriodMs = 10 * 1000; // 10초 grace period
+      const timeSinceLastUse = Date.now() - storedToken.usedAt.getTime();
+      
+      // Grace period 내의 재사용은 허용 (네트워크 지연, 중복 요청 등)
+      if (timeSinceLastUse > gracePeriodMs) {
+        // Grace period를 초과한 재사용은 의심스러우므로 모든 세션 종료
+        await prisma.refreshToken.deleteMany({
+          where: { userId: storedToken.userId }
+        });
 
-      const response = failure(
-        'TOKEN_REUSE_DETECTED',
-        '토큰 재사용이 감지되었습니다. 보안을 위해 모든 세션이 종료되었습니다.',
-        401,
-        undefined,
-        traceId
-      );
-      return addCorsHeaders(response);
+        const response = failure(
+          'TOKEN_REUSE_DETECTED',
+          '토큰 재사용이 감지되었습니다. 보안을 위해 모든 세션이 종료되었습니다.',
+          401,
+          undefined,
+          traceId
+        );
+        return addCorsHeaders(response);
+      }
+      
+      // Grace period 내 재사용은 경고 로그만 남기고 처리 계속
+      console.warn(`Token reuse within grace period (${timeSinceLastUse}ms) for user ${storedToken.userId}`);
     }
 
     const { userAgent, ipAddress } = getClientInfo(req);

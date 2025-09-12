@@ -56,7 +56,7 @@ function signAccessToken(payload: { userId: string; email?: string; username?: s
       type: 'access'
     },
     getJwtSecret(),
-    { expiresIn: '15m' } // Access token: 15분
+    { expiresIn: '1h' } // Access token: 1시간 (401 오류 해결)
   );
 }
 
