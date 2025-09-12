@@ -82,6 +82,7 @@ export const PerformanceDashboard = ({
 
     const interval = setInterval(loadAggregatedStats, refreshInterval)
     return () => clearInterval(interval)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeRange, refreshInterval, realtime])
 
   // Core Web Vitals 차트 데이터

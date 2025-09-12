@@ -135,7 +135,7 @@ export default function EditorClient({ id }: EditorClientProps) {
                             />
                             <div className="mt-2 flex items-center gap-2">
                               <a
-                                href={seedanceStatuses[jid]?.videoUrl!}
+                                href={seedanceStatuses[jid]?.videoUrl || '#'}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="text-xs text-primary-600 hover:underline"
@@ -143,7 +143,7 @@ export default function EditorClient({ id }: EditorClientProps) {
                                 새 탭에서 열기
                               </a>
                               <a
-                                href={seedanceStatuses[jid]?.videoUrl!}
+                                href={seedanceStatuses[jid]?.videoUrl || '#'}
                                 download
                                 className="text-xs text-secondary-700 hover:underline"
                               >

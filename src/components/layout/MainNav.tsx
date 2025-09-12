@@ -22,12 +22,19 @@ export function MainNav() {
   // Header.tsx에서 이미 checkAuth()를 호출하므로 중복 호출 방지
 
   // prefetch refs를 미리 생성하여 React Hooks 규칙 준수
+  // React Hooks는 컴포넌트 최상위에서 호출해야 함
+  const homePrefetch = useSoftPrefetch('/');
+  const scenarioPrefetch = useSoftPrefetch('/scenario');
+  const promptPrefetch = useSoftPrefetch('/prompt-generator');
+  const feedbackPrefetch = useSoftPrefetch('/feedback');
+  const planningPrefetch = useSoftPrefetch('/planning');
+  
   const prefetchRefs = {
-    '/': useSoftPrefetch('/'),
-    '/scenario': useSoftPrefetch('/scenario'),
-    '/prompt-generator': useSoftPrefetch('/prompt-generator'),
-    '/feedback': useSoftPrefetch('/feedback'),
-    '/planning': useSoftPrefetch('/planning'),
+    '/': homePrefetch,
+    '/scenario': scenarioPrefetch,
+    '/prompt-generator': promptPrefetch,
+    '/feedback': feedbackPrefetch,
+    '/planning': planningPrefetch,
   };
 
   const handleLogout = async () => {
