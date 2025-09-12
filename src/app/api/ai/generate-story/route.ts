@@ -131,22 +131,25 @@ export async function POST(request: NextRequest) {
           console.error('[LLM] ❌ 환경변수 GOOGLE_GEMINI_API_KEY가 설정되지 않음');
         }
         return NextResponse.json({ 
-          error: 'AI 서비스가 구성되지 않았습니다. 관리자에게 문의하세요.' 
-        }, { status: 503 });
+          error: 'AI 서비스가 구성되지 않았습니다. 관리자에게 문의하세요.',
+          userMessage: 'LLM 연결 안되고 있음. 환경변수 문제인지 뭔지 분석해줘'
+        }, { status: 400 });
       } else if (geminiApiKey === 'your-actual-gemini-key') {
         if (process.env.NODE_ENV === 'development') {
           console.error('[LLM] ❌ 플레이스홀더 API 키 감지');
         }
         return NextResponse.json({ 
-          error: 'AI 서비스가 올바르게 구성되지 않았습니다.' 
-        }, { status: 503 });
+          error: 'AI 서비스가 올바르게 구성되지 않았습니다.',
+          userMessage: 'LLM 연결 안되고 있음. API 키가 플레이스홀더로 설정됨'
+        }, { status: 400 });
       } else {
         if (process.env.NODE_ENV === 'development') {
-          console.error('[LLM] ❌ 잘못된 API 키 형식');
+          console.error(`[LLM] ❌ 잘못된 API 키 형식: ${geminiApiKey?.substring(0, 10)}...`);
         }
         return NextResponse.json({ 
-          error: 'AI 서비스 구성 오류입니다.' 
-        }, { status: 503 });
+          error: 'AI 서비스 구성 오류입니다.',
+          userMessage: `LLM 연결 안되고 있음. API 키 형식이 잘못됨 (${geminiApiKey?.substring(0, 10)}...)`
+        }, { status: 400 });
       }
     }
 

@@ -5,6 +5,8 @@ export const metadata: Metadata = {
   description: 'VideoPrompt 서비스 사용 가이드 및 API 문서',
 };
 
+export const dynamic = 'force-static';
+
 export default function DocsPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12">
