@@ -97,7 +97,8 @@ export default function FeedbackPage() {
       } catch {}
     };
     fetchComments();
-    timer = setInterval(fetchComments, 5000);
+    const intervalTimer = setInterval(fetchComments, 5000);
+    timer = intervalTimer;
     return () => {
       if (timer) clearInterval(timer);
     };

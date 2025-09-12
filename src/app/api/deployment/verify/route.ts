@@ -81,7 +81,7 @@ export async function GET() {
 
   // Prisma Client 접근 테스트 (실제 DB 연결 없이)
   try {
-    const { PrismaClient } = require('@prisma/client');
+    const { PrismaClient } = await import('@prisma/client');
     deploymentInfo.database = {
       prismaClientAvailable: true,
       status: 'client_initialized',
@@ -115,8 +115,8 @@ export async function POST() {
 
   // API Routes 디렉토리 스캔 (빌드 시점에서만 가능)
   try {
-    const fs = require('fs');
-    const path = require('path');
+    const { promises: fs } = await import('fs');
+    const path = await import('path');
     const apiDir = path.join(process.cwd(), 'src/app/api');
     
     function countApiRoutes(dir: string): number {

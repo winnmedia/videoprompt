@@ -21,6 +21,15 @@ export function MainNav() {
   // 🔥 401 오류 해결: 중복 인증 체크 제거
   // Header.tsx에서 이미 checkAuth()를 호출하므로 중복 호출 방지
 
+  // prefetch refs를 미리 생성하여 React Hooks 규칙 준수
+  const prefetchRefs = {
+    '/': useSoftPrefetch('/'),
+    '/scenario': useSoftPrefetch('/scenario'),
+    '/prompt-generator': useSoftPrefetch('/prompt-generator'),
+    '/feedback': useSoftPrefetch('/feedback'),
+    '/planning': useSoftPrefetch('/planning'),
+  };
+
   const handleLogout = async () => {
     await logout();
     router.push('/');
@@ -30,7 +39,7 @@ export function MainNav() {
     <nav className="hidden items-center space-x-6 text-sm md:flex" data-testid="main-nav" aria-label="주요 내비게이션">
       {items.map(({ href, label }) => {
         const active = pathname === href || (href !== '/' && pathname.startsWith(href));
-        const ref = useSoftPrefetch(href);
+        const ref = prefetchRefs[href as keyof typeof prefetchRefs];
         return (
           <Link
             key={href}

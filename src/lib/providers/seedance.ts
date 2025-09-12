@@ -4,7 +4,7 @@ if (typeof window === 'undefined') {
   try {
     // Node 18+: setDefaultResultOrder
      
-    const dns = require('dns');
+    const dns = await import('dns');
     if (typeof dns.setDefaultResultOrder === 'function') {
       dns.setDefaultResultOrder('ipv4first');
     }
