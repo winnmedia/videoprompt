@@ -57,25 +57,21 @@ const nextConfig = {
   },
   
   
-  // API 라우팅 설정 - Railway 프록시 (최적화)
+  // API 라우팅 설정 - Railway 프록시 (CORS 해결)
   async rewrites() {
     const apiBase = 'https://videoprompt-production.up.railway.app';
     
-    // 프로덕션에서만 프록시 활성화
-    if (process.env.NODE_ENV !== 'production') {
-      return [];
-    }
-
+    // 개발/프로덕션 모든 환경에서 프록시 활성화 (CORS 해결)
     console.log('🚀 Using Railway backend API proxy for video processing APIs');
 
     return [
-      // 비디오 처리 관련 API만 프록시 (나머지는 Next.js에서 직접 처리)
+      // 비디오 처리 관련 API 프록시
       { source: '/api/seedance/:path*', destination: `${apiBase}/api/seedance/:path*` },
       { source: '/api/imagen/:path*', destination: `${apiBase}/api/imagen/:path*` },
       { source: '/api/veo/:path*', destination: `${apiBase}/api/veo/:path*` },
       { source: '/api/video/:path*', destination: `${apiBase}/api/video/:path*` },
       { source: '/api/health', destination: `${apiBase}/api/health` },
-      // CORS 해결용 추가 프록시
+      // CORS 해결용 필수 프록시 - 개발/프로덕션 모든 환경에서 필요
       { source: '/api/templates', destination: `${apiBase}/api/templates` },
       { source: '/api/ai/:path*', destination: `${apiBase}/api/ai/:path*` },
     ];

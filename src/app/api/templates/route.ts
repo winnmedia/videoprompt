@@ -4,6 +4,7 @@ import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { prisma } from '@/lib/db';
 import { StoryInput } from '@/entities/scenario';
 import { getUserIdFromRequest } from '@/shared/lib/auth';
+import { withCors } from '@/shared/lib/cors';
 
 const CreateTemplateSchema = z.object({
   name: z.string().min(1, '템플릿 이름을 입력해주세요'),
@@ -25,7 +26,7 @@ const CreateTemplateSchema = z.object({
   isPublic: z.boolean().default(false),
 });
 
-export async function GET(req: NextRequest) {
+export const GET = withCors(async (req: NextRequest) => {
   const traceId = getTraceId(req);
   
   try {
@@ -60,9 +61,9 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
-export async function POST(req: NextRequest) {
+export const POST = withCors(async (req: NextRequest) => {
   const traceId = getTraceId(req);
   
   try {
@@ -105,8 +106,6 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
-export async function OPTIONS() {
-  return NextResponse.json(null, { status: 200 });
-}
+// OPTIONS 요청은 withCors 미들웨어에서 자동 처리됩니다

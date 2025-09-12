@@ -106,9 +106,22 @@ export async function safeFetch(
 ): Promise<Response> {
   const startTime = Date.now();
   
-  // API Base URL 자동 적용 (상대경로인 경우)
-  const fullUrl = url.startsWith('http') ? url : 
-    `${process.env.NEXT_PUBLIC_API_BASE || 'https://videoprompt-production.up.railway.app'}${url}`;
+  // API Base URL 환경별 적용 (CORS 오류 방지)
+  const fullUrl = (() => {
+    // 절대 URL인 경우 그대로 사용
+    if (url.startsWith('http')) {
+      return url;
+    }
+    
+    // 클라이언트 사이드: 상대 경로 유지 (Next.js API 프록시 사용)
+    if (typeof window !== 'undefined') {
+      return url; // '/api/templates' 형태로 유지
+    }
+    
+    // 서버 사이드: Railway URL 사용
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'https://videoprompt-production.up.railway.app';
+    return `${apiBase}${url}`;
+  })();
   
   // Development 환경에서만 디버그 로그 출력
   if (process.env.NODE_ENV === 'development') {
