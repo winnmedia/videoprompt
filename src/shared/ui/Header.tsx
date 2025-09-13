@@ -6,10 +6,12 @@ import { useRouter } from 'next/navigation';
 import { Logo } from '@/shared/ui';
 import { Button } from '@/shared/ui';
 import { useAuthStore } from '@/shared/store/useAuthStore';
+import { useProjectStore } from '@/entities/project';
 
 export function Header() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, checkAuth, logout } = useAuthStore();
+  const project = useProjectStore();
 
   // 컴포넌트 마운트 시 인증 상태 확인 (한 번만)
   useEffect(() => {
@@ -21,6 +23,11 @@ export function Header() {
     await logout();
     router.push('/');
   };
+
+  // 프로젝트 진행 상태 확인
+  const hasScenario = project.scenario?.title && project.scenario?.story;
+  const hasPrompt = project.prompt?.finalPrompt;
+  const hasVideo = project.video?.videoUrl;
 
   return (
     <header className="border-b bg-white shadow-sm">
@@ -37,14 +44,41 @@ export function Header() {
             <Link href="/scenario" className="font-medium text-gray-700 hover:text-primary-600">
               AI 영상 기획
             </Link>
-            {/* 일시 비활성화 - VEO3 비용 절감
-            <Link href="/workflow" className="font-medium text-gray-700 hover:text-primary-600">
-              영상 생성
-            </Link>
+
+            {/* AI 프롬프트 생성기: 시나리오 완료 후 활성화 */}
+            {hasScenario ? (
+              <Link href="/prompt-generator" className="font-medium text-gray-700 hover:text-primary-600">
+                AI 프롬프트 생성기
+              </Link>
+            ) : (
+              <span className="font-medium text-gray-400 cursor-not-allowed" title="먼저 AI 영상 기획을 완료하세요">
+                AI 프롬프트 생성기
+              </span>
+            )}
+
+            {/* 영상 생성: 프롬프트 완료 후 활성화
+            {hasPrompt ? (
+              <Link href="/workflow" className="font-medium text-gray-700 hover:text-primary-600">
+                영상 생성
+              </Link>
+            ) : (
+              <span className="font-medium text-gray-400 cursor-not-allowed" title="먼저 프롬프트 생성을 완료하세요">
+                영상 생성
+              </span>
+            )}
             */}
-            <Link href="/feedback" className="font-medium text-gray-700 hover:text-primary-600">
-              영상 피드백
-            </Link>
+
+            {/* 영상 피드백: 영상 완료 후 활성화 */}
+            {hasVideo ? (
+              <Link href="/feedback" className="font-medium text-gray-700 hover:text-primary-600">
+                영상 피드백
+              </Link>
+            ) : (
+              <span className="font-medium text-gray-400 cursor-not-allowed" title="먼저 영상 생성을 완료하세요">
+                영상 피드백
+              </span>
+            )}
+
             <Link href="/planning" className="font-medium text-gray-700 hover:text-primary-600">
               콘텐츠 관리
             </Link>
