@@ -223,74 +223,113 @@ function generateAdvancedPlaceholder(
   
   const { width, height } = dimensions[aspectRatio as keyof typeof dimensions] || dimensions['16:9'];
   
-  // 프롬프트에서 핵심 키워드 추출
+  // 프롬프트에서 키워드 추출 및 분석
   const keywords = extractKeywords(optimizedPrompt);
   const colorScheme = extractColorScheme(optimizedPrompt);
-  
-  // SVG 생성
+  const mood = extractMood(optimizedPrompt);
+
+  // 영화적 구성 요소들
+  const frameElements = generateFrameElements(optimizedPrompt, width, height);
+
   const svg = `
     <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:${colorScheme.primary};stop-opacity:0.8" />
-          <stop offset="100%" style="stop-color:${colorScheme.secondary};stop-opacity:0.9" />
-        </linearGradient>
-        <filter id="blur" x="0" y="0">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="0.5" />
+        <!-- 영화적 배경 그라디언트 -->
+        <radialGradient id="cinematicBg" cx="50%" cy="30%" r="70%">
+          <stop offset="0%" style="stop-color:${colorScheme.primary};stop-opacity:0.9" />
+          <stop offset="70%" style="stop-color:${colorScheme.secondary};stop-opacity:0.7" />
+          <stop offset="100%" style="stop-color:#000;stop-opacity:0.9" />
+        </radialGradient>
+
+        <!-- 노이즈 패턴 (필름 질감) -->
+        <filter id="noise">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" stitchTiles="stitch"/>
+          <feColorMatrix type="saturate" values="0"/>
+          <feBlend mode="multiply" in2="SourceGraphic"/>
+        </filter>
+
+        <!-- 글로우 효과 -->
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+          <feMerge>
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
         </filter>
       </defs>
-      
-      <!-- 배경 그라데이션 -->
-      <rect width="${width}" height="${height}" fill="url(#grad1)"/>
-      
-      <!-- 프레임 테두리 -->
-      <rect x="20" y="20" width="${width-40}" height="${height-40}" 
-            fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
-      
-      <!-- 메인 제목 -->
-      <text x="50%" y="25%" font-family="'Helvetica Neue', Arial, sans-serif" 
-            font-size="${Math.max(24, width/40)}" font-weight="bold" 
-            fill="white" text-anchor="middle" opacity="0.95">
-        🎬 STORYBOARD CONCEPT
+
+      <!-- 배경 -->
+      <rect width="100%" height="100%" fill="url(#cinematicBg)"/>
+      <rect width="100%" height="100%" fill="url(#cinematicBg)" opacity="0.1" filter="url(#noise)"/>
+
+      <!-- 영화적 프레임 (상하단 레터박스) -->
+      <rect x="0" y="0" width="100%" height="${height * 0.12}" fill="black" opacity="0.8"/>
+      <rect x="0" y="${height * 0.88}" width="100%" height="${height * 0.12}" fill="black" opacity="0.8"/>
+
+      <!-- 메인 컴포지션 프레임 -->
+      <rect x="40" y="${height * 0.15}" width="${width-80}" height="${height * 0.7}"
+            fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="3" rx="8"/>
+
+      ${frameElements}
+
+      <!-- 영화적 제목 -->
+      <text x="50%" y="8%" font-family="'Cinzel', 'Times New Roman', serif"
+            font-size="${Math.max(28, width/35)}" font-weight="bold"
+            fill="white" text-anchor="middle" opacity="0.95" filter="url(#glow)">
+        🎬 CINEMATIC STORYBOARD
       </text>
-      
-      <!-- 최적화된 프롬프트 (요약) -->
-      <text x="50%" y="40%" font-family="'Helvetica Neue', Arial, sans-serif" 
-            font-size="${Math.max(16, width/80)}" 
-            fill="white" text-anchor="middle" opacity="0.8">
-        ${truncateText(optimizedPrompt, 80)}
+
+      <!-- 씬 설명 -->
+      <foreignObject x="60" y="${height * 0.2}" width="${width-120}" height="${height * 0.25}">
+        <div xmlns="http://www.w3.org/1999/xhtml" style="
+          color: white;
+          font-family: 'Helvetica Neue', Arial, sans-serif;
+          font-size: ${Math.max(14, width/80)}px;
+          line-height: 1.4;
+          text-align: center;
+          padding: 20px;
+          background: rgba(0,0,0,0.3);
+          border-radius: 8px;
+          backdrop-filter: blur(5px);
+        ">
+          <strong>${mood}</strong><br/>
+          ${truncateText(optimizedPrompt, 120)}
+        </div>
+      </foreignObject>
+
+      <!-- 카메라 정보 패널 -->
+      <rect x="60" y="${height * 0.5}" width="${width-120}" height="${height * 0.25}"
+            fill="rgba(0,0,0,0.4)" rx="8" stroke="rgba(255,255,255,0.2)"/>
+
+      <!-- 캐스팅 & 키워드 -->
+      <text x="50%" y="${height * 0.55}" font-family="Arial, sans-serif"
+            font-size="${Math.max(12, width/100)}" font-weight="bold"
+            fill="white" text-anchor="middle" opacity="0.9">
+        🎭 VISUAL ELEMENTS
       </text>
-      
-      <!-- 키워드 태그들 -->
-      ${keywords.slice(0, 4).map((keyword, i) => `
-        <rect x="${50 + i * 150}" y="${height * 0.55}" width="140" height="30" 
-              fill="rgba(255,255,255,0.2)" rx="15"/>
-        <text x="${50 + i * 150 + 70}" y="${height * 0.55 + 20}" 
-              font-family="Arial, sans-serif" font-size="14" 
+
+      ${keywords.slice(0, 3).map((keyword, i) => `
+        <rect x="${width/2 - 180 + i * 120}" y="${height * 0.58}" width="110" height="24"
+              fill="rgba(255,255,255,0.15)" rx="12" stroke="rgba(255,255,255,0.3)"/>
+        <text x="${width/2 - 125 + i * 120}" y="${height * 0.595}"
+              font-family="Arial, sans-serif" font-size="11"
               fill="white" text-anchor="middle" opacity="0.9">
-          ${keyword}
+          ${keyword.toUpperCase()}
         </text>
       `).join('')}
-      
-      <!-- Powered by Gemini 표시 -->
-      <text x="50%" y="85%" font-family="Arial, sans-serif" 
-            font-size="${Math.max(12, width/120)}" 
-            fill="white" text-anchor="middle" opacity="0.6">
-        🧠 Optimized with Gemini 2.5 Flash
+
+      <!-- 기술 사양 -->
+      <text x="50%" y="${height * 0.67}" font-family="'Courier New', monospace"
+            font-size="${Math.max(10, width/120)}"
+            fill="white" text-anchor="middle" opacity="0.7">
+        📹 SHOT: ${aspectRatio} • 🎨 GRADE: ${colorScheme.primary.slice(1).toUpperCase()} • 🎬 READY FOR POST
       </text>
-      
-      <!-- 기술적 정보 -->
-      <text x="50%" y="90%" font-family="Arial, sans-serif" 
-            font-size="${Math.max(10, width/150)}" 
+
+      <!-- 하단 크레딧 -->
+      <text x="50%" y="96%" font-family="Arial, sans-serif"
+            font-size="${Math.max(9, width/140)}"
             fill="white" text-anchor="middle" opacity="0.5">
-        Ready for: Midjourney • DALL-E • Stable Diffusion
-      </text>
-      
-      <!-- 하단 정보 -->
-      <text x="50%" y="95%" font-family="Arial, sans-serif" 
-            font-size="${Math.max(10, width/150)}" 
-            fill="white" text-anchor="middle" opacity="0.4">
-        Aspect Ratio: ${aspectRatio} • Resolution: ${width}x${height}
+        ⚡ AI-POWERED BY GEMINI 2.5 • OPTIMIZED FOR PROFESSIONAL IMAGE GENERATION
       </text>
     </svg>
   `;
@@ -343,4 +382,77 @@ function extractColorScheme(prompt: string): { primary: string; secondary: strin
 function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength - 3) + '...';
+}
+
+/**
+ * 프롬프트에서 무드/분위기 추출
+ */
+function extractMood(prompt: string): string {
+  const moodMap: Record<string, string> = {
+    'dark': 'DARK & MYSTERIOUS',
+    'bright': 'BRIGHT & UPLIFTING',
+    'dramatic': 'DRAMATIC TENSION',
+    'romantic': 'ROMANTIC ATMOSPHERE',
+    'action': 'HIGH-ENERGY ACTION',
+    'horror': 'SUSPENSEFUL HORROR',
+    'comedy': 'LIGHTHEARTED COMEDY',
+    'sci-fi': 'FUTURISTIC SCI-FI',
+    'fantasy': 'MAGICAL FANTASY',
+    'noir': 'NOIR AESTHETIC'
+  };
+
+  const lowerPrompt = prompt.toLowerCase();
+
+  for (const [key, mood] of Object.entries(moodMap)) {
+    if (lowerPrompt.includes(key)) {
+      return mood;
+    }
+  }
+
+  return 'CINEMATIC SCENE';
+}
+
+/**
+ * 프레임 내부 구성 요소 생성
+ */
+function generateFrameElements(prompt: string, width: number, height: number): string {
+  const elements = [];
+
+  // 규칙 of 3rds 가이드라인
+  const frameWidth = width - 80;
+  const frameHeight = height * 0.7;
+  const frameX = 40;
+  const frameY = height * 0.15;
+
+  // 수직선들 (규칙 of 3rds)
+  elements.push(`
+    <line x1="${frameX + frameWidth/3}" y1="${frameY}"
+          x2="${frameX + frameWidth/3}" y2="${frameY + frameHeight}"
+          stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="5,5"/>
+    <line x1="${frameX + frameWidth*2/3}" y1="${frameY}"
+          x2="${frameX + frameWidth*2/3}" y2="${frameY + frameHeight}"
+          stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="5,5"/>
+  `);
+
+  // 수평선들
+  elements.push(`
+    <line x1="${frameX}" y1="${frameY + frameHeight/3}"
+          x2="${frameX + frameWidth}" y2="${frameY + frameHeight/3}"
+          stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="5,5"/>
+    <line x1="${frameX}" y1="${frameY + frameHeight*2/3}"
+          x2="${frameX + frameWidth}" y2="${frameY + frameHeight*2/3}"
+          stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="5,5"/>
+  `);
+
+  // 포커스 포인트 표시
+  const focusX = frameX + frameWidth/3;
+  const focusY = frameY + frameHeight/3;
+  elements.push(`
+    <circle cx="${focusX}" cy="${focusY}" r="8"
+            fill="none" stroke="rgba(255,255,0,0.6)" stroke-width="2"/>
+    <circle cx="${focusX}" cy="${focusY}" r="4"
+            fill="rgba(255,255,0,0.3)"/>
+  `);
+
+  return elements.join('');
 }

@@ -495,11 +495,22 @@ export default function ScenarioPage() {
           setErrorType(type);
           toast.error(error, type === 'client' ? '요청 오류' : type === 'network' ? '네트워크 오류' : '서버 오류');
         },
-        onSuccess: (steps, message) => {
+        onSuccess: async (steps, message) => {
           setStorySteps(steps);
           setCurrentStep(2);
           setRetryCount(0);
           toast.success(message, '생성 완료');
+
+          // 4단계 완료 시 자동 저장
+          if (steps.length === 4) {
+            try {
+              await handleSaveScenario();
+              toast.success('4단계 스토리가 자동 저장되었습니다', '자동 저장 완료');
+            } catch (error) {
+              console.warn('자동 저장 실패:', error);
+              // 자동 저장 실패는 사용자에게 알리지 않고 로그만 남김
+            }
+          }
         }
       });
     } catch (error) {
