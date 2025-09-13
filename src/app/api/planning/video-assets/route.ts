@@ -65,7 +65,6 @@ export async function GET(_req: NextRequest) {
 
     return NextResponse.json({ ok: true, data: list } as ApiSuccess<typeof list>);
   } catch (e: any) {
-    console.error('❌ API Error (/api/planning/video-assets):', e);
     
     // 특정 에러 타입에 따른 처리
     if (e.code === 'P1001') {

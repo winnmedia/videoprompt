@@ -84,15 +84,12 @@ export async function POST(request: NextRequest) {
       }, { status: 503 });
     }
 
-    console.log(`[Storyboard API] 📸 ${shots.length}개 샷 생성 요청`);
-    console.log(`[Storyboard API] 스타일: ${style.visualStyle || '기본'}, 장르: ${style.genre || '미지정'}`);
 
     // 각 샷 처리
     const results: ImageGenerationResult[] = [];
     const errors: string[] = [];
 
     for (const shot of shots) {
-      console.log(`[Storyboard API] 🎬 샷 처리 중: ${shot.id}`);
       
       try {
         // Step 1: Gemini로 프롬프트 최적화
@@ -109,11 +106,9 @@ export async function POST(request: NextRequest) {
           retryCount: 0
         });
         
-        console.log(`[Storyboard API] ✅ 샷 ${shot.id} 생성 완료`);
         
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
-        console.error(`[Storyboard API] ❌ 샷 ${shot.id} 생성 실패:`, errorMessage);
         
         results.push({
           shotId: shot.id,
@@ -139,12 +134,10 @@ export async function POST(request: NextRequest) {
       }
     };
 
-    console.log(`[Storyboard API] 🎉 완료: ${response.metadata.successfulShots}/${response.metadata.totalShots} 성공 (${response.metadata.processingTime}ms)`);
 
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('[Storyboard API] ❌ 전체 오류:', error);
     
     return NextResponse.json({
       error: '스토리보드 생성 중 오류가 발생했습니다.',

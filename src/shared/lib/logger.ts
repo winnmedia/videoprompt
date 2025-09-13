@@ -7,20 +7,48 @@ interface LogPayload {
   meta?: Record<string, unknown>;
 }
 
+// 민감정보 필터링 함수
+function sanitizeData(data: any): any {
+  if (!data || typeof data !== 'object') return data;
+
+  const sensitiveKeys = ['password', 'token', 'apiKey', 'secret', 'authorization', 'cookie'];
+  const result = { ...data };
+
+  for (const key in result) {
+    const lowerKey = key.toLowerCase();
+    if (sensitiveKeys.some(sensitive => lowerKey.includes(sensitive))) {
+      result[key] = '[REDACTED]';
+    } else if (typeof result[key] === 'object') {
+      result[key] = sanitizeData(result[key]);
+    }
+  }
+
+  return result;
+}
+
 function baseLog({ level, message, traceId, meta }: LogPayload) {
   const ts = new Date().toISOString();
   const isDev = process.env.NODE_ENV === 'development';
-  
+
+  // 민감정보 필터링
+  const sanitizedMeta = meta ? sanitizeData(meta) : undefined;
+
   // 개발환경: 사람이 읽기 쉬운 형태
   if (isDev) {
     const logFn = console[level] || console.log;
-    logFn(`[${level.toUpperCase()}] ${message}`, meta || '');
+    logFn(`[${level.toUpperCase()}] ${message}`, sanitizedMeta || '');
     return;
   }
-  
-  // 프로덕션: JSON 형태 (에러만 출력)
-  if (level === 'error') {
-    const line = { ts, level, message, ...(traceId ? { traceId } : {}), ...(meta ? { meta } : {}) };
+
+  // 프로덕션: JSON 형태 (에러와 중요 정보만)
+  if (level === 'error' || level === 'warn') {
+    const line = {
+      ts,
+      level,
+      message,
+      ...(traceId ? { traceId } : {}),
+      ...(sanitizedMeta ? { meta: sanitizedMeta } : {})
+    };
     console.error(JSON.stringify(line));
   }
 }

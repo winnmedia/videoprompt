@@ -33,12 +33,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log('DEBUG: Video create request:', {
-      prompt: prompt.slice(0, 100),
-      duration,
-      aspectRatio,
-      provider,
-    });
 
     // 1단계: Seedance API 시도
     if (provider === 'auto' || provider === 'seedance') {
@@ -72,7 +66,6 @@ export async function POST(req: NextRequest) {
           }
         }
       } catch (seedanceError) {
-        console.error('Seedance API 호출 실패:', seedanceError);
       }
     }
 
@@ -106,7 +99,6 @@ export async function POST(req: NextRequest) {
           }
         }
       } catch (veoError) {
-        console.error('Veo3 API 호출 실패:', veoError);
       }
     }
 
@@ -128,7 +120,6 @@ export async function POST(req: NextRequest) {
       },
     );
   } catch (error) {
-    console.error('Video create error:', error);
     return NextResponse.json(
       {
         ok: false,

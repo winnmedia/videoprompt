@@ -401,6 +401,48 @@ export default function ScenarioPage() {
     ));
   };
 
+  // 시나리오 저장 (기획안 저장)
+  const handleSaveScenario = async () => {
+    try {
+      // 현재 스토리 정보를 API에 저장
+      const scenarioData = {
+        type: 'scenario',
+        projectId: 'scenario_' + Date.now(),
+        source: 'user_created',
+        title: storyInput.title || '생성된 시나리오',
+        story: storySteps.length > 0 ? JSON.stringify(storySteps) : storyInput.oneLineStory || '',
+        genre: storyInput.genre,
+        tone: Array.isArray(storyInput.toneAndManner) ? storyInput.toneAndManner.join(', ') : storyInput.toneAndManner || 'Neutral',
+        target: storyInput.target,
+        format: storyInput.format,
+        tempo: storyInput.tempo,
+        developmentMethod: storyInput.developmentMethod,
+        developmentIntensity: storyInput.developmentIntensity,
+        durationSec: parseInt(storyInput.duration) || 60,
+        createdAt: new Date().toISOString()
+      };
+
+      const response = await safeFetch('/api/planning/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(scenarioData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || '기획안 저장에 실패했습니다');
+      }
+
+      const result = await response.json();
+      toast.success('기획안이 성공적으로 저장되었습니다.', '기획안 저장');
+    } catch (error) {
+      console.error('Scenario save error:', error);
+      toast.error(error instanceof Error ? error.message : '기획안 저장 중 오류가 발생했습니다', '저장 오류');
+    }
+  };
+
   // 현재 설정을 템플릿으로 저장
   const handleSaveAsTemplate = async (templateData: { name: string; description: string; storyInput: StoryInput }) => {
     try {
@@ -530,6 +572,13 @@ export default function ScenarioPage() {
   };
 
   // 3단계: 12개 숏트 생성
+  // 이전 단계로 돌아가기
+  const handleGoBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep((prev) => (prev - 1) as 1 | 2 | 3);
+    }
+  };
+
   const handleGenerateShots = async () => {
     try {
       const result = await generateShots({
@@ -1217,6 +1266,8 @@ export default function ScenarioPage() {
             onGenerateShots={handleGenerateShots}
             loading={loading}
             loadingMessage={loadingMessage}
+            developmentMethod={storyInput.developmentMethod}
+            onGoBack={handleGoBack}
           />
         )}
         {/* 3단계: 12개 숏트 편집 및 스토리보드 생성 */}
@@ -1227,7 +1278,17 @@ export default function ScenarioPage() {
             {/* 스토리보드 갤러리 섹션 */}
             <div className="card p-4 sm:p-6">
               <div className="mb-6 flex items-center justify-between">
-                <h2 className="text-2xl font-semibold text-gray-900">스토리보드 갤러리</h2>
+                <div className="flex items-center space-x-4">
+                  <Button
+                    variant="outline"
+                    onClick={handleGoBack}
+                    size="lg"
+                    className="px-6"
+                  >
+                    이전 단계
+                  </Button>
+                  <h2 className="text-2xl font-semibold text-gray-900">스토리보드 갤러리</h2>
+                </div>
                 <div className="flex gap-2">
                   {/* 일괄 생성 기능 제거 - 개별 생성만 사용 */}
                   <div className="text-sm text-gray-500 flex items-center">
@@ -1270,13 +1331,23 @@ export default function ScenarioPage() {
               <div className="mt-6">
                 <div className="mb-6 flex items-center justify-between">
                   <h2 className="text-text text-xl font-semibold">12개 숏트 편집</h2>
-                  <Button
-                size="lg"
-                className="btn-primary px-6"
-                onClick={() => handleExportPlan('pdf')}
-              >
-                기획안 다운로드
-              </Button>
+                  <div className="flex space-x-3">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="px-6"
+                      onClick={handleSaveScenario}
+                    >
+                      기획안 저장
+                    </Button>
+                    <Button
+                      size="lg"
+                      className="btn-primary px-6"
+                      onClick={() => handleExportPlan('pdf')}
+                    >
+                      기획안 다운로드
+                    </Button>
+                  </div>
             </div>
 
             {/* 숏트 그리드 - 3열×4행 */}

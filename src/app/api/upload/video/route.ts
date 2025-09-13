@@ -26,8 +26,8 @@ const SUPPORTED_VIDEO_TYPES = [
   'video/x-ms-wmv', // .wmv
 ];
 
-// 파일 크기 제한: 4MB (Vercel 서버리스 함수 제한 고려)
-const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB
+// 파일 크기 제한: Railway 백엔드 연동으로 제한 완화
+const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB (Railway에서 처리)
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,8 +37,8 @@ export async function POST(request: NextRequest) {
       const fileSizeMB = Math.round(parseInt(contentLength) / 1024 / 1024 * 100) / 100; // 소수점 2자리
       return NextResponse.json(
         createErrorResponse(
-          'FILE_TOO_LARGE', 
-          `파일 크기가 허용 한도를 초과합니다.\n현재: ${fileSizeMB}MB, 최대: 4MB\n\nVercel 플랫폼 제한으로 더 작은 파일을 업로드해주세요.`
+          'FILE_TOO_LARGE',
+          `파일 크기가 허용 한도를 초과합니다.\n현재: ${fileSizeMB}MB, 최대: 500MB\n\n대용량 파일은 Railway 백엔드에서 처리됩니다.`
         ), 
         { status: 413 }
       );
@@ -94,13 +94,7 @@ export async function POST(request: NextRequest) {
       railwayFormData.append('originalFileName', file.name);
       railwayFormData.append('sanitizedFileName', sanitizedFileName);
 
-      console.log('Railway 백엔드로 파일 전송 시작:', {
-        uploadId,
-        originalFileName: file.name,
-        fileSize: `${Math.round(file.size / 1024 / 1024)}MB`,
-        fileType: file.type,
-        railwayUrl: `${railwayBackendUrl}/api/upload/video`,
-      });
+      // Railway 백엔드로 파일 전송
 
       const railwayResponse = await fetch(`${railwayBackendUrl}/api/upload/video`, {
         method: 'POST',
@@ -111,24 +105,16 @@ export async function POST(request: NextRequest) {
       });
 
       if (!railwayResponse.ok) {
-        const errorText = await railwayResponse.text();
-        console.error('Railway 백엔드 업로드 실패:', railwayResponse.status, errorText);
-        
         return NextResponse.json(
           createErrorResponse(
-            'RAILWAY_UPLOAD_FAILED', 
+            'RAILWAY_UPLOAD_FAILED',
             `백엔드 업로드 실패: ${railwayResponse.status}`
-          ), 
+          ),
           { status: railwayResponse.status }
         );
       }
 
       const railwayResult = await railwayResponse.json();
-      
-      console.log('Railway 백엔드 업로드 성공:', {
-        uploadId,
-        videoUrl: railwayResult.videoUrl,
-      });
 
       // 성공 응답
       const responseData = {

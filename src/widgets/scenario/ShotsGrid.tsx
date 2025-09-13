@@ -63,36 +63,26 @@ export function ShotsGrid({
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
                   <Icon name="image" className="mb-3 h-8 w-8 text-gray-400" />
-                  <p className="mb-4 text-center text-sm text-gray-500">
-                    콘티 이미지를 생성해보세요
-                  </p>
-                  {/* 콘티 생성 버튼을 프레임 정중앙에 큰 버튼으로 배치 */}
-                  <div className="flex flex-col space-y-2">
-                    <Button
-                      onClick={() => onGenerateContiImage(shot.id)}
-                      className="bg-brand-500 px-6 py-3 text-white hover:bg-brand-600"
-                      disabled={isGeneratingImage[shot.id]}
-                    >
-                      {isGeneratingImage[shot.id] ? '생성 중...' : '콘티 생성'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onGenerateInsertShots(shot.id)}
-                      className="text-xs text-gray-600"
-                    >
-                      인서트 추가
-                    </Button>
-                  </div>
+                  {/* 콘티 생성 버튼을 프레임 정중앙에 배치 */}
+                  <Button
+                    onClick={() => onGenerateContiImage(shot.id)}
+                    size="lg"
+                    className="bg-primary text-white px-8 py-4 text-base font-semibold shadow-lg hover:bg-primary/90"
+                    disabled={isGeneratingImage[shot.id]}
+                  >
+                    {isGeneratingImage[shot.id] ? '생성 중...' : '콘티 생성'}
+                  </Button>
                 </div>
               )}
             </div>
           </div>
 
-          {/* 숏트 정보 - 이미지 아래로 이동 */}
-          <div className="mb-3">
-            <h3 className="text-text text-lg font-medium">{shot.title}</h3>
-            <p className="text-text-light mt-1 text-sm">{shot.description}</p>
+          {/* 숏트 제목과 스토리 - 프레임 바로 아래 강조 표시 */}
+          <div className="mb-4 border-b border-gray-200 pb-3">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">{shot.title}</h3>
+            <p className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-lg">
+              {shot.description}
+            </p>
           </div>
 
           {/* 숏 정보 편집 필드 */}

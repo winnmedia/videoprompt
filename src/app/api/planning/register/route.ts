@@ -160,7 +160,6 @@ export async function POST(request: NextRequest) {
       );
 
     } catch (dbError) {
-      console.error('Database error:', dbError);
 
       // 데이터베이스 연결 실패 시 친화적 에러 메시지
       if (dbError instanceof Error && dbError.message.includes('connect')) {
@@ -177,7 +176,6 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Registration error:', error);
     
     return NextResponse.json(
       createErrorResponse(

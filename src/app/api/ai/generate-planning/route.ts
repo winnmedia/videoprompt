@@ -108,7 +108,6 @@ export async function POST(request: NextRequest) {
               const parsedResponse = JSON.parse(generatedText);
               return NextResponse.json(parsedResponse);
             } catch (parseError) {
-              console.error('JSON 파싱 실패:', parseError);
               // 파싱 실패 시 기본 기획안 반환
               return NextResponse.json(
                 generateDefaultPlanning(
@@ -128,7 +127,6 @@ export async function POST(request: NextRequest) {
           }
         }
       } catch (apiError) {
-        console.error('Gemini API 호출 실패:', apiError);
       }
     }
 
@@ -148,7 +146,6 @@ export async function POST(request: NextRequest) {
       ),
     );
   } catch (error) {
-    console.error('기획안 생성 오류:', error);
     return NextResponse.json({ error: '기획안 생성 중 오류가 발생했습니다.' }, { status: 500 });
   }
 }
