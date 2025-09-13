@@ -154,6 +154,31 @@ export async function POST(request: NextRequest) {
 
       console.log('✅ Database connection verified:', connectionStatus.latency + 'ms');
 
+      // 시스템 사용자 확인 또는 생성
+      const systemUserId = 'system-planning';
+
+      let systemUser = await prisma.user.findUnique({
+        where: { id: systemUserId },
+        select: { id: true }
+      });
+
+      if (!systemUser) {
+        console.log('🔧 Creating system user for planning...');
+        systemUser = await prisma.user.create({
+          data: {
+            id: systemUserId,
+            email: 'system@planning.internal',
+            username: 'system-planning',
+            passwordHash: 'SYSTEM_USER_NO_LOGIN',
+            role: 'system',
+            emailVerified: true,
+            verifiedAt: new Date()
+          },
+          select: { id: true }
+        });
+        console.log('✅ System user created:', systemUser.id);
+      }
+
       // Project 테이블에 Planning 데이터 저장 (기존 스키마 활용)
       const createData = {
         id: registeredItem.id,
@@ -161,7 +186,7 @@ export async function POST(request: NextRequest) {
         description: registeredItem.description || null,
         metadata: registeredItem as any, // JSON 필드에 전체 데이터 저장
         status: 'active', // 기본 상태값 설정
-        userId: 'system-planning', // 시스템 생성 표시
+        userId: systemUser.id, // 검증된 시스템 사용자 ID
         tags: [registeredItem.type], // type을 태그로 저장
         scenario: registeredItem.type === 'scenario' ? JSON.stringify(registeredItem) : null,
         prompt: registeredItem.type === 'prompt' ? (registeredItem as any).finalPrompt : null,
