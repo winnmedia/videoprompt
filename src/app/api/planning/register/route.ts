@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
     // 데이터베이스 저장 구현
     try {
       // 실제 Prisma를 통한 데이터베이스 저장
-      const db = await import('@/lib/db').then(m => m.default);
+      const { prisma: db } = await import('@/lib/db');
 
       // Planning 테이블에 저장 (Prisma 스키마에 따라)
       const savedItem = await db.planning.create({
