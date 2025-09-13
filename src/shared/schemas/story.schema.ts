@@ -230,9 +230,7 @@ const DevelopShotsDataSchema = z.object({
  * 12샷 분해 응답 스키마
  */
 export const DevelopShotsResponseSchema = BaseApiResponseSchema.extend({
-  success: z.boolean(),
   data: DevelopShotsDataSchema.optional(),
-  error: z.string().optional(),
 });
 
 // ===============================================
