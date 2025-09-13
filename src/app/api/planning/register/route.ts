@@ -133,18 +133,18 @@ export async function POST(request: NextRequest) {
       // 실제 Prisma를 통한 데이터베이스 저장
       const { prisma: db } = await import('@/lib/db');
 
-      // Planning 테이블에 저장 (Prisma 스키마에 따라)
-      const savedItem = await db.planning.create({
+      // Project 테이블에 Planning 데이터 저장 (기존 스키마 활용)
+      const savedItem = await db.project.create({
         data: {
           id: registeredItem.id,
-          contentType: registeredItem.contentType,
           title: registeredItem.title,
           description: registeredItem.description || null,
-          data: registeredItem.data as any, // JSON 필드
+          metadata: registeredItem.data as any, // JSON 필드에 전체 데이터 저장
           status: registeredItem.status,
-          createdAt: registeredItem.createdAt,
-          updatedAt: registeredItem.updatedAt,
-          completedAt: registeredItem.completedAt || null,
+          userId: 'system-planning', // 시스템 생성 표시
+          tags: [registeredItem.contentType], // contentType을 태그로 저장
+          scenario: registeredItem.contentType === 'scenario' ? JSON.stringify(registeredItem.data) : null,
+          prompt: registeredItem.contentType === 'prompt' ? (registeredItem as any).prompt : null,
         },
       });
 
@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         createSuccessResponse('Planning content registered successfully', {
           id: savedItem.id,
-          contentType: savedItem.contentType,
+          contentType: (savedItem.tags as string[])?.[0] || registeredItem.contentType,
           status: savedItem.status,
           createdAt: savedItem.createdAt,
         }),
