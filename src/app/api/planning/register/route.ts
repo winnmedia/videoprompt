@@ -150,12 +150,12 @@ export async function POST(request: NextRequest) {
 
       // 성공 응답
       return NextResponse.json(
-        createSuccessResponse('Planning content registered successfully', {
+        createSuccessResponse({
           id: savedItem.id,
           contentType: (savedItem.tags as string[])?.[0] || registeredItem.contentType,
           status: savedItem.status,
           createdAt: savedItem.createdAt,
-        }),
+        }, 'Planning content registered successfully'),
         { status: 201 }
       );
 
