@@ -139,12 +139,12 @@ export async function POST(request: NextRequest) {
           id: registeredItem.id,
           title: registeredItem.title,
           description: registeredItem.description || null,
-          metadata: registeredItem.data as any, // JSON 필드에 전체 데이터 저장
+          metadata: registeredItem as any, // JSON 필드에 전체 데이터 저장
           status: registeredItem.status,
           userId: 'system-planning', // 시스템 생성 표시
-          tags: [registeredItem.contentType], // contentType을 태그로 저장
-          scenario: registeredItem.contentType === 'scenario' ? JSON.stringify(registeredItem.data) : null,
-          prompt: registeredItem.contentType === 'prompt' ? (registeredItem as any).prompt : null,
+          tags: [registeredItem.type], // type을 태그로 저장
+          scenario: registeredItem.type === 'scenario' ? JSON.stringify(registeredItem) : null,
+          prompt: registeredItem.type === 'prompt' ? (registeredItem as any).prompt : null,
         },
       });
 
@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         createSuccessResponse({
           id: savedItem.id,
-          contentType: (savedItem.tags as string[])?.[0] || registeredItem.contentType,
+          contentType: (savedItem.tags as string[])?.[0] || registeredItem.type,
           status: savedItem.status,
           createdAt: savedItem.createdAt,
         }, 'Planning content registered successfully'),
