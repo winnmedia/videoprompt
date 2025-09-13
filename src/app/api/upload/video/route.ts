@@ -105,10 +105,17 @@ export async function POST(request: NextRequest) {
       });
 
       if (!railwayResponse.ok) {
+        const errorText = await railwayResponse.text().catch(() => '응답 읽기 실패');
+        console.error('Railway 업로드 실패:', {
+          status: railwayResponse.status,
+          statusText: railwayResponse.statusText,
+          response: errorText
+        });
+
         return NextResponse.json(
           createErrorResponse(
             'RAILWAY_UPLOAD_FAILED',
-            `백엔드 업로드 실패: ${railwayResponse.status}`
+            `백엔드 업로드 실패 (${railwayResponse.status}): ${railwayResponse.statusText}\n상세: ${errorText.substring(0, 200)}`
           ),
           { status: railwayResponse.status }
         );

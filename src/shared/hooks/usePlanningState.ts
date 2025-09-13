@@ -46,21 +46,21 @@ export function usePlanningState() {
       // 실제 API 호출로 데이터 로딩
       const [scenariosRes, promptsRes, videosRes] = await Promise.all([
         safeFetch('/api/planning/scenarios'),
-        safeFetch('/api/planning/prompt'), 
+        safeFetch('/api/planning/prompt'),
         safeFetch('/api/planning/videos')
       ]);
 
       // 시나리오 데이터 처리
       if (scenariosRes.ok) {
         const scenariosData = await scenariosRes.json();
-        const scenarios: ScenarioItem[] = scenariosData.scenarios?.map((s: any) => ({
+        const scenarios: ScenarioItem[] = scenariosData.data?.scenarios?.map((s: any) => ({
           id: s.id,
           title: s.title,
-          version: s.version || 'v1.0',
-          author: s.userId || 'User',
+          version: s.version || 'V1',
+          author: s.author || 'AI Generated',
           updatedAt: s.updatedAt,
-          hasFourStep: !!s.structure4,
-          hasTwelveShot: !!s.shots12,
+          hasFourStep: s.hasFourStep || false,
+          hasTwelveShot: s.hasTwelveShot || false,
           pdfUrl: s.pdfUrl
         })) || [];
         setScenarioItems(scenarios);
@@ -69,31 +69,31 @@ export function usePlanningState() {
       // 프롬프트 데이터 처리
       if (promptsRes.ok) {
         const promptsData = await promptsRes.json();
-        const prompts: PromptItem[] = promptsData.prompts?.map((p: any) => ({
+        const prompts: PromptItem[] = promptsData.data?.prompts?.map((p: any) => ({
           id: p.id,
-          scenarioTitle: p.scenarioId || 'Unknown',
-          version: p.version?.toString() || 'v1.0',
-          keywordCount: p.metadata?.keywords?.length || 0,
-          shotCount: p.timeline?.length || 0,
-          quality: p.metadata?.quality || 'standard',
+          scenarioTitle: p.scenarioTitle || 'Unknown',
+          version: p.version || 'V1',
+          keywordCount: p.keywordCount || 0,
+          shotCount: p.segmentCount || 1,
+          quality: p.quality || 'standard',
           createdAt: p.createdAt,
-          jsonUrl: `/api/planning/prompt/${p.id}.json`
+          jsonUrl: p.jsonUrl || `/api/planning/prompt/${p.id}.json`
         })) || [];
         setPromptItems(prompts);
       }
 
-      // 비디오 데이터 처리
+      // 비디오 데이터 처리 (기존 videoAsset API 사용)
       if (videosRes.ok) {
         const videosData = await videosRes.json();
-        const videos: VideoItem[] = videosData.videos?.map((v: any) => ({
+        const videos: VideoItem[] = videosData.data?.videos?.map((v: any) => ({
           id: v.id,
           title: v.title || 'Untitled Video',
           prompt: v.prompt || '',
-          provider: v.provider,
-          duration: v.duration,
-          aspectRatio: '16:9', // 기본값
-          status: v.status,
-          videoUrl: v.url,
+          provider: v.provider || 'unknown',
+          duration: v.duration || 10,
+          aspectRatio: v.aspectRatio || '16:9',
+          status: v.status || 'queued',
+          videoUrl: v.url || v.videoUrl,
           thumbnailUrl: v.thumbnailUrl,
           createdAt: v.createdAt,
           completedAt: v.completedAt,

@@ -286,13 +286,22 @@ const PromptGeneratorPage: React.FC = () => {
           // v3.1 결과를 프로젝트 스토어에 저장
           project.setPrompt({
             finalPrompt: compilationResult.compiledPrompt,
-            keywords: v31State.finalOutput?.keywords || [],
-            negativePrompt: v31State.finalOutput?.negativePrompts?.join(', ') || '',
+            keywords: compilationResult.metadata.visualPriorities || [],
+            negativePrompt: 'blurry, low quality, distorted',
           });
-          
+
+          // 사용자에게 성공 알림
+          alert(`✅ v3.1 프롬프트가 성공적으로 생성되었습니다!\n\n생성된 프롬프트:\n${compilationResult.compiledPrompt.substring(0, 200)}${compilationResult.compiledPrompt.length > 200 ? '...' : ''}`);
+
           setState((prev) => ({ ...prev, isGenerating: false }));
+
+          // 프롬프트 생성 성공 시 자동으로 관리 페이지에 등록
+          setTimeout(() => {
+            registerPromptToManagement();
+          }, 1000);
         } else {
           console.error('v3.1 프롬프트 검증 실패:', compilationResult.validation.errors);
+          alert(`❌ 프롬프트 생성 실패:\n${compilationResult.validation.errors.join('\n')}`);
           setState((prev) => ({ ...prev, isGenerating: false }));
         }
       } else {
