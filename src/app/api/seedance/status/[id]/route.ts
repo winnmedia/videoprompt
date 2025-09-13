@@ -8,76 +8,23 @@ export const revalidate = 0;
 // Note: Avoid strict typing for the 2nd arg to satisfy Next.js route handler constraints
 export async function GET(_req: Request, context: any) {
   const id: string | undefined = context?.params?.id;
-  if (!id) return NextResponse.json({ ok: false, error: 'id required' }, { status: 200 });
+  if (!id) return NextResponse.json({ ok: false, error: 'id required' }, { status: 400 });
 
   try {
-    // Railway 백엔드로 직접 연결 (배포 환경 전용)
-    const railwayBackend = 'https://videoprompt-production.up.railway.app';
-
-    // AbortController를 사용한 타임아웃 설정 (30초 - 배포 환경 고려)
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-    try {
-      const res = await fetch(`${railwayBackend}/api/seedance/status/${id}`, {
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!res.ok) {
-        const errorText = await res.text();
-
-        return NextResponse.json(
-          {
-            ok: false,
-            error: `Railway 백엔드 에러: ${res.status}`,
-            message: '백엔드 서비스에서 오류가 발생했습니다.',
-            details: errorText.slice(0, 500),
-          },
-          { status: 502 },
-        );
-      }
-
-      const data = await res.json();
-
-      // 영상이 완성되었고 URL이 있는 경우 파일 저장 시도
-      if (data.ok && data.status === 'succeeded' && data.videoUrl) {
-        try {
-
-          // 파일 저장 (비동기로 처리하여 응답 지연 방지)
-          saveFileFromUrl(data.videoUrl, `seedance-${id}-`, 'videos')
-            .then((saveResult) => {
-              if (saveResult.success) {
-
-                // 저장된 파일 정보를 데이터에 추가
-                data.savedFileInfo = saveResult.fileInfo;
-                data.localPath = saveResult.fileInfo.savedPath;
-              } else {
-              }
-            })
-            .catch((error) => {
-            });
-        } catch (error) {
-          // 파일 저장 실패는 사용자 응답에 영향을 주지 않음
-        }
-      }
-
-      return NextResponse.json(data, { status: 200 });
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-
-
-      return NextResponse.json(
-        {
-          ok: false,
-          error: 'Railway 백엔드 연결 실패',
-          message: '백엔드 서비스에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.',
-          details: fetchError instanceof Error ? fetchError.message : String(fetchError),
-        },
-        { status: 503 },
-      );
-    }
+    // Seedance 서비스 상태 확인
+    return NextResponse.json(
+      {
+        ok: false,
+        error: 'SERVICE_UNDER_DEVELOPMENT',
+        message: 'Seedance 상태 조회 기능은 현재 개발 중입니다.',
+        jobId: id,
+        status: 'pending',
+        progress: 0,
+        details: 'Seedance API 연동이 완료되면 실시간 상태 조회가 가능합니다.',
+        estimatedTime: '2-3주 후 서비스 예정',
+      },
+      { status: 501 },
+    );
   } catch (e: any) {
     return NextResponse.json(
       {
@@ -86,7 +33,7 @@ export async function GET(_req: Request, context: any) {
         jobId: context?.params?.id,
         message: 'Seedance Status API 처리 중 오류가 발생했습니다.',
       },
-      { status: 200 },
+      { status: 500 },
     );
   }
 }
