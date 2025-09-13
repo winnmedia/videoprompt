@@ -195,18 +195,14 @@ export async function POST(request: NextRequest) {
 
     try {
       // Gemini API로 12샷 생성 시도
-      console.log('Gemini API 시도 중...');
       shots12 = await generateTwelveShotsWithGemini(structure4, genre, tone);
-      console.log('Gemini API 성공, shots12 길이:', shots12.length);
     } catch (apiError) {
       console.warn('Gemini API 호출 실패, 기본 생성 모드로 전환:', apiError);
 
       // 폴백: 기본 12샷 생성
       shots12 = generateDefaultTwelveShots(structure4, genre, tone);
-      console.log('기본 생성 완료, shots12 길이:', shots12.length);
     }
 
-    console.log('생성된 shots12 샘플:', shots12[0]);
 
     const responseData: DevelopShotsResponse = {
       timestamp: new Date().toISOString(),
@@ -223,8 +219,17 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    // 임시로 검증 비활성화하고 응답 반환
-    console.log('최종 응답 데이터:', JSON.stringify(responseData, null, 2));
+    // 응답 데이터 검증
+    const responseValidation = DevelopShotsResponseSchema.safeParse(responseData);
+
+    if (!responseValidation.success) {
+      console.error('응답 데이터 검증 실패:', responseValidation.error.issues);
+      return NextResponse.json(
+        createErrorResponse('RESPONSE_VALIDATION_ERROR', '응답 데이터 형식이 올바르지 않습니다'),
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(responseData);
   } catch (error) {
     console.error('12샷 분해 API 오류:', error);
