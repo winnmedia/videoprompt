@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { PlanningRegistrationRequestSchema, createValidationErrorResponse, createSuccessResponse, createErrorResponse } from '@/shared/schemas/api.schema';
 
+// Next.js 캐시 무효화 - 항상 최신 데이터 보장
+export const dynamic = 'force-dynamic';
+
 // TypeScript 인터페이스는 Zod 스키마로 대체됨
 // PlanningRegistrationRequest 타입은 shared/schemas/api.schema.ts에서 import
 
@@ -130,11 +133,21 @@ export async function POST(request: NextRequest) {
 
     // 데이터베이스 저장 구현
     try {
-      // 실제 Prisma를 통한 데이터베이스 저장
-      const { prisma: db } = await import('@/lib/db');
+      // Prisma 클라이언트 임포트 및 연결 검증
+      const { prisma, checkDatabaseConnection } = await import('@/lib/prisma');
+
+      // 데이터베이스 연결 상태 검증
+      const connectionStatus = await checkDatabaseConnection(2);
+      if (!connectionStatus.success) {
+        console.error('❌ Database connection failed:', connectionStatus.error);
+        return NextResponse.json(
+          createErrorResponse('DATABASE_CONNECTION_ERROR', '데이터베이스 연결에 실패했습니다. 잠시 후 다시 시도해주세요.'),
+          { status: 503 }
+        );
+      }
 
       // Project 테이블에 Planning 데이터 저장 (기존 스키마 활용)
-      const savedItem = await db.project.create({
+      const savedItem = await prisma.project.create({
         data: {
           id: registeredItem.id,
           title: registeredItem.title,
@@ -160,15 +173,43 @@ export async function POST(request: NextRequest) {
       );
 
     } catch (dbError) {
+      // 상세한 에러 로깅 (프로덕션에서는 민감정보 제외)
+      const errorMessage = dbError instanceof Error ? dbError.message : '알 수 없는 데이터베이스 오류';
+      console.error('❌ Database operation failed:', {
+        error: errorMessage,
+        type: registeredItem.type,
+        projectId: registeredItem.projectId,
+        timestamp: new Date().toISOString()
+      });
 
-      // 데이터베이스 연결 실패 시 친화적 에러 메시지
-      if (dbError instanceof Error && dbError.message.includes('connect')) {
-        return NextResponse.json(
-          createErrorResponse('DATABASE_CONNECTION_ERROR', '데이터베이스 연결에 실패했습니다. 잠시 후 다시 시도해주세요.'),
-          { status: 503 }
-        );
+      // Prisma 특정 에러 처리
+      if (dbError instanceof Error) {
+        // 연결 실패
+        if (dbError.message.includes('connect') || dbError.message.includes('timeout')) {
+          return NextResponse.json(
+            createErrorResponse('DATABASE_CONNECTION_ERROR', '데이터베이스 연결에 실패했습니다. 잠시 후 다시 시도해주세요.'),
+            { status: 503 }
+          );
+        }
+
+        // 스키마 관련 에러
+        if (dbError.message.includes('Unknown field') || dbError.message.includes('does not exist')) {
+          return NextResponse.json(
+            createErrorResponse('DATABASE_SCHEMA_ERROR', '데이터베이스 스키마 오류입니다. 관리자에게 문의하세요.'),
+            { status: 500 }
+          );
+        }
+
+        // 제약 조건 위반
+        if (dbError.message.includes('constraint') || dbError.message.includes('unique')) {
+          return NextResponse.json(
+            createErrorResponse('DATABASE_CONSTRAINT_ERROR', '중복된 데이터입니다. 다시 시도해주세요.'),
+            { status: 409 }
+          );
+        }
       }
 
+      // 기타 데이터베이스 오류
       return NextResponse.json(
         createErrorResponse('DATABASE_ERROR', '데이터 저장 중 오류가 발생했습니다.'),
         { status: 500 }
