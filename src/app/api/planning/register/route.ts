@@ -128,34 +128,53 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    // TODO: 실제 데이터베이스 연결 구현 필요
-    // 현재는 임시로 메모리 처리하지만, Prisma를 통한 실제 저장 구현 필요
-    
+    // 데이터베이스 저장 구현
     try {
-      // 임시 로깅 (개발 단계에서만)
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Planning content registered:', registeredItem);
-      }
-      
-      // 실제 구현에서는 아래와 같이 데이터베이스에 저장
-      // await prisma.planningItem.create({ data: registeredItem });
-      
+      // 실제 Prisma를 통한 데이터베이스 저장
+      const db = await import('@/lib/db').then(m => m.default);
+
+      // Planning 테이블에 저장 (Prisma 스키마에 따라)
+      const savedItem = await db.planning.create({
+        data: {
+          id: registeredItem.id,
+          contentType: registeredItem.contentType,
+          title: registeredItem.title,
+          description: registeredItem.description || null,
+          data: registeredItem.data as any, // JSON 필드
+          status: registeredItem.status,
+          createdAt: registeredItem.createdAt,
+          updatedAt: registeredItem.updatedAt,
+          completedAt: registeredItem.completedAt || null,
+        },
+      });
+
+      // 성공 응답
+      return NextResponse.json(
+        createSuccessResponse('Planning content registered successfully', {
+          id: savedItem.id,
+          contentType: savedItem.contentType,
+          status: savedItem.status,
+          createdAt: savedItem.createdAt,
+        }),
+        { status: 201 }
+      );
+
     } catch (dbError) {
       console.error('Database error:', dbError);
+
+      // 데이터베이스 연결 실패 시 친화적 에러 메시지
+      if (dbError instanceof Error && dbError.message.includes('connect')) {
+        return NextResponse.json(
+          createErrorResponse('DATABASE_CONNECTION_ERROR', '데이터베이스 연결에 실패했습니다. 잠시 후 다시 시도해주세요.'),
+          { status: 503 }
+        );
+      }
+
       return NextResponse.json(
         createErrorResponse('DATABASE_ERROR', '데이터 저장 중 오류가 발생했습니다.'),
         { status: 500 }
       );
     }
-
-    // 성공 응답
-    return NextResponse.json(
-      createSuccessResponse(
-        registeredItem,
-        `${type} 콘텐츠가 성공적으로 등록되었습니다.`,
-        { id: itemId }
-      )
-    );
 
   } catch (error) {
     console.error('Registration error:', error);
