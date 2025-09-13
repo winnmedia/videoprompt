@@ -150,14 +150,14 @@ export async function POST(request: NextRequest) {
       const savedItem = await prisma.project.create({
         data: {
           id: registeredItem.id,
-          title: registeredItem.title,
+          title: registeredItem.title || 'Untitled',
           description: registeredItem.description || null,
           metadata: registeredItem as any, // JSON 필드에 전체 데이터 저장
-          status: registeredItem.status,
+          status: 'active', // 기본 상태값 설정
           userId: 'system-planning', // 시스템 생성 표시
           tags: [registeredItem.type], // type을 태그로 저장
           scenario: registeredItem.type === 'scenario' ? JSON.stringify(registeredItem) : null,
-          prompt: registeredItem.type === 'prompt' ? (registeredItem as any).prompt : null,
+          prompt: registeredItem.type === 'prompt' ? (registeredItem as any).finalPrompt : null,
         },
       });
 
