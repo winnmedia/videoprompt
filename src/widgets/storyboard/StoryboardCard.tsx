@@ -152,6 +152,15 @@ export const StoryboardCard: React.FC<StoryboardCardProps> = ({
               />
             </svg>
             <span className="text-sm">이미지 생성 대기 중</span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRegenerate(shot.id);
+              }}
+              className="mt-3 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+            >
+              콘티 생성
+            </button>
           </div>
         )}
         
@@ -166,8 +175,8 @@ export const StoryboardCard: React.FC<StoryboardCardProps> = ({
         <h3 className="font-semibold text-gray-900 dark:text-gray-100">
           {shot.title}
         </h3>
-        
-        {!compact && shot.description && (
+
+        {shot.description && (
           <p className="mt-1 line-clamp-2 text-sm text-gray-600 dark:text-gray-400">
             {shot.description}
           </p>

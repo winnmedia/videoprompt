@@ -1297,11 +1297,11 @@ export default function ScenarioPage() {
                   <Button
                     variant="outline"
                     size="lg"
-                    onClick={registerToManagement}
-                    disabled={registrationStatus.isRegistering || !autoSaveData.title || !autoSaveData.oneLineStory}
+                    onClick={handleSaveScenario}
+                    disabled={!autoSaveData.title || !autoSaveData.oneLineStory}
                     className="px-6"
                   >
-                    {registrationStatus.isRegistering ? '등록 중...' : '관리 페이지에 등록'}
+                    기획안 저장
                   </Button>
                   <Button
                     size="lg"
