@@ -136,6 +136,12 @@ export async function POST(request: NextRequest) {
       // Prisma 클라이언트 임포트 및 연결 검증
       const { prisma, checkDatabaseConnection } = await import('@/lib/prisma');
 
+      console.log('📡 Planning API 요청 시작:', {
+        type: registeredItem.type,
+        projectId: registeredItem.projectId,
+        timestamp: new Date().toISOString()
+      });
+
       // 데이터베이스 연결 상태 검증
       const connectionStatus = await checkDatabaseConnection(2);
       if (!connectionStatus.success) {
@@ -146,20 +152,28 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      console.log('✅ Database connection verified:', connectionStatus.latency + 'ms');
+
       // Project 테이블에 Planning 데이터 저장 (기존 스키마 활용)
+      const createData = {
+        id: registeredItem.id,
+        title: registeredItem.title || 'Untitled',
+        description: registeredItem.description || null,
+        metadata: registeredItem as any, // JSON 필드에 전체 데이터 저장
+        status: 'active', // 기본 상태값 설정
+        userId: 'system-planning', // 시스템 생성 표시
+        tags: [registeredItem.type], // type을 태그로 저장
+        scenario: registeredItem.type === 'scenario' ? JSON.stringify(registeredItem) : null,
+        prompt: registeredItem.type === 'prompt' ? (registeredItem as any).finalPrompt : null,
+      };
+
+      console.log('💾 Creating project with data:', JSON.stringify(createData, null, 2));
+
       const savedItem = await prisma.project.create({
-        data: {
-          id: registeredItem.id,
-          title: registeredItem.title || 'Untitled',
-          description: registeredItem.description || null,
-          metadata: registeredItem as any, // JSON 필드에 전체 데이터 저장
-          status: 'active', // 기본 상태값 설정
-          userId: 'system-planning', // 시스템 생성 표시
-          tags: [registeredItem.type], // type을 태그로 저장
-          scenario: registeredItem.type === 'scenario' ? JSON.stringify(registeredItem) : null,
-          prompt: registeredItem.type === 'prompt' ? (registeredItem as any).finalPrompt : null,
-        },
+        data: createData,
       });
+
+      console.log('✅ Project created successfully:', savedItem.id);
 
       // 성공 응답
       return NextResponse.json(
