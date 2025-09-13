@@ -42,7 +42,6 @@ export async function GET(req: NextRequest) {
           );
         }
       } catch (error) {
-        console.error('Seedance status check failed:', error);
       }
     }
 
@@ -70,7 +69,6 @@ export async function GET(req: NextRequest) {
       { headers: corsHeaders },
     );
   } catch (error) {
-    console.error('Video status API error:', error);
     return NextResponse.json(
       {
         ok: false,
@@ -130,7 +128,6 @@ export async function POST(req: NextRequest) {
       { headers: corsHeaders },
     );
   } catch (error) {
-    console.error('Video status update error:', error);
     return NextResponse.json(
       {
         ok: false,
@@ -188,7 +185,6 @@ export async function PUT(req: NextRequest) {
       { headers: corsHeaders },
     );
   } catch (error) {
-    console.error('Video save error:', error);
     return NextResponse.json(
       {
         ok: false,

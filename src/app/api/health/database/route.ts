@@ -4,8 +4,6 @@ import { initializeDatabase, validateDatabaseSchema, checkDatabaseConnection } f
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔍 데이터베이스 상태 검사 시작...');
-    
     // 초기화 및 전체 상태 검사
     const result = await initializeDatabase();
     
@@ -31,7 +29,6 @@ export async function GET(request: NextRequest) {
       }
     };
 
-    console.log('📊 데이터베이스 상태 검사 결과:', detailedResponse);
 
     // HTTP 상태 코드 결정
     const httpStatus = result.initialized ? 200 : 503;
@@ -39,7 +36,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(detailedResponse, { status: httpStatus });
 
   } catch (error) {
-    console.error('❌ 데이터베이스 상태 검사 중 오류 발생:', error);
     
     const errorResponse = {
       timestamp: new Date().toISOString(),

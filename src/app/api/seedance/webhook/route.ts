@@ -97,7 +97,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Seedance webhook error:', error);
     return NextResponse.json(
       {
         ok: false,

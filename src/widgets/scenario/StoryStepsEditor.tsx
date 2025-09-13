@@ -11,6 +11,8 @@ interface StoryStepsEditorProps {
   onGenerateShots: () => void;
   loading: boolean;
   loadingMessage?: string;
+  developmentMethod?: string;
+  onGoBack?: () => void;
 }
 
 export function StoryStepsEditor({
@@ -19,11 +21,20 @@ export function StoryStepsEditor({
   onUpdateStep,
   onGenerateShots,
   loading,
-  loadingMessage
+  loadingMessage,
+  developmentMethod,
+  onGoBack
 }: StoryStepsEditorProps) {
   return (
     <div className="card p-4 sm:p-6">
-      <h2 className="mb-6 text-xl font-semibold text-gray-900">4단계 스토리 검토/수정</h2>
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold text-gray-900">4단계 스토리 검토/수정</h2>
+        {developmentMethod && (
+          <p className="mt-2 text-sm text-gray-600">
+            <span className="font-medium">스토리 전개 방식:</span> {developmentMethod}
+          </p>
+        )}
+      </div>
 
       <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2">
         {storySteps.map((step) => (
@@ -90,7 +101,18 @@ export function StoryStepsEditor({
         ))}
       </div>
 
-      <div className="flex justify-center">
+      <div className="flex justify-center space-x-4">
+        {onGoBack && (
+          <Button
+            variant="outline"
+            onClick={onGoBack}
+            disabled={loading}
+            size="lg"
+            className="px-8"
+          >
+            이전 단계
+          </Button>
+        )}
         <Button
           onClick={onGenerateShots}
           disabled={loading}

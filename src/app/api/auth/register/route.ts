@@ -32,23 +32,15 @@ const RegisterSchema = z.object({
 export async function POST(req: NextRequest) {
   const traceId = getTraceId(req);
   
-  console.log(`[Register ${traceId}] 🚀 회원가입 요청 시작`);
-  console.log(`[Register ${traceId}] Headers:`, {
-    'content-type': req.headers.get('content-type'),
-    'user-agent': req.headers.get('user-agent'),
-    'origin': req.headers.get('origin'),
-  });
   
   try {
     // Request body 안전 파싱
     const parseResult = await safeParseRequestBody(req, RegisterSchema);
     if (!parseResult.success) {
-      console.error(`[Register ${traceId}] JSON 파싱 실패:`, parseResult.error);
       return failure('INVALID_REQUEST', '잘못된 요청 형식입니다.', 400, parseResult.error, traceId);
     }
     
     const { email, username, password } = parseResult.data!;
-    console.log(`[Register ${traceId}] ✅ 입력값 파싱 및 검증 성공:`, { email, username, passwordLength: password.length });
     
     // 중복 사용자 확인 및 사용자 생성을 데이터베이스 작업으로 래핑
 
@@ -105,7 +97,6 @@ export async function POST(req: NextRequest) {
       message: '회원가입이 완료되었습니다. 로그인해주세요.',
     }, 201, traceId);
   } catch (e: any) {
-    console.error(`[Register ${traceId}] Error:`, e);
     
     // 커스텀 중복 사용자 오류 처리
     if (e.message === 'DUPLICATE_USER') {

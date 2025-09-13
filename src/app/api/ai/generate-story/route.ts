@@ -132,7 +132,6 @@ export const POST = withCors(async (request: NextRequest) => {
       if (!geminiApiKey) {
         // Production에서는 로그 최소화
         if (process.env.NODE_ENV === 'development') {
-          console.error('[LLM] ❌ 환경변수 GOOGLE_GEMINI_API_KEY가 설정되지 않음');
         }
         return NextResponse.json({ 
           error: 'LLM_CONFIG_ERROR',
@@ -141,7 +140,6 @@ export const POST = withCors(async (request: NextRequest) => {
         }, { status: 400 });
       } else if (geminiApiKey === 'your-actual-gemini-key') {
         if (process.env.NODE_ENV === 'development') {
-          console.error('[LLM] ❌ 플레이스홀더 API 키 감지');
         }
         return NextResponse.json({ 
           error: 'LLM_CONFIG_ERROR',
@@ -150,7 +148,6 @@ export const POST = withCors(async (request: NextRequest) => {
         }, { status: 400 });
       } else {
         if (process.env.NODE_ENV === 'development') {
-          console.error(`[LLM] ❌ 잘못된 API 키 형식: ${geminiApiKey?.substring(0, 10)}...`);
         }
         return NextResponse.json({ 
           error: 'LLM_CONFIG_ERROR',
@@ -162,7 +159,6 @@ export const POST = withCors(async (request: NextRequest) => {
 
     // Development 환경에서만 성공 로그
     if (process.env.NODE_ENV === 'development') {
-      console.log('[LLM] ✅ API 키 유효성 확인 완료');
     }
 
     // LLM 호출 재시도 로직 (최대 2회로 제한하여 무한 에러 방지)
@@ -177,7 +173,6 @@ export const POST = withCors(async (request: NextRequest) => {
       }
       
       if (process.env.NODE_ENV === 'development') {
-        console.log(`[LLM] Gemini API 호출 시도 ${attempt + 1}/${MAX_RETRIES}...`);
       }
       
       try {
@@ -490,13 +485,11 @@ ${(() => {
         );
 
         if (process.env.NODE_ENV === 'development') {
-          console.log(`[LLM] API 응답 상태: ${response.status} ${response.statusText}`);
         }
         
         if (!response.ok) {
           const errorText = await response.text();
           if (process.env.NODE_ENV === 'development') {
-            console.error(`[LLM] API 오류 (${response.status}):`, errorText);
           }
           
           // 429 (Rate Limit) 에러는 재시도 가치가 있음
@@ -508,7 +501,6 @@ ${(() => {
           // 400번대 에러는 재시도해도 해결 안됨
           if (response.status >= 400 && response.status < 500) {
             if (process.env.NODE_ENV === 'development') {
-              console.error('[LLM] 클라이언트 오류 - 재시도 불가');
             }
             return NextResponse.json({ 
               error: 'AI 요청 형식 오류입니다. 입력 내용을 확인해주세요.' 
@@ -533,14 +525,12 @@ ${(() => {
         
         if (!generatedText) {
           if (process.env.NODE_ENV === 'development') {
-            console.warn('[LLM] 응답에 텍스트가 없음');
           }
           lastError = new Error('Empty response from API');
           continue;
         }
         
         if (process.env.NODE_ENV === 'development') {
-          console.log(`[LLM] 생성된 텍스트 길이: ${generatedText.length}`);
         }
         
         // JSON 파싱 시도 (재시도 로직 포함)

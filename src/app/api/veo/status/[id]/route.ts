@@ -18,7 +18,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       );
     }
 
-    console.log('DEBUG: Veo status check for operation:', operationId);
 
     const result = await checkVeoVideoStatus(operationId);
 
@@ -40,7 +39,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       );
     }
   } catch (error) {
-    console.error('Veo status check error:', error);
     return NextResponse.json(
       {
         ok: false,

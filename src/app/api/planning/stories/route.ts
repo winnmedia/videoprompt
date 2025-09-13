@@ -57,33 +57,61 @@ export async function GET(request: NextRequest) {
     // 정렬 조건 구성
     const orderBy = { [sortBy]: sortOrder };
 
-    const [stories, totalCount] = await Promise.all([
-      prisma.story.findMany({
-        where: whereCondition,
-        orderBy,
+    // Project 테이블에서 scenario 타입 데이터 조회
+    const projectWhereCondition = {
+      // scenario contentType 필터링
+      tags: {
+        array_contains: ['scenario']
+      },
+      // 사용자별 필터링과 검색어 조건을 AND로 결합
+      AND: [
+        // 사용자별 필터링: system-planning 포함
+        {
+          OR: [
+            { userId: user ? user.id : 'system-planning' },
+            { userId: 'system-planning' }
+          ]
+        },
+        // 검색어가 있는 경우
+        ...(search ? [{
+          OR: [
+            { title: { contains: search, mode: 'insensitive' as const } },
+            { description: { contains: search, mode: 'insensitive' as const } },
+          ]
+        }] : [])
+      ]
+    };
+
+    const [projects, totalCount] = await Promise.all([
+      prisma.project.findMany({
+        where: projectWhereCondition,
+        orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
       }),
-      prisma.story.count({
-        where: whereCondition,
+      prisma.project.count({
+        where: projectWhereCondition,
       }),
     ]);
 
     const totalPages = Math.ceil(totalCount / limit);
 
-    // 응답 데이터 형식화
-    const formattedStories = stories.map((story) => ({
-      id: story.id,
-      title: story.title,
-      oneLineStory: story.oneLineStory,
-      genre: story.genre,
-      tone: story.tone || 'Neutral',
-      target: story.target || 'General',
-      structure: story.structure || null,
-      userId: story.userId,
-      createdAt: story.createdAt.toISOString(),
-      updatedAt: story.updatedAt.toISOString(),
-    }));
+    // 응답 데이터 형식화 - Project 테이블에서 Story 형식으로 변환
+    const formattedStories = projects.map((project) => {
+      const metadata = project.metadata as any;
+      return {
+        id: project.id,
+        title: project.title,
+        oneLineStory: project.description || '',
+        genre: metadata?.genre || 'Unknown',
+        tone: metadata?.toneAndManner?.[0] || 'Neutral',
+        target: metadata?.target || 'General',
+        structure: metadata?.storySteps || null,
+        userId: project.userId,
+        createdAt: project.createdAt.toISOString(),
+        updatedAt: project.updatedAt.toISOString(),
+      };
+    });
 
     const response = {
       stories: formattedStories,
@@ -100,7 +128,6 @@ export async function GET(request: NextRequest) {
     const responseResult = StoriesResponseSchema.safeParse(response);
     
     if (!responseResult.success) {
-      console.error('응답 데이터 검증 실패:', responseResult.error);
       return NextResponse.json(
         createErrorResponse('RESPONSE_VALIDATION_ERROR', '응답 데이터 형식이 올바르지 않습니다'),
         { status: 500 }
@@ -109,7 +136,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('스토리 목록 조회 오류:', error);
     return NextResponse.json(
       createErrorResponse('INTERNAL_ERROR', '스토리 목록 조회 중 오류가 발생했습니다'),
       { status: 500 }
@@ -171,7 +197,6 @@ export async function POST(request: NextRequest) {
     );
 
     if (!responseValidation.success) {
-      console.error('응답 데이터 검증 실패:', responseValidation.error);
       return NextResponse.json(
         createErrorResponse('RESPONSE_VALIDATION_ERROR', '응답 데이터 형식이 올바르지 않습니다'),
         { status: 500 }
@@ -180,7 +205,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(responseData, { status: 201 });
   } catch (error) {
-    console.error('스토리 저장 오류:', error);
     
     // 데이터베이스 제약 조건 위반 등의 특정 오류 처리
     if (error instanceof Error) {
