@@ -237,26 +237,8 @@ export function useStoryLoad(projectId?: string) {
     enabled: !!projectId,
 
     staleTime: 5 * 60 * 1000, // 5분간 신선
-    cacheTime: 30 * 60 * 1000, // 30분간 캐시
+    gcTime: 30 * 60 * 1000, // 30분간 캐시
 
-    onSuccess: (data) => {
-      // Redux 상태에 동기화
-      dispatch(setStorySteps(data.steps));
-
-      dispatch(addToast({
-        type: 'success',
-        title: '스토리 불러오기 완료',
-        message: `저장된 스토리를 불러왔습니다`
-      }));
-    },
-
-    onError: (error: Error) => {
-      dispatch(addToast({
-        type: 'error',
-        title: '불러오기 실패',
-        message: error.message || '스토리를 불러오는데 실패했습니다'
-      }));
-    }
   });
 }
 
@@ -280,7 +262,7 @@ export function useSavedStories() {
     },
 
     staleTime: 2 * 60 * 1000, // 2분간 신선
-    cacheTime: 10 * 60 * 1000, // 10분간 캐시
+    gcTime: 10 * 60 * 1000, // 10분간 캐시
   });
 }
 

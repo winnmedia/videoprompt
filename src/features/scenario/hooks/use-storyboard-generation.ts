@@ -334,26 +334,8 @@ export function useStoryboardLoad(projectId?: string) {
     enabled: !!projectId,
 
     staleTime: 5 * 60 * 1000,
-    cacheTime: 30 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
 
-    onSuccess: (data) => {
-      dispatch(setShots(data.shots));
-      dispatch(setStoryboardShots(data.storyboardShots));
-
-      dispatch(addToast({
-        type: 'success',
-        title: '스토리보드 불러오기 완료',
-        message: '저장된 스토리보드를 불러왔습니다'
-      }));
-    },
-
-    onError: (error: Error) => {
-      dispatch(addToast({
-        type: 'error',
-        title: '불러오기 실패',
-        message: error.message || '스토리보드를 불러오는데 실패했습니다'
-      }));
-    }
   });
 }
 
@@ -377,7 +359,7 @@ export function useSavedStoryboards() {
     },
 
     staleTime: 2 * 60 * 1000,
-    cacheTime: 10 * 60 * 1000
+    gcTime: 10 * 60 * 1000
   });
 }
 

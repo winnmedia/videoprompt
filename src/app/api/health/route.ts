@@ -30,7 +30,7 @@ export async function GET() {
     } catch (error) {
       dbStatus = 'unhealthy';
       dbError = error instanceof Error ? error.message : String(error);
-      logger.error('DB health check failed', { error: dbError });
+      logger.error('DB health check failed', error instanceof Error ? error : new Error(String(error)));
     }
 
     const healthData = {
@@ -51,7 +51,7 @@ export async function GET() {
     return NextResponse.json(healthData, { status: statusCode });
 
   } catch (error) {
-    logger.error('Health check error', { error });
+    logger.error('Health check error', error instanceof Error ? error : new Error(String(error)));
     
     return NextResponse.json({
       status: 'error',

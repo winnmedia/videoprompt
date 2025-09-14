@@ -29,11 +29,12 @@ export async function POST(req: NextRequest) {
     logger.info('Imagen Preview API started', {
       prompt: prompt?.substring(0, 100) + (prompt?.length > 100 ? '...' : ''),
       aspectRatio,
-      quality
-    }, traceId);
+      quality,
+      traceId
+    });
 
     if (!prompt) {
-      logger.warn('Missing prompt in request', {}, traceId);
+      logger.warn('Missing prompt in request', { traceId });
       return NextResponse.json({ error: '프롬프트가 필요합니다.' }, { status: 400 });
     }
 
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
     // 1) 환경변수 플래그, 2) 헤더 플래그(x-e2e-fast)
     const e2eFastHeader = (req.headers.get('x-e2e-fast') || '').toLowerCase();
     if (process.env.E2E_FAST_PREVIEW === '1' || e2eFastHeader === '1' || e2eFastHeader === 'true') {
-      logger.info('E2E fast preview mode activated', { jobId }, traceId);
+      logger.info('E2E fast preview mode activated', { jobId, traceId });
       updateJobStatus(jobId, 'completed', 100, buildFallbackImageDataUrl(prompt));
       return NextResponse.json(
         { ok: true, jobId, status: 'completed', imageUrl: buildFallbackImageDataUrl(prompt), traceId },
@@ -63,16 +64,14 @@ export async function POST(req: NextRequest) {
 
     // 백그라운드에서 이미지 생성 처리 (Promise를 기다리지 않음)
     processImageGeneration(jobId, prompt, aspectRatio, quality, traceId).catch(error => {
-      logger.error('Background image generation failed', { error: error.message, jobId }, traceId);
+      logger.error('Background image generation failed', error, { jobId, traceId });
       updateJobStatus(jobId, 'failed', 0, undefined, error.message);
     });
 
     return response;
   } catch (error) {
     const traceId = req.headers.get('x-trace-id') || 'unknown';
-    logger.error('Imagen preview API error', { 
-      error: error instanceof Error ? error.message : String(error) 
-    }, traceId);
+    logger.error('Imagen preview API error', error instanceof Error ? error : new Error(String(error)), { traceId });
     // 최상위 예외에서도 빈 이미지 금지 → SVG 폴백 제공
     return NextResponse.json(
       { ok: true, provider: 'fallback-svg', imageUrl: buildFallbackImageDataUrl('Storyboard preview') },
