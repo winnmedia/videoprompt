@@ -109,10 +109,15 @@ function generateMockStoryboardResult(shotId: string, prompt: string): Storyboar
   };
 }
 
+// 시나리오 핸들러 import
+import { scenarioHandlers } from './scenario-handlers';
+
 /**
  * MSW 핸들러 정의 - 실제 API 엔드포인트와 통합 테스트용
  */
 export const handlers = [
+  // 시나리오 관련 핸들러 추가
+  ...scenarioHandlers,
   // =============================================================================
   // 인증 API 핸들러
   // =============================================================================

@@ -26,7 +26,7 @@ export function StoryStepsEditor({
   onGoBack
 }: StoryStepsEditorProps) {
   return (
-    <div className="card p-4 sm:p-6">
+    <div className="bg-white rounded-lg shadow p-4 sm:p-6">
       <div className="mb-6">
         <h2 className="text-xl font-semibold text-gray-900">4단계 스토리 검토/수정</h2>
         {developmentMethod && (
@@ -38,14 +38,14 @@ export function StoryStepsEditor({
 
       <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2">
         {storySteps.map((step) => (
-          <div key={step.id} className="card-hover p-4">
+          <div key={step.id} className="bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow p-4">
             <div className="mb-3 flex items-start justify-between">
               <h3 className="text-lg font-medium text-gray-900">{step.title}</h3>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onToggleEditing(step.id)}
-                className="btn-secondary"
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700"
               >
                 {step.isEditing ? '완료' : '편집'}
               </Button>
@@ -117,7 +117,7 @@ export function StoryStepsEditor({
           onClick={onGenerateShots}
           disabled={loading}
           size="lg"
-          className="btn-primary px-8"
+          className="bg-brand-600 hover:bg-brand-700 text-white px-8"
         >
           {loading ? '숏트 생성 중...' : '12개 숏트 생성'}
         </Button>

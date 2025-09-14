@@ -172,7 +172,10 @@ export async function safeFetch(
         { url: fullUrl, method, status: response.status, duration },
         response.status >= 500 ? 'high' : 'medium'
       );
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+
+      // 사용자 친화적인 에러 메시지 생성
+      const userFriendlyMessage = getUserFriendlyErrorMessage(response.status, fullUrl);
+      throw new Error(userFriendlyMessage);
     }
     
     // 성능 추적
@@ -201,4 +204,55 @@ export function withDeduplication<T>(
 
   requestCache.set(key, promise);
   return promise;
+}
+
+// 사용자 친화적인 에러 메시지 생성 함수
+export function getUserFriendlyErrorMessage(status: number, url: string): string {
+  const isStoriesAPI = url.includes('/api/planning/stories');
+  const isAuthAPI = url.includes('/api/auth/');
+
+  switch (status) {
+    case 400:
+      return '요청이 올바르지 않습니다. 입력 내용을 확인해주세요.';
+
+    case 401:
+      if (isAuthAPI) {
+        return '로그인 정보가 올바르지 않습니다. 다시 시도해주세요.';
+      }
+      return '인증이 필요합니다. 로그인 후 다시 시도해주세요.';
+
+    case 403:
+      return '접근 권한이 없습니다.';
+
+    case 404:
+      if (isStoriesAPI) {
+        return '요청한 스토리를 찾을 수 없습니다.';
+      }
+      return '요청한 리소스를 찾을 수 없습니다.';
+
+    case 409:
+      return '이미 존재하는 데이터입니다.';
+
+    case 429:
+      return '너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요.';
+
+    case 500:
+      return '서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+
+    case 502:
+    case 503:
+      if (url.includes('DATABASE')) {
+        return '데이터베이스 연결에 문제가 있습니다. 관리자에게 문의해주세요.';
+      }
+      return '서비스가 일시적으로 이용할 수 없습니다. 잠시 후 다시 시도해주세요.';
+
+    case 504:
+      return '요청 처리 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.';
+
+    default:
+      if (status >= 500) {
+        return '서버 오류가 발생했습니다. 관리자에게 문의해주세요.';
+      }
+      return `알 수 없는 오류가 발생했습니다. (${status})`;
+  }
 }
