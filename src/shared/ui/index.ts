@@ -22,9 +22,7 @@ export { ErrorBoundary, withErrorBoundary } from './ErrorBoundary';
 export { ErrorFallback, ErrorCard } from './ErrorFallback';
 
 // Typography & Layout
-export { Heading } from './Heading';
-export { Text } from './Text';
-export { Container } from './Container';
+// Removed for build compatibility
 
 // Email Verification Components
 export { VerificationCodeInput } from './VerificationCodeInput';
