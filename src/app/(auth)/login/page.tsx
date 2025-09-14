@@ -5,11 +5,15 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Logo, Button, FormError, Input } from '@/shared/ui';
 import { useAuthStore } from '@/shared/store/useAuthStore';
+import { useAuthRedirect } from '@/shared/hooks';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setUser } = useAuthStore();
+
+  // 인증된 사용자는 홈으로 리다이렉트
+  const { isLoading: authLoading } = useAuthRedirect({ redirectPath: '/' });
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -61,6 +65,18 @@ function LoginForm() {
       setLoading(false);
     }
   };
+
+  // 인증 상태 확인 중이면 로딩 표시
+  if (authLoading) {
+    return (
+      <div className="bg-gray-800/50 backdrop-blur-lg rounded-xl p-8 shadow-2xl border border-gray-700">
+        <div className="flex items-center justify-center space-x-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-600 border-t-transparent"></div>
+          <span className="text-gray-300">인증 상태 확인 중...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-800/50 backdrop-blur-lg rounded-xl p-8 shadow-2xl border border-gray-700">

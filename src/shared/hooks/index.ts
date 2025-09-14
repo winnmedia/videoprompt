@@ -8,6 +8,7 @@ export { useWizardOptions } from './useWizardOptions';
 export { useScenarioGenerator } from './useScenarioGenerator';
 export { usePlanningState } from './usePlanningState';
 export { useWorkflowState } from './useWorkflowState';
+export { useAuthRedirect } from './useAuthRedirect';
 
 export type {
   WizardState,
