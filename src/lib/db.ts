@@ -1,5 +1,38 @@
 import { PrismaClient } from '@prisma/client';
 
+// 빌드 환경 감지 - Next.js 빌드 중인지 확인
+const isBuildTime = () => {
+  // 명시적인 빌드 환경 변수들 체크
+  if (
+    process.env.NEXT_PHASE === 'phase-production-build' ||
+    process.env.NEXT_PHASE === 'phase-development-build' ||
+    process.env.__NEXT_PROCESSED_ENV === 'true'
+  ) {
+    return true;
+  }
+
+  // 빌드 명령어 감지 (pnpm build, next build, npm run build 등)
+  const buildCommands = ['build', 'next'];
+  if (process.argv.some(arg => buildCommands.includes(arg))) {
+    return true;
+  }
+
+  // Vercel/Docker 빌드 환경에서 DATABASE_URL 없는 경우
+  if (
+    process.env.NODE_ENV === 'production' &&
+    !process.env.DATABASE_URL &&
+    (
+      process.env.VERCEL === '1' ||  // Vercel 빌드
+      process.env.CI === 'true' ||   // CI 환경
+      process.env.DOCKER === 'true'  // Docker 빌드
+    )
+  ) {
+    return true;
+  }
+
+  return false;
+};
+
 // 환경 변수 검증 (명확한 에러 발생)
 const validateDatabaseUrl = (url?: string): string => {
   if (!url) {
@@ -18,7 +51,13 @@ const validateDatabaseUrl = (url?: string): string => {
 };
 
 // Prisma 클라이언트 싱글톤 생성 함수
-const prismaClientSingleton = () => {
+const prismaClientSingleton = (): PrismaClient => {
+  // 빌드 시간에는 에러 발생 (이 함수는 런타임에만 호출됨)
+  if (isBuildTime()) {
+    console.log('🔄 Build time detected - Prisma initialization blocked');
+    throw new Error('Prisma client should not be initialized during build time');
+  }
+
   // 환경 변수 검증 및 URL 가져오기
   const databaseUrl = validateDatabaseUrl(process.env.DATABASE_URL);
 
@@ -28,24 +67,50 @@ const prismaClientSingleton = () => {
         url: databaseUrl,
       },
     },
-    log: process.env.NODE_ENV === 'development' 
-      ? ['query', 'error', 'warn'] 
+    log: process.env.NODE_ENV === 'development'
+      ? ['query', 'error', 'warn']
       : ['error'],
-    
+
     // 에러 포맷팅
     errorFormat: 'pretty',
   });
 };
 
 declare global {
-   
-  var prisma: undefined | ReturnType<typeof prismaClientSingleton>;
+
+  var prisma: undefined | PrismaClient;
 }
 
-// 글로벌 싱글톤 인스턴스 생성 또는 재사용
-export const prisma = (() => {
+// Lazy loading을 위한 Prisma 클라이언트 getter
+let _prismaClient: PrismaClient | null = null;
+
+const getPrismaClient = (): PrismaClient => {
+  // 빌드 시간에는 에러 발생
+  if (isBuildTime()) {
+    throw new Error('Prisma client cannot be used during build time');
+  }
+
+  // 이미 초기화된 클라이언트가 있으면 반환
+  if (_prismaClient) {
+    return _prismaClient;
+  }
+
+  // 글로벌 캐시 확인
+  if (globalThis.prisma && globalThis.prisma !== null) {
+    _prismaClient = globalThis.prisma;
+    return _prismaClient;
+  }
+
+  // 새로운 클라이언트 생성
   try {
-    return globalThis.prisma ?? prismaClientSingleton();
+    _prismaClient = prismaClientSingleton();
+
+    // 개발 환경에서만 글로벌 캐싱
+    if (process.env.NODE_ENV !== 'production') {
+      globalThis.prisma = _prismaClient;
+    }
+
+    return _prismaClient;
   } catch (error) {
     console.error('❌ Prisma 클라이언트 초기화 실패:', error);
 
@@ -57,12 +122,40 @@ export const prisma = (() => {
     // 기타 초기화 오류는 재발생하되 더 명확한 메시지로
     throw new Error(`데이터베이스 초기화 실패: ${error instanceof Error ? error.message : String(error)}`);
   }
-})();
+};
 
-// 개발 환경에서만 글로벌 캐싱
-if (process.env.NODE_ENV !== 'production') {
-  globalThis.prisma = prisma;
-}
+// Proxy를 사용하여 prisma 객체의 속성 접근을 lazy loading으로 처리
+export const prisma = new Proxy({} as PrismaClient, {
+  get(target, prop) {
+    // 빌드 시간에는 모든 접근을 차단
+    if (isBuildTime()) {
+      console.warn(`⚠️ Prisma access attempted during build time: ${String(prop)}`);
+      return undefined;
+    }
+
+    const client = getPrismaClient();
+    const value = client[prop as keyof PrismaClient];
+
+    // 함수인 경우 this 바인딩 유지
+    if (typeof value === 'function') {
+      return value.bind(client);
+    }
+
+    return value;
+  },
+
+  has(target, prop) {
+    if (isBuildTime()) return false;
+    const client = getPrismaClient();
+    return prop in client;
+  },
+
+  ownKeys(target) {
+    if (isBuildTime()) return [];
+    const client = getPrismaClient();
+    return Reflect.ownKeys(client);
+  }
+});
 
 // 데이터베이스 연결 헬스 체크 (향상된 버전)
 export const checkDatabaseConnection = async (
