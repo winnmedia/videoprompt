@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       prisma.project.findMany({
         where: {
           tags: {
-            has: 'scenario'
+            array_contains: 'scenario'
           }
         },
         orderBy: {
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
       prisma.project.findMany({
         where: {
           tags: {
-            has: 'prompt'
+            array_contains: 'prompt'
           }
         },
         orderBy: {
