@@ -17,6 +17,12 @@ export class ApiClient {
   private tokenProvider: (() => string | null) | null = null;
   private tokenSetter: ((token: string) => void) | null = null;
   private refreshPromise: Promise<string> | null = null;
+  private requestQueue: Array<{
+    url: string;
+    options: RequestInit;
+    resolve: (response: Response) => void;
+    reject: (error: Error) => void;
+  }> = [];
   
   private constructor() {}
   
@@ -117,6 +123,132 @@ export class ApiClient {
   }
 
   /**
+   * 401 에러 처리 - 토큰 갱신 후 원본 요청 재시도 (Promise Queue 적용)
+   */
+  private async handle401Error(url: string, options: RequestInit): Promise<Response> {
+    // 토큰 갱신이 이미 진행 중이면 큐에 대기
+    if (this.refreshPromise) {
+      console.log('🔄 Token refresh in progress, queuing request');
+      return new Promise((resolve, reject) => {
+        this.requestQueue.push({ url, options, resolve, reject });
+      });
+    }
+
+    try {
+      // 토큰 갱신 시도
+      const newToken = await this.refreshAccessToken();
+
+      if (!newToken) {
+        // 갱신 실패 시 대기 중인 모든 요청 거부
+        this.rejectQueuedRequests(new Error('Token refresh failed'));
+        throw new Error('Token refresh failed');
+      }
+
+      // 성공한 새 토큰으로 모든 대기 중인 요청 처리
+      await this.processQueuedRequests(newToken);
+
+      // 원본 요청 재시도
+      const updatedOptions = {
+        ...options,
+        headers: {
+          ...options.headers,
+          Authorization: `Bearer ${newToken}`
+        }
+      };
+
+      const retryResponse = await fetch(url, updatedOptions);
+
+      if (retryResponse.ok) {
+        console.log('✅ Request retry successful after token refresh');
+        return retryResponse;
+      }
+
+      // 재시도해도 401이면 완전한 인증 실패
+      if (retryResponse.status === 401) {
+        this.handleAuthenticationFailure();
+        throw new ContractViolationError(
+          '인증이 만료되었습니다. 다시 로그인해주세요.',
+          'authentication',
+          401
+        );
+      }
+
+      return retryResponse;
+
+    } catch (refreshError) {
+      console.error('Token refresh failed:', refreshError);
+      this.rejectQueuedRequests(refreshError instanceof Error ? refreshError : new Error('Token refresh failed'));
+      this.handleAuthenticationFailure();
+
+      throw new ContractViolationError(
+        '인증이 만료되었습니다. 다시 로그인해주세요.',
+        'authentication',
+        401
+      );
+    }
+  }
+
+  /**
+   * 대기 중인 요청들을 새 토큰으로 처리
+   */
+  private async processQueuedRequests(newToken: string): Promise<void> {
+    const queuedRequests = [...this.requestQueue];
+    this.requestQueue = [];
+
+    console.log(`🔄 Processing ${queuedRequests.length} queued requests with new token`);
+
+    // 모든 대기 요청을 병렬로 처리
+    const promises = queuedRequests.map(async ({ url, options, resolve, reject }) => {
+      try {
+        const updatedOptions = {
+          ...options,
+          headers: {
+            ...options.headers,
+            Authorization: `Bearer ${newToken}`
+          }
+        };
+
+        const response = await fetch(url, updatedOptions);
+        resolve(response);
+      } catch (error) {
+        reject(error as Error);
+      }
+    });
+
+    await Promise.allSettled(promises);
+  }
+
+  /**
+   * 대기 중인 모든 요청을 에러로 처리
+   */
+  private rejectQueuedRequests(error: Error): void {
+    const queuedRequests = [...this.requestQueue];
+    this.requestQueue = [];
+
+    console.log(`❌ Rejecting ${queuedRequests.length} queued requests due to refresh failure`);
+
+    queuedRequests.forEach(({ reject }) => {
+      reject(error);
+    });
+  }
+
+  /**
+   * 인증 실패 처리 - 토큰 정리 및 이벤트 발송
+   */
+  private handleAuthenticationFailure(): void {
+    if (typeof window !== 'undefined') {
+      // 모든 토큰 정리
+      localStorage.removeItem('token');
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('legacyToken');
+
+      // 통합 인증 무효화 이벤트 발송
+      window.dispatchEvent(new CustomEvent('auth:token-invalid'));
+    }
+  }
+
+  /**
    * 인증 헤더 생성 (자동 토큰 갱신 포함)
    */
   private async getAuthHeaders(): Promise<Record<string, string>> {
@@ -185,44 +317,13 @@ export class ApiClient {
         signal: AbortSignal.timeout(timeout)
       });
       
-      // 401 에러 처리 - 토큰 갱신 재시도
+      // 401 에러 처리 - 향상된 토큰 갱신 및 재시도 로직
       if (response.status === 401 && !skipAuth) {
-        try {
-          // 자동 토큰 갱신 시도
-          const newAuthHeaders = await this.getAuthHeaders();
-          const retryResponse = await fetch(url, {
-            ...restOptions,
-            headers: {
-              ...finalHeaders,
-              ...newAuthHeaders
-            },
-            signal: AbortSignal.timeout(timeout)
-          });
-
-          if (retryResponse.ok) {
-            return retryResponse;
-          }
-        } catch (refreshError) {
-          console.warn('Token refresh retry failed:', refreshError);
-        }
-
-        // 갱신 실패 시 통합된 로그아웃 처리
-        if (typeof window !== 'undefined') {
-          // 모든 토큰 정리
-          localStorage.removeItem('token');
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          localStorage.removeItem('legacyToken');
-
-          // 통합 인증 무효화 이벤트 발송
-          window.dispatchEvent(new CustomEvent('auth:token-invalid'));
-        }
-        
-        throw new ContractViolationError(
-          '인증이 만료되었습니다. 다시 로그인해주세요.',
-          'authentication',
-          response.status
-        );
+        return this.handle401Error(url, {
+          ...restOptions,
+          headers: finalHeaders,
+          signal: AbortSignal.timeout(timeout)
+        });
       }
       
       if (!response.ok) {

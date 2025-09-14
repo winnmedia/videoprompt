@@ -22,9 +22,9 @@ export function useAuthRedirect(options: UseAuthRedirectOptions = {}) {
   } = options;
 
   useEffect(() => {
-    // 인증 상태를 먼저 확인
+    // 인증 상태를 먼저 확인 (의존성 제거로 마운트시 1회만 실행)
     checkAuth();
-  }, [checkAuth]);
+  }, []); // 빈 배열: 마운트시에만 실행
 
   useEffect(() => {
     // 로딩 중이거나 리다이렉트 조건이 맞지 않으면 리턴

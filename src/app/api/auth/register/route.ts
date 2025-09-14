@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
@@ -7,6 +7,7 @@ import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { sendVerificationEmail } from '@/lib/email/sender';
 import { safeParseRequestBody } from '@/lib/json-utils';
 import { executeDatabaseOperation, createDatabaseErrorResponse } from '@/lib/database-middleware';
+import { checkRateLimit, RATE_LIMITS } from '@/shared/lib/rate-limiter';
 
 export const runtime = 'nodejs';
 
@@ -31,8 +32,31 @@ const RegisterSchema = z.object({
 
 export async function POST(req: NextRequest) {
   const traceId = getTraceId(req);
-  
-  
+
+  // 🚫 Rate Limiting: 회원가입 API 보호 (더 엄격한 제한)
+  const rateLimitResult = checkRateLimit(req, 'register', RATE_LIMITS.register);
+  if (!rateLimitResult.allowed) {
+    console.warn(`🚫 Rate limit exceeded for register from IP: ${req.headers.get('x-forwarded-for') || '127.0.0.1'}`);
+
+    const response = NextResponse.json(
+      failure(
+        'RATE_LIMIT_EXCEEDED',
+        '회원가입 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.',
+        429,
+        `retryAfter: ${rateLimitResult.retryAfter}`,
+        traceId
+      ),
+      { status: 429 }
+    );
+
+    // Rate limit 헤더 추가
+    Object.entries(rateLimitResult.headers).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+
+    return response;
+  }
+
   try {
     // Request body 안전 파싱
     const parseResult = await safeParseRequestBody(req, RegisterSchema);

@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { signSessionToken } from '@/shared/lib/auth';
 import { addCorsHeaders } from '@/shared/lib/cors-utils';
+import { checkRateLimit, RATE_LIMITS } from '@/shared/lib/rate-limiter';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -90,6 +91,31 @@ export async function OPTIONS(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const traceId = getTraceId(req);
+
+    // 🚫 Rate Limiting: 로그인 API 보호
+    const rateLimitResult = checkRateLimit(req, 'login', RATE_LIMITS.login);
+    if (!rateLimitResult.allowed) {
+      console.warn(`🚫 Rate limit exceeded for login from IP: ${req.headers.get('x-forwarded-for') || '127.0.0.1'}`);
+
+      const response = NextResponse.json(
+        failure(
+          'RATE_LIMIT_EXCEEDED',
+          '로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.',
+          429,
+          `retryAfter: ${rateLimitResult.retryAfter}`,
+          traceId
+        ),
+        { status: 429 }
+      );
+
+      // Rate limit 헤더 추가
+      Object.entries(rateLimitResult.headers).forEach(([key, value]) => {
+        response.headers.set(key, value);
+      });
+
+      return addCorsHeaders(response);
+    }
+
     const { email, username, id, password } = LoginSchema.parse(await req.json());
 
     const user = await prisma.user.findFirst({
