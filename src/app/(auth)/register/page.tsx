@@ -106,7 +106,6 @@ export default function RegisterPage() {
               type="email"
               required
               size="lg"
-              size="lg"
               label="이메일"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -121,7 +120,6 @@ export default function RegisterPage() {
               required
               minLength={3}
               maxLength={32}
-              size="lg"
               size="lg"
               label="사용자명"
               value={formData.username}
@@ -138,7 +136,6 @@ export default function RegisterPage() {
               required
               minLength={8}
               size="lg"
-              size="lg"
               label="비밀번호"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -152,7 +149,6 @@ export default function RegisterPage() {
               id="confirmPassword"
               type="password"
               required
-              size="lg"
               size="lg"
               label="비밀번호 확인"
               value={formData.confirmPassword}
