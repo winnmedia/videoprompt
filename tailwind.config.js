@@ -12,18 +12,19 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Primary = Brand 통일 (중복 제거)
         primary: {
-          50: '#f0f4ff',
-          100: '#e0e9ff',
-          200: '#c7d6ff',
-          300: '#a3baff',
-          400: '#7b94ff',
-          500: '#004ac1',
-          600: '#0059db',
-          700: '#003a9a',
-          800: '#002d7a',
-          900: '#00205a',
-          950: '#001a47',
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6',
+          600: '#2563eb',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+          950: '#172554',
         },
         secondary: {
           50: '#f8fafc',
@@ -121,6 +122,24 @@ module.exports = {
         88: '22rem',
         128: '32rem',
         144: '36rem',
+        // 모바일 터치 타겟 최소 크기 (44px = 11 × 0.25rem)
+        'touch-target': '2.75rem', // 44px
+      },
+      fontSize: {
+        '2xs': ['0.625rem', { lineHeight: '0.75rem' }], // 10px
+        'xs': ['0.75rem', { lineHeight: '1rem' }],      // 12px
+        'sm': ['0.875rem', { lineHeight: '1.25rem' }],  // 14px
+        'base': ['1rem', { lineHeight: '1.5rem' }],     // 16px
+        'lg': ['1.125rem', { lineHeight: '1.75rem' }],  // 18px
+        'xl': ['1.25rem', { lineHeight: '1.75rem' }],   // 20px
+        '2xl': ['1.5rem', { lineHeight: '2rem' }],      // 24px
+        '3xl': ['1.875rem', { lineHeight: '2.25rem' }], // 30px
+        '4xl': ['2.25rem', { lineHeight: '2.5rem' }],   // 36px
+        '5xl': ['3rem', { lineHeight: '1' }],           // 48px
+        '6xl': ['3.75rem', { lineHeight: '1' }],        // 60px
+        '7xl': ['4.5rem', { lineHeight: '1' }],         // 72px
+        '8xl': ['6rem', { lineHeight: '1' }],           // 96px
+        '9xl': ['8rem', { lineHeight: '1' }],           // 128px
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
