@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
         id: registeredItem.id,
         title: registeredItem.title || 'Untitled',
         description: registeredItem.description || null,
-        metadata: registeredItem as ProjectMetadata, // JSON 필드에 전체 데이터 저장
+        metadata: registeredItem as any, // JSON 필드에 전체 데이터 저장
         status: 'active', // 기본 상태값 설정
         userId: systemUser.id, // 검증된 시스템 사용자 ID
         tags: [registeredItem.type], // type을 태그로 저장
