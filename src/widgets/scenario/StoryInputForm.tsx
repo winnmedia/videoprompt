@@ -123,7 +123,7 @@ export function StoryInputForm({
   };
 
   return (
-    <div className="card p-4 sm:p-6" aria-busy={loading} aria-live="polite">
+    <div className="bg-white rounded-lg shadow p-4 sm:p-6" aria-busy={loading} aria-live="polite">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold text-gray-900">스토리 입력</h2>
         <Button

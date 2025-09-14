@@ -4,46 +4,35 @@ import { extractSceneComponents } from '@/shared/lib';
 interface GenerateShotsParams {
   storyInput: StoryInput;
   storySteps: StoryStep[];
-  projectData: {
-    scenario: {
-      story?: string;
-      tone?: unknown;
-      format?: string;
-      durationSec?: number;
-      tempo?: string;
-    };
-  };
   onLoadingStart?: (message: string) => void;
   onLoadingEnd?: () => void;
-  onError?: (error: string) => void;
-  onSuccess?: (shots: Shot[], storyboardShots: StoryboardShot[], message: string) => void;
+  onError?: (error: string, type: 'client' | 'server' | 'network') => void;
+  onSuccess?: (shots: Shot[], message: string) => void;
 }
 
 export async function generateShots({
   storyInput,
   storySteps,
-  projectData,
   onLoadingStart,
   onLoadingEnd,
   onError,
   onSuccess
-}: GenerateShotsParams): Promise<{ shots: Shot[], storyboardShots: StoryboardShot[] }> {
+}: GenerateShotsParams): Promise<Shot[]> {
   onLoadingStart?.('숏트를 생성하고 있습니다...');
 
   try {
     const components = await extractSceneComponents({
-      scenario: storyInput.oneLineStory || storyInput.title || projectData.scenario.story || '',
+      scenario: storyInput.oneLineStory || storyInput.title || '',
       theme: storyInput.title,
-      style: (projectData.scenario.tone as any)?.[0] || 'cinematic',
-      aspectRatio: projectData.scenario.format || '16:9',
-      durationSec: projectData.scenario.durationSec || 8,
-      mood: projectData.scenario.tempo || 'normal',
+      style: storyInput.toneAndManner?.[0] || 'cinematic',
+      aspectRatio: storyInput.format || '16:9',
+      durationSec: parseInt(storyInput.duration) || 8,
+      mood: storyInput.tempo || 'normal',
       camera: 'wide',
       weather: 'clear',
     });
 
     const generatedShots: Shot[] = [];
-    const generatedStoryboardShots: StoryboardShot[] = [];
     let shotId = 1;
 
     // 더 구체적인 description 생성 헬퍼 함수
@@ -88,30 +77,16 @@ export async function generateShots({
         };
         
         generatedShots.push(shotData);
-        
-        // StoryboardShot 형식으로도 변환
-        generatedStoryboardShots.push({
-          id: shotData.id,
-          title: shotData.title,
-          description: shotData.description,
-          imageUrl: undefined,
-          prompt: undefined,
-          shotType: shotData.shotType,
-          camera: shotData.camera,
-          duration: shotData.length,
-          index: shotId,
-        });
-        
         shotId++;
       }
     });
 
-    onSuccess?.(generatedShots, generatedStoryboardShots, `${generatedShots.length}개의 숏트가 성공적으로 생성되었습니다!`);
-    return { shots: generatedShots, storyboardShots: generatedStoryboardShots };
+    onSuccess?.(generatedShots, `${generatedShots.length}개의 숏트가 성공적으로 생성되었습니다!`);
+    return generatedShots;
   } catch (e) {
     console.error(e);
     const errorMessage = '숏트 생성 중 오류가 발생했습니다.';
-    onError?.(errorMessage);
+    onError?.(errorMessage, 'server');
     throw new Error(errorMessage);
   } finally {
     onLoadingEnd?.();

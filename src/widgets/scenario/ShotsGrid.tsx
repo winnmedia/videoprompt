@@ -29,7 +29,7 @@ export function ShotsGrid({
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
       {shots.map((shot, index) => (
-        <div key={shot.id} className="card-hover p-4">
+        <div key={shot.id} className="bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow p-4">
           {/* 콘티 이미지 프레임 */}
           <div className="mb-4">
             <div className="border-border relative flex min-h-40 items-center justify-center overflow-hidden rounded-lg border-2 border-dashed bg-gray-50">

@@ -6,3 +6,5 @@ export type {
   StoryboardShot,
   StoryTemplate
 } from './types';
+
+export * from './models';

@@ -1,19 +1,19 @@
 import { PrismaClient } from '@prisma/client';
 
-// 환경 변수 검증 (빌드 타임 로그 최소화)
+// 환경 변수 검증 (명확한 에러 발생)
 const validateDatabaseUrl = (url?: string): string => {
   if (!url) {
-    // 빌드 타임에는 로그 최소화 (NODE_ENV=production일 때)
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn('⚠️  DATABASE_URL 환경 변수가 설정되지 않았습니다.');
-      console.warn('⚠️  데이터베이스 기능이 제한됩니다. 환경 변수를 설정하세요.');
-    }
-    // 프로덕션에서도 placeholder URL 반환
-    return 'postgresql://placeholder:placeholder@placeholder:5432/placeholder';
+    const errorMessage = 'DATABASE_URL 환경 변수가 설정되지 않았습니다. 데이터베이스 연결이 불가능합니다.';
+    console.error('❌', errorMessage);
+    throw new Error(errorMessage);
   }
-  if (!url.startsWith('postgresql://') && !url.startsWith('postgres://') && process.env.NODE_ENV !== 'production') {
-    console.warn('⚠️  유효하지 않은 DATABASE_URL 형식입니다. 원본 URL 사용:', url);
+
+  if (!url.startsWith('postgresql://') && !url.startsWith('postgres://')) {
+    const errorMessage = `유효하지 않은 DATABASE_URL 형식입니다: ${url}. postgresql:// 또는 postgres:// 형식이어야 합니다.`;
+    console.error('❌', errorMessage);
+    throw new Error(errorMessage);
   }
+
   return url;
 };
 
@@ -48,11 +48,14 @@ export const prisma = (() => {
     return globalThis.prisma ?? prismaClientSingleton();
   } catch (error) {
     console.error('❌ Prisma 클라이언트 초기화 실패:', error);
-    console.warn('⚠️  서버는 시작되지만 데이터베이스 기능이 제한됩니다. 환경 변수 확인 필요.');
-    
-    // 프로덕션에서 초기화 실패 시 임시 null 클라이언트 반환
-    // 이렇게 하면 서버는 시작되지만 DB 작업 시 명시적 에러 처리 필요
-    return null as any as PrismaClient;
+
+    // DATABASE_URL 관련 오류는 즉시 재발생 (명확한 에러 메시지 제공)
+    if (error instanceof Error && error.message.includes('DATABASE_URL')) {
+      throw error;
+    }
+
+    // 기타 초기화 오류는 재발생하되 더 명확한 메시지로
+    throw new Error(`데이터베이스 초기화 실패: ${error instanceof Error ? error.message : String(error)}`);
   }
 })();
 

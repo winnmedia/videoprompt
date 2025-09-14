@@ -137,8 +137,27 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
+    console.error('Stories GET API error:', error);
+
+    // DB 연결 오류 처리
+    if (error instanceof Error && error.message.includes('DATABASE_URL')) {
+      return NextResponse.json(
+        createErrorResponse('DATABASE_ERROR', '데이터베이스 연결에 실패했습니다. 환경 설정을 확인해주세요.'),
+        { status: 503 }
+      );
+    }
+
+    // Prisma 관련 오류 처리
+    if (error instanceof Error && error.message.includes('PrismaClient')) {
+      return NextResponse.json(
+        createErrorResponse('DATABASE_ERROR', '데이터베이스 초기화에 실패했습니다.'),
+        { status: 503 }
+      );
+    }
+
+    // 일반 오류
     return NextResponse.json(
-      createErrorResponse('INTERNAL_ERROR', '스토리 목록 조회 중 오류가 발생했습니다'),
+      createErrorResponse('INTERNAL_ERROR', `스토리 목록 조회 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`),
       { status: 500 }
     );
   }
@@ -206,9 +225,26 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(responseData, { status: 201 });
   } catch (error) {
-    
-    // 데이터베이스 제약 조건 위반 등의 특정 오류 처리
+    console.error('Stories POST API error:', error);
+
     if (error instanceof Error) {
+      // DB 연결 오류 처리
+      if (error.message.includes('DATABASE_URL')) {
+        return NextResponse.json(
+          createErrorResponse('DATABASE_ERROR', '데이터베이스 연결에 실패했습니다. 환경 설정을 확인해주세요.'),
+          { status: 503 }
+        );
+      }
+
+      // Prisma 관련 오류 처리
+      if (error.message.includes('PrismaClient')) {
+        return NextResponse.json(
+          createErrorResponse('DATABASE_ERROR', '데이터베이스 초기화에 실패했습니다.'),
+          { status: 503 }
+        );
+      }
+
+      // 제약 조건 위반
       if (error.message.includes('Unique constraint')) {
         return NextResponse.json(
           createErrorResponse('DUPLICATE_ERROR', '이미 존재하는 스토리입니다'),
@@ -216,9 +252,9 @@ export async function POST(request: NextRequest) {
         );
       }
     }
-    
+
     return NextResponse.json(
-      createErrorResponse('INTERNAL_ERROR', '스토리 저장 중 오류가 발생했습니다'),
+      createErrorResponse('INTERNAL_ERROR', `스토리 저장 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`),
       { status: 500 }
     );
   }
