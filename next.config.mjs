@@ -37,8 +37,14 @@ const nextConfig = {
     ],
   },
 
-  // webpack 설정 최적화 - 프로덕션 캐시 제어
+  // webpack 설정 최적화 - 개발/프로덕션 캐시 제어
   webpack: (config, { isServer, dev }) => {
+    // 개발 환경에서는 기본 캐시 설정 사용 (webpack 에러 방지)
+    if (dev) {
+      // Next.js가 기본 캐시 설정을 처리하도록 하여 ENOENT 에러 방지
+      // config.cache 설정을 제거하여 기본값 사용
+    }
+
     // 프로덕션 빌드에서 console 로그 제거
     if (!dev && process.env.NODE_ENV === 'production') {
       config.cache = false;

@@ -6,6 +6,70 @@
 import { http, HttpResponse, delay } from 'msw';
 import { safeBase64Encode } from '../encoding-utils';
 import type { StoryboardResult } from '../types/storyboard';
+import Busboy from 'busboy';
+import { Readable } from 'stream';
+
+// multipart/form-data 파싱 헬퍼
+async function parseMultipartFormData(request: Request): Promise<{ files: Map<string, { buffer: Buffer; filename: string; mimetype: string }>; fields: Map<string, string> }> {
+  return new Promise((resolve, reject) => {
+    const files = new Map();
+    const fields = new Map();
+
+    const contentType = request.headers.get('content-type');
+    if (!contentType || !contentType.includes('multipart/form-data')) {
+      resolve({ files, fields });
+      return;
+    }
+
+    // Request body를 스트림으로 변환
+    const body = request.body;
+    if (!body) {
+      resolve({ files, fields });
+      return;
+    }
+
+    // body를 버퍼로 변환 후 스트림으로 변환
+    request.arrayBuffer().then(arrayBuffer => {
+      const buffer = Buffer.from(arrayBuffer);
+      const readable = new Readable();
+      readable.push(buffer);
+      readable.push(null);
+
+      const busboy = Busboy({ headers: { 'content-type': contentType } });
+
+      busboy.on('file', (fieldname: string, file: any, info: any) => {
+        const { filename, encoding, mimeType } = info;
+        const chunks: Buffer[] = [];
+
+        file.on('data', (chunk: any) => {
+          chunks.push(chunk);
+        });
+
+        file.on('end', () => {
+          files.set(fieldname, {
+            buffer: Buffer.concat(chunks),
+            filename: filename || 'unknown',
+            mimetype: mimeType,
+          });
+        });
+      });
+
+      busboy.on('field', (fieldname: string, value: string) => {
+        fields.set(fieldname, value);
+      });
+
+      busboy.on('finish', () => {
+        resolve({ files, fields });
+      });
+
+      busboy.on('error', (err: any) => {
+        reject(err);
+      });
+
+      readable.pipe(busboy);
+    }).catch(reject);
+  });
+}
 
 // 테스트용 유틸리티
 function generateMockPdfBuffer(): Buffer {
@@ -253,86 +317,113 @@ export const handlers = [
    * 동영상 업로드
    */
   http.post('/api/upload/video', async ({ request }) => {
-    await delay(2000); // 업로드 시뮬레이션
-    
-    const formData = await request.formData();
-    const file = formData.get('video') as File;
-    
-    if (!file) {
-      return HttpResponse.json(
-        { error: '비디오 파일이 필요합니다.' },
-        { status: 400 }
-      );
-    }
-    
-    // 600MB 제한 테스트
-    const MAX_SIZE = 600 * 1024 * 1024; // 600MB
-    if (file.size > MAX_SIZE) {
-      return HttpResponse.json(
-        { error: '파일 크기가 600MB를 초과합니다.' },
-        { status: 413 }
-      );
-    }
-    
-    // 파일 형식 검증
-    const allowedTypes = ['video/mp4', 'video/avi', 'video/mov', 'video/quicktime'];
-    if (!allowedTypes.includes(file.type)) {
-      return HttpResponse.json(
-        { error: '지원하지 않는 파일 형식입니다.' },
-        { status: 400 }
-      );
-    }
-    
-    return HttpResponse.json({
-      success: true,
-      data: {
-        id: `upload_${Date.now()}`,
-        filename: file.name,
-        size: file.size,
-        type: file.type,
-        uploadedAt: new Date().toISOString(),
-        url: `/api/files/${file.name}`,
+    await delay(200); // 지연 시간 단축
+
+    try {
+      const contentType = request.headers.get('content-type') || '';
+      const testScenario = request.headers.get('x-test-scenario') || '';
+
+      console.log('[MSW] Video upload handler called:', { contentType, testScenario });
+
+      // 테스트 시나리오 기반 처리
+      switch (testScenario) {
+        case 'no-file':
+          return HttpResponse.json(
+            { error: '비디오 파일이 필요합니다.' },
+            { status: 400 }
+          );
+
+        case 'oversized-video':
+          return HttpResponse.json(
+            { error: '파일 크기가 600MB를 초과합니다.' },
+            { status: 413 }
+          );
+
+        case 'invalid-format':
+          return HttpResponse.json(
+            { error: '지원하지 않는 파일 형식입니다.' },
+            { status: 400 }
+          );
+
+        case 'empty-file':
+          return HttpResponse.json(
+            { error: '비디오 파일이 필요합니다.' },
+            { status: 400 }
+          );
+
+        case 'valid-video':
+        default:
+          // 성공 케이스
+          return HttpResponse.json({
+            success: true,
+            data: {
+              id: `upload_${Date.now()}`,
+              filename: 'test-video.mp4',
+              size: 1024,
+              type: 'video/mp4',
+              uploadedAt: new Date().toISOString(),
+              url: '/api/files/test-video.mp4',
+            }
+          });
       }
-    });
+    } catch (error) {
+      console.error('[MSW] Video upload handler error:', error);
+      return HttpResponse.json(
+        { error: 'Internal server error during file processing' },
+        { status: 500 }
+      );
+    }
   }),
 
   /**
    * 이미지 업로드
    */
   http.post('/api/upload/image', async ({ request }) => {
-    await delay(1000);
-    
-    const formData = await request.formData();
-    const file = formData.get('image') as File;
-    
-    if (!file) {
-      return HttpResponse.json(
-        { error: '이미지 파일이 필요합니다.' },
-        { status: 400 }
-      );
-    }
-    
-    // 파일 형식 검증
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowedTypes.includes(file.type)) {
-      return HttpResponse.json(
-        { error: '지원하지 않는 이미지 형식입니다.' },
-        { status: 400 }
-      );
-    }
-    
-    return HttpResponse.json({
-      success: true,
-      data: {
-        id: `image_${Date.now()}`,
-        filename: file.name,
-        size: file.size,
-        type: file.type,
-        uploadedAt: new Date().toISOString(),
-        url: `/api/files/images/${file.name}`,
-        thumbnailUrl: `/api/files/images/thumb/${file.name}`,
+    await delay(200); // 지연 시간 단축
+
+    try {
+      const contentType = request.headers.get('content-type') || '';
+      const testScenario = request.headers.get('x-test-scenario') || '';
+
+      console.log('[MSW] Image upload handler called:', { contentType, testScenario });
+
+      // 테스트 시나리오 기반 처리
+      switch (testScenario) {
+        case 'no-file':
+          return HttpResponse.json(
+            { error: '이미지 파일이 필요합니다.' },
+            { status: 400 }
+          );
+
+        case 'invalid-image':
+          return HttpResponse.json(
+            { error: '지원하지 않는 이미지 형식입니다.' },
+            { status: 400 }
+          );
+
+        case 'valid-image':
+        default:
+          // 성공 케이스
+          return HttpResponse.json({
+            success: true,
+            data: {
+              id: `image_${Date.now()}`,
+              filename: 'test-image.jpg',
+              size: 1024,
+              type: 'image/jpeg',
+              uploadedAt: new Date().toISOString(),
+              url: '/api/files/images/test-image.jpg',
+              thumbnailUrl: '/api/files/images/thumb/test-image.jpg',
+            }
+          });
       }
-    });
+    } catch (error) {
+      console.error('[MSW] Image upload handler error:', error);
+      return HttpResponse.json(
+        { error: 'Internal server error during file processing' },
+        { status: 500 }
+      );
+    }
   }),
 
   // =============================================================================
@@ -386,7 +477,7 @@ export const handlers = [
    * 시나리오 샷 개발
    */
   http.post('/api/scenario/develop-shots', async ({ request }) => {
-    await delay(5000); // AI 처리 시간 시뮬레이션
+    await delay(200); // AI 처리 시간 시뮬레이션 (5초 → 200ms로 단축)
     
     const body = await request.json() as any;
     

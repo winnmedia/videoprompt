@@ -4,6 +4,7 @@ import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { getUserIdFromRequest } from '@/shared/lib/auth';
 import { validateResponse, AuthSuccessResponseContract } from '@/shared/contracts/auth.contract';
 import { logger } from '@/shared/lib/logger';
+import { checkRateLimit, RATE_LIMITS } from '@/shared/lib/rate-limiter';
 
 export const runtime = 'nodejs';
 
@@ -11,6 +12,31 @@ export const runtime = 'nodejs';
 export async function GET(req: NextRequest) {
   try {
     const traceId = getTraceId(req);
+
+    // 🚫 Rate Limiting: auth/me API 보호 (중간 수준 제한)
+    const rateLimitResult = checkRateLimit(req, 'authMe', RATE_LIMITS.authMe);
+    if (!rateLimitResult.allowed) {
+      console.warn(`🚫 Rate limit exceeded for auth/me from IP: ${req.headers.get('x-forwarded-for') || '127.0.0.1'}`);
+
+      const response = NextResponse.json(
+        failure(
+          'RATE_LIMIT_EXCEEDED',
+          '인증 확인 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
+          429,
+          `retryAfter: ${rateLimitResult.retryAfter}`,
+          traceId
+        ),
+        { status: 429 }
+      );
+
+      // Rate limit 헤더 추가
+      Object.entries(rateLimitResult.headers).forEach(([key, value]) => {
+        response.headers.set(key, value);
+      });
+
+      return response;
+    }
+
     const userId = getUserIdFromRequest(req);
 
     if (!userId) {

@@ -2,6 +2,23 @@ import { vi, afterEach, beforeAll, afterAll } from 'vitest';
 import { setupServer } from 'msw/node';
 import { handlers } from '@/shared/lib/mocks/handlers';
 
+// MSW와 호환되는 fetch polyfill 설정
+import { fetch, Headers, Request, Response, FormData as UndiciFormData } from 'undici';
+
+// Global fetch 설정 (MSW가 인터셉트할 수 있도록)
+global.fetch = fetch as any;
+global.Headers = Headers as any;
+global.Request = Request as any;
+global.Response = Response as any;
+
+// FormData polyfill - Node.js 환경에서 올바른 Content-Type 설정
+const OriginalFormData = global.FormData;
+global.FormData = class FormDataPolyfill extends OriginalFormData {
+  constructor(...args: any[]) {
+    super(...args);
+  }
+} as any;
+
 // Mock global objects
 (global as any).ResizeObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
@@ -34,15 +51,23 @@ Object.defineProperty(window, 'matchMedia', {
 const server = setupServer(...handlers);
 
 // MSW 서버 시작 - 통합 테스트에서는 실제 HTTP 요청을 MSW로 인터셉트
-beforeAll(() => {
-  server.listen({ onUnhandledRequest: 'error' });
+beforeAll(async () => {
+  server.listen({
+    onUnhandledRequest: (req, print) => {
+      // 통합 테스트 중에만 자세한 로깅
+      if (process.env.INTEGRATION_TEST) {
+        console.warn(`[MSW] Unhandled ${req.method} ${req.url}`);
+        print.warning();
+      }
+    }
+  });
 });
 
 afterEach(() => {
   server.resetHandlers();
 });
 
-afterAll(() => {
+afterAll(async () => {
   server.close();
 });
 

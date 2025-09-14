@@ -169,8 +169,8 @@ describe('시나리오 개발 API 통합 테스트', () => {
 
       // Assert
       expect(response.status).toBe(200);
-      expect(actualProcessingTime).toBeGreaterThan(4000); // 최소 4초 (MSW delay)
-      expect(actualProcessingTime).toBeLessThan(10000); // 최대 10초
+      expect(actualProcessingTime).toBeGreaterThan(150); // 최소 150ms (MSW delay 200ms 고려)
+      expect(actualProcessingTime).toBeLessThan(1000); // 최대 1초
       expect(result.data.processingTime).toBeDefined();
       expect(typeof result.data.processingTime).toBe('number');
     });
