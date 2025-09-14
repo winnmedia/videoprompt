@@ -5,9 +5,14 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Logo, Button, FormError, Input } from '@/shared/ui';
 import { safeFetch } from '@/shared/lib/api-retry';
+import { useAuthRedirect } from '@/shared/hooks';
 
 export default function RegisterPage() {
   const router = useRouter();
+
+  // 인증된 사용자는 홈으로 리다이렉트
+  const { isLoading: authLoading } = useAuthRedirect({ redirectPath: '/' });
+
   const [formData, setFormData] = useState({
     email: '',
     username: '',
@@ -63,9 +68,24 @@ export default function RegisterPage() {
     }
   };
 
-  // Email verification functions removed - simplified registration
-
-  // Email verification screen removed - simplified registration flow
+  // 인증 상태 확인 중이면 로딩 표시
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center px-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <Logo size="xl" className="mx-auto mb-4" />
+          </div>
+          <div className="bg-gray-800/50 backdrop-blur-lg rounded-xl p-8 shadow-2xl border border-gray-700">
+            <div className="flex items-center justify-center space-x-2">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-600 border-t-transparent"></div>
+              <span className="text-gray-300">인증 상태 확인 중...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center px-4">

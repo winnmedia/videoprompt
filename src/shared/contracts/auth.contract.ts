@@ -20,7 +20,9 @@ export const UserDataContract = z.object({
   email: z.string().email('유효한 이메일 형식이어야 합니다'),
   username: z.string().min(1, '사용자명은 필수입니다'),
   role: z.string().optional(),
-  avatarUrl: z.string().url('유효한 URL 형식이어야 합니다').optional(),
+  avatarUrl: z.string().url('유효한 URL 형식이어야 합니다').nullable().optional(),
+  createdAt: z.date().or(z.string().datetime()).optional(),
+  accessToken: z.string().min(1, 'Access 토큰은 필수입니다').optional(),
   token: z.string().min(1, 'JWT 토큰은 필수입니다') // 항상 data 안에 token 포함
 });
 

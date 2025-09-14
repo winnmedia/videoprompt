@@ -52,7 +52,7 @@ export class ApiClient {
   }
 
   /**
-   * Refresh Token으로 새 Access Token 요청
+   * Refresh Token으로 새 Access Token 요청 (단일 토큰 시스템)
    */
   private async refreshAccessToken(): Promise<string> {
     // 이미 갱신 중인 경우 동일한 Promise 반환 (중복 방지)
@@ -61,7 +61,7 @@ export class ApiClient {
     }
 
     this.refreshPromise = this.performTokenRefresh();
-    
+
     try {
       const newToken = await this.refreshPromise;
       return newToken;
@@ -80,9 +80,15 @@ export class ApiClient {
     });
 
     if (!response.ok) {
-      // Refresh 실패 시 로그아웃 처리
+      // Refresh 실패 시 모든 토큰 정리 (통합된 로그아웃 처리)
       if (typeof window !== 'undefined') {
+        // 모든 레거시 토큰 정리
         localStorage.removeItem('token');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('legacyToken');
+
+        // 통합 인증 실패 이벤트 발송
         window.dispatchEvent(new CustomEvent('auth:refresh-failed'));
       }
       throw new Error('Token refresh failed');
@@ -91,14 +97,20 @@ export class ApiClient {
     const data = await response.json();
     const newToken = data.data.accessToken;
 
-    // 새 토큰 저장
+    // 새 토큰을 상태 관리에 저장
     if (this.tokenSetter) {
       this.tokenSetter(newToken);
     }
 
-    // localStorage에도 저장 (하위 호환성)
+    // accessToken으로 통합하여 localStorage 저장
     if (typeof window !== 'undefined') {
+      // 기본 토큰을 accessToken으로 저장
       localStorage.setItem('token', newToken);
+      localStorage.setItem('accessToken', newToken);
+
+      // 레거시 토큰들 정리
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('legacyToken');
     }
 
     return newToken;
@@ -194,9 +206,15 @@ export class ApiClient {
           console.warn('Token refresh retry failed:', refreshError);
         }
 
-        // 갱신 실패 시 로그아웃 처리
+        // 갱신 실패 시 통합된 로그아웃 처리
         if (typeof window !== 'undefined') {
+          // 모든 토큰 정리
           localStorage.removeItem('token');
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('legacyToken');
+
+          // 통합 인증 무효화 이벤트 발송
           window.dispatchEvent(new CustomEvent('auth:token-invalid'));
         }
         
