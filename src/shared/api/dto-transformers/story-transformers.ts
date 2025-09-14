@@ -135,13 +135,14 @@ export function transformApiResponseToStorySteps(
     }
 
     // ApiStoryStep[] → StoryStep[] 변환
-    const steps = validatedResponse.data.steps.map((apiStep, index): StoryStep => ({
+    const apiSteps = validatedResponse.data.steps;
+    const steps = apiSteps.map((apiStep, index): StoryStep => ({
       id: apiStep.id,
       title: apiStep.title,
       summary: apiStep.summary,
       content: apiStep.content,
       goal: apiStep.goal || `${index + 1}단계의 목표`,
-      lengthHint: apiStep.lengthHint || calculateLengthHint(index, validatedResponse.data.steps.length),
+      lengthHint: apiStep.lengthHint || calculateLengthHint(index, apiSteps.length),
       isEditing: false, // 클라이언트 상태
     }));
 
@@ -159,7 +160,7 @@ export function transformApiResponseToStorySteps(
 
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errorDetails = error.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
+      const errorDetails = error.issues.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
       throw new Error(`${context} 데이터 검증 실패: ${errorDetails}`);
     }
 

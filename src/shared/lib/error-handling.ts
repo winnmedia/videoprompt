@@ -23,7 +23,7 @@ export interface AppError {
   maxRetries: number;
 }
 
-export interface ErrorContext {
+export interface ErrorContext extends Record<string, unknown> {
   action: string;
   userId?: string;
   projectId?: string;
@@ -210,7 +210,7 @@ export class ErrorClassifier {
 
     // Zod 검증 에러
     if (error instanceof z.ZodError) {
-      const firstError = error.errors[0];
+      const firstError = error.issues[0];
       return AppErrorFactory.createValidationError(
         `데이터 검증 실패: ${firstError.message}`,
         firstError.path.join('.'),
@@ -548,12 +548,9 @@ export class UserFriendlyErrorMessages {
 }
 
 // =============================================================================
-// 공용 exports
+// 편의성 함수들
 // =============================================================================
 
-export { AppErrorFactory, ErrorClassifier, ErrorHandler };
-
-// 편의성 함수들
 export const createError = AppErrorFactory;
 export const classifyError = ErrorClassifier.classify;
 export const handleError = ErrorHandler.handle;
