@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSuccessResponse, createErrorResponse } from '@/shared/schemas/api.schema';
+import type { PromptMetadata } from '@/shared/types/metadata';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,23 +54,23 @@ export async function GET(request: NextRequest) {
 
     // 프롬프트 형식으로 변환
     const prompts = projects.map(project => {
-      const metadata = project.metadata as any || {};
+      const metadata = project.metadata as PromptMetadata | null;
 
       return {
         id: project.id,
-        scenarioTitle: metadata.scenarioTitle || project.title || 'Untitled Prompt',
-        version: metadata.version || 'V1',
-        keywordCount: metadata.keywordCount || 0,
-        segmentCount: metadata.segmentCount || 1,
-        quality: metadata.quality || 'standard',
+        scenarioTitle: metadata?.scenarioTitle || project.title || 'Untitled Prompt',
+        version: metadata?.version || 'V1',
+        keywordCount: metadata?.keywordCount || 0,
+        segmentCount: metadata?.segmentCount || 1,
+        quality: metadata?.quality || 'standard',
         createdAt: project.createdAt,
         updatedAt: project.updatedAt,
-        finalPrompt: metadata.finalPrompt || project.prompt || '',
-        keywords: metadata.keywords || [],
-        negativePrompt: metadata.negativePrompt || '',
-        visualStyle: metadata.visualStyle || '',
-        mood: metadata.mood || '',
-        directorStyle: metadata.directorStyle || '',
+        finalPrompt: metadata?.finalPrompt || project.prompt || '',
+        keywords: metadata?.keywords || [],
+        negativePrompt: metadata?.negativePrompt || '',
+        visualStyle: metadata?.visualStyle || '',
+        mood: metadata?.mood || '',
+        directorStyle: metadata?.directorStyle || '',
         jsonUrl: `/api/planning/prompt/${project.id}.json`,
       };
     });

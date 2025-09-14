@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import type { ScenarioMetadata } from '@/shared/types/metadata';
 import { 
   GetStoriesQuerySchema, 
   CreateStoryRequestSchema,
@@ -98,7 +99,7 @@ export async function GET(request: NextRequest) {
 
     // 응답 데이터 형식화 - Project 테이블에서 Story 형식으로 변환
     const formattedStories = projects.map((project) => {
-      const metadata = project.metadata as any;
+      const metadata = project.metadata as ScenarioMetadata | null;
       return {
         id: project.id,
         title: project.title,
