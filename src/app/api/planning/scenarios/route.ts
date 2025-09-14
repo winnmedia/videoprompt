@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const projects = await prisma.project.findMany({
       where: {
         tags: {
-          has: 'scenario'
+          array_contains: 'scenario'
         }
       },
       orderBy: {
