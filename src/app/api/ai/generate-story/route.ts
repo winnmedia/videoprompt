@@ -695,17 +695,20 @@ ${developmentIntensity === '강하게' ? `
             let savedProject = null;
             if (saveAsProject || projectId) {
               try {
-                // Get user for authentication (optional)
+                // 🔐 보안 강화: 인증된 사용자만 DB 저장 허용
                 let user = null;
                 try {
                   user = await getUser(request);
                 } catch (authError) {
                   if (process.env.NODE_ENV === 'development') {
-                    console.log('[LLM] 인증 실패 - 익명 사용자로 진행:', authError);
+                    console.log('[LLM] 인증 실패 - DB 저장 거부:', authError);
                   }
                 }
-                
-                if (user && hasDatabaseUrl) {
+
+                if (!user) {
+                  console.warn('🚨 미인증 사용자 - DB 저장 거부');
+                  // 인증되지 않은 사용자는 DB 저장 없이 AI 결과만 반환
+                } else if (hasDatabaseUrl) {
                   const scenarioData = {
                     title: projectTitle || parsedResponse.structure.act1.title,
                     story,
@@ -750,9 +753,6 @@ ${developmentIntensity === '강하게' ? `
                   }
                 } else {
                   if (process.env.NODE_ENV === 'development') {
-                    if (!user) {
-                      console.log('[LLM] ⚠️ 미인증 사용자 - 프로젝트 저장 건너뜀');
-                    }
                     if (!hasDatabaseUrl) {
                       console.log('[LLM] ⚠️ DATABASE_URL 없음 - 프로젝트 저장 건너뜀');
                     }
