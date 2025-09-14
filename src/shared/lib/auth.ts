@@ -92,10 +92,10 @@ export function getUserIdFromRequest(req: NextRequest): string | undefined {
 export async function getUser(req: NextRequest) {
   const userId = getUserIdFromRequest(req);
   if (!userId) return null;
-  
+
   // Import prisma locally to avoid circular dependencies
   const { prisma } = await import('@/lib/db');
-  
+
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -107,12 +107,28 @@ export async function getUser(req: NextRequest) {
         updatedAt: true,
       }
     });
-    
+
     return user;
   } catch (error) {
     console.error('Failed to fetch user:', error);
     return null;
   }
+}
+
+/**
+ * 🔐 보안 강화: 일관된 인증 검사 및 401 반환
+ * @param req NextRequest 객체
+ * @returns 인증된 사용자 ID 또는 null
+ */
+export function requireAuthentication(req: NextRequest): string | null {
+  const userId = getUserIdFromRequest(req);
+  if (!userId) {
+    console.warn('🚨 인증 실패 - getUserIdFromRequest 반환값 없음');
+    return null;
+  }
+
+  console.log('✅ 인증 성공:', userId);
+  return userId;
 }
 
 

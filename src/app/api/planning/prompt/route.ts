@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSuccessResponse, createErrorResponse } from '@/shared/schemas/api.schema';
+import { getUserIdFromRequest } from '@/shared/lib/auth';
 import type { PromptMetadata } from '@/shared/types/metadata';
 
 export const dynamic = 'force-dynamic';
@@ -10,6 +11,18 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
+    // 🔐 보안 강화: 인증 필수 검사
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+      console.warn('🚨 Planning prompts 인증 실패 - 401 반환');
+      return NextResponse.json(
+        createErrorResponse('AUTHENTICATION_REQUIRED', '로그인이 필요합니다. 인증 후 다시 시도해주세요.'),
+        { status: 401 }
+      );
+    }
+
+    console.log('✅ Planning prompts 인증 성공:', userId);
+
     // Prisma 클라이언트 임포트 및 연결 검증
     const { prisma, checkDatabaseConnection } = await import('@/lib/prisma');
 
@@ -23,9 +36,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 프롬프트 타입으로 필터링된 프로젝트 조회
+    // 🔐 보안 강화: 현재 사용자의 프롬프트만 조회
     const projects = await prisma.project.findMany({
       where: {
+        userId: userId, // 🔐 사용자별 필터링 추가
         tags: {
           array_contains: 'prompt'
         }

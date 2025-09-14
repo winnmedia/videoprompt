@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { PlanningRegistrationRequestSchema, createValidationErrorResponse, createSuccessResponse, createErrorResponse } from '@/shared/schemas/api.schema';
+import { getUserIdFromRequest } from '@/shared/lib/auth';
 import type { ProjectMetadata } from '@/shared/types/metadata';
 
 // Next.js 캐시 무효화 - 항상 최신 데이터 보장
@@ -15,8 +16,20 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: NextRequest) {
   try {
+    // 🔐 보안 강화: 인증 필수 검사
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+      console.warn('🚨 Planning register 인증 실패 - 401 반환');
+      return NextResponse.json(
+        createErrorResponse('AUTHENTICATION_REQUIRED', '로그인이 필요합니다. 인증 후 다시 시도해주세요.'),
+        { status: 401 }
+      );
+    }
+
+    console.log('✅ Planning register 인증 성공:', userId);
+
     const body = await request.json();
-    
+
     // Zod를 사용한 요청 데이터 검증
     const validationResult = PlanningRegistrationRequestSchema.safeParse(body);
     
@@ -155,33 +168,30 @@ export async function POST(request: NextRequest) {
 
       console.log('✅ Database connection verified:', connectionStatus.latency + 'ms');
 
-      // 시스템 사용자 확인 또는 생성 (upsert 방식)
-      const systemUserEmail = 'system@planning.internal';
-
-      const systemUser = await prisma.user.upsert({
-        where: { email: systemUserEmail },
-        update: {}, // 이미 존재하면 업데이트하지 않음
-        create: {
-          email: systemUserEmail,
-          username: `system-planning-${Date.now()}`, // 고유한 username 보장
-          passwordHash: 'SYSTEM_USER_NO_LOGIN',
-          role: 'system',
-          emailVerified: true,
-          verifiedAt: new Date()
-        },
-        select: { id: true }
+      // 🔐 실제 인증된 사용자 검증
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, username: true, email: true }
       });
 
-      console.log('✅ System user ensured:', systemUser.id);
+      if (!user) {
+        console.error('❌ 사용자를 찾을 수 없음:', userId);
+        return NextResponse.json(
+          createErrorResponse('USER_NOT_FOUND', '사용자 정보를 찾을 수 없습니다. 다시 로그인해주세요.'),
+          { status: 401 }
+        );
+      }
 
-      // Project 테이블에 Planning 데이터 저장 (기존 스키마 활용)
+      console.log('✅ 사용자 검증 완료:', { id: user.id, username: user.username });
+
+      // Project 테이블에 Planning 데이터 저장 (실제 사용자 ID로 저장)
       const createData = {
         id: registeredItem.id,
         title: registeredItem.title || 'Untitled',
         description: registeredItem.description || null,
         metadata: registeredItem as any, // JSON 필드에 전체 데이터 저장
         status: 'active', // 기본 상태값 설정
-        userId: systemUser.id, // 검증된 시스템 사용자 ID
+        userId: user.id, // 🔐 실제 인증된 사용자 ID
         tags: [registeredItem.type], // type을 태그로 저장
         scenario: registeredItem.type === 'scenario' ? JSON.stringify(registeredItem) : null,
         prompt: registeredItem.type === 'prompt' ? (registeredItem as any).finalPrompt : null,

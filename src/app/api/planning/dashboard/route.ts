@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSuccessResponse, createErrorResponse } from '@/shared/schemas/api.schema';
+import { getUserIdFromRequest } from '@/shared/lib/auth';
 import { logger } from '@/shared/lib/logger';
 import type { ScenarioMetadata, PromptMetadata, VideoMetadata } from '@/shared/types/metadata';
 
@@ -12,6 +13,18 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
+    // 🔐 보안 강화: 인증 필수 검사
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+      logger.warn('Planning Dashboard 인증 실패 - 401 반환');
+      return NextResponse.json(
+        createErrorResponse('AUTHENTICATION_REQUIRED', '로그인이 필요합니다. 인증 후 다시 시도해주세요.'),
+        { status: 401 }
+      );
+    }
+
+    logger.info('Planning Dashboard 데이터 조회 시작', { userId });
+
     // Prisma 클라이언트 임포트 및 연결 검증
     const { prisma, checkDatabaseConnection } = await import('@/lib/prisma');
 
@@ -25,13 +38,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    logger.info('Planning Dashboard 데이터 조회 시작');
-
-    // 모든 Planning 데이터를 병렬로 한 번에 조회
+    // 🔐 보안 강화: 현재 사용자의 데이터만 조회
     const [scenarioProjects, promptProjects, videoAssets] = await Promise.all([
-      // 시나리오 데이터
+      // 시나리오 데이터 (사용자별 필터링)
       prisma.project.findMany({
         where: {
+          userId: userId, // 🔐 사용자별 필터링 추가
           tags: {
             array_contains: 'scenario'
           }
@@ -58,9 +70,10 @@ export async function GET(request: NextRequest) {
         }
       }),
 
-      // 프롬프트 데이터
+      // 프롬프트 데이터 (사용자별 필터링)
       prisma.project.findMany({
         where: {
+          userId: userId, // 🔐 사용자별 필터링 추가
           tags: {
             array_contains: 'prompt'
           }
@@ -87,8 +100,11 @@ export async function GET(request: NextRequest) {
         }
       }),
 
-      // 비디오 에셋 데이터 (기존 테이블 구조 사용)
+      // 비디오 에셋 데이터 (사용자별 필터링 - 기존 테이블 구조 사용)
       prisma.videoAsset.findMany({
+        where: {
+          userId: userId // 🔐 사용자별 필터링 추가
+        },
         orderBy: { createdAt: 'desc' },
         include: {
           prompt: {
