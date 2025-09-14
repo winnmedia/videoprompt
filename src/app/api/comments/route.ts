@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
         timecode: timecode ?? null,
       },
     });
-    logger.info('comment created', { id: created.id, targetType, targetId }, traceId);
+    logger.info('comment created', { id: created.id, targetType, targetId, traceId });
     return success({ id: created.id, createdAt: created.createdAt }, 200, traceId);
   } catch (e: any) {
     if (e instanceof z.ZodError) return failure('INVALID_INPUT_FIELDS', e.message, 400);
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
       where: { targetType, targetId },
       orderBy: { createdAt: 'desc' },
     });
-    logger.info('comment list', { count: rows.length, targetType, targetId }, traceId);
+    logger.info('comment list', { count: rows.length, targetType, targetId, traceId });
     return success(rows, 200, traceId);
   } catch (e: any) {
     return failure('UNKNOWN', e?.message || 'Server error', 500);

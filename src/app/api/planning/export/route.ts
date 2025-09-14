@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     const b64 = Buffer.from(jsonStr, 'utf8').toString('base64');
     const dataUrl = `data:application/json;base64,${b64}`;
 
-    logger.info('planning export json generated', { length: jsonStr.length }, traceId);
+    logger.info('planning export json generated', { length: jsonStr.length, traceId });
     return success({ jsonUrl: dataUrl }, 200, traceId);
   } catch (e: any) {
     return failure('UNKNOWN', e?.message || 'Server error', 500);

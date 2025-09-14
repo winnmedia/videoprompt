@@ -310,13 +310,6 @@ export function useProject(id?: string) {
     staleTime: 2 * 60 * 1000, // 2분
     gcTime: 30 * 60 * 1000, // 30분
 
-    onError: (error: Error) => {
-      dispatch(addToast({
-        type: 'error',
-        title: '프로젝트 로드 실패',
-        message: error.message || '프로젝트를 불러오는데 실패했습니다'
-      }));
-    },
 
     // 백그라운드에서 리프레시 시 자동 토스트 비활성화
     refetchOnWindowFocus: false

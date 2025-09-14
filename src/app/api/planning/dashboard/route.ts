@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     // 데이터베이스 연결 상태 검증
     const connectionStatus = await checkDatabaseConnection(2);
     if (!connectionStatus.success) {
-      logger.error('Planning Dashboard DB 연결 실패', { error: connectionStatus.error });
+      logger.error(`Planning Dashboard DB 연결 실패: ${connectionStatus.error || 'Unknown error'}`);
       return NextResponse.json(
         createErrorResponse('DATABASE_CONNECTION_ERROR', '데이터베이스 연결에 실패했습니다.'),
         { status: 503 }
@@ -210,7 +210,7 @@ export async function GET(request: NextRequest) {
     );
 
   } catch (error) {
-    logger.error('Planning Dashboard 조회 오류', { error: error instanceof Error ? error.message : error });
+    logger.error('Planning Dashboard 조회 오류', error instanceof Error ? error : new Error(String(error)));
 
     return NextResponse.json(
       createErrorResponse(

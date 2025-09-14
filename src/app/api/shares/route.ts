@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       data: { token, role, nickname: nickname ?? null, targetType, targetId, expiresAt, ...(userId ? { userId } : {}) },
       select: { token: true, expiresAt: true, role: true, nickname: true },
     });
-    logger.info('share token created', { targetType, targetId, role }, traceId);
+    logger.info('share token created', { targetType, targetId, role, traceId });
     return success(
       {
         token: created.token,

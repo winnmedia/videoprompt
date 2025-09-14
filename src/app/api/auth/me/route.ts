@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
 
     // 데이터베이스 연결 상태 확인
     if (!prisma || prisma === null) {
-      logger.error('Database connection unavailable', { endpoint: '/api/auth/me' }, traceId);
+      logger.error('Database connection unavailable', undefined, { endpoint: '/api/auth/me', traceId });
       return failure('SERVICE_UNAVAILABLE', '데이터베이스 연결을 확인할 수 없습니다. 환경 변수를 확인하세요.', 503, undefined, traceId);
     }
 

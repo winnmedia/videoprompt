@@ -89,13 +89,14 @@ export const scenarioSlice = createSlice({
         };
       }
       state.isDirty = true;
-      state.isValid = this.isStoryInputValid(state.storyInput);
+      const storyInput = state.storyInput;
+      state.isValid = storyInput ? isStoryInputValid(storyInput!) : false;
     },
 
     setStoryInput: (state, action: PayloadAction<StoryInput>) => {
       state.storyInput = action.payload;
       state.isDirty = false;
-      state.isValid = this.isStoryInputValid(action.payload);
+      state.isValid = isStoryInputValid(action.payload);
       state.lastSavedAt = Date.now();
     },
 
@@ -114,7 +115,8 @@ export const scenarioSlice = createSlice({
 
     validateStoryInput: (state) => {
       if (state.storyInput) {
-        state.isValid = this.isStoryInputValid(state.storyInput);
+        const storyInput = state.storyInput;
+      state.isValid = storyInput ? isStoryInputValid(storyInput!) : false;
       }
     },
 

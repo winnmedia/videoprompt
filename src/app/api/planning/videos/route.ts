@@ -9,8 +9,8 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
+  const traceId = getTraceId(req);
   try {
-    const traceId = getTraceId(req);
     const userId = getUserIdFromRequest(req);
     
     const videos = await prisma.videoAsset.findMany({
@@ -27,17 +27,17 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    logger.info('videoAssets fetched', { count: videos.length }, traceId);
+    logger.info('videoAssets fetched', { count: videos.length, traceId });
     return success({ videos }, 200, traceId);
   } catch (e: any) {
-    logger.error('videoAssets fetch failed', { error: e?.message }, undefined);
+    logger.error('videoAssets fetch failed', e, { traceId });
     return failure('UNKNOWN', e?.message || 'Server error', 500);
   }
 }
 
 export async function POST(req: NextRequest) {
+  const traceId = getTraceId(req);
   try {
-    const traceId = getTraceId(req);
     const schema = z.object({
       promptId: z.string().uuid(),
       provider: z.enum(['seedance', 'veo3', 'mock']).or(z.string()),
@@ -66,12 +66,11 @@ export async function POST(req: NextRequest) {
     });
     logger.info(
       'videoAsset created',
-      { id: created.id, status: created.status, provider },
-      traceId,
+      { id: created.id, status: created.status, provider, traceId }
     );
     return success({ id: created.id, status: created.status, url: created.url }, 200, traceId);
   } catch (e: any) {
-    logger.error('videoAsset create failed', { error: e?.message }, undefined);
+    logger.error('videoAsset create failed', e, { traceId });
     return failure('UNKNOWN', e?.message || 'Server error', 500);
   }
 }

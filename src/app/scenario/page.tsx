@@ -39,17 +39,32 @@ export default function ScenarioPage() {
 
   // 임시 워크플로우 상태
   const workflow = {
-    currentStep: 'input' as WorkflowStep,
+    currentStep: WORKFLOW_STEPS.STORY_INPUT as WorkflowStep,
     isLoading: false,
+    loading: false,
     error: null,
-    storyInput: null,
-    storySteps: null,
-    shots: null,
+    errorType: null,
+    retryCount: 0,
+    storyInput: { title: '', oneLineStory: '', toneAndManner: [], genre: '', target: '', duration: '', format: '', tempo: '', developmentMethod: '', developmentIntensity: '' },
+    storySteps: [],
+    shots: [],
+    loadingMessage: undefined,
     handleStorySubmit: async () => {},
     handleStoryUpdate: () => {},
     handleShotsGeneration: async () => {},
     handleExport: () => {},
-    setCurrentStep: (step: WorkflowStep) => {}
+    setCurrentStep: (step: WorkflowStep) => {},
+    applyTemplate: (template: any) => {},
+    updateStoryInput: (input: any) => {},
+    generateStory: async () => {},
+    retry: () => {},
+    toggleStepEditing: (stepId: string) => {},
+    updateStoryStep: (stepId: string, field: string, value: string) => {},
+    generateShotsFromSteps: async () => {},
+    goToPreviousStep: () => {},
+    goToStep: (step: WorkflowStep) => {},
+    updateShot: (shotId: string, field: string, value: any) => {},
+    clearError: () => {}
   };
 
   // 템플릿 관련 상태 (StoryInputForm과의 호환성)
@@ -154,7 +169,7 @@ export default function ScenarioPage() {
               onGenerateShots={workflow.generateShotsFromSteps}
               loading={workflow.loading}
               loadingMessage={workflow.loadingMessage}
-              developmentMethod={workflow.storyInput.developmentMethod}
+              developmentMethod={workflow.storyInput?.developmentMethod}
               onGoBack={workflow.goToPreviousStep}
             />
           </Suspense>

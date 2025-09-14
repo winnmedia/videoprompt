@@ -99,10 +99,8 @@ export async function POST(request: NextRequest) {
     return success(suggestions, 200, traceId);
 
   } catch (error) {
-    logger.error('AI suggestions generation failed', {
-      traceId,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
+    logger.error('AI suggestions generation failed', error instanceof Error ? error : new Error(String(error)), {
+      traceId
     });
 
     if (error instanceof z.ZodError) {
