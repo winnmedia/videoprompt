@@ -390,7 +390,7 @@ export function transformApiResponseToProject(
 
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errorDetails = error.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
+      const errorDetails = error.issues.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
       throw new Error(`${context} 데이터 검증 실패: ${errorDetails}`);
     }
 

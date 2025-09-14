@@ -103,17 +103,8 @@ export type {
   ProjectMetadata,
 } from './hooks/use-project-management';
 
-// DTO transformers
-export {
-  transformStoryInputToApiRequest,
-  transformApiResponseToStorySteps,
-  transformShotsToApiRequest,
-  transformApiResponseToShots,
-  transformStoryboardShotsToApiRequest,
-  transformApiResponseToStoryboardShots,
-  transformProjectToApiRequest,
-  transformApiResponseToProject,
-} from '@/shared/api/dto-transformers';
+// DTO transformers are available from shared API layer
+// Use: import { transformStoryInputToApiRequest, ... } from '@/shared/api/dto-transformers'
 
 // Error handling
 export {

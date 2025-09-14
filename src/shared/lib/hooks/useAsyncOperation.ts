@@ -154,10 +154,10 @@ export function useAsyncOperation<T, P extends any[] = []>(
         }));
 
         if (logging) {
-          logger.error('비동기 작업 실패', { 
-            error: errorMessage, 
-            isTimeout, 
-            retryCount: currentRetry 
+          logger.error('비동기 작업 실패', undefined, {
+            errorMessage,
+            isTimeout,
+            retryCount: currentRetry
           });
         }
 

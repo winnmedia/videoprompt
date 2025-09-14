@@ -4,7 +4,7 @@
  * FSD shared 레이어 - 성능 최적화
  */
 
-import { useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useCallback, useMemo, useRef, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 // =============================================================================
@@ -74,7 +74,7 @@ export function useDeepMemo<T>(
   factory: () => T,
   deps: React.DependencyList
 ): T {
-  const ref = useRef<{ deps: React.DependencyList; value: T }>();
+  const ref = useRef<{ deps: React.DependencyList; value: T } | undefined>(undefined);
 
   if (!ref.current || !deepEqual(ref.current.deps, deps)) {
     ref.current = { deps, value: factory() };
@@ -231,7 +231,7 @@ export function useBatchProcessor<TItem, TResult>(
   flush: () => void;
   clear: () => void;
 } {
-  const batchProcessorRef = useRef<BatchProcessor<TItem, TResult>>();
+  const batchProcessorRef = useRef<BatchProcessor<TItem, TResult> | undefined>(undefined);
 
   if (!batchProcessorRef.current) {
     batchProcessorRef.current = new BatchProcessor(processor, batchSize, batchTimeoutMs);
@@ -402,7 +402,7 @@ export function useCacheOptimization() {
  * 렌더링 성능 측정 훅
  */
 export function useRenderPerformance(componentName: string) {
-  const renderStartTime = useRef<number>();
+  const renderStartTime = useRef<number | undefined>(undefined);
   const renderCount = useRef(0);
 
   useEffect(() => {
@@ -515,5 +515,3 @@ export function useSafeState<T>(
   return [state, safeSetState];
 }
 
-// React import 추가
-import React from 'react';
