@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { PlanningRegistrationRequestSchema, createValidationErrorResponse, createSuccessResponse, createErrorResponse } from '@/shared/schemas/api.schema';
+import type { ProjectMetadata } from '@/shared/types/metadata';
 
 // Next.js 캐시 무효화 - 항상 최신 데이터 보장
 export const dynamic = 'force-dynamic';
@@ -178,7 +179,7 @@ export async function POST(request: NextRequest) {
         id: registeredItem.id,
         title: registeredItem.title || 'Untitled',
         description: registeredItem.description || null,
-        metadata: registeredItem as any, // JSON 필드에 전체 데이터 저장
+        metadata: registeredItem as ProjectMetadata, // JSON 필드에 전체 데이터 저장
         status: 'active', // 기본 상태값 설정
         userId: systemUser.id, // 검증된 시스템 사용자 ID
         tags: [registeredItem.type], // type을 태그로 저장

@@ -39,11 +39,22 @@ const nextConfig = {
 
   // webpack 설정 최적화 - 프로덕션 캐시 제어
   webpack: (config, { isServer, dev }) => {
-    // 프로덕션 빌드시 webpack 캐시 비활성화 (Vercel 크기 제한 대응)
+    // 프로덕션 빌드에서 console 로그 제거
     if (!dev && process.env.NODE_ENV === 'production') {
       config.cache = false;
+
+      // Terser 설정으로 console 로그 제거
+      config.optimization.minimizer.forEach((plugin) => {
+        if (plugin.constructor.name === 'TerserPlugin') {
+          plugin.options.terserOptions.compress = {
+            ...plugin.options.terserOptions.compress,
+            drop_console: true,
+            drop_debugger: true,
+          };
+        }
+      });
     }
-    
+
     // Serverless Function 크기 최적화
     if (!isServer) {
       config.resolve.fallback = {
@@ -52,7 +63,7 @@ const nextConfig = {
         path: false,
       };
     }
-    
+
     return config;
   },
   

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSuccessResponse, createErrorResponse } from '@/shared/schemas/api.schema';
+import type { ScenarioMetadata } from '@/shared/types/metadata';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,26 +54,26 @@ export async function GET(request: NextRequest) {
 
     // 시나리오 형식으로 변환
     const scenarios = projects.map(project => {
-      const metadata = project.metadata as any || {};
+      const metadata = project.metadata as ScenarioMetadata | null;
 
       return {
         id: project.id,
         title: project.title,
-        version: metadata.version || 'V1',
-        author: project.user?.username || metadata.author || 'AI Generated',
+        version: metadata?.version || 'V1',
+        author: project.user?.username || metadata?.author || 'AI Generated',
         updatedAt: project.updatedAt,
         createdAt: project.createdAt,
-        hasFourStep: metadata.hasFourStep || false,
-        hasTwelveShot: metadata.hasTwelveShot || false,
-        story: metadata.story || '',
-        genre: metadata.genre || '',
-        tone: metadata.tone || '',
-        target: metadata.target || '',
-        format: metadata.format || '16:9',
-        tempo: metadata.tempo || '보통',
-        developmentMethod: metadata.developmentMethod || '',
-        developmentIntensity: metadata.developmentIntensity || '',
-        durationSec: metadata.durationSec || 10,
+        hasFourStep: metadata?.hasFourStep || false,
+        hasTwelveShot: metadata?.hasTwelveShot || false,
+        story: metadata?.story || '',
+        genre: metadata?.genre || '',
+        tone: metadata?.tone || '',
+        target: metadata?.target || '',
+        format: metadata?.format || '16:9',
+        tempo: metadata?.tempo || '보통',
+        developmentMethod: metadata?.developmentMethod || '',
+        developmentIntensity: metadata?.developmentIntensity || '',
+        durationSec: metadata?.durationSec || 10,
         pdfUrl: null, // PDF 생성 기능은 별도 구현 필요
       };
     });

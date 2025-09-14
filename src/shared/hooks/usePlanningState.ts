@@ -15,6 +15,7 @@ export function usePlanningState() {
   const [imageItems, setImageItems] = useState<ImageAsset[]>([]);
   const [videoItems, setVideoItems] = useState<VideoItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [lastLoadTime, setLastLoadTime] = useState<number>(0);
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
 
   // 필터 상태
@@ -39,21 +40,28 @@ export function usePlanningState() {
   const [createItemType, setCreateItemType] = useState<'scenario' | 'prompt' | 'image' | 'video'>('scenario');
   const [newItemData, setNewItemData] = useState<Partial<PlanningItem>>({});
 
-  // 데이터 로딩 함수 (실제 API 호출)
+  // 데이터 로딩 함수 (통합 API 호출로 중복 호출 방지)
   const loadPlanningData = async () => {
+    const now = Date.now();
+    const CACHE_DURATION = 5 * 60 * 1000; // 5분 캐시
+
+    // 이미 로딩 중이거나 최근에 로딩했다면 중단
+    if (loading || (now - lastLoadTime < CACHE_DURATION)) {
+      console.log('⚠️ Planning 데이터 로딩 건너뜀 (캐시된 데이터 사용)');
+      return;
+    }
+
     setLoading(true);
     try {
-      // 실제 API 호출로 데이터 로딩
-      const [scenariosRes, promptsRes, videosRes] = await Promise.all([
-        safeFetch('/api/planning/scenarios'),
-        safeFetch('/api/planning/prompt'),
-        safeFetch('/api/planning/videos')
-      ]);
+      // 단일 통합 API 호출로 모든 데이터를 한 번에 가져옴
+      const response = await safeFetch('/api/planning/dashboard');
 
-      // 시나리오 데이터 처리
-      if (scenariosRes.ok) {
-        const scenariosData = await scenariosRes.json();
-        const scenarios: ScenarioItem[] = scenariosData.data?.scenarios?.map((s: any) => ({
+      if (response.ok) {
+        const dashboardData = await response.json();
+        const data = dashboardData.data;
+
+        // 시나리오 데이터 설정
+        const scenarios: ScenarioItem[] = data.scenarios?.map((s: any) => ({
           id: s.id,
           title: s.title,
           version: s.version || 'V1',
@@ -64,12 +72,9 @@ export function usePlanningState() {
           pdfUrl: s.pdfUrl
         })) || [];
         setScenarioItems(scenarios);
-      }
 
-      // 프롬프트 데이터 처리
-      if (promptsRes.ok) {
-        const promptsData = await promptsRes.json();
-        const prompts: PromptItem[] = promptsData.data?.prompts?.map((p: any) => ({
+        // 프롬프트 데이터 설정
+        const prompts: PromptItem[] = data.prompts?.map((p: any) => ({
           id: p.id,
           scenarioTitle: p.scenarioTitle || 'Unknown',
           version: p.version || 'V1',
@@ -80,12 +85,9 @@ export function usePlanningState() {
           jsonUrl: p.jsonUrl || `/api/planning/prompt/${p.id}.json`
         })) || [];
         setPromptItems(prompts);
-      }
 
-      // 비디오 데이터 처리 (기존 videoAsset API 사용)
-      if (videosRes.ok) {
-        const videosData = await videosRes.json();
-        const videos: VideoItem[] = videosData.data?.videos?.map((v: any) => ({
+        // 비디오 데이터 설정
+        const videos: VideoItem[] = data.videos?.map((v: any) => ({
           id: v.id,
           title: v.title || 'Untitled Video',
           prompt: v.prompt || '',
@@ -93,20 +95,29 @@ export function usePlanningState() {
           duration: v.duration || 10,
           aspectRatio: v.aspectRatio || '16:9',
           status: v.status || 'queued',
-          videoUrl: v.url || v.videoUrl,
+          videoUrl: v.videoUrl,
           thumbnailUrl: v.thumbnailUrl,
           createdAt: v.createdAt,
           completedAt: v.completedAt,
           jobId: v.jobId
         })) || [];
         setVideoItems(videos);
+
+        // 이미지 자산은 빈 배열로 설정
+        setImageItems([]);
+
+        console.log(`✅ Planning Dashboard 데이터 로딩 완료:`, data.summary);
+
+        // 로딩 시간 업데이트
+        setLastLoadTime(now);
+      } else {
+        console.error('Dashboard API 응답 실패:', response.status);
+        throw new Error(`Dashboard API 호출 실패: ${response.status}`);
       }
 
-      // 이미지 자산은 별도 API 없으므로 빈 배열로 설정
-      setImageItems([]);
-      
     } catch (error) {
       console.error('Planning 데이터 로딩 실패:', error);
+
       // 에러 발생 시 빈 배열로 초기화
       setScenarioItems([]);
       setPromptItems([]);

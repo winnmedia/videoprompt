@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { getUserIdFromRequest } from '@/shared/lib/auth';
 import { prisma } from '@/lib/db';
+import type { VideoMetadata } from '@/shared/types/metadata';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -100,8 +101,8 @@ export async function GET(req: NextRequest) {
       let prompt = '';
       try {
         if (asset.prompt?.metadata && typeof asset.prompt.metadata === 'object') {
-          const metadata = asset.prompt.metadata as any;
-          prompt = metadata.room_description || metadata.title || 'AI 영상 생성';
+          const metadata = asset.prompt.metadata as VideoMetadata | null;
+          prompt = (metadata as any)?.room_description || metadata?.title || 'AI 영상 생성';
         }
       } catch {
         prompt = 'AI 영상 생성';
