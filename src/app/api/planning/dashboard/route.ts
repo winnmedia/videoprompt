@@ -149,7 +149,7 @@ export async function GET(request: NextRequest) {
     });
 
     const videos = videoAssets.map(video => {
-      const metadata = video.metadata as VideoMetadata | null;
+      const metadata = (video as any).metadata as VideoMetadata | null;
       return {
         id: video.id,
         title: metadata?.title || 'Untitled Video',
