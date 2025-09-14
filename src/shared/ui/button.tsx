@@ -5,28 +5,28 @@ import { cn } from '@/shared/lib/utils';
 import type { ButtonHTMLAttributes } from 'react';
 
 export const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 disabled:opacity-50 disabled:pointer-events-none',
+  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none',
   {
     variants: {
       variant: {
-        default: 'bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800',
-        primary: 'bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800',
-        secondary: 'border border-secondary-300 bg-white text-gray-900 hover:bg-secondary-50',
-        outline: 'border border-secondary-300 bg-transparent hover:bg-secondary-50',
-        ghost: 'hover:bg-secondary-100 active:bg-secondary-200',
-        destructive: 'bg-danger-600 text-white hover:bg-danger-700 active:bg-danger-800',
-        success: 'bg-success-600 text-white hover:bg-success-700 active:bg-success-800',
-        warning: 'bg-warning-600 text-white hover:bg-warning-700 active:bg-warning-800',
-        accent: 'bg-accent-600 text-white hover:bg-accent-700 active:bg-accent-800',
-        toggle: 'border transition-colors data-[active=true]:bg-brand-500 data-[active=true]:text-white data-[active=true]:border-brand-500 data-[active=false]:bg-gray-100 data-[active=false]:text-gray-600 data-[active=false]:border-gray-300 hover:data-[active=false]:bg-gray-200',
+        default: 'bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800 focus-visible:ring-primary-400',
+        primary: 'bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800 focus-visible:ring-primary-400',
+        secondary: 'border border-secondary-300 bg-white text-secondary-900 hover:bg-secondary-50 focus-visible:ring-secondary-400',
+        outline: 'border border-secondary-300 bg-transparent text-secondary-900 hover:bg-secondary-50 focus-visible:ring-secondary-400',
+        ghost: 'text-secondary-900 hover:bg-secondary-100 active:bg-secondary-200 focus-visible:ring-secondary-400',
+        destructive: 'bg-danger-600 text-white hover:bg-danger-700 active:bg-danger-800 focus-visible:ring-danger-400',
+        success: 'bg-success-600 text-white hover:bg-success-700 active:bg-success-800 focus-visible:ring-success-400',
+        warning: 'bg-warning-600 text-white hover:bg-warning-700 active:bg-warning-800 focus-visible:ring-warning-400',
+        accent: 'bg-accent-600 text-white hover:bg-accent-700 active:bg-accent-800 focus-visible:ring-accent-400',
+        toggle: 'border transition-colors data-[active=true]:bg-primary-500 data-[active=true]:text-white data-[active=true]:border-primary-500 data-[active=false]:bg-secondary-100 data-[active=false]:text-secondary-600 data-[active=false]:border-secondary-300 hover:data-[active=false]:bg-secondary-200',
       },
       size: {
         default: 'h-10 px-4 py-2',
         sm: 'h-8 px-3 text-xs',
         md: 'h-9 px-4',
-        lg: 'h-10 px-6',
+        lg: 'min-h-touch-target px-6', // 모바일 터치 타겟 준수
         xl: 'h-12 px-8 text-base',
-        icon: 'h-10 w-10',
+        icon: 'min-h-touch-target min-w-touch-target', // 아이콘 버튼도 터치 타겟 준수
       },
     },
     defaultVariants: {

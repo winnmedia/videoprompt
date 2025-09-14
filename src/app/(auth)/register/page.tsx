@@ -71,15 +71,15 @@ export default function RegisterPage() {
   // 인증 상태 확인 중이면 로딩 표시
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-accent-50 flex items-center justify-center px-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <Logo size="xl" className="mx-auto mb-4" />
           </div>
-          <div className="bg-gray-800/50 backdrop-blur-lg rounded-xl p-8 shadow-2xl border border-gray-700">
+          <div className="bg-white rounded-xl p-8 shadow-2xl border border-gray-200">
             <div className="flex items-center justify-center space-x-2">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-600 border-t-transparent"></div>
-              <span className="text-gray-300">인증 상태 확인 중...</span>
+              <span className="text-gray-600">인증 상태 확인 중...</span>
             </div>
           </div>
         </div>
@@ -88,24 +88,24 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-accent-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         {/* 로고 */}
         <div className="text-center mb-8">
           <Logo size="xl" className="mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-white">회원가입</h1>
-          <p className="text-gray-400 mt-2">VideoPrompt와 함께 시작하세요</p>
+          <h1 className="text-2xl font-bold text-gray-900">회원가입</h1>
+          <p className="text-gray-600 mt-2">VideoPrompt와 함께 시작하세요</p>
         </div>
 
         {/* 회원가입 폼 */}
-        <div className="bg-gray-800/50 backdrop-blur-lg rounded-xl p-8 shadow-2xl border border-gray-700">
+        <div className="bg-white rounded-xl p-8 shadow-2xl border border-gray-200">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* 이메일 입력 */}
             <Input
               id="email"
               type="email"
               required
-              variant="dark"
+              size="lg"
               size="lg"
               label="이메일"
               value={formData.email}
@@ -121,7 +121,7 @@ export default function RegisterPage() {
               required
               minLength={3}
               maxLength={32}
-              variant="dark"
+              size="lg"
               size="lg"
               label="사용자명"
               value={formData.username}
@@ -137,7 +137,7 @@ export default function RegisterPage() {
               type="password"
               required
               minLength={8}
-              variant="dark"
+              size="lg"
               size="lg"
               label="비밀번호"
               value={formData.password}
@@ -152,7 +152,7 @@ export default function RegisterPage() {
               id="confirmPassword"
               type="password"
               required
-              variant="dark"
+              size="lg"
               size="lg"
               label="비밀번호 확인"
               value={formData.confirmPassword}
@@ -179,18 +179,18 @@ export default function RegisterPage() {
           {/* 구분선 */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-600"></div>
+              <div className="w-full border-t border-gray-300"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-800/50 text-gray-400">또는</span>
+              <span className="px-2 bg-white text-gray-500">또는</span>
             </div>
           </div>
 
           {/* 로그인 링크 */}
           <div className="text-center">
-            <p className="text-gray-400 text-sm">
+            <p className="text-gray-600 text-sm">
               이미 계정이 있으신가요?{' '}
-              <Link href="/login" className="text-brand-400 hover:text-brand-300 font-medium">
+              <Link href="/login" className="text-primary-600 hover:text-primary-700 font-medium">
                 로그인
               </Link>
             </p>
@@ -199,7 +199,7 @@ export default function RegisterPage() {
 
         {/* 하단 링크 */}
         <div className="mt-8 text-center">
-          <Link href="/" className="text-gray-400 hover:text-white text-sm">
+          <Link href="/" className="text-gray-600 hover:text-primary-600 text-sm">
             홈으로 돌아가기
           </Link>
         </div>

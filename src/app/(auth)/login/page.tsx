@@ -69,24 +69,23 @@ function LoginForm() {
   // 인증 상태 확인 중이면 로딩 표시
   if (authLoading) {
     return (
-      <div className="bg-gray-800/50 backdrop-blur-lg rounded-xl p-8 shadow-2xl border border-gray-700">
+      <div className="bg-white rounded-xl p-8 shadow-2xl border border-gray-200">
         <div className="flex items-center justify-center space-x-2">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-600 border-t-transparent"></div>
-          <span className="text-gray-300">인증 상태 확인 중...</span>
+          <span className="text-gray-600">인증 상태 확인 중...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-800/50 backdrop-blur-lg rounded-xl p-8 shadow-2xl border border-gray-700">
+    <div className="bg-white rounded-xl p-8 shadow-2xl border border-gray-200">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* 이메일 입력 */}
         <Input
           id="email"
           type="email"
           required
-          variant="dark"
           size="lg"
           label="이메일"
           value={formData.email}
@@ -98,12 +97,12 @@ function LoginForm() {
         {/* 비밀번호 입력 */}
         <div>
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-gray-300">
-              비밀번호 <span className="text-danger-400">*</span>
+            <span className="text-sm font-medium text-gray-900">
+              비밀번호 <span className="text-danger-600">*</span>
             </span>
-            <Link 
-              href="/forgot-password" 
-              className="text-sm text-brand-400 hover:text-brand-300 transition-colors"
+            <Link
+              href="/forgot-password"
+              className="text-sm text-primary-600 hover:text-primary-700 transition-colors"
             >
               비밀번호를 잊으셨나요?
             </Link>
@@ -112,7 +111,6 @@ function LoginForm() {
             id="password"
             type="password"
             required
-            variant="dark"
             size="lg"
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -123,7 +121,7 @@ function LoginForm() {
 
         {/* 성공 메시지 */}
         {successMessage && (
-          <div className="bg-green-500/10 border border-green-500/50 rounded-lg px-4 py-3 text-green-400 text-sm">
+          <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-green-700 text-sm">
             {successMessage}
           </div>
         )}
@@ -146,18 +144,18 @@ function LoginForm() {
       {/* 구분선 */}
       <div className="relative my-6">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-600"></div>
+          <div className="w-full border-t border-gray-300"></div>
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-2 bg-gray-800/50 text-gray-400">또는</span>
+          <span className="px-2 bg-white text-gray-500">또는</span>
         </div>
       </div>
 
       {/* 회원가입 링크 */}
       <div className="text-center">
-        <p className="text-gray-400 text-sm">
+        <p className="text-gray-600 text-sm">
           아직 계정이 없으신가요?{' '}
-          <Link href="/register" className="text-brand-400 hover:text-brand-300 font-medium">
+          <Link href="/register" className="text-primary-600 hover:text-primary-700 font-medium">
             회원가입
           </Link>
         </p>
@@ -184,7 +182,7 @@ export default function LoginPage() {
 
         {/* 하단 링크 */}
         <div className="mt-8 text-center">
-          <Link href="/" className="text-gray-400 hover:text-white text-sm">
+          <Link href="/" className="text-gray-600 hover:text-primary-600 text-sm">
             홈으로 돌아가기
           </Link>
         </div>

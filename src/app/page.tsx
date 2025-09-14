@@ -85,25 +85,24 @@ export default function HomePage() {
               복잡한 설정 없이 3단계만으로 전문가 수준의 영상을 제작하세요. AI가 당신의 아이디어를
               시각적 걸작으로 변환합니다.
             </p>
-            <div className="flex flex-col justify-center gap-4 sm:flex-row">
+            <div className="flex flex-col items-center justify-center gap-6">
               <Link href="/scenario">
-                <Button size="xl" className="px-8 py-4 text-lg">
+                <Button size="xl" className="px-8 py-4 text-lg bg-primary-600 hover:bg-primary-700">
                   <Play className="mr-2 h-5 w-5" />
                   무료로 시작하기
                 </Button>
               </Link>
-              <Link href="/register">
-                <Button variant="outline" size="xl" className="px-8 py-4 text-lg">
-                  <ArrowRight className="mr-2 h-5 w-5" />
+
+              {/* 보조 링크들 */}
+              <div className="flex items-center gap-6 text-sm text-gray-600">
+                <Link href="/register" className="hover:text-primary-600 transition-colors">
                   회원가입
-                </Button>
-              </Link>
-              <Link href="/manual">
-                <Button variant="outline" size="xl" className="px-8 py-4 text-lg">
-                  <ArrowRight className="mr-2 h-5 w-5" />
+                </Link>
+                <span className="w-px h-4 bg-gray-300"></span>
+                <Link href="/manual" className="hover:text-primary-600 transition-colors">
                   워크플로우 보기
-                </Button>
-              </Link>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -180,20 +179,18 @@ export default function HomePage() {
             AI 영상 생성의 새로운 시대를 경험해보세요. 전문적인 영상 제작이 이제 누구에게나
             가능합니다.
           </p>
-          <div className="flex flex-col justify-center gap-4 sm:flex-row">
+          <div className="flex flex-col items-center justify-center gap-6">
             <Link href="/scenario">
               <Button variant="secondary" size="xl" className="px-8 py-4 text-lg">
                 AI 기획안 작성 시작
               </Button>
             </Link>
-            <Link href="/manual">
-              <Button
-                variant="outline"
-                size="xl"
-                className="border-white px-8 py-4 text-lg text-white hover:bg-white hover:text-primary-600"
-              >
-                워크플로우 보기
-              </Button>
+
+            <Link
+              href="/manual"
+              className="text-primary-100 hover:text-white transition-colors text-sm underline underline-offset-4"
+            >
+              워크플로우 자세히 보기
             </Link>
           </div>
         </div>

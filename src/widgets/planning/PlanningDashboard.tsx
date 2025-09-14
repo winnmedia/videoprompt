@@ -9,7 +9,7 @@ import React from 'react';
 import { Button } from '@/shared/ui';
 import { Icon } from '@/shared/ui';
 import { usePlanningState } from '@/shared/hooks/usePlanningState';
-import { getStatusColor, getStatusText, getProviderIcon, formatDate } from '@/features/planning/lib/utils';
+import { getStatusColor, getStatusText, getProviderIcon, formatDate } from '@/features/planning';
 
 export function PlanningDashboard() {
   const {
