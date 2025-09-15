@@ -130,6 +130,8 @@ const nextConfig = {
       { source: '/api/ai/:path*', destination: `${apiBase}/api/ai/:path*` },
       // 파일 업로드 Railway 백엔드 프록시
       { source: '/api/upload/:path*', destination: `${apiBase}/api/upload/:path*` },
+      // 이미지 생성 SeeDream 4.0 API 프록시 (새로 추가)
+      { source: '/api/seedream/:path*', destination: `${apiBase}/api/seedream/:path*` },
     ];
   },
 };
