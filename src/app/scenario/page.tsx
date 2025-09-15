@@ -4,7 +4,9 @@ import React, { useState, useCallback, useMemo, Suspense } from 'react';
 import {
   WORKFLOW_STEPS,
   StoryTemplate,
-  WorkflowStep
+  WorkflowStep,
+  StoryStep,
+  Shot
 } from '@/entities/scenario';
 import { useStoryGeneration } from '@/features/scenario/hooks/use-story-generation';
 import {
@@ -46,8 +48,8 @@ export default function ScenarioPage() {
     errorType: null,
     retryCount: 0,
     storyInput: { title: '', oneLineStory: '', toneAndManner: [] as string[], genre: '', target: '', duration: '', format: '', tempo: '', developmentMethod: '', developmentIntensity: '' },
-    storySteps: [],
-    shots: [],
+    storySteps: [] as StoryStep[],
+    shots: [] as Shot[],
     loadingMessage: undefined,
   });
 
