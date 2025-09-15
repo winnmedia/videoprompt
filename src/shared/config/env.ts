@@ -12,15 +12,21 @@ const EnvSchema = z.object({
   GOOGLE_IMAGE_MODEL: z.string().default('imagen-4.0-generate-preview-06-06'),
   VEO_PROVIDER: z.enum(['google']).optional(),
   
-  // 비디오 생성 서비스
+  // 비디오 생성 서비스 (SeeDance)
   SEEDANCE_API_KEY: z.string().optional(),
   SEEDANCE_MODEL: z.string().optional(),
   SEEDANCE_API_BASE: z.string().url().optional(),
   SEEDANCE_WEBHOOK_SECRET: z.string().optional(),
-  
-  // ModelArk / BytePlus
+
+  // 이미지 생성 서비스 (SeeDream 4.0)
+  SEEDREAM_API_KEY: z.string().optional(),
+  SEEDREAM_MODEL: z.string().optional(),
+  SEEDREAM_API_BASE: z.string().url().optional(),
+
+  // ModelArk / BytePlus (공통)
   MODELARK_API_KEY: z.string().optional(),
-  MODELARK_API_BASE: z.string().url().default('https://api.byteplusapi.com'),
+  MODELARK_API_BASE: z.string().url().default('https://ark.ap-southeast.bytepluses.com'),
+  MODELARK_IMAGE_MODEL: z.string().optional(),
   
   // 백엔드 마이그레이션: Prisma 접속 문자열 (PostgreSQL, SQLite 지원)
   // 빌드 타임에는 optional, 런타임에 체크
@@ -109,6 +115,7 @@ export const getAIApiKeys = () => {
   return {
     gemini: env.GOOGLE_GEMINI_API_KEY || env.GOOGLE_API_KEY,
     seedance: env.SEEDANCE_API_KEY,
+    seedream: env.SEEDREAM_API_KEY,
     modelark: env.MODELARK_API_KEY,
   };
 };
@@ -119,6 +126,7 @@ export const getServiceUrls = () => {
   return {
     railwayBackend: env.RAILWAY_BACKEND_URL,
     seedanceApi: env.SEEDANCE_API_BASE,
+    seedreamApi: env.SEEDREAM_API_BASE,
     modelarkApi: env.MODELARK_API_BASE,
     appUrl: env.NEXT_PUBLIC_APP_URL || env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
   };
