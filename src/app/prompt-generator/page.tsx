@@ -434,7 +434,7 @@ const PromptGeneratorPage: React.FC = () => {
               title={v31Mode ? 'CineGenius v3.1 모드 (Veo 3 최적화)' : '레거시 v2 모드'}
               className="rounded-full"
             >
-              {v31Mode ? 'v3.1 🚀' : 'v2'}
+              {v31Mode ? 'v3.1' : 'v2'}
             </Button>
             
             {selectedStory && (
@@ -875,7 +875,7 @@ const PromptGeneratorPage: React.FC = () => {
                   <button
                     onClick={handleGeneratePrompt}
                     disabled={state.isGenerating || !v31State.userInput?.directPrompt?.trim()}
-                    className="px-6 py-2 bg-success-500 text-white rounded-md hover:bg-success-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                    className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                   >
                     {state.isGenerating ? '생성 중...' : 'v3.1 프롬프트 생성'}
                   </button>
@@ -1011,7 +1011,7 @@ const PromptGeneratorPage: React.FC = () => {
                     }}
                     className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
                   >
-                    <span>🚀 이 시나리오를 프롬프트로 생성</span>
+                    <span>이 시나리오를 프롬프트로 생성</span>
                   </button>
                 </div>
               </div>
