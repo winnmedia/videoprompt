@@ -153,11 +153,11 @@ export async function GET(req: NextRequest) {
       // 프롬프트 추출 (프로젝트 metadata에서)
       let prompt = '';
       try {
-        if (asset.projects?.metadata && typeof asset.projects.metadata === 'object') {
-          const metadata = asset.projects.metadata as VideoMetadata | null;
-          prompt = (metadata as any)?.room_description || metadata?.title || asset.projects.title || 'AI 영상 생성';
+        if ((asset.projects as any)?.metadata && typeof (asset.projects as any).metadata === 'object') {
+          const metadata = (asset.projects as any).metadata as VideoMetadata | null;
+          prompt = (metadata as any)?.room_description || metadata?.title || (asset.projects as any).title || 'AI 영상 생성';
         } else {
-          prompt = asset.projects?.title || asset.title || 'AI 영상 생성';
+          prompt = (asset.projects as any)?.title || asset.title || 'AI 영상 생성';
         }
       } catch {
         prompt = asset.title || 'AI 영상 생성';

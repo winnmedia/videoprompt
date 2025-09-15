@@ -32,9 +32,9 @@ export async function GET(request: NextRequest) {
     const connectionResult = await checkSupabaseConnection();
     healthResults.supabase.connection = {
       status: connectionResult.success ? 'healthy' : 'error',
-      latency: connectionResult.latency || null,
-      error: connectionResult.error
-    };
+      latency: connectionResult.latency,
+      ...(connectionResult.error && { error: connectionResult.error })
+    } as any;
 
     // 2. Public Client 테스트
     console.log(`[Health Check ${traceId}] 👤 Public Client 테스트 중...`);
@@ -43,14 +43,14 @@ export async function GET(request: NextRequest) {
       healthResults.supabase.publicClient = {
         status: 'healthy',
         authenticated: !!user,
-        userId: user?.id || null
-      };
+        ...(user?.id && { userId: user.id })
+      } as any;
     } catch (error) {
       healthResults.supabase.publicClient = {
         status: 'error',
         authenticated: false,
-        error: error instanceof Error ? error.message : String(error)
-      };
+        error: error ? (error instanceof Error ? error.message : String(error)) : undefined
+      } as any;
     }
 
     // 3. Admin Client 테스트 (사용 가능한 경우)
@@ -65,22 +65,22 @@ export async function GET(request: NextRequest) {
         healthResults.supabase.adminClient = {
           status: error ? 'error' : 'healthy',
           available: true,
-          userCount: data?.users?.length || 0,
-          error: error?.message
-        };
+          ...(data?.users && { userCount: data.users.length }),
+          ...(error?.message && { error: error.message })
+        } as any;
       } catch (error) {
         healthResults.supabase.adminClient = {
           status: 'error',
           available: true,
-          error: error instanceof Error ? error.message : String(error)
-        };
+          error: error ? (error instanceof Error ? error.message : String(error)) : undefined
+        } as any;
       }
     } else {
       healthResults.supabase.adminClient = {
         status: 'unavailable',
         available: false,
         note: 'SUPABASE_SERVICE_ROLE_KEY 환경변수가 설정되지 않음'
-      };
+      } as any;
     }
 
     // 4. 인증 기능 테스트 (회원가입 가능 여부)
@@ -104,14 +104,14 @@ export async function GET(request: NextRequest) {
       healthResults.supabase.auth = {
         status: error ? 'error' : 'healthy',
         canSignUp: !error,
-        error: error?.message
-      };
+        ...(error?.message && { error: error.message })
+      } as any;
     } catch (error) {
       healthResults.supabase.auth = {
         status: 'error',
         canSignUp: false,
-        error: error instanceof Error ? error.message : String(error)
-      };
+        error: error ? (error instanceof Error ? error.message : String(error)) : undefined
+      } as any;
     }
 
     // 5. 데이터베이스 쿼리 테스트
@@ -122,15 +122,15 @@ export async function GET(request: NextRequest) {
       healthResults.supabase.database = {
         status: error ? 'error' : 'healthy',
         canQuery: !error,
-        version: typeof data === 'string' ? data : 'unknown',
-        error: error?.message
-      };
+        ...(typeof data === 'string' && { version: data }),
+        ...(error?.message && { error: error.message })
+      } as any;
     } catch (error) {
       healthResults.supabase.database = {
         status: 'error',
         canQuery: false,
-        error: error instanceof Error ? error.message : String(error)
-      };
+        error: error ? (error instanceof Error ? error.message : String(error)) : undefined
+      } as any;
     }
 
     // 6. Storage 기능 테스트
@@ -145,15 +145,15 @@ export async function GET(request: NextRequest) {
           name: bucket.name,
           public: bucket.public,
           createdAt: bucket.created_at
-        })) || [],
-        error: error?.message
-      };
+        })) || [] as any[],
+        ...(error?.message && { error: error.message })
+      } as any;
     } catch (error) {
       healthResults.supabase.storage = {
         status: 'error',
-        buckets: [],
-        error: error instanceof Error ? error.message : String(error)
-      };
+        buckets: [] as any[],
+        error: error ? (error instanceof Error ? error.message : String(error)) : undefined
+      } as any;
     }
 
     // 전체 상태 결정
@@ -188,7 +188,7 @@ export async function GET(request: NextRequest) {
         {
           service: 'Supabase Health Check',
           timestamp: new Date().toISOString()
-        },
+        } as any,
         traceId
       ),
       { status: 500 }
@@ -223,13 +223,13 @@ export async function POST(request: NextRequest) {
         // 기존 테이블 구조 확인
         const { data: tables, error } = await supabase.rpc('get_schema_info');
 
-        diagnostics.tests.migration = {
+        (diagnostics.tests as any).migration = {
           status: error ? 'error' : 'ready',
           existingTables: tables || [],
-          error: error?.message
+          ...(error?.message && { error: error.message })
         };
       } catch (error) {
-        diagnostics.tests.migration = {
+        (diagnostics.tests as any).migration = {
           status: 'error',
           error: error instanceof Error ? error.message : String(error)
         };
@@ -244,13 +244,13 @@ export async function POST(request: NextRequest) {
         // 간단한 테스트 테이블 생성 및 데이터 삽입 시도
         const testTableName = `health_test_${Date.now()}`;
 
-        diagnostics.tests.dataCreation = {
+        (diagnostics.tests as any).dataCreation = {
           status: 'completed',
           testTable: testTableName,
           note: '실제 구현은 마이그레이션 단계에서 수행됩니다'
         };
       } catch (error) {
-        diagnostics.tests.dataCreation = {
+        (diagnostics.tests as any).dataCreation = {
           status: 'error',
           error: error instanceof Error ? error.message : String(error)
         };

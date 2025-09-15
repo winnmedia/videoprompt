@@ -67,23 +67,23 @@ export async function POST(req: NextRequest) {
     });
 
     if (error) {
-      console.warn(`❌ Registration failed for ${email}:`, error.message);
+      console.warn(`❌ Registration failed for ${email}:`, (error as any)?.message);
 
       // Supabase 에러 메시지 한국어 변환
       let errorMessage = '회원가입 중 오류가 발생했습니다.';
 
-      if (error.message?.includes('already registered')) {
+      if ((error as any)?.message?.includes('already registered')) {
         errorMessage = '이미 등록된 이메일입니다.';
-      } else if (error.message?.includes('Password')) {
+      } else if ((error as any)?.message?.includes('Password')) {
         errorMessage = '비밀번호 형식이 올바르지 않습니다.';
-      } else if (error.message?.includes('Email')) {
+      } else if ((error as any)?.message?.includes('Email')) {
         errorMessage = '이메일 형식이 올바르지 않습니다.';
-      } else if (error.message?.includes('signup')) {
+      } else if ((error as any)?.message?.includes('signup')) {
         errorMessage = '회원가입이 비활성화되어 있습니다.';
       }
 
       return NextResponse.json(
-        failure('REGISTRATION_FAILED', errorMessage, 400, error.message, traceId),
+        failure('REGISTRATION_FAILED', errorMessage, 400, (error as any)?.message, traceId),
         { status: 400 }
       );
     }
