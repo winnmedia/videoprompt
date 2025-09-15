@@ -13,6 +13,8 @@ import { type PromptGenerationStateV31 } from '@/types/video-prompt-v3.1';
 import { generateId } from '@/shared/lib/utils';
 import { useProjectStore } from '@/entities/project';
 import { createEmptyV31Instance, compilePromptSimple, type CineGeniusV31Simple } from '@/lib/schemas/cinegenius-v3.1-simple';
+import { type StoryTemplate } from '@/entities/scenario';
+import { DEFAULT_TEMPLATES } from '@/entities/scenario/templates';
 // sessionStorage 관련 함수들은 제거하고 Zustand 스토어만 사용
 import { registerPromptContent, type ContentRegistrationResult } from '@/shared/lib/upload-utils';
 import { Button } from '@/shared/ui/button';
@@ -65,6 +67,9 @@ const PromptGeneratorPage: React.FC = () => {
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [storiesLoading, setStoriesLoading] = useState(false);
   const [showStories, setShowStories] = useState(true); // 항상 true로 시작
+
+  // 템플릿 관련 상태
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   
   // v3.1 상태 (새로운 기능)
   const [v31Mode, setV31Mode] = useState(false);
@@ -167,6 +172,39 @@ const PromptGeneratorPage: React.FC = () => {
     handleStorySelect(story);
     // 바로 마지막 단계로 이동하여 프롬프트 생성 가능하도록
     setCurrentStep(4);
+  };
+
+  // 템플릿 선택 핸들러
+  const handleTemplateSelect = (template: StoryTemplate) => {
+    // v3.1 모드 자동 활성화
+    setV31Mode(true);
+
+    // 템플릿 데이터를 v3.1 상태에 적용
+    setV31State((prev: CineGeniusV31Simple) => ({
+      ...prev,
+      userInput: {
+        ...prev.userInput,
+        directPrompt: template.template.oneLineStory,
+      },
+      projectConfig: {
+        ...prev.projectConfig,
+        projectName: template.template.title,
+        videoLength: parseInt(template.template.duration.replace(/[^0-9]/g, '')) || 30,
+        aspectRatio: template.template.format as '16:9' | '9:16' | '1:1' | '4:3' | '21:9',
+      },
+      promptBlueprint: {
+        ...prev.promptBlueprint,
+        styleDirection: {
+          ...prev.promptBlueprint.styleDirection,
+          visualStyle: template.template.toneAndManner[0] || '',
+          mood: template.template.tempo === '빠르게' ? 'fast' : template.template.tempo === '느리게' ? 'slow' : 'normal'
+        }
+      }
+    }));
+
+    setShowTemplateSelector(false);
+    setCurrentStep(1);
+    alert(`✅ "${template.name}" 템플릿이 적용되었습니다!`);
   };
 
   const nextStep = () => {
@@ -368,7 +406,17 @@ const PromptGeneratorPage: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <h1 className="text-2xl font-bold text-gray-900">AI 영상 프롬프트 생성기</h1>
-            
+
+            {/* 템플릿 선택 버튼 */}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowTemplateSelector(true)}
+              className="rounded-md"
+            >
+              🎯 템플릿 선택
+            </Button>
+
             {/* v3.1 모드 전환 버튼 */}
             <Button
               variant="toggle"
@@ -377,7 +425,7 @@ const PromptGeneratorPage: React.FC = () => {
               onClick={() => {
                 const newMode = !v31Mode;
                 setV31Mode(newMode);
-                
+
                 // 모드 전환 시 현재 단계 조정
                 if (newMode && currentStep > 2) {
                   setCurrentStep(1);
@@ -931,7 +979,7 @@ const PromptGeneratorPage: React.FC = () => {
                   <p className="font-medium">{project.scenario.title}</p>
                   <p className="text-green-600 line-clamp-2">{project.scenario.story}</p>
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex justify-center">
                   <button
                     onClick={() => {
                       const projectStory: Story = {
@@ -944,25 +992,7 @@ const PromptGeneratorPage: React.FC = () => {
                         createdAt: project.createdAt,
                         updatedAt: project.updatedAt,
                       };
-                      handleStorySelect(projectStory);
-                    }}
-                    className="px-3 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
-                  >
-                    이 시나리오 사용
-                  </button>
-                  <button
-                    onClick={() => {
-                      const projectStory: Story = {
-                        id: project.id || `story-${Date.now()}`,
-                        title: project.scenario?.title || '',
-                        oneLineStory: project.scenario?.story || '',
-                        genre: project.scenario?.genre || '',
-                        tone: Array.isArray(project.scenario?.tone) ? project.scenario.tone.join(', ') : project.scenario?.tone || '',
-                        target: project.scenario?.target || '',
-                        createdAt: project.createdAt,
-                        updatedAt: project.updatedAt,
-                      };
-                      
+
                       // v3.1 모드 자동 활성화 및 스토리 적용
                       setV31Mode(true);
                       setV31State((prev: CineGeniusV31Simple) => ({
@@ -976,12 +1006,12 @@ const PromptGeneratorPage: React.FC = () => {
                           projectName: projectStory.title,
                         }
                       }));
-                      
+
                       handleGenerateFromStory(projectStory);
                     }}
-                    className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors flex items-center space-x-1"
+                    className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
                   >
-                    <span>🚀 v3.1 프롬프트 생성</span>
+                    <span>🚀 이 시나리오를 프롬프트로 생성</span>
                   </button>
                 </div>
               </div>
@@ -1045,24 +1075,28 @@ const PromptGeneratorPage: React.FC = () => {
                         {new Date(story.createdAt).toLocaleDateString()}
                       </span>
                       
-                      <div className="flex space-x-2">
+                      <div className="flex justify-center">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleStorySelect(story);
-                          }}
-                          className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
-                        >
-                          편집
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
+                            // v3.1 모드 자동 활성화
+                            setV31Mode(true);
+                            setV31State((prev: CineGeniusV31Simple) => ({
+                              ...prev,
+                              userInput: {
+                                ...prev.userInput,
+                                directPrompt: story.oneLineStory,
+                              },
+                              projectConfig: {
+                                ...prev.projectConfig,
+                                projectName: story.title,
+                              }
+                            }));
                             handleGenerateFromStory(story);
                           }}
                           className="px-3 py-1 text-xs bg-primary-500 text-white rounded hover:bg-primary-600 transition-colors"
                         >
-                          프롬프트 생성
+                          이 시나리오를 프롬프트로 생성
                         </button>
                       </div>
                     </div>
@@ -1135,6 +1169,56 @@ const PromptGeneratorPage: React.FC = () => {
         <main className="py-8">
           {showStories ? renderStoriesList() : renderCurrentStep()}
         </main>
+
+        {/* 템플릿 선택기 모달 */}
+        {showTemplateSelector && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">프롬프트 템플릿 선택</h2>
+                <button
+                  onClick={() => setShowTemplateSelector(false)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="mb-6">
+                <p className="text-gray-600">
+                  미리 설정된 템플릿을 선택하여 빠르게 프롬프트 생성을 시작하세요.
+                  템플릿 선택 시 v3.1 모드가 자동으로 활성화됩니다.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {DEFAULT_TEMPLATES.map((template: StoryTemplate) => (
+                  <div
+                    key={template.id}
+                    className="border border-gray-200 rounded-lg p-4 hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer bg-gradient-to-br from-white to-gray-50"
+                    onClick={() => handleTemplateSelect(template)}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-semibold text-gray-900 text-sm">{template.name}</h4>
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                        프롬프트
+                      </span>
+                    </div>
+                    <p className="text-gray-600 text-xs mb-3 leading-relaxed">{template.description}</p>
+
+                    {/* 템플릿 미리보기 */}
+                    <div className="bg-white p-3 rounded-md border text-xs space-y-1">
+                      <div><span className="font-medium text-gray-700">장르:</span> <span className="text-blue-600">{template.template.genre}</span></div>
+                      <div><span className="font-medium text-gray-700">타겟:</span> <span className="text-blue-600">{template.template.target}</span></div>
+                      <div><span className="font-medium text-gray-700">분위기:</span> <span className="text-blue-600">{template.template.toneAndManner.join(', ')}</span></div>
+                      <div><span className="font-medium text-gray-700">시간:</span> <span className="text-blue-600">{template.template.duration}</span></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </ErrorBoundary>
   );
