@@ -45,7 +45,7 @@ export default function ScenarioPage() {
     isLoading: false,
     loading: false,
     error: null,
-    errorType: null,
+    errorType: null as ('client' | 'server' | 'network' | null),
     retryCount: 0,
     storyInput: { title: '', oneLineStory: '', toneAndManner: [] as string[], genre: '', target: '', duration: '', format: '', tempo: '', developmentMethod: '', developmentIntensity: '' },
     storySteps: [] as StoryStep[],
@@ -58,7 +58,7 @@ export default function ScenarioPage() {
     ...workflowState,
     loading: storyGenerationMutation.isPending,
     error: storyGenerationMutation.error?.message || workflowState.error,
-    errorType: storyGenerationMutation.error ? 'server' : workflowState.errorType,
+    errorType: storyGenerationMutation.error ? 'server' as const : workflowState.errorType,
   };
 
   const workflow = {
