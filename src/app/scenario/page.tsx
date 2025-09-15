@@ -38,31 +38,60 @@ export default function ScenarioPage() {
   // const workflow = useScenarioWorkflow();
 
   // 임시 워크플로우 상태
-  const workflow = {
+  const [workflowState, setWorkflowState] = useState({
     currentStep: WORKFLOW_STEPS.STORY_INPUT as WorkflowStep,
     isLoading: false,
     loading: false,
     error: null,
     errorType: null,
     retryCount: 0,
-    storyInput: { title: '', oneLineStory: '', toneAndManner: [], genre: '', target: '', duration: '', format: '', tempo: '', developmentMethod: '', developmentIntensity: '' },
+    storyInput: { title: '', oneLineStory: '', toneAndManner: [] as string[], genre: '', target: '', duration: '', format: '', tempo: '', developmentMethod: '', developmentIntensity: '' },
     storySteps: [],
     shots: [],
     loadingMessage: undefined,
+  });
+
+  const workflow = {
+    ...workflowState,
     handleStorySubmit: async () => {},
     handleStoryUpdate: () => {},
     handleShotsGeneration: async () => {},
     handleExport: () => {},
-    setCurrentStep: (step: WorkflowStep) => {},
-    applyTemplate: (template: any) => {},
-    updateStoryInput: (input: any) => {},
+    setCurrentStep: (step: WorkflowStep) => {
+      setWorkflowState(prev => ({ ...prev, currentStep: step }));
+    },
+    applyTemplate: useCallback((template: StoryTemplate) => {
+      setWorkflowState(prev => ({
+        ...prev,
+        storyInput: {
+          title: template.template.title,
+          oneLineStory: template.template.oneLineStory,
+          toneAndManner: template.template.toneAndManner,
+          genre: template.template.genre,
+          target: template.template.target,
+          duration: template.template.duration,
+          format: template.template.format,
+          tempo: template.template.tempo,
+          developmentMethod: template.template.developmentMethod,
+          developmentIntensity: template.template.developmentIntensity,
+        }
+      }));
+    }, []),
+    updateStoryInput: useCallback((field: string, value: any) => {
+      setWorkflowState(prev => ({
+        ...prev,
+        storyInput: { ...prev.storyInput, [field]: value }
+      }));
+    }, []),
     generateStory: async () => {},
     retry: () => {},
     toggleStepEditing: (stepId: string) => {},
     updateStoryStep: (stepId: string, field: string, value: string) => {},
     generateShotsFromSteps: async () => {},
     goToPreviousStep: () => {},
-    goToStep: (step: WorkflowStep) => {},
+    goToStep: (step: WorkflowStep) => {
+      setWorkflowState(prev => ({ ...prev, currentStep: step }));
+    },
     updateShot: (shotId: string, field: string, value: any) => {},
     clearError: () => {}
   };
@@ -94,6 +123,7 @@ export default function ScenarioPage() {
   // 템플릿 핸들러들
   const handleTemplateSelect = useCallback((template: StoryTemplate) => {
     workflow.applyTemplate(template);
+    alert(`✅ "${template.name}" 템플릿이 적용되었습니다!`);
   }, [workflow]);
 
   const handleSaveAsTemplate = useCallback((templateData: {
