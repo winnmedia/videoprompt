@@ -108,11 +108,14 @@ export const standardErrors = {
     failure(ERROR_CODES.SERVICE_UNAVAILABLE, `${service} 서비스를 일시적으로 사용할 수 없습니다.`, 503, undefined, traceId),
 };
 
-export function getTraceId(req: NextRequest): string {
-  return (
-    req.headers.get('x-trace-id') ||
-    (globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2))
-  );
+export function getTraceId(req?: NextRequest): string {
+  if (req) {
+    return (
+      req.headers.get('x-trace-id') ||
+      (globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2))
+    );
+  }
+  return globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2);
 }
 
 

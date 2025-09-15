@@ -98,9 +98,9 @@ export const StorySchema = z.object({
   oneLineStory: z.string()
     .min(10, '한 줄 스토리는 최소 10자 이상이어야 합니다')
     .max(500, '한 줄 스토리는 500자를 초과할 수 없습니다'),
-  genre: GenreSchema,
-  tone: ToneSchema,
-  target: TargetAudienceSchema,
+  genre: z.string(),
+  tone: z.string(),
+  target: z.string(),
   structure: StoryStructureSchema.optional().nullable(),
   userId: z.string().uuid().optional().nullable(),
   createdAt: z.string().datetime(),
@@ -123,9 +123,9 @@ export const CreateStoryRequestSchema = z.object({
     .min(10, '한 줄 스토리는 최소 10자 이상이어야 합니다')
     .max(500, '한 줄 스토리는 500자를 초과할 수 없습니다')
     .transform(val => val.trim()),
-  genre: GenreSchema.optional().default('Drama'),
-  tone: ToneSchema.optional().default('Neutral'),
-  target: TargetAudienceSchema.optional().default('General'),
+  genre: z.string().optional().default('Drama'),
+  tone: z.string().optional().default('Neutral'),
+  target: z.string().optional().default('General'),
   structure: StoryStructureSchema.optional(),
 });
 
@@ -143,9 +143,9 @@ export const GetStoriesQuerySchema = z.object({
   search: z.string()
     .optional()
     .transform(val => val ? val.trim() : undefined),
-  genre: GenreSchema.optional(),
-  tone: ToneSchema.optional(),
-  target: TargetAudienceSchema.optional(),
+  genre: z.string().optional(),
+  tone: z.string().optional(),
+  target: z.string().optional(),
   sortBy: z.enum(['createdAt', 'updatedAt', 'title']).default('updatedAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });

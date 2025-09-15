@@ -15,9 +15,9 @@ export async function OPTIONS() {
   return new NextResponse(null, { headers: corsHeaders });
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const body = await req.json();
+    const body = await request.json();
     const { prompt, duration = 5, aspectRatio = '16:9', provider = 'auto' } = body;
 
     if (!prompt || typeof prompt !== 'string') {
@@ -34,38 +34,42 @@ export async function POST(req: NextRequest) {
     }
 
 
-    // 1단계: Seedance API 시도
+    // 1단계: Seedance API 시도 (로컬 엔드포인트 사용)
     if (provider === 'auto' || provider === 'seedance') {
       try {
-        const seedanceRes = await fetch(
-          'https://videoprompt-production.up.railway.app/api/seedance/create',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              prompt,
-              duration_seconds: duration,
-              aspect_ratio: aspectRatio,
-            }),
-          },
-        );
+        // 현재 호스트를 사용하여 로컬 API 엔드포인트 구성
+        const host = request.headers.get('host') || 'localhost:3000';
+        const protocol = host.includes('localhost') ? 'http' : 'https';
+        const seedanceUrl = `${protocol}://${host}/api/seedance/create`;
+
+        const seedanceRes = await fetch(seedanceUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt,
+            duration_seconds: duration,
+            aspect_ratio: aspectRatio,
+          }),
+        });
 
         if (seedanceRes.ok) {
           const data = await seedanceRes.json();
-          if (data.ok) {
+          if (data.success) {
             return NextResponse.json(
               {
                 ok: true,
                 provider: 'seedance',
-                jobId: data.jobId,
-                status: data.status,
-                message: 'Seedance 영상 생성이 시작되었습니다.',
+                jobId: data.data.jobId,
+                status: data.data.status,
+                dashboardUrl: data.data.dashboardUrl,
+                message: 'SeeDance 영상 생성이 시작되었습니다.',
               },
               { headers: corsHeaders },
             );
           }
         }
       } catch (seedanceError) {
+        console.log('DEBUG: Seedance 로컬 API 호출 실패:', seedanceError);
       }
     }
 

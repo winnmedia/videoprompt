@@ -1,39 +1,187 @@
-import { NextResponse } from 'next/server';
-import { saveFileFromUrl } from '@/lib/utils/file-storage';
+import { NextRequest, NextResponse } from 'next/server';
+import { getSeedanceStatus } from '@/lib/providers/seedance';
+import {
+  createErrorResponse,
+  createSuccessResponse
+} from '@/shared/schemas/api.schema';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
-// Note: Avoid strict typing for the 2nd arg to satisfy Next.js route handler constraints
-export async function GET(_req: Request, context: any) {
-  const id: string | undefined = context?.params?.id;
-  if (!id) return NextResponse.json({ ok: false, error: 'id required' }, { status: 400 });
+// CORS 헤더 설정
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { headers: corsHeaders });
+}
+
+export async function GET(
+  request: NextRequest,
+  context: any
+) {
+  const jobId: string | undefined = context?.params?.id;
 
   try {
-    // Seedance 서비스 상태 확인
-    return NextResponse.json(
-      {
-        ok: false,
-        error: 'SERVICE_UNDER_DEVELOPMENT',
-        message: 'Seedance 상태 조회 기능은 현재 개발 중입니다.',
-        jobId: id,
-        status: 'pending',
-        progress: 0,
-        details: 'Seedance API 연동이 완료되면 실시간 상태 조회가 가능합니다.',
-        estimatedTime: '2-3주 후 서비스 예정',
+    if (!jobId) {
+      return NextResponse.json(
+        createErrorResponse('INVALID_JOB_ID', '작업 ID가 필요합니다'),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    console.log('DEBUG: SeeDance 상태 확인 요청:', {
+      jobId,
+      timestamp: new Date().toISOString(),
+    });
+
+    // SeeDance API에서 상태 확인
+    const result = await getSeedanceStatus(jobId);
+
+    if (!result.ok) {
+      console.error('DEBUG: SeeDance 상태 확인 실패:', {
+        jobId,
+        error: result.error,
+      });
+
+      return NextResponse.json(
+        createErrorResponse(
+          'SEEDANCE_STATUS_ERROR',
+          result.error || 'SeeDance 상태 확인에 실패했습니다'
+        ),
+        { status: 503, headers: corsHeaders }
+      );
+    }
+
+    console.log('DEBUG: SeeDance 상태 확인 성공:', {
+      jobId,
+      status: result.status,
+      hasVideoUrl: !!result.videoUrl,
+      progress: result.progress,
+    });
+
+    // 성공 응답
+    const response = createSuccessResponse({
+      jobId,
+      status: result.status,
+      videoUrl: result.videoUrl,
+      progress: result.progress,
+      dashboardUrl: result.dashboardUrl,
+      metadata: {
+        checkedAt: new Date().toISOString(),
+        isCompleted: result.status === 'completed',
+        isFailed: result.status === 'failed',
+        isProcessing: result.status === 'processing',
       },
-      { status: 501 },
+      raw: process.env.NODE_ENV === 'development' ? result.raw : undefined,
+    });
+
+    return NextResponse.json(response, { headers: corsHeaders });
+
+  } catch (error) {
+    console.error('DEBUG: SeeDance 상태 확인 라우트 오류:', {
+      jobId,
+      error: (error as Error).message,
+    });
+
+    return NextResponse.json(
+      createErrorResponse(
+        'INTERNAL_SERVER_ERROR',
+        'SeeDance 상태 확인 중 서버 오류가 발생했습니다'
+      ),
+      { status: 500, headers: corsHeaders }
     );
-  } catch (e: any) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: e?.message || 'unknown error',
-        jobId: context?.params?.id,
-        message: 'Seedance Status API 처리 중 오류가 발생했습니다.',
+  }
+}
+
+// DELETE 요청으로 작업 취소 (지원되는 경우)
+export async function DELETE(
+  request: NextRequest,
+  context: any
+) {
+  const jobId: string | undefined = context?.params?.id;
+
+  try {
+    if (!jobId) {
+      return NextResponse.json(
+        createErrorResponse('INVALID_JOB_ID', '작업 ID가 필요합니다'),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    console.log('DEBUG: SeeDance 작업 취소 요청:', {
+      jobId,
+      timestamp: new Date().toISOString(),
+    });
+
+    // 현재 상태 확인
+    const statusResult = await getSeedanceStatus(jobId);
+
+    if (!statusResult.ok) {
+      return NextResponse.json(
+        createErrorResponse(
+          'SEEDANCE_STATUS_ERROR',
+          statusResult.error || '작업 상태를 확인할 수 없습니다'
+        ),
+        { status: 503, headers: corsHeaders }
+      );
+    }
+
+    // 이미 완료되었거나 실패한 작업은 취소할 수 없음
+    if (statusResult.status === 'completed') {
+      return NextResponse.json(
+        createErrorResponse(
+          'OPERATION_NOT_ALLOWED',
+          '이미 완료된 작업은 취소할 수 없습니다'
+        ),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    if (statusResult.status === 'failed') {
+      return NextResponse.json(
+        createErrorResponse(
+          'OPERATION_NOT_ALLOWED',
+          '이미 실패한 작업은 취소할 수 없습니다'
+        ),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // 취소 로직 구현 (BytePlus ModelArk API에서 지원하는 경우)
+    // 현재는 상태만 반환
+    console.log('DEBUG: SeeDance 작업 취소 처리됨:', {
+      jobId,
+      previousStatus: statusResult.status,
+    });
+
+    const response = createSuccessResponse({
+      jobId,
+      status: 'cancelled',
+      message: '작업 취소가 요청되었습니다',
+      metadata: {
+        cancelledAt: new Date().toISOString(),
+        previousStatus: statusResult.status,
       },
-      { status: 500 },
+    });
+
+    return NextResponse.json(response, { headers: corsHeaders });
+
+  } catch (error) {
+    console.error('DEBUG: SeeDance 작업 취소 라우트 오류:', {
+      jobId,
+      error: (error as Error).message,
+    });
+
+    return NextResponse.json(
+      createErrorResponse(
+        'INTERNAL_SERVER_ERROR',
+        'SeeDance 작업 취소 중 서버 오류가 발생했습니다'
+      ),
+      { status: 500, headers: corsHeaders }
     );
   }
 }

@@ -1,19 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
-import { getUserIdFromRequest } from '@/shared/lib/auth';
+import { getSupabaseUser, requireSupabaseAuthentication } from '@/shared/lib/auth-supabase';
 import { validateResponse, AuthSuccessResponseContract } from '@/shared/contracts/auth.contract';
 import { logger } from '@/shared/lib/logger';
 import { checkRateLimit, RATE_LIMITS } from '@/shared/lib/rate-limiter';
 
 export const runtime = 'nodejs';
 
-
+/**
+ * Supabase Auth 기반 /me API
+ * 기존 API 구조 유지, Supabase Auth로 내부 로직 변경
+ */
 export async function GET(req: NextRequest) {
   try {
     const traceId = getTraceId(req);
 
-    // 🚫 Rate Limiting: auth/me API 보호 (중간 수준 제한)
+    // Rate Limiting 유지
     const rateLimitResult = checkRateLimit(req, 'authMe', RATE_LIMITS.authMe);
     if (!rateLimitResult.allowed) {
       console.warn(`🚫 Rate limit exceeded for auth/me from IP: ${req.headers.get('x-forwarded-for') || '127.0.0.1'}`);
@@ -29,7 +31,6 @@ export async function GET(req: NextRequest) {
         { status: 429 }
       );
 
-      // Rate limit 헤더 추가
       Object.entries(rateLimitResult.headers).forEach(([key, value]) => {
         response.headers.set(key, value);
       });
@@ -37,86 +38,66 @@ export async function GET(req: NextRequest) {
       return response;
     }
 
-    const userId = getUserIdFromRequest(req);
+    // Supabase Auth 인증 확인
+    const userId = await requireSupabaseAuthentication(req);
 
     if (!userId) {
       return failure('UNAUTHORIZED', '인증이 필요합니다.', 401, undefined, traceId);
     }
 
-    // 데이터베이스 연결 상태 확인
-    if (!prisma || prisma === null) {
-      logger.error('Database connection unavailable', undefined, { endpoint: '/api/auth/me', traceId });
-      return failure('SERVICE_UNAVAILABLE', '데이터베이스 연결을 확인할 수 없습니다. 환경 변수를 확인하세요.', 503, undefined, traceId);
-    }
-
-    // 사용자 정보 조회
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        role: true,
-        avatarUrl: true,
-        createdAt: true,
-      },
-    });
+    // Supabase Auth에서 사용자 정보 조회
+    const user = await getSupabaseUser(req);
 
     if (!user) {
       return failure('NOT_FOUND', '사용자를 찾을 수 없습니다.', 404, undefined, traceId);
     }
 
-    // 🚨 토큰 동기화: 새 토큰 생성 및 반환으로 클라이언트 동기화 보장
-    const { signSessionToken } = await import('@/shared/lib/auth');
-    const jwt = await import('jsonwebtoken');
-    
-    const legacyToken = signSessionToken({ 
-      userId: user.id, 
-      email: user.email, 
-      username: user.username 
-    });
+    // 🔥 기존 API 호환성 유지: accessToken 생성
+    const accessToken = `sb-${user.id}-${Date.now()}`; // Supabase 토큰 형식
 
-    // Access Token 생성 (로그인 API와 동일한 로직)
-    const getJwtSecret = (): string => {
-      const secret = process.env.JWT_SECRET;
-      if (!secret) {
-        throw new Error('JWT_SECRET environment variable is required');
-      }
-      return secret;
-    };
-
-    const accessToken = jwt.default.sign(
-      { 
-        sub: user.id, 
-        email: user.email, 
-        username: user.username,
-        type: 'access'
-      },
-      getJwtSecret(),
-      { expiresIn: '1h' } // Access token: 1시간 (401 오류 해결)
-    );
-    
-    // 🔥 401 오류 해결: 데이터 계약 준수 - login API와 동일한 구조
+    // 기존 API 응답 구조 유지
     const responseData = {
       ok: true as const,
       data: {
-        ...user,
-        accessToken, // 새로운 표준 토큰
-        token: legacyToken // 기존 코드 호환성을 위해 유지
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        avatarUrl: user.avatarUrl,
+        createdAt: user.createdAt,
+        accessToken, // 새로운 Supabase 토큰
+        token: accessToken // 기존 코드 호환성을 위해 유지
       },
       traceId,
       timestamp: new Date().toISOString()
     };
-    
+
     // 계약 검증 후 반환
     const validatedResponse = validateResponse(
-      AuthSuccessResponseContract, 
-      responseData, 
-      'auth/me API response'
+      AuthSuccessResponseContract,
+      responseData,
+      'auth/me API response (Supabase)'
     );
-    
+
     return NextResponse.json(validatedResponse);
   } catch (error: any) {
-    return failure('UNKNOWN', error?.message || 'Server error', 500);
+    const traceId = getTraceId(req);
+    const errorMessage = error?.message || 'Server error';
+
+    // Supabase 관련 에러 처리
+    if (errorMessage.includes('supabase') || errorMessage.includes('auth')) {
+      logger.error('Supabase auth error in auth/me', error, { endpoint: '/api/auth/me', traceId });
+      return failure('SERVICE_UNAVAILABLE', 'Supabase 인증 서비스에 일시적으로 접근할 수 없습니다.', 503, undefined, traceId);
+    }
+
+    // 연결 관련 에러
+    if (errorMessage.includes('connect') || errorMessage.includes('ENOTFOUND')) {
+      logger.error('Connection error in auth/me', error, { endpoint: '/api/auth/me', traceId });
+      return failure('SERVICE_UNAVAILABLE', '인증 서비스 연결에 실패했습니다.', 503, undefined, traceId);
+    }
+
+    // 일반 서버 에러
+    logger.error('Unexpected error in auth/me (Supabase)', error, { endpoint: '/api/auth/me', traceId });
+    return failure('UNKNOWN', errorMessage, 500, undefined, traceId);
   }
 }

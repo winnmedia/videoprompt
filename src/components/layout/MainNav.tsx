@@ -8,7 +8,8 @@ const items = [
   { href: '/', label: '홈' },
   { href: '/scenario', label: 'AI 영상 기획' },
   { href: '/prompt-generator', label: '프롬프트 생성기' },
-  // { href: '/workflow', label: 'AI 영상 생성' }, // 일시 비활성화 - VEO3 비용 절감
+  { href: '/workflow', label: 'AI 영상 생성' },
+  { href: '/videos', label: '영상 목록' },
   { href: '/feedback', label: '영상 피드백' },
   { href: '/planning', label: '콘텐츠 관리' },
 ];
@@ -18,21 +19,25 @@ export function MainNav() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, logout } = useAuthStore();
 
-  // 🔥 401 오류 해결: 중복 인증 체크 제거
-  // Header.tsx에서 이미 checkAuth()를 호출하므로 중복 호출 방지
+  // 🔥 401 오류 해결: 인증 체크는 AuthProvider에서 처리
+  // MainNav는 상태만 읽어서 UI 표시
 
   // prefetch refs를 미리 생성하여 React Hooks 규칙 준수
   // React Hooks는 컴포넌트 최상위에서 호출해야 함
   const homePrefetch = useSoftPrefetch('/');
   const scenarioPrefetch = useSoftPrefetch('/scenario');
   const promptPrefetch = useSoftPrefetch('/prompt-generator');
+  const workflowPrefetch = useSoftPrefetch('/workflow');
+  const videosPrefetch = useSoftPrefetch('/videos');
   const feedbackPrefetch = useSoftPrefetch('/feedback');
   const planningPrefetch = useSoftPrefetch('/planning');
-  
+
   const prefetchRefs = {
     '/': homePrefetch,
     '/scenario': scenarioPrefetch,
     '/prompt-generator': promptPrefetch,
+    '/workflow': workflowPrefetch,
+    '/videos': videosPrefetch,
     '/feedback': feedbackPrefetch,
     '/planning': planningPrefetch,
   };
