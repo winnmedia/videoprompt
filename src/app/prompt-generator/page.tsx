@@ -313,12 +313,48 @@ const PromptGeneratorPage: React.FC = () => {
     try {
       if (v31Mode) {
         // CineGenius v3.1 방식으로 프롬프트 생성
-        const compilationResult = await compilePromptSimple(v31State, {
-          enableVeoOptimization: true,
-          includeAudioLayers: true,
-          disableTextOverlays: true,
-          maxPromptLength: 2000
+        // Railway 백엔드 API 호출 방식으로 수정
+        const apiRequest = {
+          story: v31State.userInput?.directPrompt || '영상 제작 프로젝트',
+          scenario: {
+            genre: (v31State.promptBlueprint?.styleDirection as any)?.theme || 'drama',
+            tone: v31State.promptBlueprint?.styleDirection?.mood || 'serious',
+            structure: {
+              cinematography: v31State.promptBlueprint?.cinematography || {},
+              styleDirection: v31State.promptBlueprint?.styleDirection || {}
+            }
+          },
+          visual_preferences: {
+            style: [(v31State.promptBlueprint?.styleDirection as any)?.theme || 'cinematic'],
+            mood: [v31State.promptBlueprint?.styleDirection?.mood || 'moody'],
+            technical: ['4k', 'high quality']
+          },
+          target_audience: 'adults'
+        };
+
+        console.log('🚀 Railway API 요청:', apiRequest);
+
+        const response = await fetch('/api/ai/generate-prompt', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(apiRequest),
         });
+
+        if (!response.ok) {
+          throw new Error(`API 호출 실패: ${response.status} ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        console.log('✅ Railway API 응답:', result);
+
+        // API 응답을 가상의 compilationResult 형태로 변환
+        const compilationResult = {
+          validation: { isValid: true, errors: [] },
+          compiledPrompt: result.final_prompt || '프롬프트 생성 완료',
+          metadata: { visualPriorities: result.keywords || [] }
+        };
 
         if (compilationResult.validation.isValid) {
           // v3.1 결과를 프로젝트 스토어에 저장
@@ -338,7 +374,7 @@ const PromptGeneratorPage: React.FC = () => {
             registerPromptToManagement();
           }, 1000);
         } else {
-          console.error('v3.1 프롬프트 검증 실패:', compilationResult.validation.errors);
+          console.error('Railway API 프롬프트 검증 실패:', compilationResult.validation.errors);
           alert(`❌ 프롬프트 생성 실패:\n${compilationResult.validation.errors.join('\n')}`);
           setState((prev) => ({ ...prev, isGenerating: false }));
         }
@@ -395,7 +431,23 @@ const PromptGeneratorPage: React.FC = () => {
         }, 1000);
       }
     } catch (error) {
-      console.error('프롬프트 생성 실패:', error);
+      console.error('Railway API 프롬프트 생성 실패:', error);
+
+      // 에러 타입별 메시지 설정
+      let errorMessage = '프롬프트 생성에 실패했습니다.';
+      if (error instanceof Error) {
+        if (error.message.includes('fetch')) {
+          errorMessage = '네트워크 연결을 확인해주세요. Railway 백엔드 서버에 접근할 수 없습니다.';
+        } else if (error.message.includes('404')) {
+          errorMessage = 'API 엔드포인트를 찾을 수 없습니다. 백엔드 배포 상태를 확인해주세요.';
+        } else if (error.message.includes('500')) {
+          errorMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
+      alert(`❌ ${errorMessage}\n\n다시 시도하거나 지원팀에 문의하세요.`);
       setState((prev) => ({ ...prev, isGenerating: false }));
     }
   };

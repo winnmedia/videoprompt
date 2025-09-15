@@ -44,28 +44,106 @@ export interface ButtonProps
   rightIcon?: React.ReactNode;
   active?: boolean;
   testId?: string;
+  error?: boolean;
+  errorMessage?: string;
+  loadingText?: string;
+  description?: string;
 }
 
-export function Button({ className, variant, size, loading, leftIcon, rightIcon, children, disabled, active, testId, ...props }: ButtonProps) {
+export function Button({
+  className,
+  variant,
+  size,
+  loading,
+  leftIcon,
+  rightIcon,
+  children,
+  disabled,
+  active,
+  testId,
+  error,
+  errorMessage,
+  loadingText,
+  description,
+  ...props
+}: ButtonProps) {
   const isDisabled = disabled || loading;
+  const finalVariant = error ? 'destructive' : variant;
+
+  const buttonId = testId || `button-${Math.random().toString(36).substr(2, 9)}`;
+  const descriptionId = description ? `${buttonId}-description` : undefined;
+  const errorId = errorMessage ? `${buttonId}-error` : undefined;
+
   return (
-    <button 
-      className={cn(buttonVariants({ variant, size }), className)} 
-      disabled={isDisabled}
-      data-active={active}
-      data-testid={testId}
-      {...props}
-    >
-      {loading && (
-        <svg className="mr-2 h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
+    <div className="space-y-1">
+      <button
+        id={buttonId}
+        type="button"
+        className={cn(
+          buttonVariants({ variant: finalVariant, size }),
+          {
+            'ring-2 ring-danger-400 ring-offset-2': error && !disabled,
+          },
+          className
+        )}
+        disabled={isDisabled}
+        data-active={active}
+        data-testid={testId}
+        aria-describedby={cn(descriptionId, errorId)}
+        aria-invalid={error ? 'true' : undefined}
+        {...props}
+      >
+        {loading && (
+          <svg
+            className="mr-2 h-4 w-4 animate-spin"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            aria-label="로딩 스피너"
+          >
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+        )}
+        {!loading && leftIcon && <span className="mr-2">{leftIcon}</span>}
+        {loading && loadingText ? loadingText : children}
+        {!loading && rightIcon && <span className="ml-2">{rightIcon}</span>}
+      </button>
+
+      {/* 설명 텍스트 */}
+      {description && (
+        <p
+          id={descriptionId}
+          className="text-xs text-gray-600"
+        >
+          {description}
+        </p>
       )}
-      {!loading && leftIcon && <span className="mr-2">{leftIcon}</span>}
-      {children}
-      {!loading && rightIcon && <span className="ml-2">{rightIcon}</span>}
-    </button>
+
+      {/* 에러 메시지 */}
+      {errorMessage && (
+        <p
+          id={errorId}
+          role="alert"
+          aria-live="polite"
+          className="text-xs text-danger-600 flex items-start gap-1"
+        >
+          <svg
+            className="h-3 w-3 mt-0.5 flex-shrink-0"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+            aria-hidden="true"
+          >
+            <path
+              fillRule="evenodd"
+              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5l-3 5A1 1 0 007 14h6a1 1 0 00.866-1.5l-3-5A1 1 0 0010 7z"
+              clipRule="evenodd"
+            />
+          </svg>
+          <span>{errorMessage}</span>
+        </p>
+      )}
+    </div>
   );
 }
 

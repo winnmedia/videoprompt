@@ -5,10 +5,9 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useDispatch } from 'react-redux';
-import { StoryInput, StoryStep } from '@/entities/scenario';
+import { StoryInput, StoryStep, setStorySteps, setStoryError, setLoading } from '@/entities/scenario';
 import { apiClient } from '@/shared/lib/api-client';
-import { setStorySteps, setError as setStoryError, setLoading } from '@/entities/scenario/store/story-slice';
-import { addToast } from '@/shared/store/ui-slice';
+import { addToast } from '@/shared';
 
 // Query Keys (캐시 무효화 및 관리용)
 export const storyQueryKeys = {

@@ -10,6 +10,11 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
 
+  // 브라우저 캐시 강제 무효화 설정
+  generateBuildId: async () => {
+    return `build-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  },
+
   // 대용량 파일 업로드를 위한 실험적 설정
   experimental: {
     // 대용량 요청 처리를 위한 설정
@@ -91,6 +96,8 @@ const nextConfig = {
       // CORS 해결용 필수 프록시 - 개발/프로덕션 모든 환경에서 필요
       { source: '/api/templates', destination: `${apiBase}/api/templates` },
       { source: '/api/ai/:path*', destination: `${apiBase}/api/ai/:path*` },
+      // 파일 업로드 Railway 백엔드 프록시
+      { source: '/api/upload/:path*', destination: `${apiBase}/api/upload/:path*` },
     ];
   },
 };
