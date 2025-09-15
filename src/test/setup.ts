@@ -1,6 +1,7 @@
 import { vi, afterEach, beforeAll, afterAll } from 'vitest';
 import { setupServer } from 'msw/node';
 import { handlers } from '@/shared/lib/mocks/handlers';
+import '@testing-library/jest-dom';
 
 // MSW와 호환되는 fetch polyfill 설정
 import { fetch, Headers, Request, Response, FormData as UndiciFormData } from 'undici';

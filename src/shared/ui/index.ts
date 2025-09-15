@@ -32,3 +32,6 @@ export { ResendEmailButton } from './ResendEmailButton';
 // Password Components
 export { PasswordInput } from './PasswordInput';
 export { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
+
+// Error Handling Components (Enhanced)
+// Temporarily removed for build compatibility

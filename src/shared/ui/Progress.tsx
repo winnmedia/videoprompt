@@ -56,6 +56,11 @@ export function Progress({
             variantClasses[variant]
           )}
           style={{ width: `${percentage}%` }}
+          role="progressbar"
+          aria-valuenow={percentage}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`진행률: ${percentage}%`}
         />
       </div>
       {showLabel && (
