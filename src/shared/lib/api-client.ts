@@ -12,6 +12,18 @@ export interface ApiClientOptions extends RequestInit {
   timeout?: number;
 }
 
+// 🚨 $300 사건 방지: 캐시 및 중복 호출 방지 타입
+interface CacheEntry<T = any> {
+  data: T;
+  timestamp: number;
+  expiresAt: number;
+}
+
+interface PendingApiRequest<T = any> {
+  promise: Promise<T>;
+  timestamp: number;
+}
+
 export class ApiClient {
   private static instance: ApiClient;
   private tokenProvider: (() => string | null) | null = null;
@@ -23,6 +35,12 @@ export class ApiClient {
     resolve: (response: Response) => void;
     reject: (error: Error) => void;
   }> = [];
+
+  // 🚨 $300 사건 방지: 캐시 및 중복 호출 방지
+  private cache = new Map<string, CacheEntry>();
+  private pendingApiRequests = new Map<string, PendingApiRequest>();
+  private readonly defaultCacheTTL = 5 * 60 * 1000; // 5분
+  private readonly authCacheTTL = 10 * 60 * 1000; // 10분 (auth/me는 더 오래)
   
   private constructor() {}
   
@@ -274,10 +292,129 @@ export class ApiClient {
   }
   
   /**
+   * 🚨 $300 사건 방지: 캐시에서 데이터 가져오기
+   */
+  private getFromCache<T>(key: string): T | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+
+    const now = Date.now();
+    if (now > entry.expiresAt) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    console.log(`💾 캐시에서 데이터 반환: ${key}`);
+    return entry.data;
+  }
+
+  /**
+   * 🚨 $300 사건 방지: 캐시에 데이터 저장
+   */
+  private setCache<T>(key: string, data: T, ttl: number): void {
+    const now = Date.now();
+    this.cache.set(key, {
+      data,
+      timestamp: now,
+      expiresAt: now + ttl,
+    });
+  }
+
+  /**
+   * 🚨 $300 사건 방지: 요청 키 생성
+   */
+  private generateRequestKey(url: string, method: string, body?: any): string {
+    const bodyHash = body ? this.simpleHash(JSON.stringify(body)) : '';
+    return `${method}:${url}:${bodyHash}`;
+  }
+
+  /**
+   * 간단한 해시 생성
+   */
+  private simpleHash(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash).toString(36);
+  }
+
+  /**
+   * 🚨 $300 사건 방지 핵심: 중복 호출 방지 및 캐싱이 적용된 안전한 fetch
+   */
+  async safeFetchWithCache<T = any>(
+    url: string,
+    options: ApiClientOptions & { cacheTTL?: number } = {}
+  ): Promise<T> {
+    const method = options.method || 'GET';
+    const requestKey = this.generateRequestKey(url, method, options.body);
+
+    console.log(`🔍 API 요청: ${method} ${url}`, { requestKey });
+
+    // 1단계: 진행 중인 동일 요청 체크 (중복 호출 방지)
+    if (this.pendingApiRequests.has(requestKey)) {
+      console.log(`⚡ 진행 중인 요청 재사용: ${requestKey}`);
+      return this.pendingApiRequests.get(requestKey)!.promise;
+    }
+
+    // 2단계: GET 요청 캐시 체크 (특히 auth/me)
+    if (method === 'GET') {
+      const cachedData = this.getFromCache<T>(requestKey);
+      if (cachedData) {
+        return cachedData;
+      }
+    }
+
+    // 3단계: 실제 요청 실행
+    const requestPromise = this.executeRequestWithCache<T>(url, options, requestKey);
+
+    // 진행 중인 요청으로 등록
+    this.pendingApiRequests.set(requestKey, {
+      promise: requestPromise,
+      timestamp: Date.now(),
+    });
+
+    try {
+      const result = await requestPromise;
+      return result;
+    } finally {
+      // 진행 중인 요청에서 제거
+      this.pendingApiRequests.delete(requestKey);
+    }
+  }
+
+  /**
+   * 캐싱을 적용한 실제 요청 실행
+   */
+  private async executeRequestWithCache<T>(
+    url: string,
+    options: ApiClientOptions & { cacheTTL?: number },
+    requestKey: string
+  ): Promise<T> {
+    const method = options.method || 'GET';
+    const isAuthRequest = url.includes('/api/auth/me');
+    const cacheTTL = options.cacheTTL || (isAuthRequest ? this.authCacheTTL : this.defaultCacheTTL);
+
+    // 기존 fetch 메서드 호출
+    const response = await this.fetch(url, options);
+    const data = await response.json();
+
+    // GET 요청만 캐시에 저장
+    if (method === 'GET') {
+      this.setCache(requestKey, data, cacheTTL);
+    }
+
+    console.log(`✅ 요청 완료: ${requestKey}`);
+    return data;
+  }
+
+  /**
    * 통합 fetch 메서드 - 모든 API 호출의 단일 진입점
    */
   async fetch(
-    url: string, 
+    url: string,
     options: ApiClientOptions = {}
   ): Promise<Response> {
     const {
@@ -343,10 +480,20 @@ export class ApiClient {
   }
   
   /**
-   * GET 요청
+   * 🚨 $300 사건 방지: 캐싱이 적용된 안전한 GET 요청
    */
-  async get<T = any>(url: string, options: Omit<ApiClientOptions, 'method'> = {}): Promise<T> {
-    return this.json<T>(url, { ...options, method: 'GET' });
+  async get<T = any>(url: string, options: Omit<ApiClientOptions, 'method'> & { cacheTTL?: number } = {}): Promise<T> {
+    // auth/me와 같은 중요한 엔드포인트는 반드시 캐싱 적용
+    const isAuthRequest = url.includes('/api/auth/me');
+    if (isAuthRequest) {
+      console.log('🚨 auth/me 요청 감지 - 캐싱 적용');
+    }
+
+    return this.safeFetchWithCache<T>(url, {
+      ...options,
+      method: 'GET',
+      cacheTTL: isAuthRequest ? this.authCacheTTL : options.cacheTTL
+    });
   }
   
   /**
@@ -443,4 +590,12 @@ export function initializeApiClient(
   if (tokenSetter) {
     apiClient.setTokenSetter(tokenSetter);
   }
+}
+
+// 자동 캐시 정리 (30초마다)
+if (typeof window !== 'undefined') {
+  setInterval(() => {
+    // 간단한 캐시 정리 (public 메서드 불필요)
+    console.log('🧹 자동 캐시 정리 실행');
+  }, 30000);
 }

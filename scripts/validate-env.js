@@ -1,98 +1,290 @@
 #!/usr/bin/env node
 
 /**
- * 환경변수 검증 스크립트
- * Vercel 배포 전 환경변수 형식을 검증합니다.
+ * VideoPlanet 환경 변수 검증 스크립트
+ *
+ * 모든 필수 API 키와 설정이 올바르게 구성되었는지 확인합니다.
  */
 
-const fs = require('fs');
-const path = require('path');
+const https = require('https');
+const http = require('http');
 
-const ENV_FILE = path.join(__dirname, '../.env.production');
+// 환경 변수 로드
+require('dotenv').config({ path: ['.env.local', '.env'] });
 
-const validators = {
-  GOOGLE_GEMINI_API_KEY: (value) => {
-    if (!value) return { valid: false, error: 'API 키가 설정되지 않음' };
-    if (value === 'your-actual-gemini-key') return { valid: false, error: '플레이스홀더 값임' };
-    if (!value.startsWith('AIza')) return { valid: false, error: 'AIza로 시작해야 함' };
-    if (value.length < 30) return { valid: false, error: '길이가 너무 짧음 (최소 30자)' };
-    if (value.startsWith('yAIza')) return { valid: false, error: '첫 글자에 "y" 오타 있음' };
-    return { valid: true };
-  },
-  
-  JWT_SECRET: (value) => {
-    if (!value) return { valid: false, error: 'JWT Secret이 설정되지 않음' };
-    if (value.length < 32) return { valid: false, error: '길이가 너무 짧음 (최소 32자)' };
-    return { valid: true };
-  },
-  
-  DATABASE_URL: (value) => {
-    if (!value) return { valid: false, error: 'DATABASE_URL이 설정되지 않음' };
-    if (!value.startsWith('postgresql://')) return { valid: false, error: 'PostgreSQL URL 형식이 아님' };
-    return { valid: true };
-  },
-  
-  SENDGRID_API_KEY: (value) => {
-    if (!value) return { valid: false, error: 'SendGrid API 키가 설정되지 않음' };
-    if (!value.startsWith('SG.')) return { valid: false, error: 'SG.로 시작해야 함' };
-    return { valid: true };
-  }
+// 색상 출력을 위한 ANSI 코드
+const colors = {
+  green: '\x1b[32m',
+  red: '\x1b[31m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  reset: '\x1b[0m',
+  bold: '\x1b[1m'
 };
 
-function parseEnvFile(filePath) {
-  if (!fs.existsSync(filePath)) {
-    console.error(`❌ 환경변수 파일을 찾을 수 없습니다: ${filePath}`);
-    process.exit(1);
+class EnvironmentValidator {
+  constructor() {
+    this.results = [];
+    this.totalChecks = 0;
+    this.passedChecks = 0;
   }
 
-  const content = fs.readFileSync(filePath, 'utf8');
-  const envVars = {};
-  
-  content.split('\n').forEach((line, index) => {
-    const trimmed = line.trim();
-    if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
-      const [key, ...valueParts] = trimmed.split('=');
-      const value = valueParts.join('=');
-      envVars[key.trim()] = value.trim();
-    }
-  });
-  
-  return envVars;
-}
+  log(level, service, message, details = '') {
+    const timestamp = new Date().toISOString();
+    const prefix = level === 'pass' ? `${colors.green}✓` :
+                  level === 'warn' ? `${colors.yellow}⚠` :
+                  level === 'fail' ? `${colors.red}✗` :
+                  `${colors.blue}ℹ`;
 
-function validateEnvironment() {
-  console.log('🔍 환경변수 검증 시작...\n');
-  
-  const envVars = parseEnvFile(ENV_FILE);
-  let hasErrors = false;
-  
-  Object.entries(validators).forEach(([key, validator]) => {
-    const value = envVars[key];
-    const result = validator(value);
-    
-    if (result.valid) {
-      console.log(`✅ ${key}: 유효함`);
-    } else {
-      console.error(`❌ ${key}: ${result.error}`);
-      if (value) {
-        console.error(`   현재값: ${value.substring(0, 20)}...`);
-      }
-      hasErrors = true;
+    console.log(`${prefix} [${service}] ${message}${colors.reset}`);
+    if (details) {
+      console.log(`  ${colors.blue}${details}${colors.reset}`);
     }
-  });
-  
-  if (hasErrors) {
-    console.error('\n💥 환경변수 검증 실패! 위의 오류를 수정한 후 다시 시도하세요.');
-    process.exit(1);
-  } else {
-    console.log('\n✅ 모든 환경변수가 유효합니다!');
-    process.exit(0);
+
+    this.results.push({ level, service, message, details, timestamp });
+    this.totalChecks++;
+    if (level === 'pass') this.passedChecks++;
+  }
+
+  checkApiKey(name, value, description) {
+    if (!value) {
+      this.log('fail', 'ENV', `${name} is not set`, `Required for: ${description}`);
+      return false;
+    }
+
+    if (value.length < 10) {
+      this.log('warn', 'ENV', `${name} seems too short`, `Current length: ${value.length} characters`);
+      return false;
+    }
+
+    if (value === 'your_api_key_here' || value === 'sk-your_openai_api_key_here') {
+      this.log('fail', 'ENV', `${name} contains placeholder value`, 'Please set a real API key');
+      return false;
+    }
+
+    this.log('pass', 'ENV', `${name} is properly configured`);
+    return true;
+  }
+
+  async testApiEndpoint(url, headers = {}, expectedStatus = 200) {
+    return new Promise((resolve) => {
+      const urlObj = new URL(url);
+      const client = urlObj.protocol === 'https:' ? https : http;
+
+      const options = {
+        hostname: urlObj.hostname,
+        port: urlObj.port || (urlObj.protocol === 'https:' ? 443 : 80),
+        path: urlObj.pathname + urlObj.search,
+        method: 'GET',
+        headers: {
+          'User-Agent': 'VideoPlanet-EnvValidator/1.0',
+          ...headers
+        },
+        timeout: 10000
+      };
+
+      const req = client.request(options, (res) => {
+        resolve({
+          success: res.statusCode === expectedStatus,
+          status: res.statusCode,
+          statusText: res.statusMessage
+        });
+      });
+
+      req.on('error', (error) => {
+        resolve({
+          success: false,
+          error: error.message
+        });
+      });
+
+      req.on('timeout', () => {
+        req.destroy();
+        resolve({
+          success: false,
+          error: 'Request timeout'
+        });
+      });
+
+      req.end();
+    });
+  }
+
+  async validateGeminiApi() {
+    const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+
+    if (!this.checkApiKey('GOOGLE_GEMINI_API_KEY', apiKey, 'Story generation (primary)')) {
+      return;
+    }
+
+    // Gemini API 엔드포인트 테스트
+    const testUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+
+    try {
+      const result = await this.testApiEndpoint(testUrl);
+      if (result.success) {
+        this.log('pass', 'Gemini', 'API connection successful');
+      } else {
+        this.log('fail', 'Gemini', `API test failed: ${result.error || result.status}`);
+      }
+    } catch (error) {
+      this.log('fail', 'Gemini', `API test error: ${error.message}`);
+    }
+  }
+
+  async validateOpenAiApi() {
+    const apiKey = process.env.OPENAI_API_KEY;
+
+    if (!this.checkApiKey('OPENAI_API_KEY', apiKey, 'Story generation (fallback)')) {
+      this.log('warn', 'OpenAI', 'Fallback API not configured - will rely on Gemini only');
+      return;
+    }
+
+    // OpenAI API 엔드포인트 테스트
+    const headers = {
+      'Authorization': `Bearer ${apiKey}`
+    };
+
+    try {
+      const result = await this.testApiEndpoint('https://api.openai.com/v1/models', headers);
+      if (result.success) {
+        this.log('pass', 'OpenAI', 'API connection successful');
+      } else {
+        this.log('fail', 'OpenAI', `API test failed: ${result.error || result.status}`);
+      }
+    } catch (error) {
+      this.log('fail', 'OpenAI', `API test error: ${error.message}`);
+    }
+  }
+
+  async validateSeedreamApi() {
+    const apiKey = process.env.SEEDREAM_API_KEY || process.env.MODELARK_API_KEY;
+    const model = process.env.SEEDREAM_MODEL;
+    const apiBase = process.env.SEEDREAM_API_BASE || 'https://ark.ap-southeast.bytepluses.com';
+
+    if (!this.checkApiKey('SEEDREAM_API_KEY', apiKey, 'Image generation (SeeDream 4.0)')) {
+      return;
+    }
+
+    if (!model) {
+      this.log('fail', 'SeeDream', 'SEEDREAM_MODEL is not set', 'Model endpoint ID required (ep-...)');
+      return;
+    }
+
+    if (!model.startsWith('ep-')) {
+      this.log('warn', 'SeeDream', 'SEEDREAM_MODEL format unusual', 'Expected format: ep-xxxxxxxxx');
+    } else {
+      this.log('pass', 'SeeDream', 'Model endpoint ID properly configured');
+    }
+
+    // SeeDream API 베이스 URL 테스트
+    try {
+      const result = await this.testApiEndpoint(apiBase, {}, 200);
+      if (result.success || result.status === 404) { // 404는 정상 (엔드포인트가 존재함)
+        this.log('pass', 'SeeDream', 'API base URL is accessible');
+      } else {
+        this.log('fail', 'SeeDream', `API base URL test failed: ${result.error || result.status}`);
+      }
+    } catch (error) {
+      this.log('fail', 'SeeDream', `API base URL error: ${error.message}`);
+    }
+  }
+
+  async validateSeedanceApi() {
+    const apiKey = process.env.SEEDANCE_API_KEY || process.env.MODELARK_API_KEY;
+    const model = process.env.SEEDANCE_MODEL;
+    const apiBase = process.env.SEEDANCE_API_BASE || 'https://ark.ap-southeast.bytepluses.com';
+
+    if (!this.checkApiKey('SEEDANCE_API_KEY', apiKey, 'Video generation (SeeDance)')) {
+      return;
+    }
+
+    if (!model) {
+      this.log('fail', 'SeeDance', 'SEEDANCE_MODEL is not set', 'Model endpoint ID required (ep-...)');
+      return;
+    }
+
+    if (!model.startsWith('ep-')) {
+      this.log('warn', 'SeeDance', 'SEEDANCE_MODEL format unusual', 'Expected format: ep-xxxxxxxxx');
+    } else {
+      this.log('pass', 'SeeDance', 'Model endpoint ID properly configured');
+    }
+
+    // SeeDance API 베이스 URL 테스트
+    try {
+      const result = await this.testApiEndpoint(apiBase, {}, 200);
+      if (result.success || result.status === 404) { // 404는 정상
+        this.log('pass', 'SeeDance', 'API base URL is accessible');
+      } else {
+        this.log('fail', 'SeeDance', `API base URL test failed: ${result.error || result.status}`);
+      }
+    } catch (error) {
+      this.log('fail', 'SeeDance', `API base URL error: ${error.message}`);
+    }
+  }
+
+  validateOptionalSettings() {
+    // 기타 설정 확인
+    const nodeEnv = process.env.NODE_ENV;
+    if (nodeEnv) {
+      this.log('pass', 'General', `NODE_ENV is set to: ${nodeEnv}`);
+    } else {
+      this.log('warn', 'General', 'NODE_ENV is not set', 'Defaulting to development mode');
+    }
+
+    // Database URL 확인 (있는 경우)
+    const dbUrl = process.env.DATABASE_URL;
+    if (dbUrl) {
+      this.log('pass', 'Database', 'DATABASE_URL is configured');
+    } else {
+      this.log('warn', 'Database', 'DATABASE_URL is not set', 'Database features may not work');
+    }
+  }
+
+  printSummary() {
+    console.log(`\n${colors.bold}=== 환경 변수 검증 결과 ===${colors.reset}`);
+    console.log(`총 검사 항목: ${this.totalChecks}`);
+    console.log(`통과: ${colors.green}${this.passedChecks}${colors.reset}`);
+    console.log(`실패/경고: ${colors.red}${this.totalChecks - this.passedChecks}${colors.reset}`);
+
+    const successRate = Math.round((this.passedChecks / this.totalChecks) * 100);
+    console.log(`성공률: ${successRate >= 80 ? colors.green : successRate >= 60 ? colors.yellow : colors.red}${successRate}%${colors.reset}`);
+
+    if (successRate >= 80) {
+      console.log(`\n${colors.green}${colors.bold}✅ 환경 설정이 양호합니다!${colors.reset}`);
+    } else if (successRate >= 60) {
+      console.log(`\n${colors.yellow}${colors.bold}⚠️  일부 설정을 확인해주세요.${colors.reset}`);
+    } else {
+      console.log(`\n${colors.red}${colors.bold}❌ 환경 설정에 문제가 있습니다.${colors.reset}`);
+    }
+
+    console.log(`\n${colors.blue}설정 가이드: ENVIRONMENT_SETUP.md 참조${colors.reset}`);
+  }
+
+  async run() {
+    console.log(`${colors.bold}${colors.blue}VideoPlanet 환경 변수 검증을 시작합니다...${colors.reset}\n`);
+
+    await this.validateGeminiApi();
+    await this.validateOpenAiApi();
+    await this.validateSeedreamApi();
+    await this.validateSeedanceApi();
+    this.validateOptionalSettings();
+
+    this.printSummary();
+
+    // 종료 코드 설정
+    const successRate = (this.passedChecks / this.totalChecks) * 100;
+    process.exit(successRate >= 60 ? 0 : 1);
   }
 }
 
 // 스크립트 실행
 if (require.main === module) {
-  validateEnvironment();
+  const validator = new EnvironmentValidator();
+  validator.run().catch(error => {
+    console.error(`${colors.red}검증 스크립트 실행 오류: ${error.message}${colors.reset}`);
+    process.exit(1);
+  });
 }
 
-module.exports = { validateEnvironment, validators };
+module.exports = EnvironmentValidator;

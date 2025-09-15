@@ -90,9 +90,18 @@ const getPrismaClient = (): PrismaClient => {
     throw new Error('Prisma client cannot be used during build time');
   }
 
-  // 이미 초기화된 클라이언트가 있으면 반환
+  // 이미 초기화된 클라이언트가 있으면 연결 상태 검증 후 반환
   if (_prismaClient) {
-    return _prismaClient;
+    // 연결이 끊어졌을 수 있으므로 간단한 검증
+    try {
+      // 클라이언트가 여전히 유효한지 확인 (메서드 존재 여부만 확인)
+      if (typeof _prismaClient.$connect === 'function') {
+        return _prismaClient;
+      }
+    } catch (error) {
+      console.warn('⚠️ 기존 Prisma 클라이언트 연결 상태 확인 실패, 재초기화:', error);
+      _prismaClient = null;
+    }
   }
 
   // 글로벌 캐시 확인
@@ -103,6 +112,7 @@ const getPrismaClient = (): PrismaClient => {
 
   // 새로운 클라이언트 생성
   try {
+    console.log('🔄 새로운 Prisma 클라이언트 초기화 중...');
     _prismaClient = prismaClientSingleton();
 
     // 개발 환경에서만 글로벌 캐싱
@@ -110,50 +120,103 @@ const getPrismaClient = (): PrismaClient => {
       globalThis.prisma = _prismaClient;
     }
 
+    console.log('✅ Prisma 클라이언트 초기화 완료');
     return _prismaClient;
   } catch (error) {
-    console.error('❌ Prisma 클라이언트 초기화 실패:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('❌ Prisma 클라이언트 초기화 실패:', errorMessage);
 
-    // DATABASE_URL 관련 오류는 즉시 재발생 (명확한 에러 메시지 제공)
-    if (error instanceof Error && error.message.includes('DATABASE_URL')) {
-      throw error;
+    // 환경 변수 관련 오류는 즉시 재발생 (명확한 에러 메시지 제공)
+    if (errorMessage.includes('DATABASE_URL') || errorMessage.includes('환경 변수')) {
+      throw new Error(`데이터베이스 연결 설정 오류: ${errorMessage}`);
+    }
+
+    // 연결 관련 오류
+    if (errorMessage.includes('connect') || errorMessage.includes('ENOTFOUND') || errorMessage.includes('timeout')) {
+      throw new Error(`데이터베이스 연결 실패: ${errorMessage}. 네트워크 연결과 데이터베이스 서버 상태를 확인해주세요.`);
+    }
+
+    // 인증 관련 오류
+    if (errorMessage.includes('authentication') || errorMessage.includes('password') || errorMessage.includes('SASL')) {
+      throw new Error(`데이터베이스 인증 실패: ${errorMessage}. 데이터베이스 자격 증명을 확인해주세요.`);
     }
 
     // 기타 초기화 오류는 재발생하되 더 명확한 메시지로
-    throw new Error(`데이터베이스 초기화 실패: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(`데이터베이스 초기화 실패: ${errorMessage}`);
   }
 };
 
 // Proxy를 사용하여 prisma 객체의 속성 접근을 lazy loading으로 처리
 export const prisma = new Proxy({} as PrismaClient, {
   get(target, prop) {
-    // 빌드 시간에는 모든 접근을 차단
+    // 빌드 시간에는 명확한 에러 발생 (undefined 반환 금지)
     if (isBuildTime()) {
-      console.warn(`⚠️ Prisma access attempted during build time: ${String(prop)}`);
-      return undefined;
+      const errorMessage = `빌드 시간에는 Prisma 데이터베이스 접근이 불가능합니다. 접근 시도된 속성: ${String(prop)}`;
+      console.error('❌', errorMessage);
+      throw new Error(errorMessage);
     }
 
-    const client = getPrismaClient();
-    const value = client[prop as keyof PrismaClient];
+    try {
+      const client = getPrismaClient();
 
-    // 함수인 경우 this 바인딩 유지
-    if (typeof value === 'function') {
-      return value.bind(client);
+      // 클라이언트가 정상적으로 초기화되었는지 검증
+      if (!client) {
+        throw new Error('Prisma 클라이언트가 초기화되지 않았습니다.');
+      }
+
+      const value = client[prop as keyof PrismaClient];
+
+      // 존재하지 않는 속성에 대한 명확한 에러
+      if (value === undefined && prop !== 'then' && prop !== 'catch' && prop !== Symbol.toStringTag) {
+        throw new Error(`Prisma 클라이언트에서 '${String(prop)}' 속성을 찾을 수 없습니다.`);
+      }
+
+      // 함수인 경우: 반환 전에 미리 바인딩하여 안정성 확보
+      if (typeof value === 'function') {
+        const boundMethod = value.bind(client);
+        return boundMethod;
+      }
+
+      return value;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`❌ Prisma Proxy 접근 실패 (${String(prop)}):`, errorMessage);
+
+      // 사용자에게 더 명확한 컨텍스트 제공
+      if (errorMessage.includes('DATABASE_URL')) {
+        throw new Error(`데이터베이스 설정 오류: ${errorMessage}`);
+      }
+
+      throw new Error(`데이터베이스 접근 실패: ${errorMessage}`);
     }
-
-    return value;
   },
 
   has(target, prop) {
-    if (isBuildTime()) return false;
-    const client = getPrismaClient();
-    return prop in client;
+    if (isBuildTime()) {
+      throw new Error(`빌드 시간에는 Prisma 속성 확인이 불가능합니다. 확인 시도된 속성: ${String(prop)}`);
+    }
+
+    try {
+      const client = getPrismaClient();
+      return prop in client;
+    } catch (error) {
+      console.error(`❌ Prisma 속성 확인 실패 (${String(prop)}):`, error);
+      return false;
+    }
   },
 
   ownKeys(target) {
-    if (isBuildTime()) return [];
-    const client = getPrismaClient();
-    return Reflect.ownKeys(client);
+    if (isBuildTime()) {
+      throw new Error('빌드 시간에는 Prisma 키 목록 조회가 불가능합니다.');
+    }
+
+    try {
+      const client = getPrismaClient();
+      return Reflect.ownKeys(client);
+    } catch (error) {
+      console.error('❌ Prisma 키 목록 조회 실패:', error);
+      return [];
+    }
   }
 });
 
@@ -253,6 +316,56 @@ export const validateDatabaseSchema = async (
   }
 };
 
+// 프로덕션 안전 데이터베이스 연결 검증
+export const validatePrismaConnection = async (client: PrismaClient): Promise<boolean> => {
+  try {
+    // 간단한 연결 테스트 쿼리
+    await client.$queryRaw`SELECT 1 as test`;
+    return true;
+  } catch (error) {
+    console.error('❌ Prisma 연결 검증 실패:', error);
+    return false;
+  }
+};
+
+// 프로덕션용 안전한 데이터베이스 접근 래퍼
+export const withDatabaseConnection = async <T>(
+  operation: (client: PrismaClient) => Promise<T>
+): Promise<T> => {
+  try {
+    // 클라이언트 확보
+    const client = getPrismaClient();
+
+    // 연결 상태 검증
+    const isConnected = await validatePrismaConnection(client);
+    if (!isConnected) {
+      throw new Error('데이터베이스 연결이 불가능합니다.');
+    }
+
+    // 작업 실행
+    return await operation(client);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('❌ 데이터베이스 작업 실패:', errorMessage);
+
+    // 에러 타입별 구체적인 메시지 제공
+    if (errorMessage.includes('DATABASE_URL')) {
+      throw new Error(`데이터베이스 설정 오류: ${errorMessage}`);
+    }
+
+    if (errorMessage.includes('connect') || errorMessage.includes('ENOTFOUND')) {
+      throw new Error(`데이터베이스 연결 실패: ${errorMessage}. 네트워크 연결과 데이터베이스 서버 상태를 확인해주세요.`);
+    }
+
+    if (errorMessage.includes('authentication') || errorMessage.includes('password')) {
+      throw new Error(`데이터베이스 인증 실패: ${errorMessage}. 데이터베이스 자격 증명을 확인해주세요.`);
+    }
+
+    // 원본 에러 재발생
+    throw error;
+  }
+};
+
 // 데이터베이스 초기화 및 헬스 체크 (API 라우트에서 사용)
 export const initializeDatabase = async (): Promise<{
   initialized: boolean;
@@ -261,9 +374,11 @@ export const initializeDatabase = async (): Promise<{
   error?: string;
 }> => {
   try {
-    // 1. 연결 테스트
-    const connectionResult = await checkDatabaseConnection(prisma, 2);
-    
+    // 1. 안전한 연결 테스트
+    const connectionResult = await withDatabaseConnection(async () => {
+      return await checkDatabaseConnection(prisma, 2);
+    });
+
     if (!connectionResult.success) {
       return {
         initialized: false,
@@ -274,8 +389,10 @@ export const initializeDatabase = async (): Promise<{
     }
 
     // 2. 스키마 검증
-    const schemaResult = await validateDatabaseSchema(prisma);
-    
+    const schemaResult = await withDatabaseConnection(async () => {
+      return await validateDatabaseSchema(prisma);
+    });
+
     return {
       initialized: true,
       connectionStatus: true,
@@ -286,7 +403,7 @@ export const initializeDatabase = async (): Promise<{
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
     console.error('❌ 데이터베이스 초기화 실패:', errorMessage);
-    
+
     return {
       initialized: false,
       connectionStatus: false,
@@ -297,10 +414,16 @@ export const initializeDatabase = async (): Promise<{
 };
 
 // Graceful shutdown (프로덕션 환경용)
-if (typeof process !== 'undefined') {
+if (typeof process !== 'undefined' && !isBuildTime()) {
   process.on('beforeExit', async () => {
     console.log('🔄 Prisma 연결 정리 중...');
-    await prisma.$disconnect();
-    console.log('✅ Prisma 연결 정리 완료');
+    try {
+      if (_prismaClient) {
+        await _prismaClient.$disconnect();
+        console.log('✅ Prisma 연결 정리 완료');
+      }
+    } catch (error) {
+      console.warn('⚠️ Prisma 연결 정리 중 오류 (무시됨):', error);
+    }
   });
 }

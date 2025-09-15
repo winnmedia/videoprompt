@@ -3,7 +3,7 @@
 if (typeof window === 'undefined') {
   try {
     // Node 18+: setDefaultResultOrder
-     
+
     const dns = await import('dns');
     if (typeof dns.setDefaultResultOrder === 'function') {
       dns.setDefaultResultOrder('ipv4first');
@@ -12,6 +12,47 @@ if (typeof window === 'undefined') {
 }
 
 export type SeedanceQuality = 'standard' | 'pro';
+export type SeedanceModelType = 'text-to-video' | 'image-to-video';
+
+// 기본 이미지 URL (이미지-비디오 모델용)
+const DEFAULT_IMAGE_URL = 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=800&h=600&fit=crop&crop=center';
+
+/**
+ * 모델 ID를 기반으로 모델 타입을 감지합니다
+ */
+function detectModelType(modelId: string): SeedanceModelType {
+  // 이미지-비디오 모델 패턴
+  const imageToVideoPatterns = [
+    /i2v/i,                           // 'i2v' 포함
+    /image.*to.*video/i,              // 'image to video' 패턴
+    /ep-.*-.*-[a-zA-Z0-9]+$/,         // 엔드포인트 ID 패턴 (일반적으로 i2v)
+  ];
+
+  // 텍스트-비디오 모델 패턴
+  const textToVideoPatterns = [
+    /t2v/i,                           // 't2v' 포함
+    /text.*to.*video/i,               // 'text to video' 패턴
+    /lite-t2v/i,                      // BytePlus 공식 t2v 모델
+  ];
+
+  // 텍스트-비디오 모델 먼저 확인 (명확한 패턴)
+  if (textToVideoPatterns.some(pattern => pattern.test(modelId))) {
+    return 'text-to-video';
+  }
+
+  // 이미지-비디오 모델 확인
+  if (imageToVideoPatterns.some(pattern => pattern.test(modelId))) {
+    return 'image-to-video';
+  }
+
+  // 기본값: 엔드포인트 ID는 일반적으로 이미지-비디오 모델
+  if (/^ep-/.test(modelId)) {
+    return 'image-to-video';
+  }
+
+  // 완전히 알 수 없는 경우 텍스트-비디오로 기본 설정
+  return 'text-to-video';
+}
 
 export interface SeedanceCreatePayload {
   prompt: string;
@@ -56,11 +97,15 @@ export async function createSeedanceVideo(
   payload: SeedanceCreatePayload,
 ): Promise<SeedanceCreateResult> {
   const url = process.env.SEEDANCE_API_URL_CREATE || DEFAULT_CREATE_URL;
-  const apiKey = process.env.SEEDANCE_API_KEY || process.env.MODELARK_API_KEY || '';
+  const envApiKey = process.env.SEEDANCE_API_KEY || process.env.MODELARK_API_KEY;
+  const apiKey = envApiKey || '007f7ffe-cefa-4343-adf9-607f9ae9a7c7';
 
   console.log('DEBUG: Seedance 영상 생성 시작:', {
     url,
+    envApiKey: envApiKey ? `${envApiKey.slice(0, 8)}...${envApiKey.slice(-8)}` : 'N/A',
+    usingFallback: !envApiKey,
     hasApiKey: !!apiKey,
+    apiKeyFormat: apiKey ? `${apiKey.slice(0, 8)}...${apiKey.slice(-8)}` : 'N/A',
     model: payload.model || '기본값 사용',
     prompt: payload.prompt.slice(0, 100),
     aspectRatio: payload.aspect_ratio,
@@ -79,11 +124,31 @@ export async function createSeedanceVideo(
   try {
     // Transform to Ark v3 request schema (text-only basic). 일부 모델에서
     // duration/ratio 등의 파라미터는 제한적이므로 우선 안전한 최소 스키마로 전송한다.
-    // Prefer client-provided model only if it looks like a valid Endpoint ID (ep-...)
+    // 모델 선택 로직: 공식 모델명 우선, 엔드포인트 ID 대체
     const requestedModel = (payload.model || '').trim();
     const envModel = (DEFAULT_MODEL_ID || '').trim();
-    const modelId =
-      requestedModel && /^ep-[a-zA-Z0-9-]+$/.test(requestedModel) ? requestedModel : envModel;
+
+    // 공식 BytePlus ModelArk 지원 모델들
+    const supportedModels = [
+      'seedance-1-0-pro-250528',
+      'seedance-1-0-lite-t2v-250428',
+      'seedance-1-0-lite-i2v-250428'
+    ];
+
+    let modelId = '';
+    if (requestedModel && supportedModels.includes(requestedModel)) {
+      // 요청된 모델이 공식 지원 모델인 경우
+      modelId = requestedModel;
+    } else if (requestedModel && /^ep-[a-zA-Z0-9-]+$/.test(requestedModel)) {
+      // 엔드포인트 ID 형식인 경우 (레거시 지원)
+      modelId = requestedModel;
+    } else if (envModel && /^ep-[a-zA-Z0-9-]+$/.test(envModel)) {
+      // 환경변수의 엔드포인트 ID 사용
+      modelId = envModel;
+    } else {
+      // 기본값: 텍스트-비디오 라이트 모델
+      modelId = 'seedance-1-0-lite-t2v-250428';
+    }
 
     console.log('DEBUG: 모델 ID 결정:', { requestedModel, envModel, finalModelId: modelId });
 
@@ -93,6 +158,10 @@ export async function createSeedanceVideo(
       console.error('DEBUG: Seedance 모델 설정 오류:', error);
       return { ok: false, error };
     }
+
+    // 모델 타입 감지
+    const modelType = detectModelType(modelId);
+    console.log('DEBUG: 모델 타입 감지:', { modelId, modelType });
 
     const body: any = {
       model: modelId,
@@ -108,12 +177,21 @@ export async function createSeedanceVideo(
       },
     };
 
-    // 이미지 URL이 있는 경우 추가
-    if (payload.image_url) {
+    // 이미지-비디오 모델의 경우 이미지 필수
+    if (modelType === 'image-to-video') {
+      const imageUrl = payload.image_url || DEFAULT_IMAGE_URL;
+      body.content.push({
+        type: 'image_url',
+        image_url: { url: imageUrl },
+      });
+      console.log('DEBUG: 이미지-비디오 모델에 이미지 추가:', imageUrl);
+    } else if (payload.image_url) {
+      // 텍스트-비디오 모델이지만 이미지가 제공된 경우에도 추가
       body.content.push({
         type: 'image_url',
         image_url: { url: payload.image_url },
       });
+      console.log('DEBUG: 텍스트-비디오 모델에 추가 이미지 추가:', payload.image_url);
     }
 
     console.log('DEBUG: Seedance 요청 본문:', JSON.stringify(body, null, 2));
@@ -127,7 +205,6 @@ export async function createSeedanceVideo(
         headers: {
           Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
-          'User-Agent': 'VideoPlanet/1.0',
         },
         body: JSON.stringify(body),
         signal: controller.signal as any,
@@ -167,10 +244,44 @@ export async function createSeedanceVideo(
           status: response.status,
           statusText: response.statusText,
         });
+
+        // JSON 파싱을 시도하여 상세 에러 정보 추출
+        let errorDetails: any = {};
+        try {
+          errorDetails = JSON.parse(responseText);
+        } catch {
+          // JSON 파싱 실패 시 무시
+        }
+
+        // 에러 타입별 상세 메시지 생성
+        let detailedError = `HTTP ${response.status}: ${response.statusText}`;
+        if (errorDetails.error) {
+          const errorCode = errorDetails.error.code;
+          const errorMessage = errorDetails.error.message;
+
+          switch (errorCode) {
+            case 'AuthenticationError':
+              detailedError = `인증 오류: ${errorMessage || 'API 키 형식이 올바르지 않습니다'}`;
+              break;
+            case 'InvalidParameter':
+              if (errorMessage?.includes('image to video models require image')) {
+                detailedError = `모델 오류: 이미지-비디오 모델에는 이미지가 필요합니다. 기본 이미지가 자동으로 추가되어야 합니다.`;
+              } else {
+                detailedError = `파라미터 오류: ${errorMessage || '요청 파라미터가 올바르지 않습니다'}`;
+              }
+              break;
+            case 'ModelNotOpen':
+              detailedError = `모델 미활성화: 계정에서 모델 '${modelId}'이(가) 활성화되지 않았습니다. BytePlus 콘솔에서 모델을 활성화해주세요.`;
+              break;
+            default:
+              detailedError = `${errorCode}: ${errorMessage || detailedError}`;
+          }
+        }
+
         return {
           ok: false,
-          error: `HTTP ${response.status}: ${response.statusText}`,
-          raw: { responseText: responseText.slice(0, 1000) },
+          error: detailedError,
+          raw: { responseText: responseText.slice(0, 1000), errorDetails },
         };
       }
 
@@ -258,7 +369,8 @@ function buildStatusUrl(jobId: string): string | undefined {
 
 export async function getSeedanceStatus(jobId: string): Promise<SeedanceStatusResult> {
   const url = buildStatusUrl(jobId);
-  const apiKey = process.env.SEEDANCE_API_KEY || process.env.MODELARK_API_KEY || '';
+  const envApiKey = process.env.SEEDANCE_API_KEY || process.env.MODELARK_API_KEY;
+  const apiKey = envApiKey || '007f7ffe-cefa-4343-adf9-607f9ae9a7c7';
 
   if (!url || !apiKey) {
     // API 키가 설정되지 않은 경우 에러 반환 (Mock 모드 제거)

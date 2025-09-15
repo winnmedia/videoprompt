@@ -132,6 +132,13 @@ export const RATE_LIMITS = {
     perDay: 300
   },
 
+  // 파일 업로드 제한 - 엄격한 제한 (대용량 파일 고려)
+  upload: {
+    perMinute: 5,
+    perHour: 20,
+    perDay: 50
+  },
+
   // 기본 제한
   default: {
     perMinute: 20,

@@ -262,8 +262,8 @@ export async function POST(req: NextRequest) {
     // 새 refresh token을 httpOnly 쿠키로 설정
     (response as NextResponse).cookies.set('refresh_token', newRefreshToken, {
       httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: true, // HTTPS 필수
       path: '/',
       maxAge: 7 * 24 * 60 * 60 // 7일 (초 단위)
     });

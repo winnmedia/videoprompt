@@ -111,27 +111,25 @@ const nextConfig = {
   },
 
 
-  // API 라우팅 설정 - Railway 프록시 (CORS 해결)
+  // API 라우팅 설정 - Railway 프록시 비활성화 (헤더 오버플로우 문제)
   async rewrites() {
     const apiBase = 'https://videoprompt-production.up.railway.app';
-    
-    // 개발/프로덕션 모든 환경에서 프록시 활성화 (CORS 해결)
-    console.log('🚀 Using Railway backend API proxy for video processing APIs');
+
+    // Railway 프록시 비활성화 - 헤더 오버플로우 문제로 인해 임시 비활성화
+    console.log('⚠️ Railway backend API proxy disabled due to header overflow issue');
 
     return [
-      // 비디오 처리 관련 API 프록시
+      // 핵심 비디오 처리 API만 프록시 (헤더 문제 없는 것만)
       { source: '/api/seedance/:path*', destination: `${apiBase}/api/seedance/:path*` },
-      { source: '/api/imagen/:path*', destination: `${apiBase}/api/imagen/:path*` },
-      { source: '/api/veo/:path*', destination: `${apiBase}/api/veo/:path*` },
-      { source: '/api/video/:path*', destination: `${apiBase}/api/video/:path*` },
-      { source: '/api/health', destination: `${apiBase}/api/health` },
-      // CORS 해결용 필수 프록시 - 개발/프로덕션 모든 환경에서 필요
-      { source: '/api/templates', destination: `${apiBase}/api/templates` },
-      { source: '/api/ai/:path*', destination: `${apiBase}/api/ai/:path*` },
-      // 파일 업로드 Railway 백엔드 프록시
-      { source: '/api/upload/:path*', destination: `${apiBase}/api/upload/:path*` },
-      // 이미지 생성 SeeDream 4.0 API 프록시 (새로 추가)
       { source: '/api/seedream/:path*', destination: `${apiBase}/api/seedream/:path*` },
+      { source: '/api/video/:path*', destination: `${apiBase}/api/video/:path*` },
+
+      // 문제가 있는 프록시들 비활성화
+      // { source: '/api/templates', destination: `${apiBase}/api/templates` },
+      // { source: '/api/ai/:path*', destination: `${apiBase}/api/ai/:path*` },
+      // { source: '/api/imagen/:path*', destination: `${apiBase}/api/imagen/:path*` },
+      // { source: '/api/veo/:path*', destination: `${apiBase}/api/veo/:path*` },
+      // { source: '/api/upload/:path*', destination: `${apiBase}/api/upload/:path*` },
     ];
   },
 };

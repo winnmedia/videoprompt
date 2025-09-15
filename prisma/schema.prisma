@@ -42,6 +42,7 @@ model Project {
   user         User      @relation(fields: [userId], references: [id])
   scenes       Scene[]
   timeline     Timeline?
+  videoGenerations VideoGeneration[]
 }
 
 model Scene {
@@ -58,6 +59,24 @@ model Scene {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
   project      Project  @relation(fields: [projectId], references: [id])
+}
+
+model VideoGeneration {
+  id            String   @id @default(uuid())
+  projectId     String?  @map("project_id")
+  seedanceJobId String   @unique @map("seedance_job_id")
+  status        String   // queued, processing, completed, failed
+  videoUrl      String?  @map("video_url")
+  thumbnailUrl  String?  @map("thumbnail_url")
+  prompt        String
+  duration      Int
+  aspectRatio   String   @map("aspect_ratio")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  metadata      Json?
+  project       Project? @relation(fields: [projectId], references: [id])
+
+  @@map("video_generations")
 }
 
 model Preset {

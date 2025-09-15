@@ -5,30 +5,61 @@
 
 'use client';
 
-import React from 'react';
+import React, { memo, useEffect } from 'react';
 import { Button } from '@/shared/ui';
-import { Icon } from '@/shared/ui';
 import { useWorkflowState } from '@/shared/hooks/useWorkflowState';
-import { useSeedancePolling } from '@/features/seedance/status';
+import { useVideoPolling } from '@/shared/hooks/useVideoPolling';
 
-export function WorkflowWizard() {
+const WorkflowWizardComponent = memo(function WorkflowWizard() {
   const {
     currentStep,
     workflowData,
     isLoading,
     error,
+    steps,
     nextStep,
     prevStep,
     resetWorkflow,
     updateWorkflowData,
+    generateVideo,
   } = useWorkflowState();
 
-  const steps = [
-    { id: 1, title: '스토리', description: '기본 스토리를 입력하세요' },
-    { id: 2, title: '시나리오', description: '시나리오 구조를 설정하세요' },
-    { id: 3, title: '프롬프트', description: '영상 생성 프롬프트를 설정하세요' },
-    { id: 4, title: '영상 생성', description: '최종 영상을 생성하세요' }
-  ];
+  // 영상 생성 상태 폴링
+  const pollingResult = useVideoPolling({
+    jobId: workflowData.video.jobId,
+    onComplete: (videoUrl) => {
+      updateWorkflowData({
+        video: {
+          ...workflowData.video,
+          status: 'completed',
+          videoUrl
+        }
+      });
+    },
+    onError: (error) => {
+      updateWorkflowData({
+        video: {
+          ...workflowData.video,
+          status: 'failed',
+          error
+        }
+      });
+    }
+  });
+
+  // 폴링 결과를 워크플로우 상태에 동기화
+  useEffect(() => {
+    if (pollingResult.status !== 'idle' && workflowData.video.jobId) {
+      updateWorkflowData({
+        video: {
+          ...workflowData.video,
+          status: pollingResult.status,
+          videoUrl: pollingResult.videoUrl,
+          error: pollingResult.error
+        }
+      });
+    }
+  }, [pollingResult.status, pollingResult.videoUrl, pollingResult.error, workflowData.video.jobId, updateWorkflowData]);
 
   const renderStepContent = () => {
     switch (currentStep) {
@@ -147,10 +178,12 @@ export function WorkflowWizard() {
                   onChange={(e) => updateWorkflowData({
                     video: { ...workflowData.video, duration: Number(e.target.value) }
                   })}
+                  disabled={workflowData.video.status === 'processing'}
                 >
+                  <option value={5}>5초</option>
+                  <option value={8}>8초</option>
                   <option value={15}>15초</option>
                   <option value={30}>30초</option>
-                  <option value={60}>60초</option>
                 </select>
               </div>
               <div>
@@ -161,13 +194,14 @@ export function WorkflowWizard() {
                   onChange={(e) => updateWorkflowData({
                     video: { ...workflowData.video, model: e.target.value }
                   })}
+                  disabled={workflowData.video.status === 'processing'}
                 >
                   <option value="seedance">Seedance</option>
                   <option value="veo3" disabled>VEO3 (일시 중단)</option>
                 </select>
               </div>
             </div>
-            
+
             <div className="bg-blue-50 p-4 rounded-lg">
               <h4 className="font-medium mb-2">생성 설정 요약</h4>
               <div className="text-sm text-gray-600 space-y-1">
@@ -177,6 +211,52 @@ export function WorkflowWizard() {
                 <div>길이: {workflowData.video.duration}초</div>
               </div>
             </div>
+
+            {/* 영상 생성 상태 표시 */}
+            {workflowData.video.jobId && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium mb-2">생성 상태</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">작업 ID:</span>
+                    <span className="text-sm font-mono">{workflowData.video.jobId}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">상태:</span>
+                    <span className={`text-sm px-2 py-1 rounded ${
+                      workflowData.video.status === 'completed' ? 'bg-green-100 text-green-800' :
+                      workflowData.video.status === 'failed' ? 'bg-red-100 text-red-800' :
+                      workflowData.video.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {workflowData.video.status === 'queued' && '대기 중'}
+                      {workflowData.video.status === 'processing' && '생성 중'}
+                      {workflowData.video.status === 'completed' && '완료'}
+                      {workflowData.video.status === 'failed' && '실패'}
+                    </span>
+                  </div>
+
+                  {workflowData.video.status === 'completed' && workflowData.video.videoUrl && (
+                    <div className="mt-3">
+                      <a
+                        href={workflowData.video.videoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700"
+                      >
+                        ▶️ 영상 보기
+                      </a>
+                    </div>
+                  )}
+
+                  {workflowData.video.status === 'failed' && workflowData.video.error && (
+                    <div className="mt-2 p-2 bg-red-50 text-red-800 text-sm rounded">
+                      {workflowData.video.error}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         );
 
@@ -262,17 +342,23 @@ export function WorkflowWizard() {
             </Button>
           ) : (
             <Button
-              onClick={() => {
-                // TODO: 실제 영상 생성 로직 구현
-                console.log('영상 생성 시작:', workflowData);
+              onClick={async () => {
+                try {
+                  await generateVideo();
+                } catch (error) {
+                  // 에러는 이미 useWorkflowState에서 처리됨
+                  console.error('영상 생성 오류:', error);
+                }
               }}
-              disabled={isLoading}
+              disabled={isLoading || pollingResult.isPolling || workflowData.video.status === 'processing'}
             >
-              {isLoading ? '생성 중...' : '영상 생성'}
+              {pollingResult.isPolling ? '생성 중...' : isLoading ? '요청 중...' : '영상 생성'}
             </Button>
           )}
         </div>
       </div>
     </div>
   );
-}
+});
+
+export { WorkflowWizardComponent as WorkflowWizard };
