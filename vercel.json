@@ -38,6 +38,14 @@
     "src/app/api/upload/**/*.ts": {
       "maxDuration": 60,
       "memory": 1024
+    },
+    "src/app/api/videos/**/*.ts": {
+      "maxDuration": 30,
+      "memory": 1024
+    },
+    "src/app/api/planning/**/*.ts": {
+      "maxDuration": 45,
+      "memory": 1024
     }
   },
   "headers": [
