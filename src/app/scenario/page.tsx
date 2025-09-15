@@ -6,7 +6,7 @@ import {
   StoryTemplate,
   WorkflowStep
 } from '@/entities/scenario';
-// import { useScenarioWorkflow } from '@/features/scenario';
+import { useStoryGeneration } from '@/features/scenario/hooks/use-story-generation';
 import {
   WorkflowProgress,
   StoryInputForm,
@@ -34,8 +34,8 @@ import {
  * - 스크린 리더 지원
  */
 export default function ScenarioPage() {
-  // TODO: useScenarioWorkflow 훅 구현 후 활성화
-  // const workflow = useScenarioWorkflow();
+  // 스토리 생성 훅
+  const storyGenerationMutation = useStoryGeneration();
 
   // 임시 워크플로우 상태
   const [workflowState, setWorkflowState] = useState({
@@ -51,8 +51,16 @@ export default function ScenarioPage() {
     loadingMessage: undefined,
   });
 
-  const workflow = {
+  // storyGenerationMutation 상태를 워크플로우 상태에 반영
+  const enrichedWorkflowState = {
     ...workflowState,
+    loading: storyGenerationMutation.isPending,
+    error: storyGenerationMutation.error?.message || workflowState.error,
+    errorType: storyGenerationMutation.error ? 'server' : workflowState.errorType,
+  };
+
+  const workflow = {
+    ...enrichedWorkflowState,
     handleStorySubmit: async () => {},
     handleStoryUpdate: () => {},
     handleShotsGeneration: async () => {},
@@ -83,8 +91,24 @@ export default function ScenarioPage() {
         storyInput: { ...prev.storyInput, [field]: value }
       }));
     }, []),
-    generateStory: async () => {},
-    retry: () => {},
+    generateStory: async () => {
+      try {
+        const result = await storyGenerationMutation.mutateAsync(workflowState.storyInput);
+        setWorkflowState(prev => ({
+          ...prev,
+          storySteps: result,
+          currentStep: WORKFLOW_STEPS.STORY_REVIEW
+        }));
+      } catch (error) {
+        console.error('스토리 생성 실패:', error);
+        // 에러는 이미 useStoryGeneration 훅에서 처리됨
+      }
+    },
+    retry: () => {
+      // 재시도 카운트 증가 후 다시 생성 시도
+      setWorkflowState(prev => ({ ...prev, retryCount: prev.retryCount + 1 }));
+      workflow.generateStory();
+    },
     toggleStepEditing: (stepId: string) => {},
     updateStoryStep: (stepId: string, field: string, value: string) => {},
     generateShotsFromSteps: async () => {},
