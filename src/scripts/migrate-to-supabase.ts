@@ -364,7 +364,7 @@ class SupabaseMigrator {
         if (statement.trim()) {
           console.log('📝 실행 중:', statement.substring(0, 50) + '...');
 
-          const { error } = await supabaseAdmin.rpc('exec_sql', {
+          const { error } = await supabaseAdmin!.rpc('exec_sql', {
             sql_query: statement
           });
 
@@ -399,7 +399,7 @@ class SupabaseMigrator {
       const prismaUsers = await prisma.user.findMany();
 
       for (const user of prismaUsers) {
-        const { error } = await supabaseAdmin
+        const { error } = await supabaseAdmin!
           .from('users')
           .upsert({
             id: user.id,
@@ -424,7 +424,7 @@ class SupabaseMigrator {
       const prismaProjects = await prisma.project.findMany();
 
       for (const project of prismaProjects) {
-        const { error } = await supabaseAdmin
+        const { error } = await supabaseAdmin!
           .from('projects')
           .upsert({
             id: project.id,

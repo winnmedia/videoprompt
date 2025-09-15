@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
         'Storage bucket 생성 (RLS 정책으로 수동 생성 필요)'
       ]
     },
-    recommendations: []
+    recommendations: [] as string[]
   };
 
   try {

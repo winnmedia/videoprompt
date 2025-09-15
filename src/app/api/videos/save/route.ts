@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
           status: status || existingVideo.status,
           videoUrl: videoUrl || existingVideo.videoUrl,
           thumbnailUrl: thumbnailUrl || existingVideo.thumbnailUrl,
-          metadata: metadata ? { ...existingVideo.metadata, ...metadata } : existingVideo.metadata,
+          metadata: metadata ? { ...(existingVideo.metadata as any), ...metadata } : existingVideo.metadata,
           ...(projectId && { projectId })
         }
       });
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
           updatedAt: video.updatedAt
         },
         action: 'updated'
-      }, traceId);
+      }, 200, traceId);
 
     } else {
       // 새 레코드 생성
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
           updatedAt: video.updatedAt
         },
         action: 'created'
-      }, traceId);
+      }, 200, traceId);
     }
 
   } catch (error) {
@@ -111,11 +111,11 @@ export async function POST(request: NextRequest) {
     // Prisma 에러 처리
     if (error instanceof Error) {
       if (error.message.includes('Unique constraint')) {
-        return failure('DUPLICATE_JOB_ID', '이미 존재하는 작업 ID입니다.', traceId);
+        return failure('DUPLICATE_JOB_ID', '이미 존재하는 작업 ID입니다.', 409, undefined, traceId);
       }
     }
 
-    return failure('VIDEOS_SAVE_ERROR', '영상 저장 중 오류가 발생했습니다.', traceId);
+    return failure('VIDEOS_SAVE_ERROR', '영상 저장 중 오류가 발생했습니다.', 500, undefined, traceId);
   }
 }
 
@@ -131,7 +131,7 @@ export async function PUT(request: NextRequest) {
     const { jobId, status, videoUrl, thumbnailUrl, progress, error: jobError } = body;
 
     if (!jobId) {
-      return failure('INVALID_REQUEST', 'jobId는 필수 항목입니다.', traceId);
+      return failure('INVALID_REQUEST', 'jobId는 필수 항목입니다.', 400, undefined, traceId);
     }
 
     // 기존 레코드 찾기
@@ -140,7 +140,7 @@ export async function PUT(request: NextRequest) {
     });
 
     if (!existingVideo) {
-      return failure('VIDEO_NOT_FOUND', '해당 영상을 찾을 수 없습니다.', traceId);
+      return failure('VIDEO_NOT_FOUND', '해당 영상을 찾을 수 없습니다.', 404, undefined, traceId);
     }
 
     // 상태 업데이트
@@ -150,7 +150,7 @@ export async function PUT(request: NextRequest) {
     if (thumbnailUrl) updateData.thumbnailUrl = thumbnailUrl;
 
     // 메타데이터 업데이트
-    const newMetadata = { ...existingVideo.metadata };
+    const newMetadata = { ...(existingVideo.metadata as any) };
     if (progress !== undefined) newMetadata.progress = progress;
     if (jobError) newMetadata.error = jobError;
     updateData.metadata = newMetadata;
@@ -175,11 +175,11 @@ export async function PUT(request: NextRequest) {
         metadata: video.metadata
       },
       action: 'status_updated'
-    }, traceId);
+    }, 200, traceId);
 
   } catch (error) {
     console.error('[Videos Update API] Error:', error);
-    return failure('VIDEOS_UPDATE_ERROR', '영상 상태 업데이트 중 오류가 발생했습니다.', traceId);
+    return failure('VIDEOS_UPDATE_ERROR', '영상 상태 업데이트 중 오류가 발생했습니다.', 500, undefined, traceId);
   }
 }
 
@@ -195,7 +195,7 @@ export async function DELETE(request: NextRequest) {
     const jobId = searchParams.get('jobId');
 
     if (!jobId) {
-      return failure('INVALID_REQUEST', 'jobId는 필수 항목입니다.', traceId);
+      return failure('INVALID_REQUEST', 'jobId는 필수 항목입니다.', 400, undefined, traceId);
     }
 
     // 영상 삭제
@@ -209,15 +209,15 @@ export async function DELETE(request: NextRequest) {
         jobId: deletedVideo.seedanceJobId
       },
       action: 'deleted'
-    }, traceId);
+    }, 200, traceId);
 
   } catch (error) {
     console.error('[Videos Delete API] Error:', error);
 
     if (error instanceof Error && error.message.includes('Record to delete does not exist')) {
-      return failure('VIDEO_NOT_FOUND', '삭제할 영상을 찾을 수 없습니다.', traceId);
+      return failure('VIDEO_NOT_FOUND', '삭제할 영상을 찾을 수 없습니다.', 404, undefined, traceId);
     }
 
-    return failure('VIDEOS_DELETE_ERROR', '영상 삭제 중 오류가 발생했습니다.', traceId);
+    return failure('VIDEOS_DELETE_ERROR', '영상 삭제 중 오류가 발생했습니다.', 500, undefined, traceId);
   }
 }
