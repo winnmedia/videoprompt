@@ -60,13 +60,13 @@ export async function POST(req: NextRequest) {
     const { user, session, error } = await signInWithSupabase(email, password);
 
     if (error || !user || !session) {
-      console.warn(`❌ Login failed for ${email}:`, error?.message);
+      console.warn(`❌ Login failed for ${email}:`, (error as any)?.message);
 
-      const errorMessage = error?.message?.toLowerCase().includes('invalid')
+      const errorMessage = (error as any)?.message?.toLowerCase().includes('invalid')
         ? '이메일 또는 비밀번호가 올바르지 않습니다.'
         : '로그인 중 오류가 발생했습니다.';
 
-      const response = failure('UNAUTHORIZED', errorMessage, 401, error?.message, traceId);
+      const response = failure('UNAUTHORIZED', errorMessage, 401, (error as any)?.message, traceId);
       return addCorsHeaders(response);
     }
 
