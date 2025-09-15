@@ -21,7 +21,7 @@ const nextConfig = {
     largePageDataBytes: 1024 * 1024, // 1MB
     // 서버 액션 최적화
     serverActions: {
-      allowedOrigins: ['localhost:3000', 'videoprompt.vercel.app'],
+      allowedOrigins: ['localhost:3000', 'videoprompt.vercel.app', 'www.vridge.kr', 'vridge.kr'],
       bodySizeLimit: '600mb', // 600MB 제한
     },
   },
@@ -77,8 +77,40 @@ const nextConfig = {
 
     return config;
   },
-  
-  
+
+  // 강화된 캐시 무효화 헤더 설정
+  async headers() {
+    return [
+      {
+        source: '/_next/static/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, must-revalidate',
+          },
+        ],
+      },
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
+          {
+            key: 'Pragma',
+            value: 'no-cache',
+          },
+          {
+            key: 'Expires',
+            value: '0',
+          },
+        ],
+      },
+    ];
+  },
+
+
   // API 라우팅 설정 - Railway 프록시 (CORS 해결)
   async rewrites() {
     const apiBase = 'https://videoprompt-production.up.railway.app';
