@@ -1,7 +1,5 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import React, { useState, useCallback, useMemo, Suspense } from 'react';
 import {
   WORKFLOW_STEPS,
