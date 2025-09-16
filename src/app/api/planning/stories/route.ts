@@ -10,6 +10,7 @@ import {
   createSuccessResponse,
   createErrorResponse
 } from '@/shared/schemas/api.schema';
+import { supabase } from '@/lib/supabase';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -86,54 +87,125 @@ export async function GET(request: NextRequest) {
 
     const { page, limit, search, genre, tone, target } = queryResult.data;
 
-    // 모크 데이터 필터링
-    let filteredStories = [...MOCK_STORIES];
+    try {
+      // Supabase에서 스토리 데이터 조회 시도
+      let query = supabase
+        .from('Story')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    // 검색어 필터링
-    if (search) {
-      filteredStories = filteredStories.filter(story =>
-        story.title.toLowerCase().includes(search.toLowerCase()) ||
-        story.oneLineStory.toLowerCase().includes(search.toLowerCase()) ||
-        story.genre.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-
-    // 장르 필터링
-    if (genre) {
-      filteredStories = filteredStories.filter(story => story.genre === genre);
-    }
-
-    // 톤 필터링
-    if (tone) {
-      filteredStories = filteredStories.filter(story => story.tone === tone);
-    }
-
-    // 타겟 필터링
-    if (target) {
-      filteredStories = filteredStories.filter(story => story.target === target);
-    }
-
-    // 페이지네이션
-    const totalCount = filteredStories.length;
-    const totalPages = Math.ceil(totalCount / limit);
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedStories = filteredStories.slice(startIndex, endIndex);
-
-    // 응답 데이터 구성
-    const response = {
-      stories: paginatedStories,
-      pagination: {
-        page,
-        limit,
-        totalCount,
-        totalPages,
-        hasNext: page < totalPages,
-        hasPrev: page > 1
+      // 검색어 필터링
+      if (search) {
+        query = query.or(`title.ilike.%${search}%,one_line_story.ilike.%${search}%,genre.ilike.%${search}%`);
       }
-    };
 
-    return NextResponse.json(response);
+      // 장르 필터링
+      if (genre) {
+        query = query.eq('genre', genre);
+      }
+
+      // 톤 필터링
+      if (tone) {
+        query = query.eq('tone', tone);
+      }
+
+      // 타겟 필터링
+      if (target) {
+        query = query.eq('target', target);
+      }
+
+      // 페이지네이션
+      const startIndex = (page - 1) * limit;
+      query = query.range(startIndex, startIndex + limit - 1);
+
+      const { data: stories, error, count } = await query;
+
+      if (error) {
+        console.warn('⚠️ Supabase 쿼리 실패, mock 데이터 사용:', error);
+        throw new Error(`Supabase query failed: ${error.message}`);
+      }
+
+      // Supabase 데이터를 API 스키마에 맞게 변환
+      const transformedStories = stories?.map(story => ({
+        id: story.id,
+        title: story.title,
+        oneLineStory: story.one_line_story,
+        genre: story.genre,
+        tone: story.tone,
+        target: story.target,
+        structure: story.structure,
+        userId: story.user_id,
+        createdAt: story.created_at,
+        updatedAt: story.updated_at,
+      })) || [];
+
+      // 총 개수 조회 (정확한 페이지네이션을 위해)
+      const { count: totalCount } = await supabase
+        .from('Story')
+        .select('*', { count: 'exact', head: true });
+
+      const totalPages = Math.ceil((totalCount || 0) / limit);
+
+      console.log(`✅ Supabase에서 ${transformedStories.length}개 스토리 조회 성공`);
+
+      return NextResponse.json({
+        stories: transformedStories,
+        pagination: {
+          page,
+          limit,
+          totalCount: totalCount || 0,
+          totalPages,
+          hasNext: page < totalPages,
+          hasPrev: page > 1
+        }
+      });
+
+    } catch (supabaseError) {
+      // Supabase 실패 시 mock 데이터로 폴백
+      console.warn('⚠️ Supabase 연결 실패, mock 데이터 사용:', supabaseError);
+
+      // 모크 데이터 필터링 (기존 로직 유지)
+      let filteredStories = [...MOCK_STORIES];
+
+      if (search) {
+        filteredStories = filteredStories.filter(story =>
+          story.title.toLowerCase().includes(search.toLowerCase()) ||
+          story.oneLineStory.toLowerCase().includes(search.toLowerCase()) ||
+          story.genre.toLowerCase().includes(search.toLowerCase())
+        );
+      }
+
+      if (genre) {
+        filteredStories = filteredStories.filter(story => story.genre === genre);
+      }
+
+      if (tone) {
+        filteredStories = filteredStories.filter(story => story.tone === tone);
+      }
+
+      if (target) {
+        filteredStories = filteredStories.filter(story => story.target === target);
+      }
+
+      const totalCount = filteredStories.length;
+      const totalPages = Math.ceil(totalCount / limit);
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedStories = filteredStories.slice(startIndex, endIndex);
+
+      return NextResponse.json({
+        stories: paginatedStories,
+        pagination: {
+          page,
+          limit,
+          totalCount,
+          totalPages,
+          hasNext: page < totalPages,
+          hasPrev: page > 1
+        },
+        fallback: true // mock 데이터 사용 표시
+      });
+    }
 
   } catch (error) {
     console.error('Stories GET error:', error);
