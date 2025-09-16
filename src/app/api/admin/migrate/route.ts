@@ -82,61 +82,58 @@ export async function POST(request: NextRequest) {
   try {
     console.log('🚀 Auth 테이블 마이그레이션 시작...');
 
-    // Step 1: 테이블 생성
+    // SQL 실행은 현재 제한적이므로 테이블별로 개별 생성 시도
     console.log('📋 테이블 생성 중...');
-    const { error: tablesError } = await supabase.rpc('exec_sql', {
-      sql: AUTH_TABLES_SQL
-    });
+    const createdTables: string[] = [];
+    const errors: string[] = [];
 
-    if (tablesError) {
-      console.error('❌ 테이블 생성 실패:', tablesError);
-      return NextResponse.json({
-        success: false,
-        error: `테이블 생성 실패: ${tablesError.message}`,
-        step: 'tables'
-      }, { status: 500 });
+    // 개별 테이블 생성 시도 (Supabase JS로는 제한적)
+    // 대신 테이블 존재 여부만 확인하고 안내 메시지 제공
+    const authTables = ['User', 'RefreshToken', 'EmailVerification', 'PasswordReset'];
+
+    for (const tableName of authTables) {
+      try {
+        const { error } = await supabase
+          .from(tableName)
+          .select('id')
+          .limit(0);
+
+        if (!error) {
+          createdTables.push(tableName);
+        } else {
+          errors.push(`${tableName}: 테이블이 존재하지 않음`);
+        }
+      } catch (tableError) {
+        errors.push(`${tableName}: ${tableError instanceof Error ? tableError.message : '확인 불가'}`);
+      }
     }
 
-    console.log('✅ 테이블 생성 완료');
-
-    // Step 2: 인덱스 생성
-    console.log('🔍 인덱스 생성 중...');
-    const { error: indexesError } = await supabase.rpc('exec_sql', {
-      sql: INDEXES_SQL
-    });
-
-    if (indexesError) {
-      console.error('⚠️ 인덱스 생성 실패 (테이블은 생성됨):', indexesError);
+    if (createdTables.length === authTables.length) {
+      console.log('✅ 모든 Auth 테이블이 이미 존재합니다');
       return NextResponse.json({
         success: true,
-        warning: `인덱스 생성 실패: ${indexesError.message}`,
-        step: 'indexes',
-        message: '테이블은 정상적으로 생성되었지만 일부 인덱스 생성 실패'
+        message: '모든 Auth 테이블이 이미 존재합니다',
+        existingTables: createdTables,
+        timestamp: new Date().toISOString()
       });
+    } else {
+      console.log('⚠️ 일부 테이블이 누락됨, 수동 마이그레이션 필요');
+      return NextResponse.json({
+        success: false,
+        error: 'Supabase JS 클라이언트로는 직접 DDL 실행이 제한됩니다. Supabase Dashboard에서 수동으로 SQL을 실행해주세요.',
+        sqlFile: '/supabase/migrations/001_create_auth_tables.sql',
+        existingTables: createdTables,
+        missingTables: authTables.filter(t => !createdTables.includes(t)),
+        manualSteps: [
+          '1. Supabase Dashboard > SQL Editor 접속',
+          '2. 프로젝트 파일의 /supabase/migrations/001_create_auth_tables.sql 내용 복사',
+          '3. SQL Editor에 붙여넣기 후 실행',
+          '4. 완료 후 이 엔드포인트를 다시 호출하여 확인'
+        ],
+        timestamp: new Date().toISOString()
+      }, { status: 422 });
     }
 
-    console.log('✅ 인덱스 생성 완료');
-
-    // Step 3: 테이블 목록 확인
-    console.log('🔍 생성된 테이블 확인 중...');
-    const { data: tables, error: listError } = await supabase
-      .from('information_schema.tables')
-      .select('table_name')
-      .eq('table_schema', 'public')
-      .in('table_name', ['User', 'RefreshToken', 'EmailVerification', 'PasswordReset']);
-
-    if (listError) {
-      console.warn('⚠️ 테이블 목록 조회 실패:', listError);
-    }
-
-    console.log('🎉 Auth 테이블 마이그레이션 완료!');
-
-    return NextResponse.json({
-      success: true,
-      message: 'Auth 테이블 마이그레이션이 성공적으로 완료되었습니다',
-      tables: tables?.map(t => t.table_name) || [],
-      timestamp: new Date().toISOString()
-    });
 
   } catch (error) {
     console.error('❌ 마이그레이션 실행 중 오류:', error);
@@ -150,28 +147,37 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    // 현재 테이블 상태 확인
-    const { data: tables, error } = await supabase
-      .from('information_schema.tables')
-      .select('table_name')
-      .eq('table_schema', 'public');
+    // 각 테이블 존재 여부를 직접 확인하는 방식
+    const authTables = ['User', 'RefreshToken', 'EmailVerification', 'PasswordReset'];
+    const existingTables: string[] = [];
+    const errors: string[] = [];
 
-    if (error) {
-      return NextResponse.json({
-        error: `테이블 목록 조회 실패: ${error.message}`
-      }, { status: 500 });
+    for (const tableName of authTables) {
+      try {
+        // 각 테이블에 대해 limit 0 쿼리를 실행하여 존재 여부 확인
+        const { error } = await supabase
+          .from(tableName)
+          .select('id')
+          .limit(0);
+
+        if (!error) {
+          existingTables.push(tableName);
+        } else {
+          errors.push(`${tableName}: ${error.message}`);
+        }
+      } catch (tableError) {
+        errors.push(`${tableName}: ${tableError instanceof Error ? tableError.message : '알 수 없는 오류'}`);
+      }
     }
 
-    const authTables = ['User', 'RefreshToken', 'EmailVerification', 'PasswordReset'];
-    const existingAuthTables = tables?.filter(t => authTables.includes(t.table_name)).map(t => t.table_name) || [];
-    const missingAuthTables = authTables.filter(table => !existingAuthTables.includes(table));
+    const missingTables = authTables.filter(table => !existingTables.includes(table));
 
     return NextResponse.json({
-      status: missingAuthTables.length === 0 ? 'complete' : 'incomplete',
-      existingTables: existingAuthTables,
-      missingTables: missingAuthTables,
-      allTables: tables?.map(t => t.table_name) || [],
-      needsMigration: missingAuthTables.length > 0
+      status: missingTables.length === 0 ? 'complete' : 'incomplete',
+      existingTables,
+      missingTables,
+      needsMigration: missingTables.length > 0,
+      errors: errors.length > 0 ? errors : undefined
     });
 
   } catch (error) {
