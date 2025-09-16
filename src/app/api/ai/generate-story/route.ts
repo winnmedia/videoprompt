@@ -43,10 +43,10 @@ async function generateStoryWithGemini(data: z.infer<typeof StoryGenerationSchem
   model?: string;
   error?: string;
 }> {
-  const geminiApiKey = process.env.GOOGLE_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
+  const geminiApiKey = process.env.GOOGLE_GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
   if (!geminiApiKey) {
-    throw new Error('GOOGLE_API_KEY 또는 GOOGLE_GEMINI_API_KEY가 설정되지 않았습니다');
+    throw new Error('GOOGLE_GEMINI_API_KEY가 설정되지 않았습니다. Vercel 환경변수를 확인해주세요.');
   }
 
   const systemPrompt = `당신은 전문적인 영상 시나리오 작가입니다. 주어진 요구사항에 따라 체계적이고 창의적인 4단계 스토리 구조를 생성해주세요.
