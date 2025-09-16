@@ -1,36 +1,37 @@
 import { PrismaClient } from '@prisma/client';
 
-// 빌드 환경 감지 - Next.js 빌드 중인지 확인
+// 빌드 환경 감지 - Next.js 빌드 중인지 확인 (수정된 버전)
 const isBuildTime = () => {
-  // 명시적인 빌드 환경 변수들 체크
+  // 명시적인 빌드 환경 변수들만 체크 (엄격한 조건)
   if (
     process.env.NEXT_PHASE === 'phase-production-build' ||
-    process.env.NEXT_PHASE === 'phase-development-build' ||
-    process.env.__NEXT_PROCESSED_ENV === 'true'
+    process.env.NEXT_PHASE === 'phase-development-build'
   ) {
     return true;
   }
 
-  // 빌드 명령어 감지 (pnpm build, next build, npm run build 등)
-  const buildCommands = ['build', 'next'];
-  if (process.argv.some(arg => buildCommands.includes(arg))) {
-    return true;
-  }
-
-  // Vercel/Docker 빌드 환경에서 DATABASE_URL 없는 경우
+  // 빌드 명령어 감지 (더 엄격한 조건)
+  const argv = process.argv.join(' ');
   if (
-    process.env.NODE_ENV === 'production' &&
-    !process.env.DATABASE_URL &&
-    (
-      process.env.VERCEL === '1' ||  // Vercel 빌드
-      process.env.CI === 'true' ||   // CI 환경
-      process.env.DOCKER === 'true'  // Docker 빌드
-    )
+    argv.includes('next build') ||
+    argv.includes('pnpm build') ||
+    argv.includes('npm run build') ||
+    (argv.includes('build') && !argv.includes('runtime'))
   ) {
     return true;
   }
 
-  return false;
+  // 런타임 환경에서는 절대 true 반환하지 않음
+  // (DATABASE_URL이 있고 Vercel 런타임인 경우는 빌드 시간이 아님)
+  if (
+    process.env.VERCEL === '1' &&
+    process.env.DATABASE_URL &&
+    process.env.VERCEL_ENV === 'production'
+  ) {
+    return false; // 명시적으로 런타임임을 표시
+  }
+
+  return false; // 기본값은 런타임으로 간주
 };
 
 // 환경 변수 검증 (명확한 에러 발생)
