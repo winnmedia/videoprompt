@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { checkDatabaseConnection, prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -20,33 +20,27 @@ interface HealthCheckResponse {
   version?: string;
 }
 
-async function checkSupabaseHealth(): Promise<HealthCheckResult> {
+async function checkDatabaseHealth(): Promise<HealthCheckResult> {
   const startTime = Date.now();
 
   try {
-    // 간단한 Supabase 연결 테스트
-    const { data, error } = await supabase
-      .from('_health_check')
-      .select('count(*)')
-      .limit(1);
+    // Prisma 데이터베이스 연결 테스트
+    const result = await checkDatabaseConnection(prisma);
 
-    const latency = Date.now() - startTime;
-
-    if (error && error.code !== 'PGRST116') {
-      // PGRST116은 테이블이 존재하지 않음을 의미하지만 연결은 정상
-      throw error;
+    if (result.success) {
+      return {
+        service: 'database',
+        status: 'healthy',
+        details: 'Railway PostgreSQL connection successful',
+        latency: result.latency,
+        timestamp: new Date().toISOString()
+      };
+    } else {
+      throw new Error(result.error || 'Database connection failed');
     }
-
-    return {
-      service: 'supabase',
-      status: 'healthy',
-      details: 'Database connection successful',
-      latency,
-      timestamp: new Date().toISOString()
-    };
   } catch (error) {
     return {
-      service: 'supabase',
+      service: 'database',
       status: 'unhealthy',
       details: error instanceof Error ? error.message : 'Unknown error',
       latency: Date.now() - startTime,
@@ -57,8 +51,7 @@ async function checkSupabaseHealth(): Promise<HealthCheckResult> {
 
 async function checkEnvironmentVariables(): Promise<HealthCheckResult> {
   const requiredVars = [
-    'SUPABASE_URL',
-    'SUPABASE_ANON_KEY',
+    'DATABASE_URL',
     'GOOGLE_GEMINI_API_KEY'
   ];
 
@@ -109,13 +102,13 @@ async function checkAIServices(): Promise<HealthCheckResult> {
 export async function GET(request: NextRequest) {
   try {
     // 모든 헬스체크 병렬 실행
-    const [supabaseHealth, envHealth, aiHealth] = await Promise.all([
-      checkSupabaseHealth(),
+    const [databaseHealth, envHealth, aiHealth] = await Promise.all([
+      checkDatabaseHealth(),
       checkEnvironmentVariables(),
       checkAIServices()
     ]);
 
-    const services = [supabaseHealth, envHealth, aiHealth];
+    const services = [databaseHealth, envHealth, aiHealth];
 
     // 전체 상태 결정
     const hasUnhealthy = services.some(s => s.status === 'unhealthy');

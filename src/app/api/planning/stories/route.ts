@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { prisma } from '@/lib/db';
 import type { ScenarioMetadata } from '@/shared/types/metadata';
 import {
   GetStoriesQuerySchema,
@@ -15,8 +15,10 @@ import {
   createErrorResponse
 } from '@/shared/schemas/api.schema';
 import {
+  withDatabaseValidation,
   DTOTransformer,
-  DatabaseErrorHandler
+  DatabaseErrorHandler,
+  DatabaseValidator
 } from '@/shared/lib/database-validation';
 import {
   logger,
@@ -24,12 +26,6 @@ import {
   PerformanceTracker,
   withPerformanceLogging
 } from '@/shared/lib/structured-logger';
-import { requireSupabaseAuthentication, getSupabaseUser } from '@/shared/lib/auth-supabase';
-
-/**
- * Supabase 기반 Stories API
- * 기존 Prisma 버전의 모든 기능을 Supabase로 전환
- */
 
 export async function GET(request: NextRequest) {
   const requestId = crypto.randomUUID();
@@ -43,7 +39,7 @@ export async function GET(request: NextRequest) {
     userAgent: request.headers.get('user-agent') || undefined,
   });
 
-  logger.info(LogCategory.API, 'Planning stories GET request started (Supabase)', {
+  logger.info(LogCategory.API, 'Planning stories GET request started', {
     url: request.url,
     requestId,
   });
@@ -80,145 +76,141 @@ export async function GET(request: NextRequest) {
       validatedParams: queryResult.data,
     });
 
-    // Supabase 사용자 인증 확인
-    const user = await getSupabaseUser(request);
+    // 사용자 인증 확인
+    const { getUser } = await import('@/shared/lib/auth');
+    const user = await getUser(request);
 
-    logger.debug(LogCategory.SECURITY, 'User authentication check completed (Supabase)', {
+    logger.debug(LogCategory.SECURITY, 'User authentication check completed', {
       isAuthenticated: !!user,
       userId: user?.id,
     });
 
-    const offset = (page - 1) * limit;
+    const skip = (page - 1) * limit;
 
-    // Supabase 쿼리 빌드 - Stories 테이블에서 직접 조회
-    let storyQuery = supabase
-      .from('stories')
-      .select('*', { count: 'exact' });
+    // 검색 조건 구성
+    const whereCondition = {
+      // 검색어가 있는 경우
+      ...(search ? {
+        OR: [
+          { title: { contains: search, mode: 'insensitive' as const } },
+          { oneLineStory: { contains: search, mode: 'insensitive' as const } },
+          { genre: { contains: search, mode: 'insensitive' as const } },
+        ],
+      } : {}),
+      // 필터 조건들
+      ...(genre ? { genre } : {}),
+      ...(tone ? { tone } : {}),
+      ...(target ? { target } : {}),
+      // 사용자별 필터링: 인증된 사용자는 본인 스토리, 미인증은 public 스토리만
+      userId: user ? user.id : null,
+    };
 
-    // 사용자별 필터링
-    if (user) {
-      storyQuery = storyQuery.or(`user_id.eq.${user.id},user_id.is.null`);
-    } else {
-      storyQuery = storyQuery.is('user_id', null);
-    }
+    // 정렬 조건 구성
+    const orderBy = { [sortBy]: sortOrder };
 
-    // 검색어 필터링
-    if (search) {
-      storyQuery = storyQuery.or(
-        `title.ilike.%${search}%,content.ilike.%${search}%,genre.ilike.%${search}%`
-      );
-    }
-
-    // 장르, 톤, 타겟 필터링
-    if (genre) {
-      storyQuery = storyQuery.eq('genre', genre);
-    }
-    if (tone) {
-      storyQuery = storyQuery.eq('tone', tone);
-    }
-    if (target) {
-      storyQuery = storyQuery.eq('target_audience', target);
-    }
-
-    // 정렬 및 페이지네이션
-    storyQuery = storyQuery
-      .order('created_at', { ascending: sortOrder === 'asc' })
-      .range(offset, offset + limit - 1);
-
-    logger.debug(LogCategory.DATABASE, 'Executing Supabase queries', {
-      pagination: { offset, limit },
-      hasSearch: !!search,
-      hasFilters: !!(genre || tone || target),
-    });
-
-    const dbTracker = new PerformanceTracker('supabase_query');
-
-    // Supabase 쿼리 실행
-    const { data: stories, error, count } = await storyQuery;
-
-    if (error) {
-      logger.error(
-        LogCategory.DATABASE,
-        'Supabase query failed',
-        new Error(error.message),
+    // Project 테이블에서 scenario 타입 데이터 조회
+    const projectWhereCondition = {
+      // scenario contentType 필터링
+      tags: {
+        array_contains: ['scenario']
+      },
+      // 사용자별 필터링과 검색어 조건을 AND로 결합
+      AND: [
+        // 사용자별 필터링: system-planning 포함
         {
-          errorDetails: error,
-          query: 'stories_direct_query',
-        }
-      );
+          OR: [
+            { userId: user ? user.id : 'system-planning' },
+            { userId: 'system-planning' }
+          ]
+        },
+        // 검색어가 있는 경우
+        ...(search ? [{
+          OR: [
+            { title: { contains: search, mode: 'insensitive' as const } },
+            { description: { contains: search, mode: 'insensitive' as const } },
+          ]
+        }] : [])
+      ]
+    };
 
-      const errorResponse = NextResponse.json(
-        createErrorResponse('DATABASE_QUERY_FAILED',
-          `스토리 조회 중 데이터베이스 오류가 발생했습니다: ${error.message}`),
-        { status: 500 }
-      );
+    // 데이터베이스 연결 검증 및 안전한 쿼리 실행
+    const [projects, totalCount] = await withDatabaseValidation(
+      prisma,
+      async (client) => {
+        logger.debug(LogCategory.DATABASE, 'Executing database queries', {
+          whereCondition: projectWhereCondition,
+          pagination: { skip, limit },
+        });
 
-      logger.apiRequest('GET', '/api/planning/stories', 500, Date.now() - startTime);
-      return errorResponse;
-    }
+        const dbTracker = new PerformanceTracker('database_query');
 
-    const totalCount = count || 0;
+        const results = await Promise.all([
+          client.project.findMany({
+            where: projectWhereCondition,
+            orderBy: { createdAt: 'desc' },
+            skip,
+            take: limit,
+          }),
+          client.project.count({
+            where: projectWhereCondition,
+          }),
+        ]);
 
-    dbTracker.end(LogCategory.DATABASE, true, {
-      recordsFound: stories?.length || 0,
-      totalCount,
-    });
+        dbTracker.end(LogCategory.DATABASE, true, {
+          recordsFound: results[0].length,
+          totalCount: results[1],
+        });
 
-    logger.database(
-      'supabase_stories_query',
-      true,
-      dbTracker.end(LogCategory.DATABASE),
-      {
-        recordsFound: stories?.length || 0,
-        totalCount,
-        queryType: 'select_with_count',
-      }
+        logger.database(
+          'project_query',
+          true,
+          dbTracker.end(LogCategory.DATABASE),
+          {
+            recordsFound: results[0].length,
+            totalCount: results[1],
+            queryType: 'findMany_and_count',
+          }
+        );
+
+        return results;
+      },
+      { retries: 2 }
     );
 
-    // 데이터 변환 수행 (Supabase Stories → API 응답 형식)
+    const totalPages = Math.ceil(totalCount / limit);
+
+    // 데이터 변환 수행 (Project → Story DTO)
     const transformationTracker = new PerformanceTracker('dto_transformation');
 
     const formattedStories = await withPerformanceLogging(
-      'supabase_stories_transformation',
+      'project_to_story_transformation',
       LogCategory.TRANSFORMATION,
       async () => {
-        logger.debug(LogCategory.TRANSFORMATION, 'Starting DTO transformation (Supabase)', {
-          recordCount: stories?.length || 0,
+        logger.debug(LogCategory.TRANSFORMATION, 'Starting DTO transformation', {
+          recordCount: projects.length,
         });
 
-        const transformed = (stories || []).map((story, index) => {
+        const transformed = projects.map((project, index) => {
           try {
-            // Supabase Stories를 API 응답 형식으로 변환
-            return {
-              id: story.id,
-              title: story.title,
-              oneLineStory: story.content, // content 필드를 oneLineStory로 매핑
-              genre: story.genre,
-              tone: story.tone,
-              target: story.target_audience, // target_audience 필드를 target으로 매핑
-              structure: story.structure,
-              userId: story.user_id,
-              createdAt: story.created_at,
-              updatedAt: story.updated_at,
-            };
+            return DTOTransformer.transformProjectToStory(project);
           } catch (error) {
             logger.error(
               LogCategory.TRANSFORMATION,
-              `DTO transformation failed for story ${story.id}`,
+              `DTO transformation failed for project ${project.id}`,
               error instanceof Error ? error : new Error(String(error)),
-              { storyIndex: index, storyId: story.id }
+              { projectIndex: index, projectId: project.id }
             );
             throw error;
           }
         });
 
         logger.transformation(
-          'supabase_stories_to_api',
+          'project_to_story',
           true,
           transformed.length,
           transformationTracker.end(LogCategory.TRANSFORMATION),
           {
-            inputRecords: stories?.length || 0,
+            inputRecords: projects.length,
             outputRecords: transformed.length,
           }
         );
@@ -239,7 +231,7 @@ export async function GET(request: NextRequest) {
       pagination: paginationMetadata,
     };
 
-    logger.debug(LogCategory.API, 'Response data prepared (Supabase)', {
+    logger.debug(LogCategory.API, 'Response data prepared', {
       storiesCount: formattedStories.length,
       pagination: paginationMetadata,
     });
@@ -250,7 +242,7 @@ export async function GET(request: NextRequest) {
     if (!responseResult.success) {
       logger.error(
         LogCategory.VALIDATION,
-        'Response schema validation failed (Supabase)',
+        'Response schema validation failed',
         new Error('Response validation error'),
         {
           validationErrors: responseResult.error.issues,
@@ -282,7 +274,7 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    logger.info(LogCategory.API, 'Planning stories GET request completed successfully (Supabase)', {
+    logger.info(LogCategory.API, 'Planning stories GET request completed successfully', {
       duration: Date.now() - startTime,
       recordsReturned: formattedStories.length,
     });
@@ -292,7 +284,7 @@ export async function GET(request: NextRequest) {
     // 구조화된 에러 로깅
     logger.error(
       LogCategory.API,
-      'Planning stories GET request failed (Supabase)',
+      'Planning stories GET request failed',
       error instanceof Error ? error : new Error(String(error)),
       {
         requestId,
@@ -339,7 +331,7 @@ export async function POST(request: NextRequest) {
     userAgent: request.headers.get('user-agent') || undefined,
   });
 
-  logger.info(LogCategory.API, 'Planning stories POST request started (Supabase)', {
+  logger.info(LogCategory.API, 'Planning stories POST request started', {
     requestId,
   });
 
@@ -374,92 +366,78 @@ export async function POST(request: NextRequest) {
       validatedData: { ...validatedData, structure: validatedData.structure ? '[STRUCTURE_DATA]' : null },
     });
 
-    // Supabase 사용자 인증 확인
-    const user = await getSupabaseUser(request);
+    // 사용자 인증 확인
+    const { getUser } = await import('@/shared/lib/auth');
+    const user = await getUser(request);
 
-    logger.debug(LogCategory.SECURITY, 'User authentication check completed (Supabase)', {
+    logger.debug(LogCategory.SECURITY, 'User authentication check completed', {
       isAuthenticated: !!user,
       userId: user?.id,
     });
+    
+    // 인증되지 않은 사용자도 생성 허용하되, userId는 null로 저장
+    // 추후 정책에 따라 인증 강제 가능
 
-    // 인증되지 않은 사용자도 생성 허용하되, user_id는 null로 저장
-    const dbTracker = new PerformanceTracker('supabase_story_creation');
-
-    logger.debug(LogCategory.DATABASE, 'Creating new story record (Supabase)', {
-      title: validatedData.title,
-      genre: validatedData.genre,
-      userId: user?.id,
-    });
-
-    // Supabase Stories 테이블에 직접 삽입
-    const { data: story, error } = await supabase
-      .from('stories')
-      .insert([
-        {
+    // 데이터베이스 연결 검증 및 안전한 생성 작업
+    const story = await withDatabaseValidation(
+      prisma,
+      async (client) => {
+        logger.debug(LogCategory.DATABASE, 'Creating new story record', {
           title: validatedData.title,
-          content: validatedData.oneLineStory, // oneLineStory를 content로 매핑
           genre: validatedData.genre,
-          tone: validatedData.tone,
-          target_audience: validatedData.target, // target을 target_audience로 매핑
-          structure: validatedData.structure || null,
-          user_id: user?.id || null,
-        }
-      ])
-      .select()
-      .single();
+          userId: user?.id,
+        });
 
-    if (error) {
-      logger.error(
-        LogCategory.DATABASE,
-        'Supabase story creation failed',
-        new Error(error.message),
-        {
-          errorDetails: error,
-          storyData: validatedData,
-        }
-      );
+        const dbTracker = new PerformanceTracker('story_creation');
 
-      const errorResponse = NextResponse.json(
-        createErrorResponse('DATABASE_INSERT_FAILED',
-          `스토리 생성 중 데이터베이스 오류가 발생했습니다: ${error.message}`),
-        { status: 500 }
-      );
+        const created = await client.story.create({
+          data: {
+            title: validatedData.title,
+            oneLineStory: validatedData.oneLineStory,
+            genre: validatedData.genre,
+            tone: validatedData.tone,
+            target: validatedData.target,
+            structure: validatedData.structure || undefined,
+            userId: user?.id || null,
+          },
+        });
 
-      logger.apiRequest('POST', '/api/planning/stories', 500, Date.now() - startTime);
-      return errorResponse;
-    }
+        logger.database(
+          'story_creation',
+          true,
+          dbTracker.end(LogCategory.DATABASE),
+          {
+            storyId: created.id,
+            title: created.title,
+            userId: created.userId,
+          }
+        );
 
-    logger.database(
-      'supabase_story_creation',
-      true,
-      dbTracker.end(LogCategory.DATABASE),
-      {
-        storyId: story.id,
-        title: story.title,
-        userId: story.user_id,
-      }
+        return created;
+      },
+      { retries: 2 }
     );
 
-    // 응답 데이터 변환 (Supabase → API 응답 형식)
+    // 응답 데이터 변환
     const responseData = await withPerformanceLogging(
-      'supabase_story_response_transformation',
+      'story_response_transformation',
       LogCategory.TRANSFORMATION,
       async () => {
         const transformed = {
           id: story.id,
           title: story.title,
-          oneLineStory: story.content, // content 필드를 oneLineStory로 매핑
+          oneLineStory: story.oneLineStory,
           genre: story.genre,
           tone: story.tone,
-          target: story.target_audience, // target_audience 필드를 target으로 매핑
+          target: story.target,
           structure: story.structure,
-          userId: story.user_id,
-          createdAt: story.created_at,
-          updatedAt: story.updated_at,
+          userId: story.userId,
+          createdAt: story.createdAt.toISOString(),
+          updatedAt: story.updatedAt.toISOString(),
         };
 
         logger.transformation(
-          'supabase_story_response_format',
+          'story_response_format',
           true,
           1,
           Date.now() - startTime,
@@ -478,7 +456,7 @@ export async function POST(request: NextRequest) {
     if (!responseValidation.success) {
       logger.error(
         LogCategory.VALIDATION,
-        'Response schema validation failed for story creation (Supabase)',
+        'Response schema validation failed for story creation',
         new Error('Response validation error'),
         {
           validationErrors: responseValidation.error.issues,
@@ -509,7 +487,7 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    logger.info(LogCategory.API, 'Planning stories POST request completed successfully (Supabase)', {
+    logger.info(LogCategory.API, 'Planning stories POST request completed successfully', {
       duration: Date.now() - startTime,
       storyId: story.id,
     });
@@ -519,7 +497,7 @@ export async function POST(request: NextRequest) {
     // 구조화된 에러 로깅
     logger.error(
       LogCategory.API,
-      'Planning stories POST request failed (Supabase)',
+      'Planning stories POST request failed',
       error instanceof Error ? error : new Error(String(error)),
       {
         requestId,
