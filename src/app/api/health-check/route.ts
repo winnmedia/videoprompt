@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkDatabaseConnection, prisma } from '@/lib/db';
+import { supabase } from '@/lib/supabase';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -24,27 +24,67 @@ async function checkDatabaseHealth(): Promise<HealthCheckResult> {
   const startTime = Date.now();
 
   try {
-    // Prisma 데이터베이스 연결 테스트
-    const result = await checkDatabaseConnection(prisma);
+    // Supabase 데이터베이스 연결 테스트
+    console.log('🔍 Supabase 데이터베이스 연결 테스트 시작...');
 
-    if (result.success) {
+    // Auth 테이블 존재 여부 확인
+    const authTables = ['User', 'RefreshToken', 'EmailVerification', 'PasswordReset'];
+    let existingTables = 0;
+
+    for (const tableName of authTables) {
+      try {
+        const { error } = await supabase
+          .from(tableName)
+          .select('id')
+          .limit(1);
+
+        if (!error) {
+          existingTables++;
+        }
+      } catch (tableError) {
+        console.warn(`⚠️ 테이블 ${tableName} 확인 실패:`, tableError);
+      }
+    }
+
+    const latency = Date.now() - startTime;
+
+    if (existingTables === authTables.length) {
+      console.log(`✅ Supabase 연결 성공 - 모든 Auth 테이블 확인됨 (${latency}ms)`);
       return {
         service: 'database',
         status: 'healthy',
-        details: 'Database connection successful',
-        latency: result.latency,
+        details: `Supabase connection successful - ${existingTables}/${authTables.length} auth tables found`,
+        latency,
+        timestamp: new Date().toISOString()
+      };
+    } else if (existingTables > 0) {
+      console.log(`⚠️ Supabase 연결됨 - 일부 테이블 누락 (${existingTables}/${authTables.length})`);
+      return {
+        service: 'database',
+        status: 'warning',
+        details: `Supabase connected but incomplete schema - ${existingTables}/${authTables.length} auth tables found`,
+        latency,
         timestamp: new Date().toISOString()
       };
     } else {
-      throw new Error(result.error || 'Database connection failed');
+      console.log(`❌ Supabase 연결됨 - Auth 테이블 없음 (${latency}ms)`);
+      return {
+        service: 'database',
+        status: 'warning',
+        details: 'Supabase connected but no auth tables found - migration required',
+        latency,
+        timestamp: new Date().toISOString()
+      };
     }
   } catch (error) {
-    // 데이터베이스 연결 실패 시 경고로 처리 (전체 시스템을 unhealthy로 만들지 않음)
+    const latency = Date.now() - startTime;
+    console.error('❌ Supabase 연결 실패:', error);
+
     return {
       service: 'database',
       status: 'warning',
-      details: `Database unavailable (using mock data): ${error instanceof Error ? error.message : 'Unknown error'}`,
-      latency: Date.now() - startTime,
+      details: `Supabase connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      latency,
       timestamp: new Date().toISOString()
     };
   }
@@ -52,18 +92,21 @@ async function checkDatabaseHealth(): Promise<HealthCheckResult> {
 
 async function checkEnvironmentVariables(): Promise<HealthCheckResult> {
   const requiredVars = [
-    'GOOGLE_GEMINI_API_KEY'
+    'GOOGLE_GEMINI_API_KEY',
+    'SUPABASE_URL',
+    'SUPABASE_ANON_KEY'
   ];
 
   const optionalVars = [
-    'DATABASE_URL'
+    'DATABASE_URL',
+    'SUPABASE_SERVICE_ROLE_KEY'
   ];
 
   const missingVars = requiredVars.filter(varName => !process.env[varName]);
   const missingOptionalVars = optionalVars.filter(varName => !process.env[varName]);
 
   if (missingVars.length === 0) {
-    let details = 'All required environment variables are set';
+    let details = 'All required environment variables are set (Supabase + AI)';
     if (missingOptionalVars.length > 0) {
       details += ` (optional missing: ${missingOptionalVars.join(', ')})`;
     }
