@@ -98,11 +98,18 @@ export const checkSupabaseConnection = async (): Promise<{
   }
 }
 
-// 환경별 경고 메시지
+// 환경별 경고 메시지와 연결 상태 로깅
 if (process.env.NODE_ENV === 'development') {
-  console.log('🔗 Supabase client initialized')
+  console.log('🔗 Supabase client initialized', {
+    url: supabaseUrl,
+    hasAnonKey: !!supabaseAnonKey,
+    hasServiceKey: !!supabaseServiceRoleKey
+  })
 
   if (!supabaseServiceRoleKey) {
     console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY not set - Admin client unavailable')
   }
+} else {
+  // 프로덕션에서도 기본적인 연결 상태만 로깅
+  console.log('🔗 Supabase client initialized for production')
 }
