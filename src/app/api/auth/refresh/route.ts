@@ -81,8 +81,8 @@ export async function POST(req: NextRequest) {
       const response = failure(
         'MISSING_REFRESH_TOKEN',
         'Refresh token이 필요합니다.',
-        401,
-        undefined,
+        400,  // 400으로 변경하여 클라이언트 요청 오류임을 명시, 401은 무한 루프 유발
+        'No refresh token provided in request',
         traceId
       );
       return addCorsHeaders(response);

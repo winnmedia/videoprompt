@@ -206,13 +206,19 @@ export async function POST(request: NextRequest) {
 
     const data = validationResult.data;
 
-    // 사용자 인증 (선택적)
+    // 사용자 인증 (선택적) - 인증 실패는 경고만 출력하고 계속 진행
     let userId: string | null = null;
     try {
       const user = await getUserIdFromRequest(request);
       userId = user || null;
+
+      if (!userId) {
+        console.log('DEBUG: 스토리 생성 - 비인증 사용자 (게스트 모드)');
+      } else {
+        console.log(`DEBUG: 스토리 생성 - 인증된 사용자: ${userId}`);
+      }
     } catch (authError) {
-      console.log('DEBUG: 스토리 생성 인증 실패 (계속 진행):', authError);
+      console.warn('DEBUG: 스토리 생성 인증 오류 (게스트 모드로 계속 진행):', authError);
     }
 
     console.log('DEBUG: 스토리 생성 시작 - Gemini 우선 시도');

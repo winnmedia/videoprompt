@@ -100,6 +100,23 @@ export const useAuthStore = create<AuthState>()(
         const { isLoading, lastCheckTime } = get();
         const CACHE_DURATION = 5 * 60 * 1000; // 5분 캐시
 
+        // 🚨 게스트 사용자 보호: 토큰이 없으면 바로 게스트 상태로 설정
+        const hasToken = typeof window !== 'undefined' && (
+          localStorage.getItem('token') ||
+          localStorage.getItem('accessToken')
+        );
+
+        if (!hasToken) {
+          console.log('🚨 checkAuth: No token found - setting guest state');
+          set({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            lastCheckTime: currentTime
+          });
+          return;
+        }
+
         // 🚀 캐싱: 5분 이내에 이미 확인했으면 스킵
         if (lastCheckTime && currentTime - lastCheckTime < CACHE_DURATION) {
           console.log('🔄 Using cached auth state (within 5 minutes)');
@@ -124,12 +141,15 @@ export const useAuthStore = create<AuthState>()(
 
           try {
             // 🔥 401 오류 해결: ApiClient 사용으로 통합된 토큰 관리
+            console.log('🔐 checkAuth: Making API call to /api/auth/me');
             const rawResponse = await apiClient.json('/api/auth/me');
 
             // 🚨 데이터 계약 검증
             const validatedData = parseAuthResponse(rawResponse);
 
             if (validatedData.ok && validatedData.data) {
+              console.log('✅ checkAuth: Authentication successful');
+
               // 토큰 동기화: 백워드 호환성을 위한 localStorage 저장
               if (validatedData.data.token && typeof window !== 'undefined') {
                 localStorage.setItem('token', validatedData.data.token);
@@ -139,6 +159,7 @@ export const useAuthStore = create<AuthState>()(
               const { setUser } = get();
               setUser(validatedData.data);
             } else {
+              console.log('⚠️ checkAuth: Invalid response, setting guest state');
               set({
                 user: null,
                 isAuthenticated: false
@@ -149,9 +170,14 @@ export const useAuthStore = create<AuthState>()(
             set({ lastCheckTime: currentTime });
 
           } catch (error) {
-            console.error('Auth check error:', error);
+            console.error('❌ checkAuth error:', error);
 
-            // 401 오류 시 토큰 제거는 ApiClient에서 자동 처리됨
+            // 🚨 게스트 모드 전환: 인증 실패 시 토큰 정리
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('token');
+              localStorage.removeItem('accessToken');
+            }
+
             set({
               user: null,
               isAuthenticated: false,

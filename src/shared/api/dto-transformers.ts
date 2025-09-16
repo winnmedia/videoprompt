@@ -161,15 +161,26 @@ export function transformApiError(
 
 /**
  * 요청 DTO 변환 - StoryInput을 API 요청 형식으로 변환
+ * API 계약 준수: toneAndManner 배열을 문자열로 안전하게 변환
  */
 export function transformStoryInputToApiRequest(storyInput: StoryInput) {
+  // toneAndManner 배열을 문자열로 안전하게 변환
+  let toneAndMannerString = '일반적';
+  if (storyInput.toneAndManner && Array.isArray(storyInput.toneAndManner)) {
+    const validTones = storyInput.toneAndManner
+      .filter((tone: string) => tone && typeof tone === 'string' && tone.trim())
+      .map((tone: string) => tone.trim());
+
+    if (validTones.length > 0) {
+      toneAndMannerString = validTones.join(', ');
+    }
+  }
+
   return {
     title: storyInput.title?.trim() || '영상 시나리오',
     oneLineStory: storyInput.oneLineStory?.trim() || '영상 시나리오를 만들어주세요',
     genre: storyInput.genre?.trim() || '드라마',
-    toneAndManner: storyInput.toneAndManner && storyInput.toneAndManner.length > 0
-      ? storyInput.toneAndManner.filter((t: string) => t?.trim()).join(', ').trim() || '일반적'
-      : '일반적',
+    toneAndManner: toneAndMannerString,
     target: storyInput.target?.trim() || '일반 시청자',
     duration: storyInput.duration?.trim() || '60초',
     format: storyInput.format?.trim() || '16:9',

@@ -5,6 +5,7 @@
 
 import { apiLimiter, withRetry } from './api-retry';
 import { ContractViolationError } from '@/shared/contracts/auth.contract';
+import { productionMonitor } from './production-monitor';
 
 export interface ApiClientOptions extends RequestInit {
   skipAuth?: boolean;
@@ -125,18 +126,36 @@ export class ApiClient {
     });
 
     if (!response.ok) {
-      // Refresh 실패 시 모든 토큰 정리 (통합된 로그아웃 처리)
-      if (typeof window !== 'undefined') {
-        // 모든 레거시 토큰 정리
-        localStorage.removeItem('token');
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('legacyToken');
-
-        // 통합 인증 실패 이벤트 발송
-        window.dispatchEvent(new CustomEvent('auth:refresh-failed'));
+      // 🚨 핵심: 400 vs 401 구분 처리로 무한 루프 방지
+      if (response.status === 400) {
+        console.log('🚨 Token refresh 400 - No refresh token available (guest user)');
+        // 400: 토큰이 없음 → 게스트 사용자로 즉시 전환
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('token');
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('legacyToken');
+          window.dispatchEvent(new CustomEvent('auth:guest-mode-activated'));
+        }
+        throw new Error('No refresh token available - guest mode activated');
       }
-      throw new Error('Token refresh failed');
+
+      if (response.status === 401) {
+        console.log('🚨 Token refresh 401 - Refresh token expired/invalid');
+        // 401: 토큰이 만료됨 → 완전한 인증 실패
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('token');
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('legacyToken');
+          window.dispatchEvent(new CustomEvent('auth:refresh-failed'));
+        }
+        throw new Error('Refresh token expired - authentication required');
+      }
+
+      // 기타 서버 오류 (500, 503 등)
+      console.error(`🚨 Token refresh failed: ${response.status} ${response.statusText}`);
+      throw new Error(`Token refresh server error: ${response.status}`);
     }
 
     const data = await response.json();
@@ -217,7 +236,22 @@ export class ApiClient {
     } catch (refreshError) {
       console.error('Token refresh failed:', refreshError);
       this.rejectQueuedRequests(refreshError instanceof Error ? refreshError : new Error('Token refresh failed'));
-      this.handleAuthenticationFailure();
+
+      // 🚨 핵심: 400 vs 401 구분에 따른 명확한 에러 메시지
+      if (refreshError instanceof Error) {
+        if (refreshError.message.includes('guest mode activated')) {
+          console.log('🚨 Guest mode activated - skipping authentication failure handling');
+          // 게스트 모드는 별도 처리하지 않음 (이미 토큰 정리됨)
+        } else if (refreshError.message.includes('authentication required')) {
+          console.log('🚨 Authentication required - handling complete auth failure');
+          this.handleAuthenticationFailure();
+        } else {
+          // 서버 오류나 기타 경우
+          this.handleAuthenticationFailure();
+        }
+      } else {
+        this.handleAuthenticationFailure();
+      }
 
       throw new ContractViolationError(
         '인증이 만료되었습니다. 다시 로그인해주세요.',
@@ -483,9 +517,21 @@ export class ApiClient {
         headers: finalHeaders,
         signal: AbortSignal.timeout(timeout)
       });
-      
+
+      // 🔍 프로덕션 모니터링 - 성공한 호출 추적
+      if (response.ok) {
+        productionMonitor.trackApiCall(url, response.status);
+      }
+
       // 401 에러 처리 - 향상된 토큰 갱신 및 재시도 로직
       if (response.status === 401 && !skipAuth) {
+        // 🚨 인증 에러 모니터링
+        productionMonitor.reportAuthError(
+          'UNAUTHORIZED_ACCESS',
+          `401 error on ${url}`,
+          { url, headers: finalHeaders }
+        );
+
         return this.handle401Error(url, {
           ...restOptions,
           headers: finalHeaders,
@@ -496,14 +542,21 @@ export class ApiClient {
       // 🚨 무한 루프 방지: 400 에러는 클라이언트 오류로 재시도하지 않음
       if (response.status === 400) {
         console.log('🚨 400 Bad Request - Client error, not retrying');
+
+        // 🔍 400 에러 모니터링 - 특별히 MISSING_REFRESH_TOKEN 패턴 감지
+        const errorType = url.includes('/api/auth/refresh') ? 'MISSING_REFRESH_TOKEN' : 'BAD_REQUEST';
+        productionMonitor.interceptApiError(url, response);
+
         // 400은 재시도하지 않고 바로 반환
         return response;
       }
-      
+
       if (!response.ok) {
+        // 🔍 기타 HTTP 에러 모니터링
+        productionMonitor.interceptApiError(url, response);
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       return response;
     }, { maxRetries: retryCount });
   }
