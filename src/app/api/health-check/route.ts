@@ -31,7 +31,7 @@ async function checkDatabaseHealth(): Promise<HealthCheckResult> {
       return {
         service: 'database',
         status: 'healthy',
-        details: 'Railway PostgreSQL connection successful',
+        details: 'Database connection successful',
         latency: result.latency,
         timestamp: new Date().toISOString()
       };
@@ -39,10 +39,11 @@ async function checkDatabaseHealth(): Promise<HealthCheckResult> {
       throw new Error(result.error || 'Database connection failed');
     }
   } catch (error) {
+    // 데이터베이스 연결 실패 시 경고로 처리 (전체 시스템을 unhealthy로 만들지 않음)
     return {
       service: 'database',
-      status: 'unhealthy',
-      details: error instanceof Error ? error.message : 'Unknown error',
+      status: 'warning',
+      details: `Database unavailable (using mock data): ${error instanceof Error ? error.message : 'Unknown error'}`,
       latency: Date.now() - startTime,
       timestamp: new Date().toISOString()
     };
@@ -51,24 +52,33 @@ async function checkDatabaseHealth(): Promise<HealthCheckResult> {
 
 async function checkEnvironmentVariables(): Promise<HealthCheckResult> {
   const requiredVars = [
-    'DATABASE_URL',
     'GOOGLE_GEMINI_API_KEY'
   ];
 
+  const optionalVars = [
+    'DATABASE_URL'
+  ];
+
   const missingVars = requiredVars.filter(varName => !process.env[varName]);
+  const missingOptionalVars = optionalVars.filter(varName => !process.env[varName]);
 
   if (missingVars.length === 0) {
+    let details = 'All required environment variables are set';
+    if (missingOptionalVars.length > 0) {
+      details += ` (optional missing: ${missingOptionalVars.join(', ')})`;
+    }
+
     return {
       service: 'environment',
       status: 'healthy',
-      details: 'All required environment variables are set',
+      details,
       timestamp: new Date().toISOString()
     };
   } else {
     return {
       service: 'environment',
       status: 'unhealthy',
-      details: `Missing variables: ${missingVars.join(', ')}`,
+      details: `Missing required variables: ${missingVars.join(', ')}`,
       timestamp: new Date().toISOString()
     };
   }
