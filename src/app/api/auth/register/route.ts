@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { signUpWithSupabase } from '@/shared/lib/auth-supabase';
 import { checkRateLimit, RATE_LIMITS } from '@/shared/lib/rate-limiter';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export const runtime = 'nodejs';
 
@@ -37,15 +38,12 @@ export async function POST(req: NextRequest) {
     if (!rateLimitResult.allowed) {
       console.warn(`🚫 Rate limit exceeded for register from IP: ${req.headers.get('x-forwarded-for') || '127.0.0.1'}`);
 
-      const response = NextResponse.json(
-        failure(
-          'RATE_LIMIT_EXCEEDED',
-          '회원가입 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.',
-          429,
-          `retryAfter: ${rateLimitResult.retryAfter}`,
-          traceId
-        ),
-        { status: 429 }
+      const response = failure(
+        'RATE_LIMIT_EXCEEDED',
+        '너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요.',
+        429,
+        `retryAfter: ${rateLimitResult.retryAfter}`,
+        traceId
       );
 
       Object.entries(rateLimitResult.headers).forEach(([key, value]) => {
@@ -82,23 +80,38 @@ export async function POST(req: NextRequest) {
         errorMessage = '회원가입이 비활성화되어 있습니다.';
       }
 
-      return NextResponse.json(
-        failure('REGISTRATION_FAILED', errorMessage, 400, (error as any)?.message, traceId),
-        { status: 400 }
-      );
+      return failure('REGISTRATION_FAILED', errorMessage, 400, (error as any)?.message, traceId);
     }
 
     if (!user) {
-      return NextResponse.json(
-        failure('REGISTRATION_FAILED', '회원가입에 실패했습니다.', 400, undefined, traceId),
-        { status: 400 }
-      );
+      return failure('REGISTRATION_FAILED', '회원가입에 실패했습니다.', 400, undefined, traceId);
     }
 
     console.log(`✅ Registration successful for ${email}, user ID: ${user.id}`);
 
     // 이메일 확인 필요 여부 체크
-    const needsEmailConfirmation = !user.email_confirmed_at;
+    let needsEmailConfirmation = !user.email_confirmed_at;
+
+    // 개발 환경에서 자동 이메일 확인 (테스트 편의성)
+    if (process.env.NODE_ENV === 'development' && needsEmailConfirmation && supabaseAdmin) {
+      try {
+        console.log(`🔧 개발 환경: 사용자 ${user.id}의 이메일 자동 확인 중...`);
+
+        const { error: confirmError } = await supabaseAdmin.auth.admin.updateUserById(
+          user.id,
+          { email_confirm: true }
+        );
+
+        if (!confirmError) {
+          needsEmailConfirmation = false;
+          console.log(`✅ 개발 환경: 사용자 ${user.id}의 이메일이 자동 확인되었습니다.`);
+        } else {
+          console.warn(`⚠️ 개발 환경: 이메일 자동 확인 실패:`, confirmError.message);
+        }
+      } catch (autoConfirmError) {
+        console.warn(`⚠️ 개발 환경: 이메일 자동 확인 중 오류:`, autoConfirmError);
+      }
+    }
 
     // 기존 API 응답 구조 유지
     const responseData = {
@@ -117,10 +130,7 @@ export async function POST(req: NextRequest) {
       }),
     };
 
-    const response = NextResponse.json(
-      success(responseData, 201, traceId),
-      { status: 201 }
-    );
+    const response = success(responseData, 201, traceId);
 
     // 세션이 있으면 쿠키 설정
     if (session) {
@@ -146,10 +156,8 @@ export async function POST(req: NextRequest) {
   } catch (e: any) {
     console.error('Registration error:', e);
 
-    const response = e instanceof z.ZodError
-      ? failure('INVALID_INPUT_FIELDS', e.message, 400, undefined, traceId)
+    return e instanceof z.ZodError
+      ? failure('INVALID_INPUT_FIELDS', '요청이 올바르지 않습니다. 입력 내용을 확인해주세요.', 400, e.message, traceId)
       : failure('UNKNOWN', e?.message || 'Server error', 500, undefined, traceId);
-
-    return NextResponse.json(response, { status: e instanceof z.ZodError ? 400 : 500 });
   }
 }

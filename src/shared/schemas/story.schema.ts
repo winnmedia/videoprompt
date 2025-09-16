@@ -88,21 +88,44 @@ const TargetAudienceSchema = z.enum([
 ]);
 
 /**
- * 스토리 기본 스키마
+ * 스토리 상태 enum 스키마
+ */
+const StoryStatusSchema = z.enum([
+  'draft',
+  'published',
+  'archived',
+  'deleted'
+]);
+
+/**
+ * 스토리 기본 스키마 (Supabase 테이블 구조 매핑)
  */
 export const StorySchema = z.object({
   id: z.string().uuid(),
   title: z.string()
     .min(1, '제목은 필수입니다')
     .max(200, '제목은 200자를 초과할 수 없습니다'),
+  // Supabase: content (TEXT) - 스토리의 주요 내용
+  content: z.string()
+    .min(10, '스토리 내용은 최소 10자 이상이어야 합니다')
+    .max(5000, '스토리 내용은 5000자를 초과할 수 없습니다'),
+  // Supabase: one_line_story (추가 필드)
   oneLineStory: z.string()
     .min(10, '한 줄 스토리는 최소 10자 이상이어야 합니다')
-    .max(500, '한 줄 스토리는 500자를 초과할 수 없습니다'),
-  genre: z.string(),
-  tone: z.string(),
-  target: z.string(),
+    .max(500, '한 줄 스토리는 500자를 초과할 수 없습니다')
+    .optional(),
+  genre: z.string().optional().nullable(),
+  tone: z.string().optional().nullable(),
+  // Supabase: target_audience (snake_case)
+  targetAudience: z.string().optional().nullable(),
   structure: StoryStructureSchema.optional().nullable(),
+  // Supabase: metadata (JSONB)
+  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+  // Supabase: status (TEXT)
+  status: StoryStatusSchema.default('draft'),
+  // Supabase: user_id (snake_case)
   userId: z.string().uuid().optional().nullable(),
+  // Supabase: created_at, updated_at (snake_case)
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -112,21 +135,28 @@ export const StorySchema = z.object({
 // ===============================================
 
 /**
- * 스토리 생성 요청 스키마
+ * 스토리 생성 요청 스키마 (UI → API)
  */
 export const CreateStoryRequestSchema = z.object({
   title: z.string()
     .min(1, '제목은 필수입니다')
     .max(200, '제목은 200자를 초과할 수 없습니다')
     .transform(val => val.trim()),
+  content: z.string()
+    .min(10, '스토리 내용은 최소 10자 이상이어야 합니다')
+    .max(5000, '스토리 내용은 5000자를 초과할 수 없습니다')
+    .transform(val => val.trim()),
   oneLineStory: z.string()
     .min(10, '한 줄 스토리는 최소 10자 이상이어야 합니다')
     .max(500, '한 줄 스토리는 500자를 초과할 수 없습니다')
-    .transform(val => val.trim()),
-  genre: z.string().optional().default('Drama'),
-  tone: z.string().optional().default('Neutral'),
-  target: z.string().optional().default('General'),
+    .transform(val => val.trim())
+    .optional(),
+  genre: GenreSchema.optional().default('Drama'),
+  tone: ToneSchema.optional().default('Neutral'),
+  targetAudience: TargetAudienceSchema.optional().default('General'),
   structure: StoryStructureSchema.optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  status: StoryStatusSchema.optional().default('draft'),
 });
 
 /**
@@ -145,7 +175,8 @@ export const GetStoriesQuerySchema = z.object({
     .transform(val => val ? val.trim() : undefined),
   genre: z.string().optional(),
   tone: z.string().optional(),
-  target: z.string().optional(),
+  targetAudience: z.string().optional(),
+  status: z.string().optional(),
   sortBy: z.enum(['createdAt', 'updatedAt', 'title']).default('updatedAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
@@ -306,6 +337,11 @@ export const storyValidators = {
     return result.success ? null : result.error.issues[0].message;
   },
   
+  content: (content: string) => {
+    const result = z.string().min(10).max(5000).safeParse(content);
+    return result.success ? null : result.error.issues[0].message;
+  },
+
   oneLineStory: (story: string) => {
     const result = z.string().min(10).max(500).safeParse(story);
     return result.success ? null : result.error.issues[0].message;
@@ -321,9 +357,14 @@ export const storyValidators = {
     return result.success ? null : '유효하지 않은 톤입니다';
   },
   
-  target: (target: string) => {
+  targetAudience: (target: string) => {
     const result = TargetAudienceSchema.safeParse(target);
     return result.success ? null : '유효하지 않은 타겟 대상입니다';
+  },
+
+  status: (status: string) => {
+    const result = StoryStatusSchema.safeParse(status);
+    return result.success ? null : '유효하지 않은 상태입니다';
   }
 };
 
@@ -350,6 +391,71 @@ export function validateDevelopShotsRequest(request: any): string | null {
 }
 
 // ===============================================
+// DTO TRANSFORMATION UTILITIES
+// ===============================================
+
+/**
+ * Supabase 테이블 데이터(snake_case) → 도메인 모델(camelCase) 변환
+ */
+export function transformStoryFromDb(dbStory: any): Story {
+  return {
+    id: dbStory.id,
+    title: dbStory.title,
+    content: dbStory.content,
+    oneLineStory: dbStory.one_line_story,
+    genre: dbStory.genre,
+    tone: dbStory.tone,
+    targetAudience: dbStory.target_audience,
+    structure: dbStory.structure,
+    metadata: dbStory.metadata,
+    status: dbStory.status || 'draft',
+    userId: dbStory.user_id,
+    createdAt: dbStory.created_at,
+    updatedAt: dbStory.updated_at,
+  };
+}
+
+/**
+ * 도메인 모델(camelCase) → Supabase 테이블 데이터(snake_case) 변환
+ */
+export function transformStoryToDb(story: Partial<Story>): any {
+  const dbStory: any = {};
+
+  if (story.id !== undefined) dbStory.id = story.id;
+  if (story.title !== undefined) dbStory.title = story.title;
+  if (story.content !== undefined) dbStory.content = story.content;
+  if (story.oneLineStory !== undefined) dbStory.one_line_story = story.oneLineStory;
+  if (story.genre !== undefined) dbStory.genre = story.genre;
+  if (story.tone !== undefined) dbStory.tone = story.tone;
+  if (story.targetAudience !== undefined) dbStory.target_audience = story.targetAudience;
+  if (story.structure !== undefined) dbStory.structure = story.structure;
+  if (story.metadata !== undefined) dbStory.metadata = story.metadata;
+  if (story.status !== undefined) dbStory.status = story.status;
+  if (story.userId !== undefined) dbStory.user_id = story.userId;
+  if (story.createdAt !== undefined) dbStory.created_at = story.createdAt;
+  if (story.updatedAt !== undefined) dbStory.updated_at = story.updatedAt;
+
+  return dbStory;
+}
+
+/**
+ * 생성 요청(camelCase) → Supabase 삽입 데이터(snake_case) 변환
+ */
+export function transformCreateStoryRequestToDb(request: CreateStoryRequest): any {
+  return {
+    title: request.title,
+    content: request.content,
+    one_line_story: request.oneLineStory,
+    genre: request.genre,
+    tone: request.tone,
+    target_audience: request.targetAudience,
+    structure: request.structure,
+    metadata: request.metadata,
+    status: request.status || 'draft',
+  };
+}
+
+// ===============================================
 // TYPE EXPORTS
 // ===============================================
 
@@ -365,7 +471,8 @@ export type Scene = z.infer<typeof SceneSchema>;
 export type ScenePrompt = z.infer<typeof ScenePromptSchema>;
 export type TimelineElement = z.infer<typeof TimelineElementSchema>;
 
-// Genre, Tone, Target 타입들을 문자열 리터럴로 export
+// Genre, Tone, Target, Status 타입들을 문자열 리터럴로 export
 export type Genre = z.infer<typeof GenreSchema>;
 export type Tone = z.infer<typeof ToneSchema>;
 export type TargetAudience = z.infer<typeof TargetAudienceSchema>;
+export type StoryStatus = z.infer<typeof StoryStatusSchema>;

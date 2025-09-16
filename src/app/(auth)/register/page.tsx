@@ -58,7 +58,8 @@ export default function RegisterPage() {
         // 회원가입 성공 - 바로 로그인 페이지로 이동
         router.push('/login?message=회원가입이 완료되었습니다. 로그인해주세요.');
       } else {
-        setError(data.message || '회원가입에 실패했습니다.');
+        // 에러 응답 구조에 맞게 처리
+        setError(data.error || data.message || '회원가입에 실패했습니다.');
       }
     } catch (error) {
       console.error('Register error:', error);
