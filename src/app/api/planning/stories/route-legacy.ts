@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
       return response;
     }
 
-    const { page, limit, search, genre, tone, target, sortBy, sortOrder } = queryResult.data;
+    const { page, limit, search, genre, tone, targetAudience, sortBy, sortOrder } = queryResult.data;
 
     logger.info(LogCategory.VALIDATION, 'Query parameters validated successfully', {
       validatedParams: queryResult.data,
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
       // 필터 조건들
       ...(genre ? { genre } : {}),
       ...(tone ? { tone } : {}),
-      ...(target ? { target } : {}),
+      ...(targetAudience ? { target: targetAudience } : {}),
       // 사용자별 필터링: 인증된 사용자는 본인 스토리, 미인증은 public 스토리만
       userId: user ? user.id : null,
     };
@@ -393,10 +393,10 @@ export async function POST(request: NextRequest) {
         const created = await client.story.create({
           data: {
             title: validatedData.title,
-            oneLineStory: validatedData.oneLineStory,
-            genre: validatedData.genre,
-            tone: validatedData.tone,
-            target: validatedData.target,
+            oneLineStory: validatedData.oneLineStory || validatedData.content || '',
+            genre: validatedData.genre || 'Drama',
+            tone: validatedData.tone || 'Neutral',
+            target: validatedData.targetAudience || 'General',
             structure: validatedData.structure || undefined,
             userId: user?.id || null,
           },
@@ -429,7 +429,7 @@ export async function POST(request: NextRequest) {
           oneLineStory: story.oneLineStory,
           genre: story.genre,
           tone: story.tone,
-          target: story.target,
+          targetAudience: story.target,
           structure: story.structure,
           userId: story.userId,
           createdAt: story.createdAt.toISOString(),

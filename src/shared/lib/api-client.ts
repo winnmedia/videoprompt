@@ -63,10 +63,22 @@ export class ApiClient {
   }
   
   /**
-   * 토큰 만료 확인
+   * 토큰 만료 확인 (Supabase 토큰 형식 지원)
    */
   private isTokenExpired(token: string): boolean {
     try {
+      // Supabase 커스텀 토큰 형식 체크 (sb-xxx-timestamp)
+      if (token.startsWith('sb-')) {
+        const parts = token.split('-');
+        if (parts.length === 3) {
+          const timestamp = parseInt(parts[2]);
+          const tokenAge = Date.now() - timestamp;
+          // 1시간 이후 만료로 간주
+          return tokenAge > 60 * 60 * 1000;
+        }
+      }
+
+      // 표준 JWT 토큰 검증
       const payload = JSON.parse(atob(token.split('.')[1]));
       const currentTime = Date.now() / 1000;
       return payload.exp < currentTime;

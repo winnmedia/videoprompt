@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
       return response;
     }
 
-    const { page, limit, search, genre, tone, target, sortBy, sortOrder } = queryResult.data;
+    const { page, limit, search, genre, tone, targetAudience, sortBy, sortOrder } = queryResult.data;
 
     logger.info(LogCategory.VALIDATION, 'Query parameters validated successfully', {
       validatedParams: queryResult.data,
@@ -116,8 +116,8 @@ export async function GET(request: NextRequest) {
     if (tone) {
       storyQuery = storyQuery.eq('tone', tone);
     }
-    if (target) {
-      storyQuery = storyQuery.eq('target_audience', target);
+    if (targetAudience) {
+      storyQuery = storyQuery.eq('target_audience', targetAudience);
     }
 
     // 정렬 및 페이지네이션
@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
     logger.debug(LogCategory.DATABASE, 'Executing Supabase queries', {
       pagination: { offset, limit },
       hasSearch: !!search,
-      hasFilters: !!(genre || tone || target),
+      hasFilters: !!(genre || tone || targetAudience),
     });
 
     const dbTracker = new PerformanceTracker('supabase_query');
@@ -195,7 +195,7 @@ export async function GET(request: NextRequest) {
               oneLineStory: story.content, // content 필드를 oneLineStory로 매핑
               genre: story.genre,
               tone: story.tone,
-              target: story.target_audience, // target_audience 필드를 target으로 매핑
+              targetAudience: story.target_audience, // target_audience 필드를 targetAudience로 매핑
               structure: story.structure,
               userId: story.user_id,
               createdAt: story.created_at,
@@ -400,7 +400,7 @@ export async function POST(request: NextRequest) {
           content: validatedData.oneLineStory, // oneLineStory를 content로 매핑
           genre: validatedData.genre,
           tone: validatedData.tone,
-          target_audience: validatedData.target, // target을 target_audience로 매핑
+          target_audience: validatedData.targetAudience, // targetAudience를 target_audience로 매핑
           structure: validatedData.structure || null,
           user_id: user?.id || null,
         }
@@ -451,7 +451,7 @@ export async function POST(request: NextRequest) {
           oneLineStory: story.content, // content 필드를 oneLineStory로 매핑
           genre: story.genre,
           tone: story.tone,
-          target: story.target_audience, // target_audience 필드를 target으로 매핑
+          targetAudience: story.target_audience, // target_audience 필드를 targetAudience로 매핑
           structure: story.structure,
           userId: story.user_id,
           createdAt: story.created_at,

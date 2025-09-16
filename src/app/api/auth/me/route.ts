@@ -20,15 +20,12 @@ export async function GET(req: NextRequest) {
     if (!rateLimitResult.allowed) {
       console.warn(`🚫 Rate limit exceeded for auth/me from IP: ${req.headers.get('x-forwarded-for') || '127.0.0.1'}`);
 
-      const response = NextResponse.json(
-        failure(
-          'RATE_LIMIT_EXCEEDED',
-          '인증 확인 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
-          429,
-          `retryAfter: ${rateLimitResult.retryAfter}`,
-          traceId
-        ),
-        { status: 429 }
+      const response = failure(
+        'RATE_LIMIT_EXCEEDED',
+        '인증 확인 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
+        429,
+        `retryAfter: ${rateLimitResult.retryAfter}`,
+        traceId
       );
 
       Object.entries(rateLimitResult.headers).forEach(([key, value]) => {
@@ -52,8 +49,10 @@ export async function GET(req: NextRequest) {
       return failure('NOT_FOUND', '사용자를 찾을 수 없습니다.', 404, undefined, traceId);
     }
 
-    // 🔥 기존 API 호환성 유지: accessToken 생성
-    const accessToken = `sb-${user.id}-${Date.now()}`; // Supabase 토큰 형식
+    // 실제 Supabase 토큰 가져오기
+    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
+    const cookieToken = req.cookies.get('sb-access-token')?.value;
+    const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : cookieToken || `sb-${user.id}-${Date.now()}`;
 
     // 기존 API 응답 구조 유지
     const responseData = {
@@ -72,14 +71,7 @@ export async function GET(req: NextRequest) {
       timestamp: new Date().toISOString()
     };
 
-    // 계약 검증 후 반환
-    const validatedResponse = validateResponse(
-      AuthSuccessResponseContract,
-      responseData,
-      'auth/me API response (Supabase)'
-    );
-
-    return NextResponse.json(validatedResponse);
+    return success(responseData.data, 200, traceId);
   } catch (error: any) {
     const traceId = getTraceId(req);
     const errorMessage = error?.message || 'Server error';
