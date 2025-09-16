@@ -132,6 +132,13 @@ export const RATE_LIMITS = {
     perDay: 300
   },
 
+  // 비밀번호 재설정 제한 - 엄격한 제한 (보안상 중요)
+  forgotPassword: {
+    perMinute: 2,
+    perHour: 10,
+    perDay: 20
+  },
+
   // 파일 업로드 제한 - 엄격한 제한 (대용량 파일 고려)
   upload: {
     perMinute: 5,
