@@ -39,20 +39,30 @@ export async function GET(req: NextRequest) {
     const userId = await requireSupabaseAuthentication(req);
 
     if (!userId) {
-      return failure('UNAUTHORIZED', '인증이 필요합니다.', 401, undefined, traceId);
+      // 토큰이 없거나 만료된 경우와 잘못된 토큰을 구분하여 처리
+      const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
+      const cookieToken = req.cookies.get('sb-access-token')?.value;
+
+      if (!authHeader && !cookieToken) {
+        // 🚨 무한 루프 방지: 토큰 없음은 400으로 처리하여 재시도 차단
+        return failure('NO_AUTH_TOKEN', '인증 토큰이 없습니다.', 400, 'Missing authentication token', traceId);
+      } else {
+        // 🚨 무한 루프 방지: 잘못된 토큰은 400으로 처리하여 재시도 차단
+        return failure('INVALID_AUTH_TOKEN', '유효하지 않거나 만료된 토큰입니다.', 400, 'Token validation failed', traceId);
+      }
     }
 
     // Supabase Auth에서 사용자 정보 조회
     const user = await getSupabaseUser(req);
 
     if (!user) {
-      return failure('NOT_FOUND', '사용자를 찾을 수 없습니다.', 404, undefined, traceId);
+      return failure('USER_NOT_FOUND', '사용자 정보를 조회할 수 없습니다.', 404, 'User not found in database', traceId);
     }
 
     // 실제 Supabase 토큰 가져오기
-    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
-    const cookieToken = req.cookies.get('sb-access-token')?.value;
-    const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : cookieToken || `sb-${user.id}-${Date.now()}`;
+    const authHeaderToken = req.headers.get('authorization') || req.headers.get('Authorization');
+    const cookieTokenValue = req.cookies.get('sb-access-token')?.value;
+    const accessToken = authHeaderToken?.startsWith('Bearer ') ? authHeaderToken.slice(7) : cookieTokenValue || `sb-${user.id}-${Date.now()}`;
 
     // 기존 API 응답 구조 유지
     const responseData = {
