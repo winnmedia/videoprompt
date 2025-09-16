@@ -1,9 +1,9 @@
 'use client';
 
 /**
- * 인증 시스템 초기화 프로바이더
+ * 인증 시스템 초기화 프로바이더 - 프로덕션 오류 해결
  * CLAUDE.md 아키텍처 원칙에 따른 클린한 의존성 주입
- * 🚨 $300 사건 방지: useRef로 함수 참조 고정
+ * 🚨 $300 사건 방지: 게스트 사용자 무한 호출 방지 강화
  */
 
 import { useEffect, useRef } from 'react';
@@ -24,6 +24,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // 초기화가 완료되었는지 추적
   const initializeRef = useRef(false);
 
+  // 🚨 게스트 사용자 무한 호출 방지: 초기 체크 실패 추적
+  const initialCheckFailedRef = useRef(false);
+
   useEffect(() => {
     // 이미 초기화된 경우 중복 실행 방지
     if (initializeRef.current) {
@@ -36,11 +39,40 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // 🔥 401 오류 해결: 앱 시작 시 인증 시스템 초기화
     initializeAuth();
 
-    // 초기 인증 상태 확인 (한 번만)
-    checkAuthRef.current();
+    // 🚨 게스트 사용자 보호: 토큰이 없으면 checkAuth 스킵
+    const hasToken = typeof window !== 'undefined' && (
+      localStorage.getItem('token') ||
+      localStorage.getItem('accessToken') ||
+      document.cookie.includes('sb-access-token')
+    );
 
-    // 초기화 완료 표시
-    initializeRef.current = true;
+    if (!hasToken) {
+      console.log('🚨 AuthProvider: No token detected - skipping checkAuth for guest user');
+      initializeRef.current = true;
+      return;
+    }
+
+    // 🚨 안전한 초기 인증 상태 확인 (토큰이 있는 경우에만)
+    const performInitialCheck = async () => {
+      try {
+        console.log('🔐 AuthProvider: Performing initial auth check with token...');
+        await checkAuthRef.current();
+        console.log('✅ AuthProvider: Initial auth check completed successfully');
+      } catch (error) {
+        console.warn('⚠️ AuthProvider: Initial auth check failed (guest mode activated):', error);
+        initialCheckFailedRef.current = true;
+
+        // 인증 실패 시 토큰 정리 (ApiClient에서 자동 처리되지만 확실히)
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('token');
+          localStorage.removeItem('accessToken');
+        }
+      } finally {
+        initializeRef.current = true;
+      }
+    };
+
+    performInitialCheck();
   }, []); // 🚨 빈 의존성 배열로 한 번만 실행 보장
 
   return <>{children}</>;
