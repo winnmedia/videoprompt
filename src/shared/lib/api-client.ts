@@ -41,6 +41,11 @@ export class ApiClient {
   private pendingApiRequests = new Map<string, PendingApiRequest>();
   private readonly defaultCacheTTL = 5 * 60 * 1000; // 5분
   private readonly authCacheTTL = 10 * 60 * 1000; // 10분 (auth/me는 더 오래)
+
+  // 성능 모니터링
+  private apiCallCount = 0;
+  private cacheHitCount = 0;
+  private lastResetTime = Date.now();
   
   private constructor() {}
   
@@ -107,12 +112,16 @@ export class ApiClient {
   }
 
   private async performTokenRefresh(): Promise<string> {
+    console.log('🔄 Token refresh - Using native fetch (avoiding circular calls)');
+
+    // 🚨 무한 루프 방지: 네이티브 fetch 사용 (this.fetch 사용 금지)
     const response = await fetch('/api/auth/refresh', {
       method: 'POST',
       credentials: 'include', // httpOnly 쿠키 전송
       headers: {
         'Content-Type': 'application/json'
-      }
+      },
+      signal: AbortSignal.timeout(10000) // 10초 타임아웃
     });
 
     if (!response.ok) {
@@ -316,7 +325,8 @@ export class ApiClient {
       return null;
     }
 
-    console.log(`💾 캐시에서 데이터 반환: ${key}`);
+    this.cacheHitCount++;
+    console.log(`💾 캐시에서 데이터 반환: ${key} (캐시 히트: ${this.cacheHitCount})`);
     return entry.data;
   }
 
@@ -459,7 +469,15 @@ export class ApiClient {
     // 재시도 로직과 함께 요청 실행
     return withRetry(async () => {
       apiLimiter.recordRequest();
-      
+      this.apiCallCount++;
+
+      // 성능 모니터링: 1분마다 통계 출력
+      const now = Date.now();
+      if (now - this.lastResetTime > 60000) {
+        console.log(`📊 API Performance (1min): 총 호출 ${this.apiCallCount}회, 캐시 히트 ${this.cacheHitCount}회, 절약률 ${this.cacheHitCount > 0 ? ((this.cacheHitCount / (this.apiCallCount + this.cacheHitCount)) * 100).toFixed(1) : 0}%`);
+        this.lastResetTime = now;
+      }
+
       const response = await fetch(url, {
         ...restOptions,
         headers: finalHeaders,
@@ -473,6 +491,13 @@ export class ApiClient {
           headers: finalHeaders,
           signal: AbortSignal.timeout(timeout)
         });
+      }
+
+      // 🚨 무한 루프 방지: 400 에러는 클라이언트 오류로 재시도하지 않음
+      if (response.status === 400) {
+        console.log('🚨 400 Bad Request - Client error, not retrying');
+        // 400은 재시도하지 않고 바로 반환
+        return response;
       }
       
       if (!response.ok) {
