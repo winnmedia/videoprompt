@@ -96,7 +96,24 @@ export function transformApiResponseToStorySteps(
 
   const response = apiResponse as Record<string, any>;
 
-  // 신규 구조 (structure 객체) 처리 우선
+  // 새로운 Gemini API 응답 구조 (steps 배열) 처리 우선
+  // API 응답이 {success: true, data: {steps: [...]}} 형태인 경우
+  const stepsData = response.data?.steps || response.steps;
+  if (stepsData && Array.isArray(stepsData)) {
+    return stepsData.map((step: any, index: number) => ({
+      id: `step-${step.step || index + 1}`,
+      title: step.title || `단계 ${index + 1}`,
+      summary: step.description && step.description.length > 100
+        ? step.description.substring(0, 100) + '...'
+        : step.description || '',
+      content: step.description || '',
+      goal: step.emotionalArc || '',
+      lengthHint: step.duration || `전체의 ${Math.round(100 / 4)}%`,
+      isEditing: false,
+    }));
+  }
+
+  // 신규 구조 (structure 객체) 처리
   if (response.structure && typeof response.structure === 'object') {
     return transformStoryStructureToSteps(apiResponse, context);
   }
@@ -147,9 +164,10 @@ export function transformApiError(
  */
 export function transformStoryInputToApiRequest(storyInput: StoryInput) {
   return {
-    story: storyInput.oneLineStory?.trim() || '영상 시나리오를 만들어주세요',
+    title: storyInput.title?.trim() || '영상 시나리오',
+    oneLineStory: storyInput.oneLineStory?.trim() || '영상 시나리오를 만들어주세요',
     genre: storyInput.genre?.trim() || '드라마',
-    tone: storyInput.toneAndManner && storyInput.toneAndManner.length > 0
+    toneAndManner: storyInput.toneAndManner && storyInput.toneAndManner.length > 0
       ? storyInput.toneAndManner.filter((t: string) => t?.trim()).join(', ').trim() || '일반적'
       : '일반적',
     target: storyInput.target?.trim() || '일반 시청자',
