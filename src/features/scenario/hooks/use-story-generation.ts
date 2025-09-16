@@ -8,6 +8,7 @@ import { useDispatch } from 'react-redux';
 import { StoryInput, StoryStep, setStorySteps, setStoryError, setLoading } from '@/entities/scenario';
 import { apiClient } from '@/shared/lib/api-client';
 import { addToast } from '@/shared';
+import { transformStoryInputToApiRequest } from '@/shared/api/dto-transformers';
 
 // Query Keys (캐시 무효화 및 관리용)
 export const storyQueryKeys = {
@@ -24,18 +25,7 @@ async function generateStory(storyInput: StoryInput): Promise<StoryStep[]> {
     success: boolean;
     data: { steps: StoryStep[] };
     message: string;
-  }>('/api/ai/generate-story', {
-    title: storyInput.title,
-    oneLineStory: storyInput.oneLineStory,
-    toneAndManner: storyInput.toneAndManner,
-    genre: storyInput.genre,
-    target: storyInput.target,
-    duration: storyInput.duration,
-    format: storyInput.format,
-    tempo: storyInput.tempo,
-    developmentMethod: storyInput.developmentMethod,
-    developmentIntensity: storyInput.developmentIntensity
-  });
+  }>('/api/ai/generate-story', transformStoryInputToApiRequest(storyInput));
 
   if (!response.success || !response.data?.steps) {
     throw new Error(response.message || '스토리 생성에 실패했습니다');
