@@ -16,8 +16,24 @@ export async function OPTIONS(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const traceId = getTraceId(req);
+
   try {
-    const traceId = getTraceId(req);
+    // Supabase 클라이언트 초기화 확인
+    if (!supabase) {
+      console.error('Supabase client initialization failed - environment variables missing');
+      const response = NextResponse.json(
+        failure(
+          'SUPABASE_CONFIG_ERROR',
+          'Backend configuration error. Please contact support.',
+          503,
+          'Supabase client not initialized',
+          traceId
+        ),
+        { status: 503 }
+      );
+      return addCorsHeaders(response);
+    }
 
     // Rate Limiting
     const rateLimitResult = checkRateLimit(req, 'refresh', RATE_LIMITS.refresh);
@@ -155,8 +171,25 @@ export async function POST(req: NextRequest) {
     return addCorsHeaders(response);
 
   } catch (error: any) {
-    const traceId = getTraceId(req);
     console.error('Refresh token error:', error);
+
+    // Supabase 환경 변수 관련 에러 감지
+    if (error?.message?.includes('SUPABASE_URL') || error?.message?.includes('SUPABASE_ANON_KEY')) {
+      console.error('🚨 Supabase configuration error detected:', error.message);
+      const response = NextResponse.json(
+        failure(
+          'SUPABASE_CONFIG_ERROR',
+          'Backend configuration error. Please check environment variables.',
+          503,
+          `Supabase config error: ${error.message}`,
+          traceId
+        ),
+        { status: 503 }
+      );
+      return addCorsHeaders(response);
+    }
+
+    // 일반적인 500 에러
     const response = NextResponse.json(
       failure(
         'INTERNAL_SERVER_ERROR',
