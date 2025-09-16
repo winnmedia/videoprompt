@@ -223,6 +223,73 @@ class EnvironmentValidator {
     }
   }
 
+  async validateSupabaseBackend() {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    // SUPABASE_URL 검증
+    if (!supabaseUrl) {
+      this.log('fail', 'Supabase', 'SUPABASE_URL is not set', 'Required for Supabase Auth backend');
+      return;
+    }
+
+    // URL 형식 검증
+    try {
+      const url = new URL(supabaseUrl);
+      if (!url.hostname.includes('supabase.co')) {
+        this.log('warn', 'Supabase', 'SUPABASE_URL format unusual', 'Expected *.supabase.co domain');
+      } else {
+        this.log('pass', 'Supabase', 'SUPABASE_URL format is valid');
+      }
+    } catch {
+      this.log('fail', 'Supabase', 'SUPABASE_URL is not a valid URL', `Current value: ${supabaseUrl}`);
+      return;
+    }
+
+    // SUPABASE_ANON_KEY 검증
+    if (!supabaseAnonKey) {
+      this.log('fail', 'Supabase', 'SUPABASE_ANON_KEY is not set', 'Required for Supabase client authentication');
+      return;
+    }
+
+    // JWT 토큰 형식 검증 (eyJ로 시작하는 Base64 인코딩)
+    if (!supabaseAnonKey.startsWith('eyJ')) {
+      this.log('fail', 'Supabase', 'SUPABASE_ANON_KEY format invalid', 'Must be a JWT token starting with eyJ');
+      return;
+    } else {
+      this.log('pass', 'Supabase', 'SUPABASE_ANON_KEY format is valid');
+    }
+
+    // SUPABASE_SERVICE_ROLE_KEY 검증 (선택사항)
+    if (supabaseServiceKey) {
+      if (!supabaseServiceKey.startsWith('eyJ')) {
+        this.log('warn', 'Supabase', 'SUPABASE_SERVICE_ROLE_KEY format invalid', 'Should be a JWT token starting with eyJ');
+      } else {
+        this.log('pass', 'Supabase', 'SUPABASE_SERVICE_ROLE_KEY format is valid');
+      }
+    } else {
+      this.log('warn', 'Supabase', 'SUPABASE_SERVICE_ROLE_KEY not set', 'Admin operations will be limited');
+    }
+
+    // Supabase API 연결 테스트
+    try {
+      const healthUrl = `${supabaseUrl}/rest/v1/`;
+      const result = await this.testApiEndpoint(healthUrl, {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`
+      }, 200);
+
+      if (result.success || result.status === 404) {
+        this.log('pass', 'Supabase', 'API connection successful');
+      } else {
+        this.log('fail', 'Supabase', `API connection failed: ${result.error || result.status}`);
+      }
+    } catch (error) {
+      this.log('fail', 'Supabase', `API connection error: ${error.message}`);
+    }
+  }
+
   validateOptionalSettings() {
     // 기타 설정 확인
     const nodeEnv = process.env.NODE_ENV;
@@ -232,12 +299,12 @@ class EnvironmentValidator {
       this.log('warn', 'General', 'NODE_ENV is not set', 'Defaulting to development mode');
     }
 
-    // Database URL 확인 (있는 경우)
+    // Database URL 확인 (있는 경우) - Supabase 전환으로 선택사항이 됨
     const dbUrl = process.env.DATABASE_URL;
     if (dbUrl) {
-      this.log('pass', 'Database', 'DATABASE_URL is configured');
+      this.log('pass', 'Database', 'DATABASE_URL is configured (legacy)');
     } else {
-      this.log('warn', 'Database', 'DATABASE_URL is not set', 'Database features may not work');
+      this.log('info', 'Database', 'DATABASE_URL is not set', 'Using Supabase backend instead');
     }
   }
 
@@ -264,10 +331,16 @@ class EnvironmentValidator {
   async run() {
     console.log(`${colors.bold}${colors.blue}VideoPlanet 환경 변수 검증을 시작합니다...${colors.reset}\n`);
 
+    // Supabase 백엔드 검증 (최우선)
+    await this.validateSupabaseBackend();
+
+    // AI API 검증
     await this.validateGeminiApi();
     await this.validateOpenAiApi();
     await this.validateSeedreamApi();
     await this.validateSeedanceApi();
+
+    // 기타 설정 검증
     this.validateOptionalSettings();
 
     this.printSummary();

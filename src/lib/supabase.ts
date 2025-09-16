@@ -5,14 +5,32 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.SUPABASE_URL!
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.SUPABASE_URL
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY
 
 // 서버 사이드용 Service Role Key (환경에 따라 조건부 로드)
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
+// 환경 변수 검증 및 구체적인 에러 메시지
+if (!supabaseUrl) {
+  const envs = Object.keys(process.env).filter(key => key.includes('SUPABASE')).join(', ')
+  throw new Error(`SUPABASE_URL is not set. Available Supabase envs: ${envs || 'none'}. Check Vercel environment variables.`)
+}
+
+if (!supabaseAnonKey) {
+  throw new Error('SUPABASE_ANON_KEY is not set. Check Vercel environment variables.')
+}
+
+// URL 형식 검증
+try {
+  new URL(supabaseUrl)
+} catch {
+  throw new Error(`SUPABASE_URL is invalid: ${supabaseUrl}. Must be a valid URL (https://xxx.supabase.co)`)
+}
+
+// Anonymous Key 형식 검증 (JWT 토큰 형태여야 함)
+if (!supabaseAnonKey.startsWith('eyJ')) {
+  throw new Error(`SUPABASE_ANON_KEY appears invalid. Must be a JWT token starting with 'eyJ'`)
 }
 
 /**
