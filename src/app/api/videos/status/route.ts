@@ -27,7 +27,12 @@ export async function GET(req: NextRequest) {
     if (jobId) {
       // Seedance 작업 ID로 상태 조회
       try {
-        const railwayBackend = 'https://videoprompt-production.up.railway.app';
+        const railwayBackend = process.env.RAILWAY_BACKEND_URL;
+
+        if (!railwayBackend) {
+          throw new Error('Railway 백엔드가 설정되지 않았습니다.');
+        }
+
         const res = await fetch(`${railwayBackend}/api/seedance/status/${jobId}`);
 
         if (res.ok) {

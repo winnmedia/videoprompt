@@ -13,8 +13,8 @@ export async function GET(request: NextRequest) {
 
     if (!railwayBackendUrl) {
       return NextResponse.json(
-        createErrorResponse('CONFIG_ERROR', 'Railway 백엔드 URL이 설정되지 않았습니다.'),
-        { status: 500 }
+        createErrorResponse('CONFIG_ERROR', 'Railway 백엔드 URL이 설정되지 않았습니다. Legacy 업로드 서비스는 비활성화되었습니다.'),
+        { status: 503 }
       );
     }
 

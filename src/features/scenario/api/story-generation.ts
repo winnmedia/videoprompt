@@ -109,7 +109,7 @@ export async function generateStorySteps({
     
     // 네트워크 에러 처리
     if (errorMessage.includes('fetch') || errorMessage.includes('network')) {
-      const errorMsg = '네트워크 연결을 확인해주세요. Railway 백엔드 서버(https://videoprompt-production.up.railway.app)에 접근할 수 없습니다.';
+      const errorMsg = '네트워크 연결을 확인해주세요. 서버에 접근할 수 없습니다.';
       onError?.(errorMsg, 'network');
       throw new Error(errorMsg);
     } else if (errorMessage.includes('404')) {

@@ -48,7 +48,7 @@ const sampleSharedContent = {
     title: '제품 소개 영상',
     description: '신제품 런칭을 위한 소개 영상입니다.',
     data: {
-      videoUrl: `${process.env.RAILWAY_BACKEND_URL || 'https://your-railway-backend.railway.app'}/api/videos/shared-demo`,
+      videoUrl: '/api/videos/shared-demo', // 상대 경로로 변경
       provider: 'seedance',
       duration: 30,
       aspectRatio: '16:9'
