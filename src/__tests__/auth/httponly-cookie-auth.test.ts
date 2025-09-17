@@ -204,9 +204,9 @@ describe('HttpOnly Cookie Authentication - Critical Bug Fixes', () => {
         isEmailVerified: true
       };
 
-      // When: 응답 데이터 구성 시뮬레이션
+      // When: 응답 데이터 구성 시뮬레이션 (수정된 로직)
       const actualToken = await mockGetActualAccessToken();
-      const tokenValue = actualToken || 'guest-token';
+      const tokenValue = actualToken; // null 허용
 
       const responseData = {
         accessToken: tokenValue,
@@ -220,27 +220,31 @@ describe('HttpOnly Cookie Authentication - Critical Bug Fixes', () => {
       expect(responseData.accessToken).toBe(responseData.token);
     });
 
-    it('게스트 사용자의 경우 중복 계산 없이 guest-token 사용해야 함', () => {
+    it('게스트 사용자의 경우 중복 계산 없이 null 토큰 사용해야 함', () => {
       // Given: 게스트 사용자
       const isUserAuthenticated = false;
       let tokenCalculationCount = 0;
 
-      // When: 토큰 계산 로직 시뮬레이션
+      // When: 토큰 계산 로직 시뮬레이션 (수정된 로직)
       const actualToken = isUserAuthenticated
         ? (() => { tokenCalculationCount++; return 'real-token'; })()
         : null;
 
-      const tokenValue = actualToken || 'guest-token';
+      const tokenValue = actualToken; // null 허용
 
       const responseData = {
         accessToken: tokenValue,
         token: tokenValue,
+        isAuthenticated: !!tokenValue, // 명시적 인증 상태
+        isGuest: !tokenValue, // 게스트 모드 표시
       };
 
       // Then: 게스트는 토큰 계산이 없어야 함
       expect(tokenCalculationCount).toBe(0);
-      expect(responseData.accessToken).toBe('guest-token');
-      expect(responseData.token).toBe('guest-token');
+      expect(responseData.accessToken).toBeNull();
+      expect(responseData.token).toBeNull();
+      expect(responseData.isAuthenticated).toBe(false);
+      expect(responseData.isGuest).toBe(true);
     });
   });
 

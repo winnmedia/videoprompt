@@ -3,6 +3,28 @@ import { persist } from 'zustand/middleware';
 import { apiClient, initializeApiClient } from '@/shared/lib/api-client';
 import { parseAuthResponse } from '@/shared/contracts/auth.contract';
 
+/**
+ * JWT 토큰 형식 검증 (무한 루프 방지)
+ * @param token 검증할 토큰 문자열
+ * @returns 유효한 JWT 형식이면 true
+ */
+function isValidJwtToken(token: string): boolean {
+  if (!token || typeof token !== 'string') return false;
+
+  // guest-token 명시적 거부
+  if (token === 'guest-token') return false;
+
+  // JWT 기본 형식 검증
+  if (!token.startsWith('eyJ')) return false;
+  if (token.length < 50) return false;
+  if (token.split('.').length !== 3) return false;
+
+  // placeholder 토큰 거부
+  if (token.includes('placeholder') || token.includes('fallback')) return false;
+
+  return true;
+}
+
 interface User {
   id: string;
   email: string;
@@ -150,14 +172,33 @@ export const useAuthStore = create<AuthState>()(
             if (validatedData.ok && validatedData.data) {
               console.log('✅ checkAuth: Authentication successful');
 
-              // 토큰 동기화: 백워드 호환성을 위한 localStorage 저장
+              // 🚨 CRITICAL FIX: guest-token 저장 방지로 무한 루프 차단
               if (validatedData.data.token && typeof window !== 'undefined') {
-                localStorage.setItem('token', validatedData.data.token);
+                // guest-token 문자열 명시적 거부
+                if (validatedData.data.token === 'guest-token') {
+                  console.warn('🚨 Blocked guest-token from being stored - preventing infinite loop');
+                  localStorage.removeItem('token');
+                  localStorage.removeItem('accessToken');
+                } else if (isValidJwtToken(validatedData.data.token)) {
+                  // 유효한 JWT만 저장
+                  localStorage.setItem('token', validatedData.data.token);
+                } else {
+                  console.warn('🚨 Invalid token format detected, not storing');
+                  localStorage.removeItem('token');
+                  localStorage.removeItem('accessToken');
+                }
               }
 
-              // 상태 업데이트 (setUser 사용하여 ApiClient 초기화도 함께)
+              // 🚨 CRITICAL FIX: 인증 상태 정확한 설정
               const { setUser } = get();
+
+              // 서버 응답의 isAuthenticated 플래그 활용
+              const isUserAuthenticated = validatedData.data.isAuthenticated ?? !!validatedData.data.token;
+
               setUser(validatedData.data);
+
+              // isAuthenticated 상태를 서버 응답 기반으로 설정
+              set({ isAuthenticated: isUserAuthenticated });
             } else {
               console.log('⚠️ checkAuth: Invalid response, setting guest state');
               set({

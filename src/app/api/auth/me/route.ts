@@ -134,7 +134,22 @@ export const GET = withLoopPrevention(
         ? await getActualAccessToken(req, user)
         : null;
 
-      const tokenValue = actualToken || 'guest-token';
+      // 🚨 CRITICAL FIX: guest-token 제거로 무한 루프 방지
+      // 인증된 사용자인데 토큰이 없으면 토큰 갱신 필요
+      if (isAuthenticated(user) && !actualToken) {
+        logger.warn(`Authenticated user ${user.id} has no valid token - token refresh required`);
+
+        return failure(
+          'TOKEN_EXPIRED',
+          '토큰이 만료되었습니다. 다시 로그인해주세요.',
+          401,
+          'Authenticated user without valid access token',
+          traceId
+        );
+      }
+
+      // 게스트 사용자는 토큰 없이 처리, null 허용
+      const tokenValue = actualToken;
 
       // 응답 데이터 구성 (토큰 정보 + DB 정보)
       const responseData = {
@@ -146,11 +161,13 @@ export const GET = withLoopPrevention(
         avatarUrl: null,
         createdAt: dbUser?.createdAt?.toISOString() || new Date().toISOString(),
 
-        // 토큰 정보 (실제 토큰 반환 - $300 사건 재발 방지)
-        accessToken: tokenValue,
-        token: tokenValue, // 기존 코드 호환성
+        // 토큰 정보 (null 허용으로 무한 루프 방지)
+        accessToken: tokenValue, // null일 수 있음
+        token: tokenValue, // 기존 코드 호환성, null일 수 있음
 
-        // 새로운 메타데이터
+        // 새로운 메타데이터 - 무한 루프 방지
+        isAuthenticated: !!tokenValue, // 명시적 인증 상태
+        isGuest: !tokenValue, // 게스트 모드 표시
         tokenType: user.tokenType,
         isEmailVerified: user.isEmailVerified || false,
         serviceMode: degradationMode ? 'degraded' : 'full'
