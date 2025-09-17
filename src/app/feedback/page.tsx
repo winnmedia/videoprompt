@@ -98,8 +98,8 @@ export default function FeedbackPage() {
   useEffect(() => {
     const videoId = new URL(window.location.href).searchParams.get('videoId') || versions[0]?.id;
     fetchComments(videoId);
-    const timer = setInterval(() => fetchComments(videoId), 5000);
-    return () => clearInterval(timer);
+    // 위험한 setInterval 폴링을 제거하여 $300 사건 방지
+    // 필요시 사용자 액션 기반으로 새로고침 구현
   }, [versions]);
 
   const [activeVersionId, setActiveVersionId] = useState<string>(versions[0].id);
