@@ -10,42 +10,123 @@ env:
   NODE_VERSION: '20'
 
 jobs:
-  # 🚨 보안 긴급 수정: 품질 게이트 강제
-  quality-gates:
-    name: Quality Gates
+  # 🔧 환경변수 검증 - fail-fast 원칙
+  env-validation:
+    name: Environment Validation
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    
+    timeout-minutes: 5
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-          
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: latest
-          
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-        
+
+      # 환경변수 검증 스크립트 실행
+      - name: Validate Environment Configuration
+        run: |
+          echo "🔧 Testing environment validation with missing variables..."
+
+          # 환경변수 없이 검증 테스트 (실패해야 정상)
+          ! node -e "
+            require('ts-node/register');
+            const { validateEnvironment } = require('./src/shared/lib/env-validation.ts');
+            const result = validateEnvironment({ failFast: false, logErrors: false });
+            if (result.success) {
+              console.error('❌ Validation should fail without env vars');
+              process.exit(1);
+            }
+            console.log('✅ Validation correctly failed without env vars');
+          "
+
+          echo "🔧 Testing environment validation with minimal valid variables..."
+
+          # 최소 환경변수로 검증 테스트 (성공해야 정상)
+          node -e "
+            require('ts-node/register');
+            process.env.SUPABASE_URL = 'https://test.supabase.co';
+            process.env.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
+            const { validateEnvironment } = require('./src/shared/lib/env-validation.ts');
+            const result = validateEnvironment({ failFast: false, logErrors: false });
+            if (!result.success) {
+              console.error('❌ Validation should pass with valid env vars:', result.errors);
+              process.exit(1);
+            }
+            console.log('✅ Validation correctly passed with valid env vars');
+          "
+
+  # 🚨 보안 긴급 수정: 품질 게이트 강제
+  quality-gates:
+    name: Quality Gates
+    runs-on: ubuntu-latest
+    needs: env-validation  # 환경변수 검증 통과 후 실행
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       # 병렬 실행으로 피드백 속도 향상
       - name: Type Check
         run: pnpm tsc --noEmit
-        
+
       - name: Lint Check
         run: pnpm run lint --max-warnings=0
-        
-      - name: Format Check  
+
+      - name: Format Check
         run: pnpm prettier --check .
-        
+
       - name: Circular Dependencies Check
         run: pnpm madge --circular --extensions ts,tsx src/
+
+      # FSD 경계 검증 추가
+      - name: FSD Architecture Boundary Check
+        run: |
+          echo "🏗️ Checking FSD architecture boundaries..."
+
+          # 상향 의존성 체크 (shared -> features 등 금지)
+          ! grep -r "from.*features" src/shared/ || {
+            echo "❌ VIOLATION: shared layer importing from features layer"
+            exit 1
+          }
+
+          ! grep -r "from.*widgets" src/shared/ src/entities/ src/features/ || {
+            echo "❌ VIOLATION: lower layers importing from widgets layer"
+            exit 1
+          }
+
+          ! grep -r "from.*pages" src/shared/ src/entities/ src/features/ src/widgets/ || {
+            echo "❌ VIOLATION: lower layers importing from pages layer"
+            exit 1
+          }
+
+          echo "✅ FSD architecture boundaries are intact"
         
   # 빌드 검증
   build-verification:
@@ -72,14 +153,32 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
         
-      - name: Build
+      - name: Build (with minimal env)
         run: pnpm build
         env:
           NODE_ENV: production
-          # CI에서는 JWT_SECRET 필수
+          # CI 환경변수 - 필수 최소 설정
           JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-secret-do-not-use-in-production' }}
           DATABASE_URL: 'postgresql://test:test@localhost:5432/test'
           NEXT_PUBLIC_APP_URL: 'http://localhost:3000'
+          # Supabase 테스트 환경변수 (안전장치 테스트용)
+          SUPABASE_URL: 'https://ci-test.supabase.co'
+          SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test-ci-token'
+
+      # 환경변수 없이 빌드 테스트 (실패해야 정상 - Fail-Fast 검증)
+      - name: Build without required env (should fail)
+        run: |
+          echo "🧪 Testing fail-fast behavior without required environment variables..."
+
+          # 환경변수 없이 빌드 시도 (실패해야 정상)
+          if NODE_ENV=production pnpm build 2>/dev/null; then
+            echo "❌ Build should have failed without required environment variables"
+            echo "🚨 FAIL-FAST mechanism is not working properly"
+            exit 1
+          else
+            echo "✅ Build correctly failed without required environment variables"
+            echo "✅ FAIL-FAST mechanism is working properly"
+          fi
           
   # 테스트 실행  
   tests:

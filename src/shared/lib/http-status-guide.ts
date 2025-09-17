@@ -79,7 +79,20 @@ export const HTTP_500_CASES = {
 export const HTTP_503_CASES = {
   SERVICE_UNAVAILABLE: '서비스가 일시적으로 이용 불가능합니다.',
   SUPABASE_CONFIG_ERROR: 'Backend configuration error. Please contact support.',
-  ALL_AI_SERVICES_FAILED: 'AI 서비스가 현재 이용 불가능합니다.'
+  ALL_AI_SERVICES_FAILED: 'AI 서비스가 현재 이용 불가능합니다.',
+  // 환경변수 누락으로 인한 서비스 불가
+  SUPABASE_DISABLED: 'Supabase 설정이 올바르지 않습니다. 관리자에게 문의하세요.',
+  ENV_VALIDATION_FAILED: '환경변수 검증에 실패했습니다.'
+} as const;
+
+/**
+ * 501 Not Implemented - 기능 미구현/제한
+ */
+export const HTTP_501_CASES = {
+  NOT_IMPLEMENTED: '해당 기능이 구현되지 않았습니다.',
+  // degraded 모드 - Service Role Key 없음
+  SUPABASE_DEGRADED: '제한된 기능으로 동작 중입니다. 일부 기능을 사용할 수 없습니다.',
+  ADMIN_FEATURE_DISABLED: '관리자 기능이 비활성화되었습니다.'
 } as const;
 
 /**
@@ -108,11 +121,38 @@ export function getHttpStatusForError(errorCode: string): number {
   if (isBadRequestError(errorCode)) return 400;
   if (Object.keys(HTTP_404_CASES).includes(errorCode)) return 404;
   if (Object.keys(HTTP_429_CASES).includes(errorCode)) return 429;
+  if (Object.keys(HTTP_501_CASES).includes(errorCode)) return 501;
   if (Object.keys(HTTP_503_CASES).includes(errorCode)) return 503;
   if (Object.keys(HTTP_500_CASES).includes(errorCode)) return 500;
 
   // 기본값: 500 (알 수 없는 에러)
   return 500;
+}
+
+/**
+ * 환경변수 누락/설정 오류에 따른 HTTP 상태 코드 결정
+ */
+export function getHttpStatusForEnvError(error: {
+  mode: 'full' | 'degraded' | 'disabled'
+  shouldReturn503?: boolean
+}): number {
+  // disabled 모드 = 필수 환경변수 누락 = 서비스 불가
+  if (error.mode === 'disabled') {
+    return 503 // HTTP_503_CASES.SUPABASE_DISABLED
+  }
+
+  // degraded 모드 = Service Role Key 누락 = 기능 제한
+  if (error.mode === 'degraded') {
+    return 501 // HTTP_501_CASES.SUPABASE_DEGRADED
+  }
+
+  // shouldReturn503 플래그가 명시적으로 설정된 경우
+  if (error.shouldReturn503) {
+    return 503
+  }
+
+  // 기본값 = 내부 서버 에러
+  return 500
 }
 
 /**
