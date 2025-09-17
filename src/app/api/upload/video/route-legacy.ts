@@ -1,3 +1,6 @@
+/**
+ * @deprecated 이 파일은 legacy입니다. 새로운 Supabase 기반 업로드 시스템을 사용하세요.
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
@@ -10,7 +13,7 @@ export const dynamic = 'force-dynamic';
 
 const VERCEL_FILE_SIZE_LIMIT = 4 * 1024 * 1024; // 4MB (Vercel 제한)
 const RAILWAY_FILE_SIZE_LIMIT = 600 * 1024 * 1024; // 600MB (Railway 백엔드 제한)
-const RAILWAY_BACKEND_URL = 'https://videoprompt-production.up.railway.app';
+const RAILWAY_BACKEND_URL = process.env.RAILWAY_BACKEND_URL || 'https://your-backend.railway.app';
 const ALLOWED_TYPES = ['video/mp4', 'video/webm', 'video/mov', 'video/quicktime'];
 
 // Railway 백엔드로 대용량 파일 업로드를 프록시하는 함수
@@ -19,6 +22,10 @@ async function proxyToRailway(file: File, slot: string, token: string, traceId: 
   formData.append('video', file);
   if (slot) formData.append('slot', slot);
   if (token) formData.append('token', token);
+
+  if (!RAILWAY_BACKEND_URL || RAILWAY_BACKEND_URL === 'https://your-backend.railway.app') {
+    throw new Error('Railway 백엔드 URL이 설정되지 않았습니다. 이 legacy 기능은 더 이상 지원되지 않습니다.');
+  }
 
   try {
     const response = await fetch(`${RAILWAY_BACKEND_URL}/api/upload/video`, {
@@ -251,7 +258,8 @@ export async function GET() {
     architecture: {
       type: 'Hybrid Proxy System',
       description: '파일 크기에 따라 최적의 처리 방법 자동 선택',
-      railwayBackend: RAILWAY_BACKEND_URL,
+      railwayBackend: RAILWAY_BACKEND_URL || 'deprecated',
+      deprecated: true,
       timeout: '10 minutes for large files'
     }
   });
