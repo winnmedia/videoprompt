@@ -11,7 +11,8 @@ import {
   createSuccessResponse,
   createErrorResponse
 } from '@/shared/schemas/api.schema';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClientForAPI, getSupabaseAdminForAPI } from '@/shared/lib/supabase-safe';
+import { requireSupabaseAuthentication, isAuthenticated, isAuthError } from '@/shared/lib/supabase-auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -172,9 +173,47 @@ export async function GET(request: NextRequest) {
 
     const { page, limit, search, genre, tone, targetAudience } = queryResult.data;
 
+    // 인증 확인
+    const authResult = await requireSupabaseAuthentication(request, { allowGuest: true });
+
     try {
-      // Supabase에서 스토리 데이터 조회 시도 (성능 최적화: 필요한 컬럼만 선택)
-      let query = supabase
+      // 안전한 Supabase 클라이언트 가져오기 - Admin 우선, 일반 클라이언트로 폴백
+      const adminResult = getSupabaseAdminForAPI();
+      const clientResult = getSupabaseClientForAPI();
+
+      let query;
+      let usingAdmin = false;
+
+      if (adminResult.client) {
+        console.log('🔧 Using Supabase Admin client for stories query');
+        query = adminResult.client;
+        usingAdmin = true;
+      } else if (clientResult.client) {
+        console.warn('⚠️ Supabase Admin not available, falling back to regular client');
+        query = clientResult.client;
+      } else {
+        // 둘 다 실패한 경우 적절한 에러 반환
+        const error = adminResult.error || clientResult.error!;
+        console.error('❌ No Supabase client available:', error.message);
+
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'SUPABASE_CONFIG_ERROR',
+              message: 'Supabase 설정이 올바르지 않습니다. 관리자에게 문의하세요.',
+              details: {
+                hint: error.message,
+                mode: error.mode
+              }
+            },
+            timestamp: new Date().toISOString()
+          },
+          { status: error.shouldReturn503 ? 503 : 500 }
+        );
+      }
+
+      query = query
         .from('Story')
         .select(`
           id,
@@ -189,6 +228,14 @@ export async function GET(request: NextRequest) {
           updated_at
         `, { count: 'exact' })
         .order('created_at', { ascending: false });
+
+      // 인증된 사용자의 경우 본인 스토리만 조회
+      if (isAuthenticated(authResult)) {
+        query = query.eq('user_id', authResult.id);
+      } else {
+        // 게스트의 경우 공개 스토리만 조회 (또는 제한)
+        query = query.is('user_id', null); // 공개 스토리만
+      }
 
       // 검색어 필터링
       if (search) {
@@ -256,49 +303,17 @@ export async function GET(request: NextRequest) {
       });
 
     } catch (supabaseError) {
-      // Supabase 실패 시 mock 데이터로 폴백 (결정론적 폴백)
+      // 데이터베이스 오류 시 적절한 에러 응답
+      console.error('❌ Story 조회 실패:', supabaseError);
       logAndFallback.supabaseError('GET', supabaseError);
 
-      // 모크 데이터 필터링 (기존 로직 유지)
-      let filteredStories = [...MOCK_STORIES];
-
-      if (search) {
-        filteredStories = filteredStories.filter(story =>
-          story.title.toLowerCase().includes(search.toLowerCase()) ||
-          story.oneLineStory.toLowerCase().includes(search.toLowerCase()) ||
-          story.genre.toLowerCase().includes(search.toLowerCase())
-        );
-      }
-
-      if (genre) {
-        filteredStories = filteredStories.filter(story => story.genre === genre);
-      }
-
-      if (tone) {
-        filteredStories = filteredStories.filter(story => story.tone === tone);
-      }
-
-      if (targetAudience) {
-        filteredStories = filteredStories.filter(story => story.target === targetAudience);
-      }
-
-      const totalCount = filteredStories.length;
-      const totalPages = Math.ceil(totalCount / limit);
-      const startIndex = (page - 1) * limit;
-      const endIndex = startIndex + limit;
-      const paginatedStories = filteredStories.slice(startIndex, endIndex);
-
-      return NextResponse.json({
-        stories: paginatedStories,
-        pagination: {
-          currentPage: page,
-          totalPages,
-          totalItems: totalCount,
-          hasNext: page < totalPages,
-          hasPrev: page > 1
-        },
-        fallback: true // mock 데이터 사용 표시
-      });
+      return NextResponse.json(
+        createErrorResponse(
+          'DATABASE_ERROR',
+          '스토리 데이터를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+        ),
+        { status: 500 }
+      );
     }
 
   } catch (error) {
@@ -336,11 +351,42 @@ export async function POST(request: NextRequest) {
 
     validatedData = validationResult.data;
 
+    // 인증 확인
+    const authResult = await requireSupabaseAuthentication(request, { allowGuest: true });
+    let userId: string | null = null;
+
+    if (isAuthenticated(authResult)) {
+      userId = authResult.id;
+      console.log(`📝 인증된 사용자 스토리 생성: ${userId}`);
+    } else {
+      console.log('📝 게스트 사용자 스토리 생성');
+    }
+
     try {
-      // Supabase에서 새 스토리 생성
+      // Supabase Admin을 사용하여 RLS 우회하고 스토리 생성
       console.log('📝 Supabase에 새 스토리 생성 중...');
 
-      const { data: newStory, error } = await supabase
+      // 안전한 Supabase Admin 클라이언트 가져오기
+      const adminResult = getSupabaseAdminForAPI();
+
+      if (!adminResult.client) {
+        const error = adminResult.error!;
+        console.error('❌ Supabase Admin client not available for story creation:', error.message);
+
+        return NextResponse.json(
+          createErrorResponse(
+            'SERVICE_UNAVAILABLE',
+            '스토리 생성 서비스가 일시적으로 사용할 수 없습니다. 관리자에게 문의하세요.',
+            {
+              hint: error.message,
+              mode: error.mode
+            }
+          ),
+          { status: error.shouldReturn503 ? 503 : 500 }
+        );
+      }
+
+      const { data: newStory, error } = await adminResult.client
         .from('Story')
         .insert({
           title: validatedData.title,
@@ -349,7 +395,7 @@ export async function POST(request: NextRequest) {
           tone: validatedData.tone,
           target: validatedData.targetAudience || 'General',
           structure: validatedData.structure,
-          user_id: null, // TODO: 실제 사용자 ID로 교체 필요
+          user_id: userId, // 실제 사용자 ID 또는 null (게스트)
         })
         .select()
         .single();
@@ -386,36 +432,16 @@ export async function POST(request: NextRequest) {
       );
 
     } catch (supabaseError) {
-      // Supabase 실패 시 mock 데이터로 폴백 (결정론적 폴백)
+      // 데이터베이스 오류 시 적절한 에러 응답
+      console.error('❌ Story 생성 실패:', supabaseError);
       logAndFallback.supabaseError('POST', supabaseError);
 
-      const mockStory: Story = {
-        id: `mock-story-${Date.now()}`,
-        title: validatedData.title,
-        content: validatedData.content || validatedData.oneLineStory || '',
-        oneLineStory: validatedData.oneLineStory,
-        genre: validatedData.genre,
-        tone: validatedData.tone,
-        targetAudience: validatedData.targetAudience || 'General',
-        structure: validatedData.structure || null,
-        userId: null,
-        status: 'published' as const,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      console.log('📝 Mock 스토리 생성:', {
-        id: mockStory.id,
-        title: mockStory.title,
-        note: 'Supabase 연결 실패로 mock 데이터 사용'
-      });
-
       return NextResponse.json(
-        createSuccessResponse(mockStory, '스토리가 생성되었습니다 (임시 저장)', {
-          fallback: true,
-          reason: 'Database connection failed'
-        }),
-        { status: 201 }
+        createErrorResponse(
+          'DATABASE_ERROR',
+          '스토리 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+        ),
+        { status: 500 }
       );
     }
 

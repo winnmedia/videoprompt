@@ -1,115 +1,47 @@
 /**
- * Supabase 클라이언트 설정
+ * Supabase 클라이언트 설정 (Legacy 호환성 유지)
  * FSD Architecture - Shared Layer Library
+ *
+ * 🚨 DEPRECATED: 직접 사용 금지
+ * 새로운 코드는 @/shared/lib/supabase-safe를 사용하세요
  */
 
-import { createClient } from '@supabase/supabase-js'
+import { safeSupabase } from '@/shared/lib/supabase-safe'
+import { ENV_STATUS } from '@/shared/lib/env-validation'
 
-const supabaseUrl = process.env.SUPABASE_URL
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY
+/**
+ * Legacy 호환성을 위한 export
+ * @deprecated Use safeSupabase from @/shared/lib/supabase-safe instead
+ */
+const clientResult = safeSupabase.getClient()
+export const supabase = clientResult.success ? clientResult.data! : null
 
-// 서버 사이드용 Service Role Key (환경에 따라 조건부 로드)
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+const adminResult = safeSupabase.getAdminClient()
+export const supabaseAdmin = adminResult.success ? adminResult.data! : null
 
-// 환경 변수 검증 및 구체적인 에러 메시지
-if (!supabaseUrl) {
-  const envs = Object.keys(process.env).filter(key => key.includes('SUPABASE')).join(', ')
-  throw new Error(`SUPABASE_URL is not set. Available Supabase envs: ${envs || 'none'}. Check Vercel environment variables.`)
-}
-
-if (!supabaseAnonKey) {
-  throw new Error('SUPABASE_ANON_KEY is not set. Check Vercel environment variables.')
-}
-
-// URL 형식 검증
-try {
-  new URL(supabaseUrl)
-} catch {
-  throw new Error(`SUPABASE_URL is invalid: ${supabaseUrl}. Must be a valid URL (https://xxx.supabase.co)`)
-}
-
-// Anonymous Key 형식 검증 (JWT 토큰 형태여야 함)
-if (!supabaseAnonKey.startsWith('eyJ')) {
-  throw new Error(`SUPABASE_ANON_KEY appears invalid. Must be a JWT token starting with 'eyJ'`)
+/**
+ * Legacy 호환성을 위한 설정 정보
+ * @deprecated Use ENV_STATUS from @/shared/lib/env-validation instead
+ */
+export const supabaseConfig = {
+  isValid: ENV_STATUS.isValid,
+  hasServiceRoleKey: ENV_STATUS.mode === 'full',
+  mode: ENV_STATUS.mode,
+  errors: ENV_STATUS.errors
 }
 
 /**
- * 공개 클라이언트 (브라우저용)
- * - Row Level Security (RLS) 적용
- * - Anonymous/Authenticated 사용자 권한
+ * Legacy 호환성을 위한 연결 상태 확인
+ * @deprecated Use checkSupabaseForAPI from @/shared/lib/supabase-safe instead
  */
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-  },
-})
-
-/**
- * Admin 클라이언트 (서버용)
- * - Row Level Security (RLS) 우회
- * - Service Role 권한으로 모든 데이터 접근 가능
- * - 서버 사이드에서만 사용해야 함
- */
-export const supabaseAdmin = supabaseServiceRoleKey
-  ? createClient(supabaseUrl, supabaseServiceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    })
-  : null
-
-/**
- * Supabase 연결 상태 확인
- */
-export const checkSupabaseConnection = async (): Promise<{
-  success: boolean
-  error?: string
-  latency?: number
-}> => {
-  const startTime = Date.now()
-
-  try {
-    const { data, error } = await supabase
-      .from('_health_check')
-      .select('count(*)')
-      .limit(1)
-
-    const latency = Date.now() - startTime
-
-    if (error && error.code !== 'PGRST116') {
-      // PGRST116은 테이블이 존재하지 않음을 의미하지만 연결은 정상
-      throw error
-    }
-
-    return {
-      success: true,
-      latency,
-    }
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-
-    return {
-      success: false,
-      error: errorMessage,
-    }
+export const checkSupabaseConnection = async () => {
+  const result = await safeSupabase.checkConnection()
+  return {
+    success: result.success,
+    error: result.error,
+    latency: result.data?.latency,
+    mode: result.mode
   }
 }
 
-// 환경별 경고 메시지와 연결 상태 로깅
-if (process.env.NODE_ENV === 'development') {
-  console.log('🔗 Supabase client initialized', {
-    url: supabaseUrl,
-    hasAnonKey: !!supabaseAnonKey,
-    hasServiceKey: !!supabaseServiceRoleKey
-  })
-
-  if (!supabaseServiceRoleKey) {
-    console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY not set - Admin client unavailable')
-  }
-} else {
-  // 프로덕션에서도 기본적인 연결 상태만 로깅
-  console.log('🔗 Supabase client initialized for production')
-}
+// 환경별 로깅은 안전 래퍼에서 처리됨
