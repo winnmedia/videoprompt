@@ -7,7 +7,7 @@ import { useSeedancePolling } from '@/features/seedance/status';
 import { Button } from '@/shared/ui';
 import { Icon } from '@/shared/ui';
 import { getApiUrl, API_ENDPOINTS } from '@/lib/config/api';
-import { ScenePrompt } from '@/types/api';
+import { ScenePrompt } from '@/shared/types/api';
 import {
   createAIServiceManager,
   translateToEnglish,

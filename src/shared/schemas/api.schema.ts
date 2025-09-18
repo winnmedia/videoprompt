@@ -310,12 +310,13 @@ export function createValidationErrorResponse(error: z.ZodError) {
  * 성공 응답을 생성하는 유틸리티
  */
 export function createSuccessResponse<T>(
-  data: T, 
+  data: T,
   message?: string,
   additionalFields?: Record<string, any>
 ) {
   return {
-    success: true,
+    ok: true as const,
+    success: true as const,
     data,
     message,
     timestamp: new Date().toISOString(),

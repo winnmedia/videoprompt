@@ -193,9 +193,12 @@ export const useAuthStore = create<AuthState>()(
               const { setUser } = get();
 
               // 서버 응답의 isAuthenticated 플래그 활용
-              const isUserAuthenticated = validatedData.data.isAuthenticated ?? !!validatedData.data.token;
+              const isUserAuthenticated = !!(validatedData.data as any).isAuthenticated ?? !!validatedData.data.token;
 
-              setUser(validatedData.data);
+              setUser({
+                ...validatedData.data,
+                email: validatedData.data.email || 'unknown@email.com'
+              });
 
               // isAuthenticated 상태를 서버 응답 기반으로 설정
               set({ isAuthenticated: isUserAuthenticated });

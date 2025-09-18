@@ -35,9 +35,12 @@ export async function OPTIONS() {
 
 const getHandler = async (
   request: NextRequest,
-  { params, user, authContext }: { params: { jobId: string }, user: { id: string | null }, authContext: any }
+  { user, degradationMode, adminAccess, isServiceRoleAvailable }: any
 ) => {
   try {
+    // URL에서 jobId 추출
+    const url = new URL(request.url);
+    const jobId = url.pathname.split('/').pop();
     // 1. 강화된 계약 기반 Seedance 설정 검증
     let configValidation;
     try {
@@ -76,12 +79,12 @@ const getHandler = async (
     }
 
     console.log('DEBUG: Seedance 상태 확인 요청:', {
-      jobId: params.jobId,
+      jobId,
       userId: user.id || 'guest',
     });
 
     // Job ID 검증
-    const validationResult = JobIdSchema.safeParse(params.jobId);
+    const validationResult = JobIdSchema.safeParse(jobId);
     if (!validationResult.success) {
       const errorDetails = validationResult.error.issues[0];
       console.error('DEBUG: Job ID 검증 실패:', errorDetails);
@@ -92,10 +95,10 @@ const getHandler = async (
       );
     }
 
-    const jobId = validationResult.data;
+    const validatedJobId = validationResult.data;
 
     // Graceful Degradation이 적용된 상태 확인
-    const result = await seedanceService.getStatus(jobId);
+    const result = await seedanceService.getStatus(validatedJobId);
 
     if (!result.ok) {
       console.error('DEBUG: Seedance 상태 확인 실패:', result.error);

@@ -59,8 +59,8 @@ const EnvSchema = z.object({
   SENDGRID_API_KEY: z.string().optional(),
   DEFAULT_FROM_EMAIL: z.string().optional(),
   
-  // 백엔드 URL (Railway 제거)
-  RAILWAY_BACKEND_URL: z.string().url().optional(), // 레거시 지원용 - 사용하지 않음
+  // 백엔드 URL - Supabase 기반으로 완전 전환
+  // RAILWAY_BACKEND_URL 제거: 더 이상 사용하지 않음
   NEXT_PUBLIC_API_BASE: z.string().url().optional(),
   
   // Vercel 환경
@@ -269,7 +269,7 @@ export const getAIApiKeys = () => {
 export const getServiceUrls = () => {
   const env = getEnv();
   return {
-    // railwayBackend: env.RAILWAY_BACKEND_URL, // DEPRECATED: Railway 제거됨
+    // Railway 완전 제거 - Supabase 기반 통합 아키텍처
     seedanceApi: env.SEEDANCE_API_BASE,
     seedreamApi: env.SEEDREAM_API_BASE,
     modelarkApi: env.MODELARK_API_BASE,

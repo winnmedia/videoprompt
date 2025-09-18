@@ -113,7 +113,7 @@ export const GET = withAuth(async (req, { user, authContext }) => {
         return supabaseErrors.configError(traceId, error.message);
       }
 
-      logger.error(LogCategory.DATABASE, 'Unexpected Supabase client error', error, {
+      logger.error(LogCategory.DATABASE, 'Unexpected Supabase client error', error as Error, {
         userId: user.id,
         traceId
       });

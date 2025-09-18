@@ -248,7 +248,26 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Health Check ${traceId}] 🔬 상세 진단 모드 실행`);
 
+    // Supabase 클라이언트 초기화
+    let supabase;
+    try {
+      supabase = await getSupabaseClientSafe('anon');
+    } catch (error) {
+      const errorMessage = error instanceof ServiceConfigError ? error.message : 'Supabase client initialization failed';
+      return NextResponse.json(
+        failure(
+          'SUPABASE_CONFIG_ERROR',
+          errorMessage,
+          503,
+          undefined,
+          traceId
+        ),
+        { status: 503 }
+      );
+    }
+
     const diagnostics = {
+      client: !!supabase,
       timestamp: new Date().toISOString(),
       traceId,
       mode: 'detailed',

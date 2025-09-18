@@ -146,7 +146,7 @@ export function PlanningDashboard() {
                   </div>
                   {item.tags && (
                     <div className="flex flex-wrap gap-1 mb-2">
-                      {item.tags.map((tag) => (
+                      {item.tags.map((tag: string) => (
                         <span key={tag} className="bg-gray-100 text-gray-700 px-1 py-0.5 rounded text-xs">
                           {tag}
                         </span>

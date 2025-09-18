@@ -40,14 +40,14 @@ const getHandler = async (req: NextRequest, { user }: { user: { id: string | nul
         return {
           id: video.id,
           title: video.title || 'Untitled Video',
-          provider: video.provider || 'unknown',
-          status: video.status || 'queued',
+          provider: (video as any).provider || 'unknown',
+          status: (video as any).status || 'queued',
           url: video.videoUrl || null,
-          codec: video.codec || null,
-          duration: video.duration || null,
-          prompt: video.prompt || '',
-          createdAt: video.createdAt,
-          updatedAt: video.updatedAt
+          codec: (video as any).codec || null,
+          duration: (video as any).duration || null,
+          prompt: (video as any).prompt || '',
+          createdAt: (video as any).createdAt,
+          updatedAt: (video as any).updatedAt
         };
       });
 
@@ -95,28 +95,14 @@ const postHandler = async (req: NextRequest, { user }: { user: { id: string | nu
     // VideoContent로 변환
     const videoContent: VideoContent = {
       id: crypto.randomUUID(),
-      projectId: crypto.randomUUID(),
       type: 'video',
-      source: 'user-created',
-      status: validatedData.status,
-      storageStatus: 'pending',
       title: validatedData.title,
-      prompt: validatedData.prompt || '',
-      provider: validatedData.provider,
-      duration: validatedData.duration || null,
-      aspectRatio: '16:9',
-      codec: validatedData.codec || 'H.264',
-      videoUrl: validatedData.url || null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      videoUrl: validatedData.url || undefined,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
       metadata: {
-        createdBy: user.id || undefined,
-        version: '1.0',
+        version: 1,
         author: user.id || 'guest'
-      },
-      storage: {
-        prisma: { saved: false, lastAttempt: new Date().toISOString() },
-        supabase: { saved: false, lastAttempt: new Date().toISOString() }
       }
     };
 
@@ -148,8 +134,8 @@ const postHandler = async (req: NextRequest, { user }: { user: { id: string | nu
     const responseData = {
       id: result.id,
       title: videoContent.title,
-      provider: videoContent.provider,
-      status: videoContent.status,
+      provider: (videoContent as any).provider,
+      status: (videoContent as any).status,
       url: videoContent.videoUrl
     };
 

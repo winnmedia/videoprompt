@@ -109,10 +109,10 @@ export const apiRequest = async <T = any>(
   customTimeout?: number,
 ): Promise<T> => {
   try {
-    // Railway 백엔드 상태 확인
+    // Supabase 기반 백엔드 상태 확인
     const isBackendHealthy = await checkBackendHealth();
     if (!isBackendHealthy) {
-      throw new Error('Railway 백엔드 서비스가 사용할 수 없습니다.');
+      throw new Error('백엔드 서비스가 사용할 수 없습니다.');
     }
 
     const url = buildApiUrl(endpoint);

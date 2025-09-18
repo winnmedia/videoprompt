@@ -111,6 +111,24 @@ const UserDataQualitySchema = z.object({
 });
 
 /**
+ * 사용자 데이터 품질 규칙 상수
+ */
+export const UserDataQualityRules = {
+  requiredFields: ['id', 'email', 'username'] as const,
+  uniqueConstraints: ['email', 'username'] as const,
+  syncQualityThresholds: {
+    healthy: 95,
+    warning: 80,
+    critical: 60
+  } as const,
+  validationRules: {
+    emailFormat: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+    usernameFormat: /^[a-zA-Z0-9_-]{3,30}$/,
+    minScore: 60
+  } as const
+} as const;
+
+/**
  * DTO 변환 함수들
  */
 
@@ -291,9 +309,10 @@ export function validateUserSyncContract(
   };
 }
 
-// 타입 export
+// 타입 export - FSD 도메인 명명 규칙 적용
 export type SupabaseUserDTO = z.infer<typeof SupabaseUserDTOSchema>;
 export type PrismaUserDTO = z.infer<typeof PrismaUserDTOSchema>;
+export type PrismaUserDomain = z.infer<typeof PrismaUserDTOSchema>; // 도메인 레이어 호환성
 export type UserSyncStatus = z.infer<typeof UserSyncStatusSchema>;
 export type SyncResult = z.infer<typeof SyncResultSchema>;
 export type MigrationOptions = z.infer<typeof MigrationOptionsSchema>;
@@ -303,6 +322,7 @@ export type UserDataQuality = z.infer<typeof UserDataQualitySchema>;
 export {
   SupabaseUserDTOSchema,
   PrismaUserDTOSchema,
+  PrismaUserDTOSchema as PrismaUserDomainSchema, // 도메인 레이어 호환성 별명
   UserSyncStatusSchema,
   SyncResultSchema,
   MigrationOptionsSchema,

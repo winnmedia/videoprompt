@@ -187,7 +187,7 @@ export class UserMigrationService {
       const syncStatus = await this.syncService.checkSyncStatus(supabaseUserId);
 
       const needsMigration = syncStatus.syncHealth !== 'healthy' ||
-                            syncStatus.healthScore < UserDataQualityRules.syncQualityThresholds.healthy;
+                            syncStatus.healthScore < UserDataQualitySchema.syncQualityThresholds.healthy;
 
       const recommendations: string[] = [];
 
