@@ -13,9 +13,13 @@ export const dynamic = 'force-dynamic';
  * - Realtime 업데이트로 즉시 상태 반영
  * - 기존 API 호환성 유지
  */
-export const POST = withAuth(async (req, { user, authContext }, { params }: { params: Promise<{ id: string }> }) => {
+export const POST = withAuth(async (req: NextRequest, { user, degradationMode, adminAccess, isServiceRoleAvailable }: any) => {
   try {
     const traceId = getTraceId(req);
+
+    // URL에서 id 추출
+    const url = new URL(req.url);
+    const id = url.pathname.split('/').pop();
 
     // 로깅 컨텍스트 설정
     logger.setContext({
@@ -28,9 +32,9 @@ export const POST = withAuth(async (req, { user, authContext }, { params }: { pa
     logger.info(LogCategory.API, 'Queue retry request started (withAuth v2)', {
       traceId,
       userId: user.id,
-      tokenType: user.tokenType
+      tokenType: user.tokenType,
+      queueId: id
     });
-    const { id } = await params;
 
     logger.debug(LogCategory.SECURITY, 'User authentication successful for retry', {
       userId: user.id,
@@ -53,7 +57,7 @@ export const POST = withAuth(async (req, { user, authContext }, { params }: { pa
         return supabaseErrors.configError(traceId, error.message);
       }
 
-      logger.error(LogCategory.DATABASE, 'Unexpected Supabase client error', error, {
+      logger.error(LogCategory.DATABASE, 'Unexpected Supabase client error', error as Error, {
         userId: user.id,
         videoAssetId: id,
         traceId

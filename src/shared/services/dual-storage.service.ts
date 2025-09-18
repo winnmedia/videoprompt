@@ -146,14 +146,14 @@ export class DualStorageTransformer implements IDualStorageTransformer {
 
     const promptData: SupabasePromptData = {
       id: generateSupabaseId(),
-      title: metadata.scenarioTitle || validatedProject.title || '프롬프트',
-      content: validatedProject.prompt || metadata.finalPrompt || '',
-      final_prompt: metadata.finalPrompt || validatedProject.prompt || '',
+      title: String(metadata.scenarioTitle || validatedProject.title || '프롬프트'),
+      content: String(validatedProject.prompt || metadata.finalPrompt || ''),
+      final_prompt: String(metadata.finalPrompt || validatedProject.prompt || ''),
       keywords: Array.isArray(metadata.keywords) ? metadata.keywords : [],
-      negative_prompt: metadata.negativePrompt,
-      visual_style: metadata.visualStyle,
-      mood: metadata.mood,
-      quality: metadata.quality,
+      negative_prompt: String(metadata.negativePrompt || undefined),
+      visual_style: String(metadata.visualStyle || undefined),
+      mood: String(metadata.mood || undefined),
+      quality: String(metadata.quality || undefined),
       metadata: {
         originalProjectId: validatedProject.id,
         source: 'planning_register',
@@ -166,8 +166,8 @@ export class DualStorageTransformer implements IDualStorageTransformer {
         directorStyle: metadata.directorStyle,
       },
       scenario_id: undefined, // 연결된 시나리오가 있다면 별도 처리
-      user_id: validatedProject.userId,
-      project_id: validatedProject.id,
+      user_id: String(validatedProject.userId || undefined),
+      project_id: String(validatedProject.id),
       created_at: validatedProject.createdAt.toISOString(),
       updated_at: validatedProject.updatedAt.toISOString(),
     };
@@ -184,12 +184,12 @@ export class DualStorageTransformer implements IDualStorageTransformer {
 
     const videoData: SupabaseVideoGenerationData = {
       id: generateSupabaseId(),
-      title: metadata.title || validatedProject.title || '생성된 영상',
-      prompt: metadata.finalPrompt || validatedProject.prompt || '',
-      provider: this.normalizeProvider(metadata.provider || 'unknown'),
-      duration: metadata.durationSec || metadata.duration || undefined,
-      aspect_ratio: metadata.format || metadata.aspectRatio || undefined,
-      codec: metadata.codec || 'H.264',
+      title: String(metadata.title || validatedProject.title || '생성된 영상'),
+      prompt: String(metadata.finalPrompt || validatedProject.prompt || ''),
+      provider: this.normalizeProvider(String(metadata.provider || 'unknown')),
+      duration: Number(metadata.durationSec || metadata.duration || undefined) || undefined,
+      aspect_ratio: String(metadata.format || metadata.aspectRatio || undefined) || undefined,
+      codec: String(metadata.codec || 'H.264'),
       status: this.mapVideoStatus(metadata.status || validatedProject.status),
       video_url: metadata.videoUrl || validatedProject.video || undefined,
       thumbnail_url: metadata.thumbnailUrl || undefined,
@@ -205,8 +205,8 @@ export class DualStorageTransformer implements IDualStorageTransformer {
         // 영상 관련 메타데이터
         version: metadata.version || 'V1',
       },
-      user_id: validatedProject.userId,
-      project_id: validatedProject.id,
+      user_id: String(validatedProject.userId || undefined),
+      project_id: String(validatedProject.id),
       created_at: validatedProject.createdAt.toISOString(),
       updated_at: validatedProject.updatedAt.toISOString(),
     };

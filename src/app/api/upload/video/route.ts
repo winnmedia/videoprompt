@@ -49,7 +49,7 @@ async function uploadToSupabaseStorage(
     try {
       supabase = await getSupabaseClientSafe('anon');
     } catch (error) {
-      logger.error(LogCategory.DATABASE, 'Supabase client initialization failed', error, {
+      logger.error(LogCategory.DATABASE, 'Supabase client initialization failed', error as Error, {
         traceId,
         function: 'uploadToSupabaseStorage'
       });

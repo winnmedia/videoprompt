@@ -62,9 +62,9 @@ const getHandler = async (request: NextRequest, { user, authContext }: { user: {
           },
           metadata: scenario.metadata || {},
           status: 'draft',
-          userId: scenario.metadata?.createdBy || null,
-          createdAt: new Date(scenario.createdAt || Date.now()).toISOString(),
-          updatedAt: new Date(scenario.updatedAt || Date.now()).toISOString()
+          userId: (scenario as any).createdBy || (scenario as any).userId || undefined,
+          createdAt: new Date((scenario as any).createdAt || Date.now()).toISOString(),
+          updatedAt: new Date((scenario as any).updatedAt || Date.now()).toISOString()
         } as Story;
       });
 
@@ -122,26 +122,18 @@ const postHandler = async (request: NextRequest, { user, authContext }: { user: 
     // ScenarioContent로 변환
     const scenarioContent: ScenarioContent = {
       id: crypto.randomUUID(),
-      projectId: crypto.randomUUID(),
       type: 'scenario',
-      source: 'user-created',
       status: 'draft',
-      storageStatus: 'pending',
       title: validatedData.title,
       story: validatedData.content,
       genre: validatedData.genre,
       tone: validatedData.tone,
       target: validatedData.targetAudience || 'General',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
       metadata: {
-        createdBy: user.id || undefined,
-        version: '1.0',
+        version: 1,
         author: user.id || 'guest'
-      },
-      storage: {
-        prisma: { saved: false, lastAttempt: new Date().toISOString() },
-        supabase: { saved: false, lastAttempt: new Date().toISOString() }
       }
     };
 
@@ -179,9 +171,9 @@ const postHandler = async (request: NextRequest, { user, authContext }: { user: 
       },
       metadata: scenarioContent.metadata || {},
       status: 'draft',
-      userId: scenarioContent.metadata?.createdBy || null,
-      createdAt: scenarioContent.createdAt,
-      updatedAt: scenarioContent.updatedAt
+      userId: (scenarioContent as any).createdBy || (scenarioContent as any).userId || undefined,
+      createdAt: (scenarioContent as any).createdAt,
+      updatedAt: (scenarioContent as any).updatedAt
     };
 
     const healthStatus = repository.getStorageHealth();

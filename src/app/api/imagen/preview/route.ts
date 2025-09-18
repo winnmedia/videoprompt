@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { prompt, aspectRatio = '16:9', quality = 'standard' } = body;
 
-    // 요청 trace id 수집/생성 (Railway로 전달하여 상호 상관관계 확보)
+    // 요청 trace id 수집/생성 (API 호출 추적용)
     const traceId = req.headers.get('x-trace-id') ||
       (globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2));
 
@@ -129,9 +129,9 @@ async function processImageGeneration(
       updateJobStatus(jobId, 'processing', 60);
 
       if (!response.ok) {
-        console.error(`❌ [${jobId}] Railway 백엔드 오류: ${response.status} ${response.statusText}`);
-        
-        // Railway 실패 시 Google Image API로 폴백 시도
+        console.error(`❌ [${jobId}] 백엔드 오류: ${response.status} ${response.statusText}`);
+
+        // 백엔드 실패 시 Google Image API로 폴백 시도
         const fallback = await tryGoogleImageAPI(prompt, aspectRatio);
         if (fallback.ok) {
           // 파일 저장 시도
@@ -152,9 +152,9 @@ async function processImageGeneration(
       updateJobStatus(jobId, 'processing', 80);
 
 
-      // Railway 응답 검증
+      // 백엔드 응답 검증
       if (!data?.ok || !data?.imageUrl) {
-        console.warn(`WARN: [${jobId}] Railway JSON 비정상. 폴백 시도.`);
+        console.warn(`WARN: [${jobId}] 백엔드 JSON 비정상. 폴백 시도.`);
         const fallback = await tryGoogleImageAPI(prompt, aspectRatio);
         if (fallback.ok) {
           const savedUrl = await saveImageIfPossible(fallback.imageUrl!, jobId);

@@ -365,5 +365,10 @@ export {
   saveVideo,
   type PrismaRepository,
   type SupabaseRepository,
-  type DualStorageDependencies
+  type DualStorageDependencies,
+  type DualStorageConfig,
+  type PlanningContent,
+  type ScenarioContent,
+  type PromptContent,
+  type VideoContent
 };

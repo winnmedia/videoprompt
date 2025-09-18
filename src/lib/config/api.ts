@@ -3,7 +3,7 @@
  * 환경별로 적절한 API 엔드포인트를 제공
  */
 
-// 현재 배포 환경 기반 API 설정 관리 (Railway 제거)
+// 현재 배포 환경 기반 API 설정 관리 - Supabase 통합 아키텍처
 const getEnvironmentBaseUrl = () => {
   return process.env.NEXT_PUBLIC_API_URL ||
          process.env.NEXT_PUBLIC_API_BASE ||
@@ -55,7 +55,7 @@ export const getApiConfig = () => {
   return API_CONFIG[env];
 };
 
-// API URL 생성 (Railway 백엔드 직접 연결)
+// API URL 생성 - Supabase 기반 통합 백엔드
 export const buildApiUrl = (endpoint: string) => {
   const config = getApiConfig();
   const baseUrl = config.baseUrl.replace(/\/$/, '');

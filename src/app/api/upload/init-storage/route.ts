@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      logger.error(LogCategory.DATABASE, 'Unexpected Supabase client error', error, { traceId });
+      logger.error(LogCategory.DATABASE, 'Unexpected Supabase client error', error as Error, { traceId });
       return NextResponse.json(
         failure('SUPABASE_CONFIG_ERROR', 'Backend configuration error. Please contact support.', 503, 'Supabase client initialization failed', traceId),
         { status: 503 }

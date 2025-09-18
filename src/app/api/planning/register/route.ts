@@ -30,13 +30,16 @@ export const POST = withAuth(async (request: NextRequest, { user, authContext })
     // BaseContent로 변환
     const planningContent: BaseContent = {
       id: `${validatedData.type}_${validatedData.projectId}_${Date.now()}`,
-      type: validatedData.type,
       title: validatedData.title || `${validatedData.type} - ${new Date().toISOString()}`,
       ...validatedData,
+      userId: user.id || undefined,
+      status: 'active' as const,
+      createdAt: Number(validatedData.createdAt) || Date.now(),
+      updatedAt: Date.now(),
       metadata: {
-        userId: user.id,
-        status: 'active',
-        createdAt: validatedData.createdAt || Date.now(),
+        userId: user.id || undefined,
+        status: 'active' as const,
+        createdAt: Number(validatedData.createdAt) || Date.now(),
         updatedAt: Date.now()
       }
     };
@@ -72,9 +75,9 @@ export const POST = withAuth(async (request: NextRequest, { user, authContext })
       type: planningContent.type,
       title: planningContent.title,
       userId: user.id,
-      status: 'active',
-      createdAt: planningContent.metadata.createdAt,
-      updatedAt: planningContent.metadata.updatedAt
+      status: 'active' as const,
+      createdAt: planningContent.metadata?.createdAt,
+      updatedAt: planningContent.metadata?.updatedAt
     };
 
     return NextResponse.json(

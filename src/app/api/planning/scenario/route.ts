@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { getUserIdFromRequest } from '@/shared/lib/auth';
 import { createScenarioDual } from '@/shared/lib/dual-storage-service';
+import { createSuccessResponse } from '@/shared/schemas/api.schema';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -54,15 +55,10 @@ export async function POST(req: NextRequest) {
         // 부분 성공: 한쪽에는 저장됨 (경고와 함께 성공 반환)
         console.warn('⚠️ 부분 저장 성공:', result.partialFailure);
 
-        return json({
-          ok: true,
-          data: result.data,
-          warning: '일부 저장소에서 동기화 지연이 발생했습니다.',
-          storageInfo: {
-            prismaSuccess: result.prismaSuccess,
-            supabaseSuccess: result.supabaseSuccess
-          }
-        });
+        return json(createSuccessResponse(result.data, '부분 저장 성공', {
+          prismaSuccess: result.prismaSuccess,
+          supabaseSuccess: result.supabaseSuccess
+        }));
       } else {
         // 완전 실패: 모든 저장소에서 실패
         return json({
@@ -82,15 +78,11 @@ export async function POST(req: NextRequest) {
       supabaseSuccess: result.supabaseSuccess
     });
 
-    return json({
-      ok: true,
-      data: result.data,
-      storageInfo: {
-        prismaSuccess: result.prismaSuccess,
-        supabaseSuccess: result.supabaseSuccess,
-        dataConsistency: result.prismaSuccess && result.supabaseSuccess ? 'full' : 'partial'
-      }
-    });
+    return json(createSuccessResponse(result.data, '시나리오 저장 성공', {
+      prismaSuccess: result.prismaSuccess,
+      supabaseSuccess: result.supabaseSuccess,
+      dataConsistency: result.prismaSuccess && result.supabaseSuccess ? 'full' : 'partial'
+    }));
 
   } catch (e: any) {
     console.error('❌ 시나리오 API 예상치 못한 오류:', e);

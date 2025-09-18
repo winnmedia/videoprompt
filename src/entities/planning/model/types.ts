@@ -12,6 +12,7 @@ export type ContentType = 'scenario' | 'prompt' | 'video' | 'story' | 'image';
 
 export type ContentStatus =
   | 'draft'      // 초안
+  | 'active'     // 활성
   | 'processing' // 처리 중
   | 'completed'  // 완료
   | 'failed'     // 실패
@@ -35,6 +36,10 @@ export interface BaseContent {
   id: string;
   type: ContentType;
   title?: string;
+  userId?: string;
+  status?: ContentStatus;
+  createdAt?: number;
+  updatedAt?: number;
 
   // 메타데이터 (Repository 호환)
   metadata?: {
