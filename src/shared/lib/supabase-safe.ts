@@ -167,6 +167,65 @@ function getRecommendation(errorCode: string): string {
 }
 
 
+/**
+ * Legacy 호환성을 위한 safeSupabase 객체
+ */
+export const safeSupabase = {
+  getClient: async () => {
+    try {
+      const client = await getSupabaseClientSafe('anon');
+      return { success: true, data: client };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  },
+
+  getAdminClient: async () => {
+    try {
+      const client = await getSupabaseClientSafe('admin');
+      return { success: true, data: client };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  },
+
+  checkConnection: async () => {
+    try {
+      const client = await getSupabaseClientSafe('anon');
+      const start = Date.now();
+
+      // 기본 연결 테스트
+      const { error } = await client.from('_connection_test').select('count').limit(1);
+      const latency = Date.now() - start;
+
+      return {
+        success: true,
+        data: { latency },
+        mode: getDegradationMode()
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+        mode: getDegradationMode()
+      };
+    }
+  }
+};
+
+/**
+ * API 라우트용 Supabase 연결 확인
+ */
+export const checkSupabaseForAPI = async () => {
+  return await safeSupabase.checkConnection();
+};
+
 // 환경 초기화 시 상태 로그
 if (process.env.NODE_ENV === 'development') {
   const mode = getDegradationMode();

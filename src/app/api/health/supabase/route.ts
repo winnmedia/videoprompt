@@ -27,6 +27,24 @@ export async function GET(request: NextRequest) {
       }
     };
 
+    // getSupabaseClientSafe를 사용한 안전한 클라이언트 초기화
+    let supabase;
+    try {
+      supabase = await getSupabaseClientSafe('anon');
+    } catch (error) {
+      const errorMessage = error instanceof ServiceConfigError ? error.message : 'Supabase client initialization failed';
+      return NextResponse.json(
+        failure(
+          'SUPABASE_CONFIG_ERROR',
+          errorMessage,
+          503,
+          undefined,
+          traceId
+        ),
+        { status: 503 }
+      );
+    }
+
     // 1. 기본 연결 테스트
     console.log(`[Health Check ${traceId}] 📡 기본 연결 테스트 중...`);
     const startTime = Date.now();
@@ -45,24 +63,6 @@ export async function GET(request: NextRequest) {
         latency,
         error: error instanceof Error ? error.message : String(error)
       } as any;
-    }
-
-    // getSupabaseClientSafe를 사용한 안전한 클라이언트 초기화
-    let supabase;
-    try {
-      supabase = await getSupabaseClientSafe('anon');
-    } catch (error) {
-      const errorMessage = error instanceof ServiceConfigError ? error.message : 'Supabase client initialization failed';
-      return NextResponse.json(
-        failure(
-          'SUPABASE_CONFIG_ERROR',
-          errorMessage,
-          503,
-          undefined,
-          traceId
-        ),
-        { status: 503 }
-      );
     }
 
     // 2. Public Client 테스트

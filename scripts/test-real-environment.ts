@@ -91,7 +91,7 @@ class RealEnvironmentTester {
 
   private async testSupabaseAuth(): Promise<void> {
     await this.runTest('Supabase Auth Service', false, async () => {
-      const clientResult = safeSupabase.getClient()
+      const clientResult = await safeSupabase.getClient()
 
       if (!clientResult.success) {
         throw new Error(clientResult.error || 'Client not available')
@@ -109,7 +109,7 @@ class RealEnvironmentTester {
 
   private async testDatabaseBasics(): Promise<void> {
     await this.runTest('Database Basic Operations', false, async () => {
-      const clientResult = safeSupabase.getClient()
+      const clientResult = await safeSupabase.getClient()
 
       if (!clientResult.success) {
         throw new Error(clientResult.error || 'Client not available')

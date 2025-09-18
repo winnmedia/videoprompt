@@ -5,21 +5,21 @@
  * Feature Flag에 따라 적절한 타입을 사용할 수 있도록 지원
  */
 
-// Legacy Types (v2.x 호환성)
-export * from './video-prompt';
+// Legacy Types (v2.x 호환성) - 새 위치에서 re-export
+export * from '@/shared/types/video-prompt';
 
-// CineGenius v3.1 Types  
-export * from './video-prompt-v3';
+// CineGenius v3.1 Types - 새 위치에서 re-export
+export * from '@/shared/types/video-prompt-v3';
 
-// API Types
-export * from './api';
+// API Types - 새 위치에서 re-export
+export * from '@/shared/types/api';
 
 // =============================================================================
 // 🔄 Type Union for Version Compatibility
 // =============================================================================
 
-import type { VideoPrompt } from './video-prompt';
-import type { CineGeniusV3Prompt } from './video-prompt-v3';
+import type { VideoPrompt } from '@/shared/types/video-prompt';
+import type { CineGeniusV3Prompt } from '@/shared/types/video-prompt-v3';
 
 /**
  * 버전별 프롬프트 Union Type
@@ -57,7 +57,7 @@ export function isV2Prompt(prompt: UniversalPrompt): prompt is VideoPrompt {
 /**
  * 기본 V2 프롬프트 생성
  */
-export function createEmptyV2Prompt(): import('./video-prompt').VideoPrompt {
+export function createEmptyV2Prompt(): import('@/shared/types/video-prompt').VideoPrompt {
   return {
     metadata: {
       prompt_name: '',
