@@ -216,4 +216,5 @@ if (require.main === module) {
   main();
 }
 
-export { validateEnvironment, ValidationOptions, ValidationResult };
+export { validateEnvironment };
+export type { ValidationOptions, ValidationResult };

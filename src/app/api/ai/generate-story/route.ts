@@ -243,7 +243,14 @@ export async function POST(request: NextRequest) {
 
     // 1단계: Gemini 2.0 Flash 시도 (주요)
     try {
-      const geminiResult = await generateStoryWithGemini(data);
+      // toneAndManner를 string으로 정규화
+      const normalizedData = {
+        ...data,
+        toneAndManner: Array.isArray(data.toneAndManner)
+          ? data.toneAndManner.join(', ')
+          : data.toneAndManner
+      };
+      const geminiResult = await generateStoryWithGemini(normalizedData);
 
       if (geminiResult.success && geminiResult.steps) {
         console.log('DEBUG: Gemini 스토리 생성 성공:', {
@@ -277,7 +284,9 @@ export async function POST(request: NextRequest) {
       const openaiResult = await generateStoryWithOpenAI({
         story: data.oneLineStory,
         genre: data.genre,
-        tone: data.toneAndManner,
+        tone: Array.isArray(data.toneAndManner)
+          ? data.toneAndManner.join(', ')
+          : data.toneAndManner,
         target: data.target,
         duration: data.duration,
         format: data.format,
