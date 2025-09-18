@@ -298,7 +298,7 @@ async function insertSeedTemplates() {
     console.log(`📋 기존 시드 템플릿: ${existingTemplates?.length || 0}개`);
 
     // 새로운 템플릿만 필터링
-    const existingTitles = new Set(existingTemplates?.map(t => t.title) || []);
+    const existingTitles = new Set(existingTemplates?.map((t: any) => t.title) || []);
     const newTemplates = SEED_TEMPLATES.filter(template =>
       !existingTitles.has(template.title)
     );
@@ -326,7 +326,7 @@ async function insertSeedTemplates() {
     console.log(`📊 삽입된 템플릿: ${data?.length}개`);
 
     // 카테고리별 통계 출력
-    const categoryCounts = data?.reduce((acc, template) => {
+    const categoryCounts = data?.reduce((acc: any, template: any) => {
       acc[template.category] = (acc[template.category] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
