@@ -43,7 +43,7 @@ print_banner() {
     echo ""
 }
 
-# 환경 검사
+# 환경 검사 + 통합된 환경변수 검증
 check_environment() {
     log_info "환경 검사 중..."
 
@@ -63,6 +63,20 @@ check_environment() {
     if [ ! -d "node_modules" ]; then
         log_info "의존성 설치 중..."
         pnpm install --frozen-lockfile
+    fi
+
+    # 통합된 환경변수 검증 스크립트 실행
+    log_info "🔧 통합 환경변수 검증 시스템 실행 중..."
+    if [ -f "scripts/validate-env-realtime.ts" ]; then
+        if npx tsx scripts/validate-env-realtime.ts; then
+            log_success "✅ 환경변수 검증 통과 (강화된 시스템)"
+        else
+            log_critical "❌ 환경변수 검증 실패 - $300 사건 위험!"
+            log_error "필수 환경변수 설정이나 형식에 문제가 있습니다"
+            exit 1
+        fi
+    else
+        log_warning "환경변수 검증 스크립트를 찾을 수 없습니다"
     fi
 
     log_success "환경 검사 완료"
@@ -151,6 +165,13 @@ run_auth_tests() {
         return 1
     fi
 
+    # 최종 무한 루프 방지 검증 테스트
+    log_info "🚨 최종 $300 사건 방지 검증..."
+    if ! pnpm test src/__tests__/quality-gates/infinite-loop-prevention-final.test.ts --silent; then
+        log_error "최종 $300 사건 방지 검증 실패"
+        return 1
+    fi
+
     # 기존 에러 핸들링 테스트
     log_info "401/400 에러 핸들링 테스트..."
     if ! pnpm test src/__tests__/auth/error-handling-401-400.test.ts --silent; then
@@ -166,6 +187,55 @@ run_auth_tests() {
     fi
 
     log_success "인증 시스템 테스트 통과"
+}
+
+# Planning 저장소 테스트
+run_planning_tests() {
+    log_info "📊 Planning 이중 저장소 테스트 실행 중..."
+
+    # 이중 저장소 품질 검증 테스트
+    log_info "Planning 이중 저장소 품질 검증..."
+    if ! pnpm test src/__tests__/planning/dual-storage-quality-verification.test.ts --silent; then
+        log_error "Planning 이중 저장소 품질 검증 실패"
+        return 1
+    fi
+
+    log_success "Planning 저장소 테스트 통과"
+}
+
+# Seedance 연동 테스트
+run_seedance_tests() {
+    log_info "🎬 Seedance API 연동 테스트 실행 중..."
+
+    # $300 사건 방지: 하드코딩 키 완전 박멸 테스트
+    log_info "🚨 Seedance 하드코딩 키 방지 테스트..."
+    if ! pnpm test seedance-hardcoded-key-prevention --silent; then
+        log_error "Seedance 하드코딩 키 방지 테스트 실패"
+        return 1
+    fi
+
+    # 프로덕션 환경 503 에러 처리 테스트
+    log_info "Seedance 프로덕션 에러 시나리오 테스트..."
+    if ! pnpm test seedance-production-error-scenarios --silent; then
+        log_error "Seedance 프로덕션 에러 시나리오 테스트 실패"
+        return 1
+    fi
+
+    # API 통합 테스트
+    log_info "Seedance API 통합 테스트..."
+    if ! INTEGRATION_TEST=true pnpm test seedance-api-integration --silent; then
+        log_error "Seedance API 통합 테스트 실패"
+        return 1
+    fi
+
+    # API 키 검증 품질 테스트 (기존)
+    log_info "Seedance API 키 검증 품질 테스트..."
+    if ! pnpm test src/__tests__/seedance/api-key-validation-quality.test.ts --silent; then
+        log_error "Seedance API 키 검증 품질 테스트 실패"
+        return 1
+    fi
+
+    log_success "Seedance 연동 테스트 통과"
 }
 
 # 통합 테스트 및 데이터 일관성 검사
@@ -453,12 +523,18 @@ main() {
     local start_time=$(date +%s)
     local failed_checks=()
 
-    # 각 검사 실행
+    # 각 검사 실행 (단계별)
     check_environment || failed_checks+=("환경 검사")
     check_infinite_loop_patterns || failed_checks+=("$300 사건 방지 검사")
     run_type_check || failed_checks+=("타입 검사")
     run_lint || failed_checks+=("린팅")
+
+    # 핵심 도메인 테스트
     run_auth_tests || failed_checks+=("인증 시스템 테스트")
+    run_planning_tests || failed_checks+=("Planning 저장소 테스트")
+    run_seedance_tests || failed_checks+=("Seedance 연동 테스트")
+
+    # 통합 및 품질 검사
     run_integration_tests || failed_checks+=("통합 테스트 및 데이터 일관성 검사")
     run_api_safety_check || failed_checks+=("API 안전성 검사")
     run_performance_check || failed_checks+=("성능 검사")

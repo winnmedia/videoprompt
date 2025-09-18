@@ -5,7 +5,7 @@ import {
   type VideoPrompt,
   type PromptGenerationState,
   type AIResponse,
-} from '@/types/video-prompt';
+} from '@/shared/types/video-prompt';
 import { cn } from '@/shared/lib/utils';
 import { safeFetch } from '@/shared/lib/api-retry';
 

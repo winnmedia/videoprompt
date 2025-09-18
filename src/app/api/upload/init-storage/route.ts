@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { logger, LogCategory } from '@/shared/lib/structured-logger';
 
@@ -21,6 +21,26 @@ export async function POST(request: NextRequest) {
       bucket: BUCKET_NAME,
       traceId
     });
+
+    // getSupabaseClientSafe를 사용한 안전한 클라이언트 초기화
+    let supabase;
+    try {
+      supabase = await getSupabaseClientSafe('anon');
+    } catch (error) {
+      if (error instanceof ServiceConfigError) {
+        logger.error(LogCategory.DATABASE, 'Supabase client initialization failed', error, { traceId });
+        return NextResponse.json(
+          failure(error.errorCode, error.message, error.statusCode, 'Supabase client not initialized', traceId),
+          { status: error.statusCode }
+        );
+      }
+
+      logger.error(LogCategory.DATABASE, 'Unexpected Supabase client error', error, { traceId });
+      return NextResponse.json(
+        failure('SUPABASE_CONFIG_ERROR', 'Backend configuration error. Please contact support.', 503, 'Supabase client initialization failed', traceId),
+        { status: 503 }
+      );
+    }
 
     // 기존 버킷 확인
     const { data: existingBuckets, error: listError } = await supabase.storage.listBuckets();
@@ -113,6 +133,19 @@ export async function POST(request: NextRequest) {
 // GET 요청으로 현재 버킷 상태 확인
 export async function GET() {
   try {
+    // getSupabaseClientSafe를 사용한 안전한 클라이언트 초기화
+    let supabase;
+    try {
+      supabase = await getSupabaseClientSafe('anon');
+    } catch (error) {
+      const errorMessage = error instanceof ServiceConfigError ? error.message : 'Supabase client initialization failed';
+      return NextResponse.json({
+        service: 'Supabase Storage Initialization',
+        error: errorMessage,
+        status: 'error'
+      }, { status: 503 });
+    }
+
     const { data: buckets, error } = await supabase.storage.listBuckets();
 
     if (error) {

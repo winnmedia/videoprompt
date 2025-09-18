@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
 import type { ScenarioMetadata } from '@/shared/types/metadata';
 import {
   GetStoriesQuerySchema,

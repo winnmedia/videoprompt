@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase, supabaseAdmin, checkSupabaseConnection } from '@/lib/supabase';
+import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 
 export const runtime = 'nodejs';
@@ -29,12 +29,41 @@ export async function GET(request: NextRequest) {
 
     // 1. 기본 연결 테스트
     console.log(`[Health Check ${traceId}] 📡 기본 연결 테스트 중...`);
-    const connectionResult = await checkSupabaseConnection();
-    healthResults.supabase.connection = {
-      status: connectionResult.success ? 'healthy' : 'error',
-      latency: connectionResult.latency,
-      ...(connectionResult.error && { error: connectionResult.error })
-    } as any;
+    const startTime = Date.now();
+    try {
+      const { data, error } = await supabase.from('users').select('count').limit(1);
+      const latency = Date.now() - startTime;
+      healthResults.supabase.connection = {
+        status: error ? 'error' : 'healthy',
+        latency,
+        ...(error && { error: error.message })
+      } as any;
+    } catch (error) {
+      const latency = Date.now() - startTime;
+      healthResults.supabase.connection = {
+        status: 'error',
+        latency,
+        error: error instanceof Error ? error.message : String(error)
+      } as any;
+    }
+
+    // getSupabaseClientSafe를 사용한 안전한 클라이언트 초기화
+    let supabase;
+    try {
+      supabase = await getSupabaseClientSafe('anon');
+    } catch (error) {
+      const errorMessage = error instanceof ServiceConfigError ? error.message : 'Supabase client initialization failed';
+      return NextResponse.json(
+        failure(
+          'SUPABASE_CONFIG_ERROR',
+          errorMessage,
+          503,
+          undefined,
+          traceId
+        ),
+        { status: 503 }
+      );
+    }
 
     // 2. Public Client 테스트
     console.log(`[Health Check ${traceId}] 👤 Public Client 테스트 중...`);
@@ -55,6 +84,17 @@ export async function GET(request: NextRequest) {
 
     // 3. Admin Client 테스트 (사용 가능한 경우)
     console.log(`[Health Check ${traceId}] 🔑 Admin Client 테스트 중...`);
+    let supabaseAdmin;
+    try {
+      supabaseAdmin = await getSupabaseClientSafe('admin');
+    } catch (adminError) {
+      healthResults.supabase.adminClient = {
+        status: 'unavailable',
+        available: false,
+        note: adminError instanceof ServiceConfigError ? adminError.message : 'SUPABASE_SERVICE_ROLE_KEY 환경변수가 설정되지 않음'
+      } as any;
+    }
+
     if (supabaseAdmin) {
       try {
         const { data, error } = await supabaseAdmin.auth.admin.listUsers({

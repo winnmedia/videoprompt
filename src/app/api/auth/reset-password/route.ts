@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { addCorsHeaders } from '@/shared/lib/cors-utils';
 import { checkRateLimit, RATE_LIMITS } from '@/shared/lib/rate-limiter';
@@ -65,12 +65,43 @@ export async function POST(req: NextRequest) {
 
     console.log(`🔐 Password reset attempt with token`);
 
+    // 환경변수 안전성 확인
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error(`❌ Supabase 환경변수가 설정되지 않음`);
+      const response = NextResponse.json(
+        failure(
+          'SUPABASE_CONFIG_ERROR',
+          '서버 설정 오류가 발생했습니다. 관리자에게 문의해주세요.',
+          500,
+          'Missing Supabase environment variables',
+          traceId
+        ),
+        { status: 500 }
+      );
+      return addCorsHeaders(response);
+    }
+
     // Supabase에 새 인스턴스를 만들어 임시 세션 설정
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabaseSession = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_ANON_KEY!
-    );
+    let supabaseSession;
+    try {
+      supabaseSession = await getSupabaseClientSafe('anon');
+    } catch (createError) {
+      console.error(`❌ Supabase 클라이언트 생성 실패:`, createError);
+      const response = NextResponse.json(
+        failure(
+          'SUPABASE_CLIENT_ERROR',
+          '인증 서비스 초기화에 실패했습니다.',
+          500,
+          createError instanceof Error ? createError.message : 'Supabase client creation failed',
+          traceId
+        ),
+        { status: 500 }
+      );
+      return addCorsHeaders(response);
+    }
 
     // 임시 세션 설정
     const { data: sessionData, error: sessionError } = await supabaseSession.auth.setSession({

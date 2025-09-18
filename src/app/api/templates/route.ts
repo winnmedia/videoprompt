@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
-import { failure, success, getTraceId } from '@/shared/lib/api-response';
+import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
+import { failure, success, getTraceId, supabaseErrors } from '@/shared/lib/api-response';
 
 export const runtime = 'nodejs';
 
@@ -61,6 +61,29 @@ export async function GET(req: NextRequest) {
 
     try {
       console.log(`[Templates ${traceId}] 🔍 Supabase에서 템플릿 조회 시작`);
+
+      // getSupabaseClientSafe를 사용한 안전한 클라이언트 초기화
+      let supabase;
+      try {
+        supabase = await getSupabaseClientSafe('anon');
+      } catch (error) {
+        if (error instanceof ServiceConfigError) {
+          console.error(`[Templates ${traceId}] ❌ Supabase client initialization failed:`, error.message);
+          return supabaseErrors.configError(traceId, error.message);
+        }
+
+        console.error(`[Templates ${traceId}] ❌ Unexpected Supabase client error:`, error);
+
+        // 네트워크 관련 오류 감지
+        const errorMessage = String(error);
+        if (errorMessage.includes('fetch') ||
+            errorMessage.includes('network') ||
+            errorMessage.includes('ENOTFOUND')) {
+          return supabaseErrors.unavailable(traceId, errorMessage);
+        }
+
+        return supabaseErrors.configError(traceId, errorMessage);
+      }
 
       // 기본 쿼리 구성
       let query = supabase

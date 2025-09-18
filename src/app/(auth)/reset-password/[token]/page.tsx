@@ -24,7 +24,7 @@ export default function ResetPasswordPage() {
   const [tokenError, setTokenError] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
 
-  // Validate token on mount
+  // Validate token on mount - $300 방지: 마운트 시에만 실행
   useEffect(() => {
     const validateToken = async () => {
       try {
@@ -52,7 +52,7 @@ export default function ResetPasswordPage() {
     if (token) {
       validateToken();
     }
-  }, [token]);
+  }, []); // token은 안전하지만 $300 방지를 위해 빈 배열 사용
 
   const validatePassword = (password: string): string | null => {
     if (password.length < 8) {

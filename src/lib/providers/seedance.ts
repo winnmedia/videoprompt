@@ -93,12 +93,42 @@ const DEFAULT_MODEL_ID =
   process.env.MODELARK_ENDPOINT_ID ||
   '';
 
+import {
+  isValidSeedanceApiKey,
+  shouldUseMockProvider as shouldUseMockProviderValidator,
+  getApiKeyFromEnv,
+  getApiKeyStatus
+} from './seedance-validators';
+
+/**
+ * Mock provider 사용 여부 결정 (검증 모듈에서 가져옴)
+ */
+function shouldUseMockProvider(): boolean {
+  return shouldUseMockProviderValidator();
+}
+
 export async function createSeedanceVideo(
   payload: SeedanceCreatePayload,
 ): Promise<SeedanceCreateResult> {
+  // Mock provider 자동 폴백 체크
+  if (shouldUseMockProvider()) {
+    console.log('🎭 Using Mock provider for video generation');
+    const { createMockVideo } = await import('./mock-seedance');
+    return createMockVideo(payload);
+  }
+
   const url = process.env.SEEDANCE_API_URL_CREATE || DEFAULT_CREATE_URL;
-  const envApiKey = process.env.SEEDANCE_API_KEY || process.env.MODELARK_API_KEY;
-  const apiKey = envApiKey || '007f7ffe-cefa-4343-adf9-607f9ae9a7c7';
+  const envApiKey = getApiKeyFromEnv();
+
+  if (!envApiKey || !isValidSeedanceApiKey(envApiKey)) {
+    // 프로덕션에서 키가 없거나 잘못된 경우
+    const error = 'Seedance API 키가 설정되지 않았거나 올바르지 않습니다. 관리자에게 문의하세요.';
+    const status = getApiKeyStatus();
+    console.error('❌ Seedance API key validation failed:', status);
+    throw new Error(error);
+  }
+
+  const apiKey = envApiKey;
 
   console.log('DEBUG: Seedance 영상 생성 시작:', {
     url,
@@ -368,17 +398,36 @@ function buildStatusUrl(jobId: string): string | undefined {
 }
 
 export async function getSeedanceStatus(jobId: string): Promise<SeedanceStatusResult> {
-  const url = buildStatusUrl(jobId);
-  const envApiKey = process.env.SEEDANCE_API_KEY || process.env.MODELARK_API_KEY;
-  const apiKey = envApiKey || '007f7ffe-cefa-4343-adf9-607f9ae9a7c7';
+  // Mock provider 자동 폴백 체크
+  if (shouldUseMockProvider()) {
+    console.log('🎭 Using Mock provider for status check');
+    const { getMockStatus } = await import('./mock-seedance');
+    return getMockStatus(jobId);
+  }
 
-  if (!url || !apiKey) {
-    // API 키가 설정되지 않은 경우 에러 반환 (Mock 모드 제거)
+  const url = buildStatusUrl(jobId);
+  const envApiKey = getApiKeyFromEnv();
+
+  if (!envApiKey || !isValidSeedanceApiKey(envApiKey)) {
+    // API 키가 설정되지 않은 경우 에러 반환 (하드코딩 키 제거)
+    const status = getApiKeyStatus();
+    console.error('❌ Seedance status check failed - invalid API key:', status);
     return {
       ok: false,
       jobId,
       status: 'error',
-      error: 'Seedance API 키가 설정되지 않았습니다. 환경변수 SEEDANCE_API_KEY를 설정해주세요.',
+      error: 'Seedance API 키가 설정되지 않았거나 올바르지 않습니다. 관리자에게 문의하세요.',
+    };
+  }
+
+  const apiKey = envApiKey;
+
+  if (!url) {
+    return {
+      ok: false,
+      jobId,
+      status: 'error',
+      error: 'Seedance API URL이 올바르지 않습니다.',
     };
   }
 

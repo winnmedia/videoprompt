@@ -1,22 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { failure, success, getTraceId } from '@/shared/lib/api-response';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 
 export const runtime = 'nodejs';
 
-// Supabase Admin Client (bypasses RLS policies)
-const getSupabaseAdmin = () => {
-  return createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  );
-};
 
 // CORS headers for preflight requests
 export async function OPTIONS() {
@@ -212,7 +199,13 @@ export async function POST(req: NextRequest) {
     console.log(`[Seed Templates ${traceId}] 📝 ${seedTemplates.length}개 템플릿 삽입 시작`);
 
     // Insert seed data using Supabase Admin Client - one by one
-    const supabaseAdmin = getSupabaseAdmin();
+    let supabaseAdmin;
+    try {
+      supabaseAdmin = await getSupabaseClientSafe('admin');
+    } catch (envError) {
+      console.error(`[Seed Templates ${traceId}] ❌ Supabase 클라이언트 초기화 실패:`, envError);
+      return failure('SUPABASE_CONFIG_ERROR', 'Supabase 설정이 올바르지 않습니다.', 500, envError instanceof Error ? envError.message : 'Supabase configuration error', traceId);
+    }
 
     console.log(`[Seed Templates ${traceId}] 🔑 Service Role로 개별 삽입 시작`);
 
@@ -279,7 +272,13 @@ export async function GET(req: NextRequest) {
   console.log(`[Seed Templates ${traceId}] 🔍 템플릿 현황 확인`);
 
   try {
-    const supabaseAdmin = getSupabaseAdmin();
+    let supabaseAdmin;
+    try {
+      supabaseAdmin = await getSupabaseClientSafe('admin');
+    } catch (envError) {
+      console.error(`[Seed Templates ${traceId}] ❌ Supabase 클라이언트 초기화 실패:`, envError);
+      return failure('SUPABASE_CONFIG_ERROR', 'Supabase 설정이 올바르지 않습니다.', 500, envError instanceof Error ? envError.message : 'Supabase configuration error', traceId);
+    }
 
     const { count, error } = await supabaseAdmin
       .from('templates')

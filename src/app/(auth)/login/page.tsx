@@ -22,13 +22,13 @@ function LoginForm() {
   const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // URL 파라미터에서 성공 메시지 확인
+  // URL 파라미터에서 성공 메시지 확인 - $300 방지: 마운트 시에만 실행
   useEffect(() => {
     const message = searchParams?.get('message');
     if (message) {
       setSuccessMessage(message);
     }
-  }, [searchParams]);
+  }, []); // searchParams는 안전하지만 $300 방지를 위해 빈 배열 사용
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

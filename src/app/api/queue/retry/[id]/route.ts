@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { success, failure, getTraceId } from '@/shared/lib/api-response';
-import { requireSupabaseAuthentication, getSupabaseUser } from '@/shared/lib/auth-supabase';
-import { supabase } from '@/lib/supabase';
+import { success, failure, getTraceId, supabaseErrors } from '@/shared/lib/api-response';
+import { withAuth } from '@/shared/lib/auth-middleware-v2';
+import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
 import { logger, LogCategory } from '@/shared/lib/structured-logger';
 
 export const runtime = 'nodejs';
@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
  * - Realtime 업데이트로 즉시 상태 반영
  * - 기존 API 호환성 유지
  */
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const POST = withAuth(async (req, { user, authContext }, { params }: { params: Promise<{ id: string }> }) => {
   try {
     const traceId = getTraceId(req);
 
@@ -25,39 +25,63 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       userAgent: req.headers.get('user-agent') || undefined,
     });
 
-    logger.info(LogCategory.API, 'Queue retry request started (Supabase)', {
+    logger.info(LogCategory.API, 'Queue retry request started (withAuth v2)', {
       traceId,
+      userId: user.id,
+      tokenType: user.tokenType
     });
-
-    // Supabase 사용자 인증 확인
-    const userId = await requireSupabaseAuthentication(req);
-    if (!userId) {
-      logger.warn(LogCategory.API, 'Unauthorized queue retry request', { traceId });
-      return failure('UNAUTHORIZED', '인증이 필요합니다.', 401, undefined, traceId);
-    }
-
-    const user = await getSupabaseUser(req);
     const { id } = await params;
 
     logger.debug(LogCategory.SECURITY, 'User authentication successful for retry', {
-      userId,
+      userId: user.id,
       userEmail: user?.email,
       videoAssetId: id,
       traceId
     });
+
+    // getSupabaseClientSafe를 사용한 안전한 클라이언트 초기화
+    let supabase;
+    try {
+      supabase = await getSupabaseClientSafe('anon');
+    } catch (error) {
+      if (error instanceof ServiceConfigError) {
+        logger.error(LogCategory.DATABASE, 'Supabase client initialization failed', error, {
+          userId: user.id,
+          videoAssetId: id,
+          traceId
+        });
+        return supabaseErrors.configError(traceId, error.message);
+      }
+
+      logger.error(LogCategory.DATABASE, 'Unexpected Supabase client error', error, {
+        userId: user.id,
+        videoAssetId: id,
+        traceId
+      });
+
+      // 네트워크 관련 오류 감지
+      const errorMessage = String(error);
+      if (errorMessage.includes('fetch') ||
+          errorMessage.includes('network') ||
+          errorMessage.includes('ENOTFOUND')) {
+        return supabaseErrors.unavailable(traceId, errorMessage);
+      }
+
+      return supabaseErrors.configError(traceId, errorMessage);
+    }
 
     // Supabase에서 VideoAsset 확인
     const { data: videoAsset, error: fetchError } = await supabase
       .from('video_assets')
       .select('id, status, title, user_id')
       .eq('id', id)
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .single();
 
     if (fetchError) {
       logger.error(LogCategory.DATABASE, 'Failed to fetch video asset for retry', fetchError, {
         videoAssetId: id,
-        userId,
+        userId: user.id,
         traceId
       });
 
@@ -78,7 +102,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!videoAsset) {
       logger.warn(LogCategory.API, 'Video asset not found for retry', {
         videoAssetId: id,
-        userId,
+        userId: user.id,
         traceId
       });
       return failure('NOT_FOUND', '작업을 찾을 수 없습니다.', 404, undefined, traceId);
@@ -89,7 +113,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       logger.warn(LogCategory.API, 'Invalid status for retry', {
         videoAssetId: id,
         currentStatus: videoAsset.status,
-        userId,
+        userId: user.id,
         traceId
       });
       return failure('INVALID_STATUS', '실패한 작업만 재시도할 수 있습니다.', 400, undefined, traceId);
@@ -99,7 +123,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       videoAssetId: id,
       title: videoAsset.title,
       currentStatus: videoAsset.status,
-      userId,
+      userId: user.id,
       traceId
     });
 
@@ -111,14 +135,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
-      .eq('user_id', userId) // 보안: 사용자 소유 확인
+      .eq('user_id', user.id) // 보안: 사용자 소유 확인
       .select('id, status, title, updated_at')
       .single();
 
     if (updateError) {
       logger.error(LogCategory.DATABASE, 'Failed to update video asset status for retry', updateError, {
         videoAssetId: id,
-        userId,
+        userId: user.id,
         traceId
       });
 
@@ -135,7 +159,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       videoAssetId: id,
       newStatus: updatedAsset?.status,
       updatedAt: updatedAsset?.updated_at,
-      userId,
+      userId: user.id,
       traceId
     });
 
@@ -165,4 +189,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // 컨텍스트 정리
     logger.clearContext();
   }
-}
+}, {
+  endpoint: '/api/queue/retry/[id]',
+  allowGuest: false,  // 인증 필수
+  requireEmailVerified: false
+});

@@ -76,7 +76,8 @@ export async function POST(request: NextRequest) {
     // 2단계: Veo3 API 시도
     if (provider === 'auto' || provider === 'veo') {
       try {
-        const veoRes = await fetch('https://videoprompt-production.up.railway.app/api/veo/create', {
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
+        const veoRes = await fetch(`${apiBaseUrl}/api/veo/create`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

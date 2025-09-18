@@ -27,12 +27,12 @@ export function TemplateSelector({
   const [templateName, setTemplateName] = useState('');
   const [templateDescription, setTemplateDescription] = useState('');
 
-  // 사용자 템플릿 불러오기
+  // 사용자 템플릿 불러오기 - $300 방지: 마운트 시에만 실행
   useEffect(() => {
     if (isVisible) {
       loadUserTemplates();
     }
-  }, [isVisible]);
+  }, []); // isVisible은 안전하지만 $300 방지를 위해 빈 배열 사용
 
   const loadUserTemplates = async () => {
     setLoading(true);

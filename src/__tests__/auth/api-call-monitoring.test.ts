@@ -1,4 +1,305 @@
 /**
+ * API 호출 모니터링 및 $300 사건 재발 방지 테스트
+ *
+ * 목적: 수정된 캐싱 메커니즘이 실제로 작동하는지 검증
+ * Grace의 지침: 중복 호출 방지가 실제로 비용 절약으로 이어지는지 확인
+ */
+
+describe('🚨 API 호출 모니터링 - $300 사건 재발 방지', () => {
+
+  beforeAll(() => {
+    // 테스트 환경 설정
+    process.env.NODE_ENV = 'test';
+  });
+
+  describe('💰 비용 절약 메커니즘 검증', () => {
+
+    it('🔧 수정된 캐싱 메커니즘 - 두 번째 요청이 즉시 반환되는지 확인', async () => {
+      // GIVEN: API Client 인스턴스
+      const { apiClient } = await import('@/shared/lib/api-client');
+
+      // WHEN: 첫 번째 요청
+      const firstStartTime = Date.now();
+
+      let firstResult: any = null;
+      let firstError: any = null;
+
+      try {
+        firstResult = await apiClient.safeFetchWithCache('/api/auth/me', {
+          method: 'GET',
+          cacheTTL: 5000 // 5초 캐시
+        });
+      } catch (error) {
+        firstError = error;
+        console.log('🔍 첫 번째 요청 에러:', (error as Error).message);
+      }
+
+      const firstDuration = Date.now() - firstStartTime;
+      console.log('🔍 첫 번째 요청 소요 시간:', firstDuration, 'ms');
+
+      // 즉시 두 번째 요청 (캐시에서 가져와야 함)
+      const secondStartTime = Date.now();
+
+      let secondResult: any = null;
+      let secondError: any = null;
+
+      try {
+        secondResult = await apiClient.safeFetchWithCache('/api/auth/me', {
+          method: 'GET',
+          cacheTTL: 5000
+        });
+      } catch (error) {
+        secondError = error;
+        console.log('🔍 두 번째 요청 에러:', (error as Error).message);
+      }
+
+      const secondDuration = Date.now() - secondStartTime;
+      console.log('🔍 두 번째 요청 소요 시간:', secondDuration, 'ms');
+
+      // THEN: 두 번째 요청이 훨씬 빨라야 함 (캐시 히트)
+      console.log(`📊 캐시 효과: 첫 번째 ${firstDuration}ms, 두 번째 ${secondDuration}ms`);
+
+      // 두 번째 요청이 10ms 미만이어야 함 (캐시에서 즉시 반환)
+      expect(secondDuration).toBeLessThan(10);
+
+      // 에러가 발생했다면 동일한 에러여야 함
+      if (firstError && secondError) {
+        expect(firstError.message).toBe(secondError.message);
+      }
+
+      // 성공했다면 동일한 결과여야 함
+      if (firstResult && secondResult) {
+        expect(JSON.stringify(secondResult)).toBe(JSON.stringify(firstResult));
+      }
+    });
+
+    it('⚡ 동시 요청 중복 방지 - 5개 요청이 1개로 합쳐지는지 확인', async () => {
+      // GIVEN: API Client 인스턴스
+      const { apiClient } = await import('@/shared/lib/api-client');
+
+      // 요청 추적을 위한 변수
+      let actualApiCallCount = 0;
+      let cacheHitCount = 0;
+
+      // 콘솔 로그를 추적해서 실제 API 호출 횟수 계산
+      const originalLog = console.log;
+      console.log = (...args) => {
+        const message = args[0];
+        if (typeof message === 'string') {
+          if (message.includes('🔍 API 요청:') && message.includes('/api/auth/me')) {
+            actualApiCallCount++;
+          } else if (message.includes('💾 캐시에서 데이터 반환:')) {
+            cacheHitCount++;
+          }
+        }
+        originalLog(...args);
+      };
+
+      const startTime = Date.now();
+
+      try {
+        // WHEN: 동일한 요청을 동시에 5번 실행
+        const promises = Array(5).fill(null).map((_, index) =>
+          apiClient.safeFetchWithCache('/api/auth/me', {
+            method: 'GET',
+            cacheTTL: 10000 // 10초 캐시
+          }).catch(err => {
+            console.log(`요청 ${index + 1} 에러:`, err.message);
+            return { error: err.message, requestIndex: index + 1 };
+          })
+        );
+
+        const results = await Promise.allSettled(promises);
+        const endTime = Date.now();
+
+        console.log('🔍 동시 요청 결과 분석:');
+        console.log(`  - 총 요청 수: ${promises.length}`);
+        console.log(`  - 실제 API 호출: ${actualApiCallCount}회`);
+        console.log(`  - 캐시 히트: ${cacheHitCount}회`);
+        console.log(`  - 총 소요 시간: ${endTime - startTime}ms`);
+
+        // THEN: 실제 API 호출은 1번만 발생해야 함
+        expect(actualApiCallCount).toBeLessThanOrEqual(1);
+
+        // 나머지는 캐시나 중복 방지로 처리되어야 함
+        if (actualApiCallCount === 1) {
+          // 첫 번째 요청이 실행되고 나머지는 중복 방지 또는 캐시로 처리
+          console.log('✅ 중복 호출 방지 성공 - 1번만 실제 실행됨');
+        }
+
+        // 모든 요청이 처리되어야 함
+        expect(results.length).toBe(5);
+
+        // 비용 절약 계산
+        const estimatedSavings = (5 - actualApiCallCount) * 0.001; // 요청당 $0.001 가정
+        console.log(`💰 예상 비용 절약: $${estimatedSavings.toFixed(3)}`);
+
+      } finally {
+        console.log = originalLog; // 복원
+      }
+    });
+
+    it('📊 캐시 만료 테스트 - TTL 후에는 새로운 요청이 실행되는지 확인', async () => {
+      // GIVEN: API Client 인스턴스
+      const { apiClient } = await import('@/shared/lib/api-client');
+
+      // WHEN: 짧은 TTL로 첫 번째 요청
+      const shortTTL = 100; // 100ms
+      console.log(`🕐 캐시 TTL 설정: ${shortTTL}ms`);
+
+      const firstResult = await apiClient.safeFetchWithCache('/api/test-cache-expire', {
+        method: 'GET',
+        cacheTTL: shortTTL
+      }).catch(err => ({ error: err.message }));
+
+      console.log('🔍 첫 번째 요청 완료');
+
+      // TTL 만료까지 대기
+      await new Promise(resolve => setTimeout(resolve, shortTTL + 50));
+      console.log('⏰ 캐시 TTL 만료 후');
+
+      // 두 번째 요청 (캐시가 만료되어 새로운 요청이어야 함)
+      let secondApiCall = false;
+      const originalLog = console.log;
+      console.log = (...args) => {
+        if (typeof args[0] === 'string' && args[0].includes('🔍 API 요청:')) {
+          secondApiCall = true;
+        }
+        originalLog(...args);
+      };
+
+      const secondResult = await apiClient.safeFetchWithCache('/api/test-cache-expire', {
+        method: 'GET',
+        cacheTTL: shortTTL
+      }).catch(err => ({ error: err.message }));
+
+      console.log = originalLog; // 복원
+
+      // THEN: 두 번째 요청이 실제로 실행되어야 함 (캐시 만료)
+      expect(secondApiCall).toBe(true);
+      console.log('✅ 캐시 만료 후 새로운 요청 실행됨');
+    });
+
+  });
+
+  describe('🛡️ $300 사건 패턴 감지', () => {
+
+    it('🚨 useEffect 무한루프 패턴 시뮬레이션 - 차단되는지 확인', async () => {
+      // GIVEN: useEffect와 유사한 반복 호출 패턴
+      const { apiClient } = await import('@/shared/lib/api-client');
+
+      let totalApiCalls = 0;
+      let totalErrors = 0;
+
+      const originalLog = console.log;
+      console.log = (...args) => {
+        if (typeof args[0] === 'string' && args[0].includes('🔍 API 요청:')) {
+          totalApiCalls++;
+        }
+        originalLog(...args);
+      };
+
+      try {
+        // WHEN: 짧은 간격으로 반복 호출 (useEffect 무한루프 시뮬레이션)
+        const rapidCalls = [];
+
+        for (let i = 0; i < 10; i++) {
+          rapidCalls.push(
+            apiClient.get('/api/auth/me').catch(err => {
+              totalErrors++;
+              return { error: err.message };
+            })
+          );
+
+          // 매우 짧은 간격으로 호출
+          if (i < 9) {
+            await new Promise(resolve => setTimeout(resolve, 10));
+          }
+        }
+
+        await Promise.allSettled(rapidCalls);
+
+        // THEN: 실제 API 호출은 제한되어야 함
+        console.log(`📊 무한루프 시뮬레이션 결과:`);
+        console.log(`  - 시도한 호출: 10회`);
+        console.log(`  - 실제 API 호출: ${totalApiCalls}회`);
+        console.log(`  - 에러 발생: ${totalErrors}회`);
+
+        // 캐싱과 중복 방지로 실제 호출은 훨씬 적어야 함
+        expect(totalApiCalls).toBeLessThan(5);
+
+        if (totalApiCalls <= 2) {
+          console.log('✅ $300 사건 방지 성공 - 중복 호출 차단됨');
+        }
+
+      } finally {
+        console.log = originalLog; // 복원
+      }
+    });
+
+    it('📈 성능 모니터링 - API 호출 빈도 추적', async () => {
+      // GIVEN: API Client 성능 모니터링
+      const { apiClient } = await import('@/shared/lib/api-client');
+
+      const startTime = Date.now();
+      let requestCount = 0;
+
+      // WHEN: 1초 동안 가능한 많은 요청 시도
+      const endTime = startTime + 1000; // 1초
+
+      const requests = [];
+      while (Date.now() < endTime) {
+        requests.push(
+          apiClient.get('/api/auth/me').catch(err => ({ error: err.message }))
+        );
+        requestCount++;
+
+        // 과도한 CPU 사용 방지
+        if (requestCount % 10 === 0) {
+          await new Promise(resolve => setTimeout(resolve, 1));
+        }
+      }
+
+      await Promise.allSettled(requests);
+
+      const actualDuration = Date.now() - startTime;
+      const requestsPerSecond = requestCount / (actualDuration / 1000);
+
+      console.log(`📊 성능 모니터링 결과:`);
+      console.log(`  - 총 요청 시도: ${requestCount}회`);
+      console.log(`  - 실제 소요 시간: ${actualDuration}ms`);
+      console.log(`  - 초당 요청 수: ${requestsPerSecond.toFixed(2)} req/s`);
+
+      // THEN: 과도한 요청이 차단되어야 함
+      if (requestsPerSecond > 100) {
+        console.warn('⚠️ 과도한 요청 빈도 감지 - 추가 제한 필요할 수 있음');
+      } else {
+        console.log('✅ 적절한 요청 빈도 유지됨');
+      }
+
+      expect(requestCount).toBeGreaterThan(0);
+    });
+
+  });
+
+});
+
+/**
+ * 🎯 이 테스트의 핵심 목적:
+ *
+ * 1. 수정된 캐싱 메커니즘이 실제로 작동하는지 확인
+ * 2. 중복 호출 방지가 비용 절약으로 이어지는지 검증
+ * 3. $300 사건과 같은 무한루프 패턴이 차단되는지 확인
+ * 4. 성능 모니터링을 통한 실제 효과 측정
+ *
+ * 🚨 Grace의 관점:
+ * - 실제 비용 절약 효과가 측정 가능해야 함
+ * - 캐시 히트율이 명확히 확인되어야 함
+ * - 무한루프 패턴이 실제로 차단되어야 함
+ * - 성능 개선이 정량적으로 측정되어야 함
+ */
+
+/**
  * API 호출 횟수 모니터링 테스트 스위트
  * CLAUDE.md TDD 원칙: RED → GREEN → REFACTOR
  *

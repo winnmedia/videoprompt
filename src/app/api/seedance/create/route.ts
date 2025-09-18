@@ -4,15 +4,28 @@ import {
   createSeedanceVideo,
   type SeedanceCreatePayload
 } from '@/lib/providers/seedance';
+import { getSeedanceProvider } from '@/lib/providers/mock-seedance';
+import { seedanceService, createSeedanceVideoWithFallback } from '@/lib/providers/seedance-service';
 import {
   createValidationErrorResponse,
   createErrorResponse,
   createSuccessResponse
 } from '@/shared/schemas/api.schema';
-import { getUserIdFromRequest } from '@/shared/lib/auth';
+import {
+  createUserFriendlyError,
+  detectErrorContext,
+  getCurrentEnvironment,
+  getErrorMessage
+} from '@/lib/providers/seedance-error-messages';
+import { withOptionalAuth } from '@/shared/lib/auth-middleware-v2';
+import { withErrorHandling } from '@/shared/lib/api-error-handler';
+import { envUtils } from '@/shared/config/env';
+import { validateSeedanceConfig, ServiceConfigError } from '@/shared/lib/service-config-error';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+// 중복된 키 검증 함수 제거됨 - validateSeedanceConfig()를 사용함
 
 // CORS 헤더 설정
 const corsHeaders = {
@@ -51,8 +64,45 @@ export async function OPTIONS() {
   return new NextResponse(null, { headers: corsHeaders });
 }
 
-export async function POST(request: NextRequest) {
+const postHandler = async (request: NextRequest, { user, authContext }: { user: { id: string | null }, authContext: any }) => {
   try {
+    // 1. 강화된 계약 기반 Seedance 설정 검증
+    let configValidation;
+    try {
+      configValidation = validateSeedanceConfig();
+      console.log('✅ Seedance 설정 검증 성공:', {
+        provider: configValidation.provider,
+        environment: configValidation.environment
+      });
+    } catch (error) {
+      if (error instanceof ServiceConfigError) {
+        console.error('🚨 Seedance 설정 검증 실패:', {
+          code: error.errorCode,
+          message: error.message
+        });
+
+        // ServiceConfigError를 그대로 응답으로 변환
+        return NextResponse.json({
+          success: false,
+          error: {
+            code: error.errorCode,
+            message: error.message,
+            httpStatus: error.httpStatus,
+            setupGuide: error.setupGuide,
+            keyAnalysis: error.keyAnalysis,
+            timestamp: new Date().toISOString(),
+            endpoint: '/api/seedance/create'
+          }
+        }, {
+          status: error.httpStatus,
+          headers: corsHeaders
+        });
+      } else {
+        // 예상치 못한 에러
+        throw error;
+      }
+    }
+
     const body = await request.json();
 
     console.log('DEBUG: SeeDance 영상 생성 요청 수신:', {
@@ -63,7 +113,7 @@ export async function POST(request: NextRequest) {
       hasImageUrl: !!body.image_url,
     });
 
-    // 입력 데이터 검증
+    // 2. 입력 데이터 검증
     const validationResult = SeedanceCreateSchema.safeParse(body);
     if (!validationResult.success) {
       const errorDetails = validationResult.error.issues.map(issue => ({
@@ -81,15 +131,9 @@ export async function POST(request: NextRequest) {
 
     const data = validationResult.data;
 
-    // 사용자 인증 (선택적)
-    let userId: string | null = null;
-    try {
-      const user = await getUserIdFromRequest(request);
-      userId = user || null;
-    } catch (authError) {
-      console.log('DEBUG: SeeDance 인증 실패 (계속 진행):', authError);
-      // 인증 실패해도 계속 진행 (익명 사용자 허용)
-    }
+    // 사용자 인증 정보 사용 (옵셔널 인증)
+    const userId = user.id;
+    console.log('DEBUG: SeeDance 사용자 정보:', { userId: userId || 'guest' });
 
     // SeeDance API 호출 준비
     const payload: SeedanceCreatePayload = {
@@ -110,28 +154,95 @@ export async function POST(request: NextRequest) {
       quality: data.quality,
     });
 
-    // SeeDance API 호출
-    const result = await createSeedanceVideo(payload);
+    // Graceful Degradation이 적용된 영상 생성
+    let result;
+    try {
+      result = await seedanceService.createVideo(payload);
+    } catch (error: any) {
+      console.error('❌ Seedance 영상 생성 중 예외 발생:', error);
+
+      // 환경별 맞춤 에러 메시지 생성
+      const userFriendlyError = createUserFriendlyError(error);
+      const context = detectErrorContext(error);
+      const environment = getCurrentEnvironment();
+
+      // API 키 관련 에러는 503으로 처리
+      if (context === 'api_key') {
+        return NextResponse.json(
+          userFriendlyError,
+          { status: 503, headers: corsHeaders }
+        );
+      }
+
+      // 검증 에러는 400으로 처리
+      if (context === 'validation') {
+        return NextResponse.json(
+          userFriendlyError,
+          { status: 400, headers: corsHeaders }
+        );
+      }
+
+      // 할당량 에러는 429로 처리
+      if (context === 'quota') {
+        return NextResponse.json(
+          userFriendlyError,
+          { status: 429, headers: corsHeaders }
+        );
+      }
+
+      // 기타 에러는 500으로 처리
+      return NextResponse.json(
+        userFriendlyError,
+        { status: 500, headers: corsHeaders }
+      );
+    }
 
     if (!result.ok) {
       console.error('DEBUG: SeeDance API 호출 실패:', result.error);
+
+      // 결과 에러도 환경별 맞춤 메시지로 처리
+      const userFriendlyError = createUserFriendlyError(result.error || 'Unknown error');
+      const context = detectErrorContext(result.error || '');
+
+      // 에러 컨텍스트에 따른 상태 코드 결정
+      let statusCode = 503; // 기본값
+      if (context === 'validation') statusCode = 400;
+      else if (context === 'quota') statusCode = 429;
+      else if (context === 'api_key') statusCode = 503;
+      else if (context === 'model') statusCode = 422;
+
       return NextResponse.json(
-        createErrorResponse('SEEDANCE_GENERATION_ERROR', result.error || 'SeeDance 영상 생성에 실패했습니다'),
-        { status: 503, headers: corsHeaders }
+        userFriendlyError,
+        { status: statusCode, headers: corsHeaders }
       );
     }
 
     console.log('DEBUG: SeeDance API 호출 성공:', {
       jobId: result.jobId,
       status: result.status,
+      source: result.source,
+      fallbackUsed: !!result.fallbackReason,
+      circuitBreakerTriggered: result.circuitBreakerTriggered,
       dashboardUrl: result.dashboardUrl,
     });
+
+    // 폴백 사용 시 사용자에게 알림
+    if (result.fallbackReason) {
+      console.warn('⚠️ Graceful degradation 작동:', result.fallbackReason);
+    }
 
     // 성공 응답
     const response = createSuccessResponse({
       jobId: result.jobId,
       status: result.status,
       dashboardUrl: result.dashboardUrl,
+      serviceInfo: {
+        source: result.source,
+        fallbackUsed: !!result.fallbackReason,
+        fallbackReason: result.fallbackReason,
+        circuitBreakerTriggered: result.circuitBreakerTriggered,
+        isProductionReady: result.source === 'real',
+      },
       metadata: {
         userId,
         projectId: data.project_id,
@@ -156,25 +267,36 @@ export async function POST(request: NextRequest) {
       { status: 500, headers: corsHeaders }
     );
   }
-}
+};
 
-// GET 요청으로 서비스 상태 확인
-export async function GET() {
+export const POST = withErrorHandling(
+  withOptionalAuth(postHandler, { endpoint: 'seedance-create' }),
+  { endpoint: '/api/seedance/create', requireSupabase: false, serviceName: 'seedance-create' }
+);
+
+// GET 요청으로 서비스 상태 확인 (통합된 환경변수 검증 사용)
+export const GET = withErrorHandling(async () => {
   try {
-    // 환경 변수 확인
-    const apiKey = process.env.SEEDANCE_API_KEY || process.env.MODELARK_API_KEY;
-    const model = process.env.SEEDANCE_MODEL;
-    const apiBase = process.env.SEEDANCE_API_BASE;
+    // 통합된 환경변수 시스템 사용
+    const apiKey = envUtils.optional('SEEDANCE_API_KEY');
+    const model = envUtils.optional('SEEDANCE_MODEL', 'default-model');
+    const apiBase = envUtils.optional('SEEDANCE_API_BASE', 'https://ark.ap-southeast.bytepluses.com');
 
     const status = {
       service: 'SeeDance Video Generation',
-      status: 'operational',
+      status: apiKey ? 'operational' : 'configuration_error',
       configuration: {
         hasApiKey: !!apiKey,
+        keyLength: apiKey ? apiKey.length : 0,
         hasModel: !!model,
         hasApiBase: !!apiBase,
         model: model || 'not configured',
         apiBase: apiBase || 'using default',
+        environmentValidation: {
+          passed: !!apiKey && apiKey.length >= 40,
+          minimumKeyLength: 40,
+          currentKeyLength: apiKey ? apiKey.length : 0
+        }
       },
       capabilities: {
         textToVideo: true,
@@ -191,12 +313,32 @@ export async function GET() {
         standard: '$0.05 per second',
         pro: '$0.10 per second',
         freeQuota: '100 seconds for new users',
-      }
+      },
+      setup: !apiKey ? {
+        step: '환경설정 필요',
+        requiredEnvVars: ['SEEDANCE_API_KEY'],
+        detailed_instructions: {
+          'step_1_get_key': {
+            title: '🔑 API 키 발급받기',
+            steps: [
+              'BytePlus ModelArk 콘솔 접속: https://console.volcengine.com/ark',
+              '계정 생성/로그인 → API Key 메뉴로 이동',
+              '"Create API Key" 버튼 클릭',
+              '생성된 키는 "ark_" 로 시작하는 40자 이상의 문자열입니다'
+            ]
+          },
+          'step_2_set_env': {
+            title: '⚙️ 환경변수 설정',
+            platforms: {
+              vercel: 'Vercel → Settings → Environment Variables → SEEDANCE_API_KEY 추가',
+              railway: 'Railway → Variables → New Variable → SEEDANCE_API_KEY 추가',
+              local: '.env.local 파일에 SEEDANCE_API_KEY=ark_your_key_here 추가'
+            }
+          }
+        },
+        helpUrl: 'https://docs.bytedance.com/modelark'
+      } : undefined
     };
-
-    if (!apiKey) {
-      status.status = 'configuration_error';
-    }
 
     return NextResponse.json(status, { headers: corsHeaders });
 
@@ -205,7 +347,7 @@ export async function GET() {
     return NextResponse.json({
       service: 'SeeDance Video Generation',
       status: 'error',
-      error: (error as Error).message,
+      error: error instanceof Error ? error.message : 'Unknown error',
     }, { status: 500, headers: corsHeaders });
   }
-}
+}, { endpoint: '/api/seedance/create', requireSupabase: false, serviceName: 'seedance-status' });

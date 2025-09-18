@@ -282,6 +282,27 @@ model StoryTemplate {
   @@map("story_templates")
 }
 
+model Planning {
+  id        String   @id @default(uuid())
+  type      String   // scenario, video, story, prompt, image
+  title     String
+  content   Json     // 실제 콘텐츠 데이터 (JSON 형태)
+  status    String   @default("draft") // draft, in-progress, completed, failed
+  userId    String?  @map("user_id")
+  version   Int      @default(1)
+  metadata  Json?    // 부가 메타데이터
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // 인덱스 설정
+  @@index([userId, type])
+  @@index([userId, status])
+  @@index([type, status])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@map("planning")
+}
+
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model MigrationLog {
   id                Int      @id @default(autoincrement())

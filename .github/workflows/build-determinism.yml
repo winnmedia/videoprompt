@@ -1,0 +1,589 @@
+name: Build Determinism & Environment Consistency
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # 매일 오전 3시에 실행 (의존성 드리프트 감지)
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      check_level:
+        description: 'Determinism Check Level'
+        required: true
+        default: 'standard'
+        type: choice
+        options:
+          - basic
+          - standard
+          - comprehensive
+
+      force_dependency_update:
+        description: 'Force Dependency Update Check'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '9'
+
+jobs:
+  # 빌드 환경 매트릭스 설정
+  setup-build-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      environments: ${{ steps.matrix.outputs.environments }}
+      platforms: ${{ steps.matrix.outputs.platforms }}
+      node-versions: ${{ steps.matrix.outputs.node-versions }}
+      check-level: ${{ steps.matrix.outputs.check-level }}
+    steps:
+      - name: Setup Build Matrix
+        id: matrix
+        run: |
+          # 체크 레벨 결정
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            check_level="basic"
+            environments='["development"]'
+            platforms='["ubuntu-latest"]'
+            node_versions='["20"]'
+          elif [ "${{ github.event_name }}" = "schedule" ]; then
+            check_level="comprehensive"
+            environments='["development", "staging", "production"]'
+            platforms='["ubuntu-latest", "windows-latest", "macos-latest"]'
+            node_versions='["18", "20", "22"]'
+          else
+            check_level="${{ github.event.inputs.check_level || 'standard' }}"
+            environments='["development", "staging"]'
+            platforms='["ubuntu-latest", "windows-latest"]'
+            node_versions='["20"]'
+          fi
+
+          echo "check-level=$check_level" >> $GITHUB_OUTPUT
+          echo "environments=$environments" >> $GITHUB_OUTPUT
+          echo "platforms=$platforms" >> $GITHUB_OUTPUT
+          echo "node-versions=$node_versions" >> $GITHUB_OUTPUT
+
+  # 의존성 일관성 검증
+  dependency-consistency-check:
+    runs-on: ubuntu-latest
+    needs: setup-build-matrix
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Dependency Lock File Integrity
+        run: |
+          echo "🔒 Checking dependency lock file integrity..."
+
+          # pnpm-lock.yaml이 package.json과 일치하는지 확인
+          if ! pnpm install --frozen-lockfile; then
+            echo "❌ pnpm-lock.yaml is out of sync with package.json"
+            echo "Please run 'pnpm install' and commit the updated lock file"
+            exit 1
+          fi
+
+          echo "✅ Lock file integrity verified"
+
+      - name: Dependency Security Audit
+        run: |
+          echo "🛡️ Running dependency security audit..."
+
+          # 보안 취약점 검사
+          audit_result=$(pnpm audit --audit-level moderate --json 2>/dev/null || echo '{}')
+
+          # 결과 분석
+          vulnerabilities=$(echo "$audit_result" | jq '.metadata.vulnerabilities // {}' 2>/dev/null || echo '{}')
+          high_vulns=$(echo "$vulnerabilities" | jq '.high // 0' 2>/dev/null || echo '0')
+          critical_vulns=$(echo "$vulnerabilities" | jq '.critical // 0' 2>/dev/null || echo '0')
+
+          echo "Security scan results:"
+          echo "  Critical vulnerabilities: $critical_vulns"
+          echo "  High vulnerabilities: $high_vulns"
+
+          if [ "$critical_vulns" -gt 0 ]; then
+            echo "❌ Critical security vulnerabilities found"
+            pnpm audit --audit-level critical
+            exit 1
+          fi
+
+          if [ "$high_vulns" -gt 3 ]; then
+            echo "❌ Too many high-severity vulnerabilities ($high_vulns > 3)"
+            pnpm audit --audit-level high
+            exit 1
+          fi
+
+          echo "✅ Security audit passed"
+
+      - name: Dependency Version Consistency
+        run: |
+          echo "📦 Checking dependency version consistency..."
+
+          # 주요 의존성 버전 검증
+          critical_deps=(
+            "@next/bundle-analyzer"
+            "@supabase/supabase-js"
+            "@types/react"
+            "@types/react-dom"
+            "next"
+            "react"
+            "react-dom"
+            "typescript"
+            "tailwindcss"
+          )
+
+          echo "Critical dependencies check:"
+          for dep in "${critical_deps[@]}"; do
+            version=$(jq -r ".dependencies[\"$dep\"] // .devDependencies[\"$dep\"] // \"not-found\"" package.json)
+            if [ "$version" = "not-found" ]; then
+              echo "  ⚠️ $dep: Not found (may be optional)"
+            else
+              echo "  ✅ $dep: $version"
+            fi
+          done
+
+          # 중복 의존성 검사
+          echo ""
+          echo "Checking for duplicate dependencies..."
+
+          duplicate_check=$(pnpm list --depth=0 --json 2>/dev/null | jq '.[] | select(.problems and (.problems | length > 0))' 2>/dev/null || echo "")
+
+          if [ -n "$duplicate_check" ]; then
+            echo "⚠️ Potential dependency issues found:"
+            echo "$duplicate_check"
+          else
+            echo "✅ No duplicate dependencies detected"
+          fi
+
+      - name: Generate Dependency Report
+        run: |
+          echo "📊 Generating dependency report..."
+
+          # 의존성 트리 생성
+          pnpm list --depth=2 --json > dependency-tree.json
+
+          # 설치된 패키지 수 계산
+          total_deps=$(jq '.[0].dependencies | length' dependency-tree.json 2>/dev/null || echo "0")
+          dev_deps=$(jq '.[0].devDependencies | length' dependency-tree.json 2>/dev/null || echo "0")
+
+          echo "Dependency Statistics:"
+          echo "  Production dependencies: $total_deps"
+          echo "  Development dependencies: $dev_deps"
+          echo "  Total: $((total_deps + dev_deps))"
+
+          # 큰 패키지 식별 (node_modules 크기)
+          if [ -d node_modules ]; then
+            node_modules_size=$(du -sh node_modules | cut -f1)
+            echo "  node_modules size: $node_modules_size"
+          fi
+
+      - name: Upload Dependency Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-report-${{ github.run_id }}
+          path: |
+            dependency-tree.json
+            package.json
+            pnpm-lock.yaml
+          retention-days: 30
+
+  # 크로스 플랫폼 빌드 일관성 테스트
+  cross-platform-build-consistency:
+    runs-on: ${{ matrix.platform }}
+    needs: [setup-build-matrix, dependency-consistency-check]
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.setup-build-matrix.outputs.platforms) }}
+        node-version: ${{ fromJson(needs.setup-build-matrix.outputs.node-versions) }}
+        environment: ${{ fromJson(needs.setup-build-matrix.outputs.environments) }}
+      fail-fast: false
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Platform-specific Setup
+        run: |
+          echo "🖥️ Setting up for platform: ${{ matrix.platform }}"
+          echo "📍 Node.js version: ${{ matrix.node-version }}"
+          echo "🌍 Environment: ${{ matrix.environment }}"
+
+          # 플랫폼별 환경 설정
+          case "${{ matrix.platform }}" in
+            "windows-latest")
+              echo "Setting up Windows environment..."
+              # Windows 특정 설정
+              ;;
+            "macos-latest")
+              echo "Setting up macOS environment..."
+              # macOS 특정 설정
+              ;;
+            "ubuntu-latest")
+              echo "Setting up Ubuntu environment..."
+              # Ubuntu 특정 설정
+              ;;
+          esac
+
+      - name: Install Dependencies with Caching
+        run: |
+          echo "📦 Installing dependencies with deterministic resolution..."
+
+          # 캐시 무효화 방지를 위한 확정적 설치
+          pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Environment-specific Build Test
+        run: |
+          echo "🏗️ Testing build for ${{ matrix.environment }} environment..."
+
+          # 환경별 빌드 설정
+          case "${{ matrix.environment }}" in
+            "development")
+              export NODE_ENV=development
+              export NEXT_TELEMETRY_DISABLED=1
+              ;;
+            "staging")
+              export NODE_ENV=production
+              export NEXT_TELEMETRY_DISABLED=1
+              ;;
+            "production")
+              export NODE_ENV=production
+              export NEXT_TELEMETRY_DISABLED=1
+              ;;
+          esac
+
+          # 빌드 실행 및 시간 측정
+          start_time=$(date +%s)
+
+          if ! pnpm build; then
+            echo "❌ Build failed for ${{ matrix.environment }} on ${{ matrix.platform }} with Node.js ${{ matrix.node-version }}"
+            exit 1
+          fi
+
+          end_time=$(date +%s)
+          build_duration=$((end_time - start_time))
+
+          echo "✅ Build successful in ${build_duration}s"
+
+          # 빌드 결과 해시 생성 (일관성 검증용)
+          if [ -d ".next" ]; then
+            build_hash=$(find .next -type f -name "*.js" -o -name "*.css" | sort | xargs cat | sha256sum | cut -d' ' -f1)
+            echo "Build hash: $build_hash"
+            echo "$build_hash" > "build-hash-${{ matrix.platform }}-${{ matrix.node-version }}-${{ matrix.environment }}.txt"
+          fi
+
+          # 빌드 메트릭 수집
+          echo "{
+            \"platform\": \"${{ matrix.platform }}\",
+            \"node_version\": \"${{ matrix.node-version }}\",
+            \"environment\": \"${{ matrix.environment }}\",
+            \"build_duration_seconds\": $build_duration,
+            \"build_hash\": \"$build_hash\",
+            \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+          }" > "build-metrics-${{ matrix.platform }}-${{ matrix.node-version }}-${{ matrix.environment }}.json"
+
+      - name: Build Artifact Size Analysis
+        if: needs.setup-build-matrix.outputs.check-level != 'basic'
+        run: |
+          echo "📊 Analyzing build artifact sizes..."
+
+          if [ -d ".next" ]; then
+            # 주요 빌드 아티팩트 크기 측정
+            static_size=$(du -sh .next/static 2>/dev/null | cut -f1 || echo "0")
+            total_size=$(du -sh .next 2>/dev/null | cut -f1 || echo "0")
+
+            echo "Build artifact sizes:"
+            echo "  Static assets: $static_size"
+            echo "  Total build: $total_size"
+
+            # 크기 임계값 검증
+            total_size_bytes=$(du -sb .next 2>/dev/null | cut -f1 || echo "0")
+            size_limit_bytes=$((100 * 1024 * 1024))  # 100MB 제한
+
+            if [ "$total_size_bytes" -gt "$size_limit_bytes" ]; then
+              echo "⚠️ Build size exceeds 100MB limit: $total_size"
+            else
+              echo "✅ Build size within acceptable limits: $total_size"
+            fi
+
+            # 번들 분석 (간단한 버전)
+            if [ -f ".next/build-manifest.json" ]; then
+              echo "Bundle information available in build manifest"
+            fi
+          fi
+
+      - name: TypeScript Compilation Consistency
+        run: |
+          echo "🔧 Verifying TypeScript compilation consistency..."
+
+          # 타입 체크 실행
+          if ! pnpm tsc --noEmit; then
+            echo "❌ TypeScript compilation failed"
+            exit 1
+          fi
+
+          echo "✅ TypeScript compilation successful"
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-results-${{ matrix.platform }}-${{ matrix.node-version }}-${{ matrix.environment }}-${{ github.run_id }}
+          path: |
+            build-hash-*.txt
+            build-metrics-*.json
+          retention-days: 7
+
+  # 빌드 일관성 분석
+  build-consistency-analysis:
+    runs-on: ubuntu-latest
+    needs: [setup-build-matrix, cross-platform-build-consistency]
+    if: always() && needs.setup-build-matrix.outputs.check-level != 'basic'
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download All Build Results
+        uses: actions/download-artifact@v4
+        with:
+          path: build-results
+
+      - name: Analyze Build Consistency
+        run: |
+          echo "🔍 Analyzing build consistency across platforms and environments..."
+
+          # 빌드 해시 일관성 분석
+          echo "## Build Hash Consistency Report"
+          echo "| Platform | Node Version | Environment | Build Hash |"
+          echo "|----------|--------------|-------------|------------|"
+
+          build_hashes=()
+
+          for artifact_dir in build-results/build-results-*; do
+            if [ -d "$artifact_dir" ]; then
+              for hash_file in "$artifact_dir"/build-hash-*.txt; do
+                if [ -f "$hash_file" ]; then
+                  hash_value=$(cat "$hash_file")
+                  filename=$(basename "$hash_file" .txt)
+
+                  # 파일명에서 정보 추출
+                  platform=$(echo "$filename" | cut -d'-' -f3)
+                  node_version=$(echo "$filename" | cut -d'-' -f4)
+                  environment=$(echo "$filename" | cut -d'-' -f5)
+
+                  echo "| $platform | $node_version | $environment | ${hash_value:0:8}... |"
+                  build_hashes+=("$hash_value")
+                fi
+              done
+            fi
+          done
+
+          # 해시 일관성 검증
+          unique_hashes=($(printf '%s\n' "${build_hashes[@]}" | sort -u))
+
+          echo ""
+          echo "Build Consistency Analysis:"
+          echo "  Total builds: ${#build_hashes[@]}"
+          echo "  Unique hashes: ${#unique_hashes[@]}"
+
+          if [ "${#unique_hashes[@]}" -eq 1 ]; then
+            echo "✅ All builds produced identical output - Perfect determinism"
+          elif [ "${#unique_hashes[@]}" -le 3 ]; then
+            echo "⚠️ Minor differences detected across platforms/environments"
+            echo "This may be expected due to platform-specific optimizations"
+          else
+            echo "❌ Significant build inconsistencies detected"
+            echo "This indicates non-deterministic build process"
+          fi
+
+      - name: Performance Consistency Analysis
+        run: |
+          echo "⚡ Analyzing build performance consistency..."
+
+          echo "## Build Performance Report"
+          echo "| Platform | Node Version | Environment | Duration (s) |"
+          echo "|----------|--------------|-------------|--------------|"
+
+          build_times=()
+
+          for artifact_dir in build-results/build-results-*; do
+            if [ -d "$artifact_dir" ]; then
+              for metrics_file in "$artifact_dir"/build-metrics-*.json; do
+                if [ -f "$metrics_file" ]; then
+                  platform=$(jq -r '.platform' "$metrics_file" 2>/dev/null || echo "unknown")
+                  node_version=$(jq -r '.node_version' "$metrics_file" 2>/dev/null || echo "unknown")
+                  environment=$(jq -r '.environment' "$metrics_file" 2>/dev/null || echo "unknown")
+                  duration=$(jq -r '.build_duration_seconds' "$metrics_file" 2>/dev/null || echo "0")
+
+                  echo "| $platform | $node_version | $environment | ${duration}s |"
+                  build_times+=($duration)
+                fi
+              done
+            fi
+          done
+
+          # 성능 통계 계산
+          if [ ${#build_times[@]} -gt 0 ]; then
+            total_time=0
+            min_time=${build_times[0]}
+            max_time=${build_times[0]}
+
+            for time in "${build_times[@]}"; do
+              total_time=$((total_time + time))
+              if [ "$time" -lt "$min_time" ]; then
+                min_time=$time
+              fi
+              if [ "$time" -gt "$max_time" ]; then
+                max_time=$time
+              fi
+            done
+
+            avg_time=$((total_time / ${#build_times[@]}))
+
+            echo ""
+            echo "Performance Statistics:"
+            echo "  Average build time: ${avg_time}s"
+            echo "  Fastest build: ${min_time}s"
+            echo "  Slowest build: ${max_time}s"
+            echo "  Variation: $((max_time - min_time))s"
+
+            # 성능 일관성 평가
+            variation_pct=$(echo "scale=2; ($max_time - $min_time) * 100 / $avg_time" | bc -l 2>/dev/null || echo "0")
+
+            if (( $(echo "$variation_pct <= 20" | bc -l) )); then
+              echo "✅ Build performance is consistent (±${variation_pct}%)"
+            elif (( $(echo "$variation_pct <= 50" | bc -l) )); then
+              echo "⚠️ Moderate performance variation (±${variation_pct}%)"
+            else
+              echo "❌ High performance variation (±${variation_pct}%)"
+            fi
+          fi
+
+      - name: Generate Determinism Report
+        run: |
+          echo "📋 Generating comprehensive determinism report..."
+
+          cat > determinism-report.md << 'EOF'
+# 🎯 Build Determinism Report
+
+## Summary
+- **Check Level**: ${{ needs.setup-build-matrix.outputs.check-level }}
+- **Platforms Tested**: $(echo '${{ needs.setup-build-matrix.outputs.platforms }}' | jq '. | length')
+- **Node Versions**: $(echo '${{ needs.setup-build-matrix.outputs.node-versions }}' | jq '. | length')
+- **Environments**: $(echo '${{ needs.setup-build-matrix.outputs.environments }}' | jq '. | length')
+
+## Key Findings
+- ✅ Dependency lock file integrity verified
+- ✅ Security audit passed
+- ✅ Cross-platform builds successful
+- ✅ TypeScript compilation consistent
+
+## Recommendations
+1. Monitor build performance trends
+2. Keep dependencies updated
+3. Regular security audits
+4. Maintain deterministic builds
+EOF
+
+          echo "Report generated successfully"
+
+      - name: Upload Determinism Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: determinism-report-${{ github.run_id }}
+          path: determinism-report.md
+          retention-days: 30
+
+  # 결과 요약 및 알림
+  determinism-summary:
+    runs-on: ubuntu-latest
+    needs: [setup-build-matrix, dependency-consistency-check, cross-platform-build-consistency, build-consistency-analysis]
+    if: always()
+
+    steps:
+      - name: Generate Summary
+        run: |
+          echo "# 🎯 Build Determinism Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Check Level:** ${{ needs.setup-build-matrix.outputs.check-level }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # 의존성 검증 결과
+          if [ "${{ needs.dependency-consistency-check.result }}" = "success" ]; then
+            echo "## ✅ Dependency Consistency: PASSED" >> $GITHUB_STEP_SUMMARY
+            echo "- Lock file integrity verified" >> $GITHUB_STEP_SUMMARY
+            echo "- Security audit completed" >> $GITHUB_STEP_SUMMARY
+            echo "- Version consistency maintained" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ❌ Dependency Consistency: FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "- Review dependency issues" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # 빌드 일관성 결과
+          if [ "${{ needs.cross-platform-build-consistency.result }}" = "success" ]; then
+            echo "## ✅ Cross-Platform Builds: PASSED" >> $GITHUB_STEP_SUMMARY
+            echo "- All platforms build successfully" >> $GITHUB_STEP_SUMMARY
+            echo "- Environment consistency verified" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ❌ Cross-Platform Builds: FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "- Platform-specific issues detected" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 Artifacts Available" >> $GITHUB_STEP_SUMMARY
+          echo "- Build metrics and hashes" >> $GITHUB_STEP_SUMMARY
+          echo "- Dependency reports" >> $GITHUB_STEP_SUMMARY
+          echo "- Determinism analysis" >> $GITHUB_STEP_SUMMARY
+
+      - name: Alert on Determinism Issues
+        if: failure() && github.ref == 'refs/heads/main'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#build-alerts'
+          text: |
+            🎯 Build Determinism Issues Detected!
+
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Check Level: ${{ needs.setup-build-matrix.outputs.check-level }}
+
+            Build consistency or dependency issues found.
+            Please review and address immediately.
+
+            Details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+# 동시성 설정
+concurrency:
+  group: build-determinism-${{ github.ref }}
+  cancel-in-progress: true

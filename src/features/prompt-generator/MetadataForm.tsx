@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Button } from '@/shared/ui/button';
-import { VIDEO_STYLES, SPATIAL_CONTEXT, CAMERA_SETTINGS, MATERIALS, type Metadata } from '@/types/video-prompt';
+import { VIDEO_STYLES, SPATIAL_CONTEXT, CAMERA_SETTINGS, MATERIALS, type Metadata } from '@/shared/types/video-prompt';
 import { cn } from '@/shared/lib/utils';
 
 interface MetadataFormProps {

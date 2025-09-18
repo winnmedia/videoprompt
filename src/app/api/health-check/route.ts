@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClient } from '@/shared/lib/supabase-client';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -24,8 +24,29 @@ async function checkDatabaseHealth(): Promise<HealthCheckResult> {
   const startTime = Date.now();
 
   try {
-    // Supabase 데이터베이스 연결 테스트
+    // 안전한 Supabase 클라이언트 가져오기
     console.log('🔍 Supabase 데이터베이스 연결 테스트 시작...');
+
+    const supabaseResult = await getSupabaseClient({
+      throwOnError: false,
+      useCircuitBreaker: true,
+      serviceName: 'health-check'
+    });
+
+    if (!supabaseResult.client || !supabaseResult.canProceed) {
+      const latency = Date.now() - startTime;
+      console.warn('⚠️ Supabase 클라이언트 생성 실패:', supabaseResult.error);
+
+      return {
+        service: 'database',
+        status: 'warning',
+        details: `Supabase unavailable: ${supabaseResult.error} (degradation mode: ${supabaseResult.degradationMode})`,
+        latency,
+        timestamp: new Date().toISOString()
+      };
+    }
+
+    const supabase = supabaseResult.client;
 
     // Auth 테이블 존재 여부 확인
     const authTables = ['User', 'RefreshToken', 'EmailVerification', 'PasswordReset'];

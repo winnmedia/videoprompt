@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { saveFileFromUrl } from '@/lib/utils/file-storage';
+import { saveFileFromUrl } from '@/shared/lib/file-storage';
 import { createJob, updateJobStatus } from '@/shared/lib/job-store';
 import { logger } from '@/shared/lib/logger';
 
@@ -92,8 +92,9 @@ async function processImageGeneration(
     // 진행률 10% 업데이트
     updateJobStatus(jobId, 'processing', 10);
 
-    // Railway 백엔드로 연결 시도
-    const railwayUrl = 'https://videoprompt-production.up.railway.app/api/imagen/preview';
+    // 현재 배포 환경으로 연결 시도
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
+    const imagePreviewUrl = `${apiBaseUrl}/api/imagen/preview`;
     
     // 진행률 20% 업데이트
     updateJobStatus(jobId, 'processing', 20);
@@ -103,12 +104,12 @@ async function processImageGeneration(
     const timeoutId = setTimeout(() => controller.abort(), 8000);
 
     try {
-      console.log(`🔗 [${jobId}] Railway 백엔드 연결 시도...`);
-      
+      console.log(`🔗 [${jobId}] 백엔드 연결 시도...`);
+
       // 진행률 30% 업데이트
       updateJobStatus(jobId, 'processing', 30);
 
-      const response = await fetch(railwayUrl, {
+      const response = await fetch(imagePreviewUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

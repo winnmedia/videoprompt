@@ -3,6 +3,7 @@
  */
 
 import { monitoring } from './monitoring';
+import { tokenManager } from './token-manager';
 
 interface RetryOptions {
   maxRetries?: number;
@@ -18,8 +19,15 @@ const DEFAULT_OPTIONS: Required<RetryOptions> = {
   maxDelay: 10000,    // 10초
   backoffFactor: 2,
   retryCondition: (error) => {
+    // 🚨 $300 사건 방지: 인증 에러는 재시도하지 않음
+    if (error.message.includes('401') ||
+        error.message.includes('인증') ||
+        error.message.includes('로그인')) {
+      return false;
+    }
+
     // 네트워크 에러나 서버 에러만 재시도
-    return error.message.includes('fetch') || 
+    return error.message.includes('fetch') ||
            error.message.includes('network') ||
            error.message.includes('500');
   }
@@ -98,6 +106,42 @@ class ApiLimiter {
 
 export const apiLimiter = new ApiLimiter();
 
+/**
+ * Bug Fix #5: 동적 서버 API Base URL 해결
+ * 프로덕션 환경에서 VERCEL_URL 등을 활용하여 올바른 URL 생성
+ */
+function getServerApiBase(): string {
+  // 1순위: 명시적 API 설정
+  if (process.env.NEXT_PUBLIC_API_BASE) {
+    return process.env.NEXT_PUBLIC_API_BASE;
+  }
+
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+
+  // 2순위: Vercel 배포 환경
+  if (process.env.VERCEL_URL) {
+    const protocol = process.env.VERCEL_ENV === 'production' ? 'https' : 'https';
+    return `${protocol}://${process.env.VERCEL_URL}`;
+  }
+
+  // 3순위: Railway 배포 환경
+  if (process.env.RAILWAY_STATIC_URL) {
+    return `https://${process.env.RAILWAY_STATIC_URL}`;
+  }
+
+  // 4순위: 기타 배포 환경 감지
+  if (process.env.NODE_ENV === 'production') {
+    // 프로덕션에서 localhost는 사용하지 않음
+    console.warn('⚠️ Production environment detected but no deployment URL found');
+    throw new Error('Production deployment URL not configured');
+  }
+
+  // 5순위: 개발 환경 기본값
+  return 'http://localhost:3000';
+}
+
 // 안전한 fetch 래퍼
 export async function safeFetch(
   url: string, 
@@ -106,26 +150,36 @@ export async function safeFetch(
 ): Promise<Response> {
   const startTime = Date.now();
   
-  // API Base URL 환경별 적용 (CORS 오류 방지)
+  // Bug Fix #5: 서버 URL 해결 로직 개선 - 동적 URL 지원
   const fullUrl = (() => {
     // 절대 URL인 경우 그대로 사용
     if (url.startsWith('http')) {
       return url;
     }
-    
+
     // 클라이언트 사이드: 상대 경로 유지 (Next.js API 프록시 사용)
     if (typeof window !== 'undefined') {
       return url; // '/api/templates' 형태로 유지
     }
-    
-    // 서버 사이드: Railway URL 사용
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'https://videoprompt-production.up.railway.app';
+
+    // 서버 사이드: 프로덕션 URL 우선 지원
+    const apiBase = getServerApiBase();
     return `${apiBase}${url}`;
   })();
-  
+
   // Development 환경에서만 디버그 로그 출력
   if (process.env.NODE_ENV === 'development') {
     console.log(`[API] 호출 URL: ${fullUrl}`);
+  }
+
+  // 프로덕션에서 localhost 사용 감지 및 경고
+  if (process.env.NODE_ENV === 'production' && fullUrl.includes('localhost')) {
+    console.error('🚨 Production environment using localhost URL - this will fail!');
+    monitoring.trackError(
+      'Production localhost URL detected',
+      { url: fullUrl, env: process.env.NODE_ENV },
+      'high'
+    );
   }
   
   // Rate limiting 체크
@@ -147,15 +201,15 @@ export async function safeFetch(
 
   return withRetry(async () => {
     apiLimiter.recordRequest();
-    
-    // 클라이언트 사이드에서 토큰 가져오기
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    
+
+    // TokenManager를 통한 통합 토큰 관리
+    const authHeader = typeof window !== 'undefined' ? tokenManager.getAuthHeader() : null;
+
     const response = await fetch(fullUrl, {
       ...options,
       headers: {
         ...options?.headers,
-        ...(token && { Authorization: `Bearer ${token}` })
+        ...authHeader
       },
       signal: AbortSignal.timeout(30000) // 30초 타임아웃
     });

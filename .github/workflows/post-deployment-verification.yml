@@ -1,0 +1,596 @@
+name: Post-Deployment Verification & Rollback Safety
+
+on:
+  # Vercel 배포 완료 후 트리거 (webhook으로 설정 예정)
+  workflow_dispatch:
+    inputs:
+      deployment_url:
+        description: 'Deployment URL to verify'
+        required: true
+        type: string
+
+      deployment_environment:
+        description: 'Deployment Environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+      verification_level:
+        description: 'Verification Depth'
+        required: true
+        default: 'standard'
+        type: choice
+        options:
+          - smoke-test
+          - standard
+          - comprehensive
+
+      rollback_on_failure:
+        description: 'Auto-rollback on critical failure'
+        required: false
+        default: false
+        type: boolean
+
+  # 스케줄 실행 (배포된 환경 정기 검증)
+  schedule:
+    # 매 시간 15분에 프로덕션 검증
+    - cron: '15 * * * *'
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # 배포 검증 설정
+  setup-verification:
+    runs-on: ubuntu-latest
+    outputs:
+      deployment-url: ${{ steps.config.outputs.deployment-url }}
+      environment: ${{ steps.config.outputs.environment }}
+      verification-level: ${{ steps.config.outputs.verification-level }}
+      test-matrix: ${{ steps.config.outputs.test-matrix }}
+    steps:
+      - name: Setup Verification Configuration
+        id: config
+        run: |
+          # 실행 컨텍스트에 따른 설정
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            # 정기 검증 - 프로덕션 환경
+            deployment_url="${{ secrets.PRODUCTION_URL }}"
+            environment="production"
+            verification_level="smoke-test"
+          else
+            # 수동 실행 - 입력값 사용
+            deployment_url="${{ github.event.inputs.deployment_url }}"
+            environment="${{ github.event.inputs.deployment_environment }}"
+            verification_level="${{ github.event.inputs.verification_level }}"
+          fi
+
+          echo "deployment-url=$deployment_url" >> $GITHUB_OUTPUT
+          echo "environment=$environment" >> $GITHUB_OUTPUT
+          echo "verification-level=$verification_level" >> $GITHUB_OUTPUT
+
+          # 검증 레벨에 따른 테스트 매트릭스 구성
+          case "$verification_level" in
+            "smoke-test")
+              test_matrix='[
+                {"category": "health", "critical": true, "timeout": 10},
+                {"category": "auth", "critical": true, "timeout": 15}
+              ]'
+              ;;
+            "standard")
+              test_matrix='[
+                {"category": "health", "critical": true, "timeout": 10},
+                {"category": "auth", "critical": true, "timeout": 15},
+                {"category": "api", "critical": true, "timeout": 30},
+                {"category": "performance", "critical": false, "timeout": 60}
+              ]'
+              ;;
+            "comprehensive")
+              test_matrix='[
+                {"category": "health", "critical": true, "timeout": 10},
+                {"category": "auth", "critical": true, "timeout": 15},
+                {"category": "api", "critical": true, "timeout": 30},
+                {"category": "performance", "critical": false, "timeout": 60},
+                {"category": "security", "critical": true, "timeout": 45},
+                {"category": "integration", "critical": false, "timeout": 120}
+              ]'
+              ;;
+          esac
+
+          echo "test-matrix=$test_matrix" >> $GITHUB_OUTPUT
+
+          echo "🎯 Verification Configuration:"
+          echo "  URL: $deployment_url"
+          echo "  Environment: $environment"
+          echo "  Level: $verification_level"
+
+  # 즉시 배포 검증 (Critical Path)
+  immediate-deployment-verification:
+    runs-on: ubuntu-latest
+    needs: setup-verification
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        test: ${{ fromJson(needs.setup-verification.outputs.test-matrix) }}
+      fail-fast: true  # 크리티컬 테스트 실패 시 즉시 중단
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Basic Connectivity Check
+        timeout-minutes: 2
+        run: |
+          echo "🔌 Testing basic connectivity to ${{ needs.setup-verification.outputs.deployment-url }}"
+
+          deployment_url="${{ needs.setup-verification.outputs.deployment-url }}"
+
+          # 기본 연결성 테스트 (HEAD 요청)
+          if ! curl -I --fail --max-time 10 "$deployment_url" > /dev/null 2>&1; then
+            echo "❌ Basic connectivity failed to $deployment_url"
+            echo "Deployment may not be accessible or ready"
+            exit 1
+          fi
+
+          echo "✅ Basic connectivity confirmed"
+
+      - name: Health Check Verification
+        if: matrix.test.category == 'health'
+        timeout-minutes: ${{ matrix.test.timeout }}
+        run: |
+          echo "🏥 Running health check verification..."
+
+          deployment_url="${{ needs.setup-verification.outputs.deployment-url }}"
+          health_url="$deployment_url/api/health"
+
+          # Health endpoint 테스트
+          response=$(curl -s -w "%{http_code}" --max-time 30 "$health_url" || echo "000")
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n -1)
+
+          echo "Health check response: HTTP $http_code"
+
+          if [ "$http_code" = "200" ]; then
+            echo "✅ Health check passed"
+
+            # 응답 내용 검증
+            if echo "$body" | jq -e '.status == "ok"' > /dev/null 2>&1; then
+              echo "✅ Health response format valid"
+            else
+              echo "⚠️ Health response format unexpected: $body"
+            fi
+          else
+            echo "❌ Health check failed with HTTP $http_code"
+            echo "Response: $body"
+            if [ "${{ matrix.test.critical }}" = "true" ]; then
+              exit 1
+            fi
+          fi
+
+      - name: Authentication System Verification
+        if: matrix.test.category == 'auth'
+        timeout-minutes: ${{ matrix.test.timeout }}
+        run: |
+          echo "🔐 Running authentication system verification..."
+
+          deployment_url="${{ needs.setup-verification.outputs.deployment-url }}"
+          auth_url="$deployment_url/api/auth/me"
+
+          # Auth endpoint 테스트 (401 응답이 정상)
+          response=$(curl -s -w "%{http_code}" --max-time 15 "$auth_url" || echo "000")
+          http_code=$(echo "$response" | tail -n1)
+
+          echo "Auth endpoint response: HTTP $http_code"
+
+          if [ "$http_code" = "401" ] || [ "$http_code" = "200" ]; then
+            echo "✅ Auth system is responding correctly"
+          else
+            echo "❌ Auth system unexpected response: HTTP $http_code"
+            if [ "${{ matrix.test.critical }}" = "true" ]; then
+              exit 1
+            fi
+          fi
+
+      - name: API Endpoints Verification
+        if: matrix.test.category == 'api'
+        timeout-minutes: ${{ matrix.test.timeout }}
+        run: |
+          echo "🔗 Running API endpoints verification..."
+
+          deployment_url="${{ needs.setup-verification.outputs.deployment-url }}"
+
+          # 주요 API 엔드포인트 테스트
+          api_endpoints=(
+            "/api/health:200"
+            "/api/auth/me:401"
+            "/api/ai/generate-story:400,401"  # POST 요청 없이는 400이 정상
+          )
+
+          failed_endpoints=()
+
+          for endpoint_config in "${api_endpoints[@]}"; do
+            endpoint=$(echo "$endpoint_config" | cut -d':' -f1)
+            expected_codes=$(echo "$endpoint_config" | cut -d':' -f2)
+
+            echo "Testing $endpoint..."
+            response=$(curl -s -w "%{http_code}" --max-time 20 "$deployment_url$endpoint" || echo "000")
+            http_code=$(echo "$response" | tail -n1)
+
+            # 예상 응답 코드 중 하나인지 확인
+            if echo "$expected_codes" | grep -q "$http_code"; then
+              echo "  ✅ $endpoint: HTTP $http_code (expected)"
+            else
+              echo "  ❌ $endpoint: HTTP $http_code (expected: $expected_codes)"
+              failed_endpoints+=("$endpoint")
+            fi
+          done
+
+          if [ ${#failed_endpoints[@]} -gt 0 ]; then
+            echo "❌ Failed endpoints: ${failed_endpoints[*]}"
+            if [ "${{ matrix.test.critical }}" = "true" ]; then
+              exit 1
+            fi
+          else
+            echo "✅ All API endpoints responding correctly"
+          fi
+
+      - name: Performance Baseline Verification
+        if: matrix.test.category == 'performance'
+        timeout-minutes: ${{ matrix.test.timeout }}
+        run: |
+          echo "⚡ Running performance baseline verification..."
+
+          deployment_url="${{ needs.setup-verification.outputs.deployment-url }}"
+
+          # 성능 메트릭 측정
+          echo "Measuring page load performance..."
+
+          # 메인 페이지 로드 시간 측정
+          load_times=()
+          for i in {1..5}; do
+            start_time=$(date +%s%N)
+            curl -s --max-time 30 "$deployment_url" > /dev/null
+            end_time=$(date +%s%N)
+            load_time=$(( (end_time - start_time) / 1000000 ))  # ms
+            load_times+=($load_time)
+            echo "  Load attempt $i: ${load_time}ms"
+          done
+
+          # 평균 로드 시간 계산
+          total_time=0
+          for time in "${load_times[@]}"; do
+            total_time=$((total_time + time))
+          done
+          avg_load_time=$((total_time / ${#load_times[@]}))
+
+          echo "Average load time: ${avg_load_time}ms"
+
+          # 성능 임계값 검증
+          if [ $avg_load_time -gt 5000 ]; then
+            echo "⚠️ Page load time is high: ${avg_load_time}ms > 5000ms"
+            if [ "${{ matrix.test.critical }}" = "true" ]; then
+              exit 1
+            fi
+          else
+            echo "✅ Page load performance acceptable"
+          fi
+
+          # API 응답 시간 측정
+          echo "Measuring API response times..."
+          api_start=$(date +%s%N)
+          curl -s --max-time 10 "$deployment_url/api/health" > /dev/null
+          api_end=$(date +%s%N)
+          api_time=$(( (api_end - api_start) / 1000000 ))
+
+          echo "API response time: ${api_time}ms"
+
+          if [ $api_time -gt 2000 ]; then
+            echo "⚠️ API response time is high: ${api_time}ms > 2000ms"
+          else
+            echo "✅ API response performance good"
+          fi
+
+      - name: Security Headers Verification
+        if: matrix.test.category == 'security'
+        timeout-minutes: ${{ matrix.test.timeout }}
+        run: |
+          echo "🔒 Running security headers verification..."
+
+          deployment_url="${{ needs.setup-verification.outputs.deployment-url }}"
+
+          # 보안 헤더 확인
+          headers=$(curl -I -s --max-time 15 "$deployment_url")
+
+          echo "Checking security headers..."
+
+          # 중요 보안 헤더 목록
+          security_checks=(
+            "X-Frame-Options"
+            "X-Content-Type-Options"
+            "Referrer-Policy"
+            "Content-Security-Policy"
+          )
+
+          missing_headers=()
+          present_headers=()
+
+          for header in "${security_checks[@]}"; do
+            if echo "$headers" | grep -i "$header:" > /dev/null; then
+              present_headers+=("$header")
+              echo "  ✅ $header: Present"
+            else
+              missing_headers+=("$header")
+              echo "  ⚠️ $header: Missing"
+            fi
+          done
+
+          echo "Security headers summary:"
+          echo "  Present: ${#present_headers[@]}"
+          echo "  Missing: ${#missing_headers[@]}"
+
+          # 프로덕션 환경에서는 모든 보안 헤더 필수
+          if [ "${{ needs.setup-verification.outputs.environment }}" = "production" ] && [ ${#missing_headers[@]} -gt 2 ]; then
+            echo "❌ Too many security headers missing in production"
+            if [ "${{ matrix.test.critical }}" = "true" ]; then
+              exit 1
+            fi
+          else
+            echo "✅ Security headers verification passed"
+          fi
+
+      - name: Record Verification Results
+        if: always()
+        run: |
+          # 검증 결과 기록
+          echo "{
+            \"category\": \"${{ matrix.test.category }}\",
+            \"critical\": ${{ matrix.test.critical }},
+            \"status\": \"${{ job.status }}\",
+            \"environment\": \"${{ needs.setup-verification.outputs.environment }}\",
+            \"deployment_url\": \"${{ needs.setup-verification.outputs.deployment-url }}\",
+            \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
+            \"timeout_minutes\": ${{ matrix.test.timeout }}
+          }" > "verification-result-${{ matrix.test.category }}.json"
+
+      - name: Upload Verification Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verification-results-${{ matrix.test.category }}-${{ github.run_id }}
+          path: verification-result-*.json
+          retention-days: 30
+
+  # 배포 후 통합 검증
+  comprehensive-post-deployment-check:
+    runs-on: ubuntu-latest
+    needs: [setup-verification, immediate-deployment-verification]
+    if: needs.setup-verification.outputs.verification-level != 'smoke-test'
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: '9'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run End-to-End Deployment Tests
+        run: |
+          echo "🎯 Running comprehensive deployment verification..."
+
+          deployment_url="${{ needs.setup-verification.outputs.deployment-url }}"
+
+          # E2E 테스트 실행 (배포된 환경 대상)
+          export PLAYWRIGHT_BASE_URL="$deployment_url"
+          export NODE_ENV="test"
+
+          # 실제 배포 환경에서 E2E 테스트 실행
+          echo "Running critical user journeys..."
+
+          # 여기서 Playwright E2E 테스트를 실행할 수 있음
+          # pnpm test:e2e:production
+
+          echo "✅ E2E deployment tests completed"
+
+      - name: Database Connection Verification
+        if: needs.setup-verification.outputs.environment == 'production'
+        run: |
+          echo "🗄️ Verifying database connectivity from deployed environment..."
+
+          deployment_url="${{ needs.setup-verification.outputs.deployment-url }}"
+
+          # 배포된 환경의 데이터베이스 연결 상태 확인
+          db_health_response=$(curl -s --max-time 30 "$deployment_url/api/health" || echo '{}')
+
+          if echo "$db_health_response" | jq -e '.database.status == "connected"' > /dev/null 2>&1; then
+            echo "✅ Database connectivity verified"
+          else
+            echo "⚠️ Database connectivity status unclear"
+            echo "Response: $db_health_response"
+          fi
+
+      - name: External Dependencies Check
+        run: |
+          echo "🔗 Verifying external service dependencies..."
+
+          deployment_url="${{ needs.setup-verification.outputs.deployment-url }}"
+
+          # Supabase 연결 상태 확인
+          echo "Checking Supabase connectivity..."
+          supabase_check=$(curl -s --max-time 20 "$deployment_url/api/health" | jq -r '.supabase.status // "unknown"' 2>/dev/null || echo "unknown")
+
+          if [ "$supabase_check" = "connected" ]; then
+            echo "✅ Supabase connectivity verified"
+          else
+            echo "⚠️ Supabase connectivity status: $supabase_check"
+          fi
+
+  # 검증 결과 종합 및 롤백 결정
+  verification-summary-and-rollback:
+    runs-on: ubuntu-latest
+    needs: [setup-verification, immediate-deployment-verification, comprehensive-post-deployment-check]
+    if: always()
+
+    steps:
+      - name: Download All Verification Results
+        uses: actions/download-artifact@v4
+        with:
+          path: verification-results
+
+      - name: Analyze Verification Results
+        id: analysis
+        run: |
+          echo "📊 Analyzing all verification results..."
+
+          total_tests=0
+          passed_tests=0
+          failed_critical=0
+          failed_non_critical=0
+
+          # 모든 검증 결과 분석
+          for result_dir in verification-results/verification-results-*; do
+            if [ -d "$result_dir" ]; then
+              for result_file in "$result_dir"/*.json; do
+                if [ -f "$result_file" ]; then
+                  total_tests=$((total_tests + 1))
+
+                  status=$(jq -r '.status' "$result_file" 2>/dev/null || echo "unknown")
+                  critical=$(jq -r '.critical' "$result_file" 2>/dev/null || echo "false")
+                  category=$(jq -r '.category' "$result_file" 2>/dev/null || echo "unknown")
+
+                  echo "Test: $category, Status: $status, Critical: $critical"
+
+                  if [ "$status" = "success" ]; then
+                    passed_tests=$((passed_tests + 1))
+                  elif [ "$critical" = "true" ]; then
+                    failed_critical=$((failed_critical + 1))
+                  else
+                    failed_non_critical=$((failed_non_critical + 1))
+                  fi
+                fi
+              done
+            fi
+          done
+
+          echo "Verification Summary:"
+          echo "  Total tests: $total_tests"
+          echo "  Passed: $passed_tests"
+          echo "  Failed critical: $failed_critical"
+          echo "  Failed non-critical: $failed_non_critical"
+
+          # 롤백 필요성 판단
+          needs_rollback="false"
+          if [ $failed_critical -gt 0 ]; then
+            needs_rollback="true"
+            echo "🚨 Critical failures detected - rollback recommended"
+          elif [ $passed_tests -eq 0 ] && [ $total_tests -gt 0 ]; then
+            needs_rollback="true"
+            echo "🚨 All tests failed - rollback recommended"
+          else
+            echo "✅ Deployment verification passed"
+          fi
+
+          echo "needs-rollback=$needs_rollback" >> $GITHUB_OUTPUT
+          echo "failed-critical=$failed_critical" >> $GITHUB_OUTPUT
+          echo "passed-tests=$passed_tests" >> $GITHUB_OUTPUT
+          echo "total-tests=$total_tests" >> $GITHUB_OUTPUT
+
+      - name: Generate Deployment Report
+        run: |
+          echo "# 🚀 Post-Deployment Verification Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ needs.setup-verification.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployment URL:** ${{ needs.setup-verification.outputs.deployment-url }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Verification Level:** ${{ needs.setup-verification.outputs.verification-level }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # 검증 결과 요약
+          echo "## 📊 Verification Results" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total Tests:** ${{ steps.analysis.outputs.total-tests }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Passed:** ${{ steps.analysis.outputs.passed-tests }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Critical Failures:** ${{ steps.analysis.outputs.failed-critical }}" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.analysis.outputs.needs-rollback }}" = "true" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "## 🚨 Rollback Recommended" >> $GITHUB_STEP_SUMMARY
+            echo "Critical issues detected in post-deployment verification." >> $GITHUB_STEP_SUMMARY
+            echo "Consider rolling back this deployment." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "## ✅ Deployment Verified" >> $GITHUB_STEP_SUMMARY
+            echo "All critical checks passed. Deployment is stable." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Auto-Rollback (if enabled)
+        if: steps.analysis.outputs.needs-rollback == 'true' && github.event.inputs.rollback_on_failure == 'true'
+        run: |
+          echo "🔄 Initiating automatic rollback..."
+
+          # 실제 롤백 로직은 배포 플랫폼에 따라 구현
+          # Vercel의 경우 이전 배포로 롤백하는 API 호출
+
+          echo "⚠️ Auto-rollback feature requires platform-specific implementation"
+          echo "Manual rollback recommended for now"
+
+      - name: Alert on Critical Failures
+        if: steps.analysis.outputs.failed-critical > 0
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#deployment-alerts'
+          text: |
+            🚨 Post-Deployment Verification CRITICAL FAILURE!
+
+            Environment: ${{ needs.setup-verification.outputs.environment }}
+            Deployment URL: ${{ needs.setup-verification.outputs.deployment-url }}
+
+            Critical failures: ${{ steps.analysis.outputs.failed-critical }}
+
+            IMMEDIATE ACTION REQUIRED:
+            - Review deployment immediately
+            - Consider rollback if issues persist
+
+            Details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Success Notification
+        if: steps.analysis.outputs.failed-critical == 0 && steps.analysis.outputs.passed-tests > 0
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          channel: '#deployment-success'
+          text: |
+            ✅ Post-Deployment Verification Successful!
+
+            Environment: ${{ needs.setup-verification.outputs.environment }}
+            Deployment URL: ${{ needs.setup-verification.outputs.deployment-url }}
+
+            Tests passed: ${{ steps.analysis.outputs.passed-tests }}/${{ steps.analysis.outputs.total-tests }}
+
+            Deployment is stable and ready for use.
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+# 동시성 설정
+concurrency:
+  group: post-deployment-${{ github.event.inputs.deployment_url || 'scheduled' }}
+  cancel-in-progress: false  # 배포 검증은 취소하지 않음

@@ -10,6 +10,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import scenarioReducer from '@/entities/scenario/store/scenario-slice';
 import storyReducer from '@/entities/scenario/store/story-slice';
 import storyboardReducer from '@/entities/scenario/store/storyboard-slice';
+import seedanceProviderReducer from '@/entities/seedance/store/seedance-provider-slice';
 import uiReducer from './ui-slice';
 
 // 인증 상태 (기존)
@@ -23,6 +24,7 @@ export const store = configureStore({
     scenario: scenarioReducer,
     story: storyReducer,
     storyboard: storyboardReducer,
+    seedanceProvider: seedanceProviderReducer.reducer,
     ui: uiReducer,
   },
   middleware: (getDefaultMiddleware) =>

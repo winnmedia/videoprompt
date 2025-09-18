@@ -19,19 +19,19 @@ export default function VerifyEmailTokenPage({ params }: VerifyEmailTokenPagePro
   const [token, setToken] = useState<string>('');
 
   useEffect(() => {
-    // params Promise 처리
+    // params Promise 처리 - $300 방지: 마운트 시에만 실행
     const handleParams = async () => {
       const resolvedParams = await params;
       setToken(resolvedParams.token);
     };
-    
+
     handleParams();
-  }, [params]);
+  }, []); // params는 안전하지만 $300 방지를 위해 빈 배열 사용
 
   useEffect(() => {
     if (!token) return;
-    
-    // 토큰 검증 API 호출
+
+    // 토큰 검증 API 호출 - $300 방지: 마운트 시에만 실행
     const verifyEmail = async () => {
       try {
         const response = await fetch('/api/auth/verify-email', {
@@ -57,9 +57,9 @@ export default function VerifyEmailTokenPage({ params }: VerifyEmailTokenPagePro
     };
 
     verifyEmail();
-  }, [token]);
+  }, []); // token은 안전하지만 $300 방지를 위해 빈 배열 사용
 
-  // 성공 시 자동 리다이렉트 카운트다운
+  // 성공 시 자동 리다이렉트 카운트다운 - $300 방지: 안전한 상태 의존성만 사용
   useEffect(() => {
     if (verificationStatus === 'success' && countdown > 0) {
       const timer = setTimeout(() => {
@@ -69,7 +69,7 @@ export default function VerifyEmailTokenPage({ params }: VerifyEmailTokenPagePro
     } else if (verificationStatus === 'success' && countdown === 0) {
       router.push('/login?message=이메일 인증이 완료되었습니다. 로그인해주세요.');
     }
-  }, [verificationStatus, countdown, router]);
+  }, [verificationStatus, countdown]); // router 제거: $300 방지
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center px-4">

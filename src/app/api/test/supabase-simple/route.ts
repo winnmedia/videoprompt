@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -10,6 +10,23 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     console.log('🔍 간단한 Supabase 연결 테스트 시작');
+
+    // getSupabaseClientSafe를 사용한 안전한 클라이언트 초기화
+    let supabase;
+    try {
+      supabase = await getSupabaseClientSafe('anon');
+    } catch (error) {
+      const errorMessage = error instanceof ServiceConfigError ? error.message : 'Supabase client initialization failed';
+      console.error('❌ Supabase client error:', errorMessage);
+      return NextResponse.json({
+        timestamp: new Date().toISOString(),
+        status: 'error',
+        error: errorMessage,
+        supabase: {
+          connected: false
+        }
+      }, { status: 503 });
+    }
 
     // 1. 기본 테이블 목록 조회 시도
     const { data: tables, error: tablesError } = await supabase

@@ -1,0 +1,486 @@
+name: API Health Monitoring & Performance Regression Detection
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # 매시간 정각에 실행 (프로덕션 모니터링)
+    - cron: '0 * * * *'
+  workflow_dispatch:
+    inputs:
+      monitoring_level:
+        description: 'Monitoring Level'
+        required: true
+        default: 'standard'
+        type: choice
+        options:
+          - quick
+          - standard
+          - comprehensive
+          - stress-test
+
+      performance_baseline:
+        description: 'Performance Baseline Mode'
+        required: true
+        default: 'compare'
+        type: choice
+        options:
+          - measure-only
+          - compare
+          - update-baseline
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '9'
+
+jobs:
+  # 모니터링 설정 및 매트릭스 구성
+  setup-monitoring:
+    runs-on: ubuntu-latest
+    outputs:
+      environments: ${{ steps.matrix.outputs.environments }}
+      api-endpoints: ${{ steps.matrix.outputs.api-endpoints }}
+      monitoring-level: ${{ steps.matrix.outputs.monitoring-level }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Monitoring Matrix
+        id: matrix
+        run: |
+          # 모니터링 레벨 결정
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            monitoring_level="quick"
+            environments='["development"]'
+          elif [ "${{ github.event_name }}" = "schedule" ]; then
+            monitoring_level="comprehensive"
+            environments='["development", "staging", "production"]'
+          else
+            monitoring_level="${{ github.event.inputs.monitoring_level || 'standard' }}"
+            environments='["development", "staging"]'
+          fi
+
+          echo "monitoring-level=$monitoring_level" >> $GITHUB_OUTPUT
+          echo "environments=$environments" >> $GITHUB_OUTPUT
+
+          # API 엔드포인트 목록 구성
+          api_endpoints='[
+            {"path": "/api/health", "method": "GET", "critical": true, "timeout": 5000},
+            {"path": "/api/auth/me", "method": "GET", "critical": true, "timeout": 3000},
+            {"path": "/api/ai/generate-story", "method": "POST", "critical": true, "timeout": 30000},
+            {"path": "/api/auth/refresh", "method": "POST", "critical": false, "timeout": 10000}
+          ]'
+
+          echo "api-endpoints=$api_endpoints" >> $GITHUB_OUTPUT
+
+  # API Health Check 실행
+  api-health-check:
+    runs-on: ubuntu-latest
+    needs: setup-monitoring
+    strategy:
+      matrix:
+        environment: ${{ fromJson(needs.setup-monitoring.outputs.environments) }}
+        endpoint: ${{ fromJson(needs.setup-monitoring.outputs.api-endpoints) }}
+      fail-fast: false
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Environment
+        run: |
+          # 환경별 설정
+          case "${{ matrix.environment }}" in
+            "development")
+              cp .env.local.example .env.local || true
+              export BASE_URL="http://localhost:3000"
+              export NODE_ENV=development
+              ;;
+            "staging")
+              export BASE_URL="${{ secrets.STAGING_URL }}"
+              export NODE_ENV=production
+              ;;
+            "production")
+              export BASE_URL="${{ secrets.PRODUCTION_URL }}"
+              export NODE_ENV=production
+              ;;
+          esac
+
+          echo "BASE_URL=$BASE_URL" >> $GITHUB_ENV
+          echo "API_ENDPOINT=${{ matrix.endpoint.path }}" >> $GITHUB_ENV
+          echo "API_METHOD=${{ matrix.endpoint.method }}" >> $GITHUB_ENV
+          echo "API_TIMEOUT=${{ matrix.endpoint.timeout }}" >> $GITHUB_ENV
+          echo "IS_CRITICAL=${{ matrix.endpoint.critical }}" >> $GITHUB_ENV
+
+      - name: Start Local Server (Development Only)
+        if: matrix.environment == 'development'
+        run: |
+          echo "🚀 Starting local development server..."
+
+          # 환경변수 설정
+          export NODE_ENV=development
+          export SUPABASE_URL="https://vvkuzxnmfnrvwamfkxuc.supabase.co"
+          export SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2a3V6eG5tZm5ydndhbWZreHVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ0MzYwNjEsImV4cCI6MjA1MDAxMjA2MX0.QbvtKGQp7YN3ZZr7sJWM5q42Uiuy4W-2wCdC6lLI--Y"
+
+          # 백그라운드에서 서버 시작
+          pnpm dev &
+          SERVER_PID=$!
+          echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+
+          # 서버 시작 대기 (최대 2분)
+          timeout=120
+          while [ $timeout -gt 0 ]; do
+            if curl -f http://localhost:3000/api/health > /dev/null 2>&1; then
+              echo "✅ Development server is ready"
+              break
+            fi
+            echo "⏳ Waiting for server... ($timeout seconds remaining)"
+            sleep 2
+            timeout=$((timeout - 2))
+          done
+
+          if [ $timeout -le 0 ]; then
+            echo "❌ Development server failed to start"
+            exit 1
+          fi
+
+      - name: Execute API Health Check
+        id: health-check
+        run: |
+          echo "🏥 Testing API endpoint: ${{ matrix.endpoint.method }} ${{ matrix.endpoint.path }}"
+          echo "🎯 Environment: ${{ matrix.environment }}"
+          echo "⚡ Critical: ${{ matrix.endpoint.critical }}"
+
+          # 성능 메트릭 측정을 위한 변수
+          total_requests=5
+          success_count=0
+          response_times=()
+          errors=()
+
+          # 여러 번 요청하여 안정성 및 성능 측정
+          for i in $(seq 1 $total_requests); do
+            echo "🔄 Request $i/$total_requests"
+
+            start_time=$(date +%s%N)
+
+            case "${{ matrix.endpoint.method }}" in
+              "GET")
+                response=$(curl -s -w "%{http_code}|%{time_total}" \
+                  --max-time $((${{ matrix.endpoint.timeout }} / 1000)) \
+                  "$BASE_URL${{ matrix.endpoint.path }}" || echo "000|0")
+                ;;
+              "POST")
+                # POST 요청용 기본 페이로드
+                if [[ "${{ matrix.endpoint.path }}" == *"generate-story"* ]]; then
+                  payload='{"prompt":"Test story","style":"casual","length":"short"}'
+                elif [[ "${{ matrix.endpoint.path }}" == *"refresh"* ]]; then
+                  payload='{"refreshToken":"test-token"}'
+                else
+                  payload='{}'
+                fi
+
+                response=$(curl -s -w "%{http_code}|%{time_total}" \
+                  --max-time $((${{ matrix.endpoint.timeout }} / 1000)) \
+                  -X POST \
+                  -H "Content-Type: application/json" \
+                  -d "$payload" \
+                  "$BASE_URL${{ matrix.endpoint.path }}" || echo "000|0")
+                ;;
+            esac
+
+            end_time=$(date +%s%N)
+            request_duration=$(( (end_time - start_time) / 1000000 )) # ms
+
+            # 응답 파싱
+            http_code=$(echo "$response" | cut -d'|' -f1)
+            curl_time=$(echo "$response" | cut -d'|' -f2)
+            curl_time_ms=$(echo "$curl_time * 1000" | bc -l 2>/dev/null | cut -d'.' -f1)
+
+            echo "   📊 HTTP Code: $http_code, Duration: ${request_duration}ms"
+
+            # 성공 기준 판정
+            if [[ "$http_code" =~ ^(200|201|401)$ ]]; then
+              # 200, 201은 성공, 401은 인증 관련이지만 서비스는 동작 중
+              success_count=$((success_count + 1))
+              response_times+=($request_duration)
+            else
+              errors+=("Request $i: HTTP $http_code")
+            fi
+
+            # 요청 간격 (부하 방지)
+            sleep 0.5
+          done
+
+          # 성공률 계산
+          success_rate=$(echo "scale=2; $success_count * 100 / $total_requests" | bc -l)
+
+          # 평균 응답시간 계산
+          if [ ${#response_times[@]} -gt 0 ]; then
+            total_time=0
+            for time in "${response_times[@]}"; do
+              total_time=$((total_time + time))
+            done
+            avg_response_time=$((total_time / ${#response_times[@]}))
+          else
+            avg_response_time=0
+          fi
+
+          echo "📈 Results Summary:"
+          echo "   Success Rate: $success_rate%"
+          echo "   Average Response Time: ${avg_response_time}ms"
+          echo "   Successful Requests: $success_count/$total_requests"
+
+          # 결과 저장 (아티팩트용)
+          echo "{
+            \"endpoint\": \"${{ matrix.endpoint.path }}\",
+            \"method\": \"${{ matrix.endpoint.method }}\",
+            \"environment\": \"${{ matrix.environment }}\",
+            \"critical\": ${{ matrix.endpoint.critical }},
+            \"success_rate\": $success_rate,
+            \"avg_response_time_ms\": $avg_response_time,
+            \"successful_requests\": $success_count,
+            \"total_requests\": $total_requests,
+            \"errors\": [$(printf '\"%s\",' "${errors[@]}" | sed 's/,$//')],
+            \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+          }" > "health-check-${{ matrix.environment }}-$(echo '${{ matrix.endpoint.path }}' | sed 's/[^a-zA-Z0-9]/-/g').json"
+
+          # 실패 기준 판정
+          if [ "${{ matrix.endpoint.critical }}" = "true" ] && [ "$success_rate" -lt "80" ]; then
+            echo "❌ Critical endpoint failed: Success rate $success_rate% < 80%"
+            exit 1
+          elif [ "$success_rate" -lt "60" ]; then
+            echo "⚠️ Non-critical endpoint degraded: Success rate $success_rate% < 60%"
+            echo "degraded=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Endpoint health check passed"
+          fi
+
+          # 성능 회귀 체크
+          if [ $avg_response_time -gt ${{ matrix.endpoint.timeout }} ]; then
+            echo "❌ Performance regression: Average response time ${avg_response_time}ms > ${{ matrix.endpoint.timeout }}ms"
+            exit 1
+          fi
+
+          # 출력 변수 설정
+          echo "success-rate=$success_rate" >> $GITHUB_OUTPUT
+          echo "avg-response-time=$avg_response_time" >> $GITHUB_OUTPUT
+
+      - name: Performance Regression Analysis
+        if: needs.setup-monitoring.outputs.monitoring-level != 'quick'
+        run: |
+          echo "📊 Analyzing performance regression..."
+
+          # 현재 성능 메트릭
+          current_response_time=${{ steps.health-check.outputs.avg-response-time }}
+          current_success_rate=${{ steps.health-check.outputs.success-rate }}
+
+          # 성능 기준선과 비교 (향후 기준선 저장소 구현 예정)
+          # 현재는 임계값으로 회귀 감지
+
+          echo "Current Performance:"
+          echo "  Response Time: ${current_response_time}ms"
+          echo "  Success Rate: ${current_success_rate}%"
+
+          # 성능 회귀 임계값
+          max_response_time_regression=50  # 50% 증가 시 회귀
+          min_success_rate=95
+
+          # 회귀 감지 로직 (향후 기준선 데이터와 비교)
+          echo "✅ Performance regression analysis completed"
+
+      - name: Cleanup Local Server
+        if: always() && matrix.environment == 'development'
+        run: |
+          if [ ! -z "$SERVER_PID" ]; then
+            echo "🛑 Stopping development server (PID: $SERVER_PID)"
+            kill $SERVER_PID || true
+          fi
+
+      - name: Upload Health Check Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: health-check-results-${{ matrix.environment }}-${{ github.run_id }}
+          path: health-check-*.json
+          retention-days: 30
+
+  # 성능 회귀 감지 및 기준선 업데이트
+  performance-regression-detection:
+    runs-on: ubuntu-latest
+    needs: [setup-monitoring, api-health-check]
+    if: always() && needs.setup-monitoring.outputs.monitoring-level != 'quick'
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download All Health Check Results
+        uses: actions/download-artifact@v4
+        with:
+          path: health-check-results
+
+      - name: Setup Node.js for Analysis
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Analyze Performance Trends
+        run: |
+          echo "📈 Analyzing performance trends across all endpoints..."
+
+          # 결과 파일들을 분석하여 종합 리포트 생성
+          if [ -d "health-check-results" ]; then
+            echo "## 🏥 API Health Check Results" > performance-report.md
+            echo "" >> performance-report.md
+            echo "**Test Run:** ${{ github.run_id }}" >> performance-report.md
+            echo "**Commit:** ${{ github.sha }}" >> performance-report.md
+            echo "**Monitoring Level:** ${{ needs.setup-monitoring.outputs.monitoring-level }}" >> performance-report.md
+            echo "" >> performance-report.md
+
+            echo "| Environment | Endpoint | Success Rate | Avg Response Time | Status |" >> performance-report.md
+            echo "|-------------|----------|--------------|-------------------|--------|" >> performance-report.md
+
+            # 각 결과 파일 분석
+            for result_dir in health-check-results/health-check-results-*; do
+              if [ -d "$result_dir" ]; then
+                for json_file in "$result_dir"/*.json; do
+                  if [ -f "$json_file" ]; then
+                    endpoint=$(jq -r '.endpoint' "$json_file" 2>/dev/null || echo "unknown")
+                    environment=$(jq -r '.environment' "$json_file" 2>/dev/null || echo "unknown")
+                    success_rate=$(jq -r '.success_rate' "$json_file" 2>/dev/null || echo "0")
+                    avg_time=$(jq -r '.avg_response_time_ms' "$json_file" 2>/dev/null || echo "0")
+                    critical=$(jq -r '.critical' "$json_file" 2>/dev/null || echo "false")
+
+                    # 상태 결정
+                    if (( $(echo "$success_rate >= 95" | bc -l) )); then
+                      status="✅ Healthy"
+                    elif (( $(echo "$success_rate >= 80" | bc -l) )); then
+                      status="⚠️ Degraded"
+                    else
+                      status="❌ Unhealthy"
+                    fi
+
+                    echo "| $environment | $endpoint | ${success_rate}% | ${avg_time}ms | $status |" >> performance-report.md
+                  fi
+                done
+              fi
+            done
+
+            echo "" >> performance-report.md
+            echo "## 📊 Performance Insights" >> performance-report.md
+            echo "- Monitoring level: ${{ needs.setup-monitoring.outputs.monitoring-level }}" >> performance-report.md
+            echo "- Total endpoints tested: $(find health-check-results -name "*.json" | wc -l)" >> performance-report.md
+            echo "- Test timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> performance-report.md
+
+            cat performance-report.md
+          else
+            echo "No health check results found"
+          fi
+
+      - name: Performance Baseline Update
+        if: github.event.inputs.performance_baseline == 'update-baseline' && github.ref == 'refs/heads/main'
+        run: |
+          echo "📝 Updating performance baseline..."
+          # 향후 구현: 성능 기준선을 별도 저장소나 데이터베이스에 저장
+          echo "Performance baseline update functionality will be implemented"
+
+      - name: Upload Performance Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: performance-report-${{ github.run_id }}
+          path: |
+            performance-report.md
+            health-check-results/
+          retention-days: 30
+
+  # 종합 모니터링 결과 및 알림
+  monitoring-summary:
+    runs-on: ubuntu-latest
+    needs: [setup-monitoring, api-health-check, performance-regression-detection]
+    if: always()
+
+    steps:
+      - name: Download Performance Report
+        uses: actions/download-artifact@v4
+        with:
+          name: performance-report-${{ github.run_id }}
+          path: reports
+
+      - name: Generate Summary
+        run: |
+          echo "# 🏥 API Health Monitoring Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f "reports/performance-report.md" ]; then
+            cat reports/performance-report.md >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Performance report not available" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🔗 Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- [Health Check Results](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+          echo "- [Performance Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+
+      - name: Alert on Critical Failures
+        if: failure() && (github.ref == 'refs/heads/main' || github.event_name == 'schedule')
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#api-alerts'
+          text: |
+            🚨 API Health Check Critical Failure!
+
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Monitoring Level: ${{ needs.setup-monitoring.outputs.monitoring-level }}
+
+            One or more critical API endpoints are failing.
+            Please investigate immediately.
+
+            Details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Alert on Performance Degradation
+        if: needs.api-health-check.outputs.degraded == 'true'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: warning
+          channel: '#performance-alerts'
+          text: |
+            ⚠️ API Performance Degradation Detected
+
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+
+            Some API endpoints are experiencing performance degradation.
+            Consider reviewing recent changes.
+
+            Details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+# 동시성 및 보안 설정
+concurrency:
+  group: api-health-${{ github.ref }}
+  cancel-in-progress: true

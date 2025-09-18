@@ -70,7 +70,10 @@ export const HTTP_429_CASES = {
 export const HTTP_500_CASES = {
   INTERNAL_SERVER_ERROR: '서버에서 오류가 발생했습니다.',
   DATABASE_ERROR: '데이터베이스 연결 오류가 발생했습니다.',
-  EXTERNAL_API_ERROR: '외부 API 호출 중 오류가 발생했습니다.'
+  EXTERNAL_API_ERROR: '외부 API 호출 중 오류가 발생했습니다.',
+  // TDD로 구현된 환경변수 검증 에러
+  ENV_VALIDATION_ERROR: '필수 환경변수가 설정되지 않았습니다.',
+  ENV_CONFIG_ERROR: '환경변수 형식이 올바르지 않습니다.'
 } as const;
 
 /**

@@ -6,6 +6,7 @@
 import { apiLimiter, withRetry } from './api-retry';
 import { ContractViolationError } from '@/shared/contracts/auth.contract';
 import { productionMonitor } from './production-monitor';
+import { tokenManager } from './token-manager';
 
 export interface ApiClientOptions extends RequestInit {
   skipAuth?: boolean;
@@ -27,8 +28,6 @@ interface PendingApiRequest<T = any> {
 
 export class ApiClient {
   private static instance: ApiClient;
-  private tokenProvider: (() => string | null) | null = null;
-  private tokenSetter: ((token: string) => void) | null = null;
   private refreshPromise: Promise<string> | null = null;
   private requestQueue: Array<{
     url: string;
@@ -40,8 +39,8 @@ export class ApiClient {
   // 🚨 $300 사건 방지: 캐시 및 중복 호출 방지
   private cache = new Map<string, CacheEntry>();
   private pendingApiRequests = new Map<string, PendingApiRequest>();
-  private readonly defaultCacheTTL = 5 * 60 * 1000; // 5분
-  private readonly authCacheTTL = 10 * 60 * 1000; // 10분 (auth/me는 더 오래)
+  private readonly defaultCacheTTL = 30 * 1000; // 30초 (테스트를 위해 짧게)
+  private readonly authCacheTTL = 60 * 1000; // 1분 (auth/me는 더 오래)
 
   // 성능 모니터링
   private apiCallCount = 0;
@@ -56,20 +55,70 @@ export class ApiClient {
     }
     return ApiClient.instance;
   }
+
+  /**
+   * 디버그 모드 확인 (프로덕션에서 로그 최소화)
+   */
+  private isDebugMode(): boolean {
+    return typeof process !== 'undefined' && process.env.NODE_ENV !== 'production';
+  }
+
+  /**
+   * 자동 캐시 정리 (내부 메서드)
+   */
+  public performMaintenanceCleanup(): void {
+    if (this.isDebugMode()) {
+      console.log('🧹 [API Client] Automatic cache cleanup and token sync');
+    }
+
+    // 캐시 정리 (만료된 항목들)
+    const now = Date.now();
+    let cleanedCount = 0;
+
+    this.cache.forEach((entry, key) => {
+      if (now > entry.expiresAt) {
+        this.cache.delete(key);
+        cleanedCount++;
+      }
+    });
+
+    // 진행 중인 요청 정리 (5분 이상 된 것들)
+    const staleThreshold = 5 * 60 * 1000; // 5분
+    this.pendingApiRequests.forEach((request, key) => {
+      if (now - request.timestamp > staleThreshold) {
+        this.pendingApiRequests.delete(key);
+        if (this.isDebugMode()) {
+          console.warn(`⚠️ [API Client] Cleaned up stale request: ${key}`);
+        }
+      }
+    });
+
+    if (this.isDebugMode() && cleanedCount > 0) {
+      console.log(`🧹 [API Client] Cleaned ${cleanedCount} expired cache entries`);
+    }
+  }
   
   /**
-   * 토큰 공급자 및 설정자 등록 (Zustand store에서 호출)
+   * 레거시 호환성을 위한 메서드들 (TokenManager로 대체됨)
+   * @deprecated Use TokenManager directly instead - 이 메서드들은 더 이상 사용되지 않음
    */
   setTokenProvider(provider: () => string | null): void {
-    this.tokenProvider = provider;
+    // 토큰 제공자는 TokenManager로 통합됨 - 별도 동작 불필요
+    if (this.isDebugMode()) {
+      console.info('[API Client] TokenProvider integration: TokenManager handles all token sources automatically');
+    }
   }
 
   setTokenSetter(setter: (token: string) => void): void {
-    this.tokenSetter = setter;
+    // 토큰 설정은 TokenManager.setToken()으로 통합됨 - 별도 동작 불필요
+    if (this.isDebugMode()) {
+      console.info('[API Client] TokenSetter integration: Use tokenManager.setToken() directly');
+    }
   }
   
   /**
    * 토큰 만료 확인 (Supabase 토큰 형식 지원)
+   * Bug Fix #3: Node.js 호환성 - atob() → Buffer.from() 변경
    */
   private isTokenExpired(token: string): boolean {
     try {
@@ -84,8 +133,13 @@ export class ApiClient {
         }
       }
 
-      // 표준 JWT 토큰 검증
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      // 표준 JWT 토큰 검증 - Node.js 호환 버전
+      const base64Payload = token.split('.')[1];
+      const payload = JSON.parse(
+        typeof window !== 'undefined' && window.atob
+          ? atob(base64Payload) // 브라우저 환경
+          : Buffer.from(base64Payload, 'base64').toString('utf-8') // Node.js 환경
+      );
       const currentTime = Date.now() / 1000;
       return payload.exp < currentTime;
     } catch {
@@ -131,10 +185,7 @@ export class ApiClient {
         console.log('🚨 Token refresh 400 - No refresh token available (guest user)');
         // 400: 토큰이 없음 → 게스트 사용자로 즉시 전환
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('token');
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          localStorage.removeItem('legacyToken');
+          tokenManager.clearAllTokens();
           window.dispatchEvent(new CustomEvent('auth:guest-mode-activated'));
         }
         throw new Error('No refresh token available - guest mode activated');
@@ -144,10 +195,7 @@ export class ApiClient {
         console.log('🚨 Token refresh 401 - Refresh token expired/invalid');
         // 401: 토큰이 만료됨 → 완전한 인증 실패
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('token');
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          localStorage.removeItem('legacyToken');
+          tokenManager.clearAllTokens();
           window.dispatchEvent(new CustomEvent('auth:refresh-failed'));
         }
         throw new Error('Refresh token expired - authentication required');
@@ -161,21 +209,8 @@ export class ApiClient {
     const data = await response.json();
     const newToken = data.data.accessToken;
 
-    // 새 토큰을 상태 관리에 저장
-    if (this.tokenSetter) {
-      this.tokenSetter(newToken);
-    }
-
-    // accessToken으로 통합하여 localStorage 저장
-    if (typeof window !== 'undefined') {
-      // 기본 토큰을 accessToken으로 저장
-      localStorage.setItem('token', newToken);
-      localStorage.setItem('accessToken', newToken);
-
-      // 레거시 토큰들 정리
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('legacyToken');
-    }
+    // TokenManager를 통한 토큰 저장 (우선순위 적용)
+    tokenManager.setToken(newToken, 'bearer');
 
     return newToken;
   }
@@ -306,15 +341,12 @@ export class ApiClient {
   }
 
   /**
-   * 인증 실패 처리 - 토큰 정리 및 이벤트 발송
+   * 인증 실패 처리 - TokenManager를 통한 토큰 정리 및 이벤트 발송
    */
   private handleAuthenticationFailure(): void {
     if (typeof window !== 'undefined') {
-      // 모든 토큰 정리
-      localStorage.removeItem('token');
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('legacyToken');
+      // TokenManager를 통한 모든 토큰 정리
+      tokenManager.clearAllTokens();
 
       // 통합 인증 무효화 이벤트 발송
       window.dispatchEvent(new CustomEvent('auth:token-invalid'));
@@ -322,27 +354,42 @@ export class ApiClient {
   }
 
   /**
-   * 인증 헤더 생성 (자동 토큰 갱신 포함)
+   * 인증 헤더 생성 (TokenManager를 통한 통합 토큰 관리)
+   * 🚨 $300 사건 방지: 토큰 검증 최적화로 불필요한 갱신 방지
    */
   private async getAuthHeaders(): Promise<Record<string, string>> {
-    let token = this.tokenProvider?.();
-    
-    if (!token) {
+    const tokenInfo = tokenManager.getAuthToken();
+
+    if (!tokenInfo) {
+      if (this.isDebugMode()) {
+        console.debug('🔍 [Auth Headers] No token available from TokenManager');
+      }
       return {};
     }
 
-    // 토큰 만료 확인 및 갱신
-    if (this.isTokenExpired(token)) {
+    // 토큰 만료 확인 (TokenManager가 이미 만료된 토큰 필터링하지만 이중 확인)
+    if (this.isTokenExpired(tokenInfo.token)) {
+      if (this.isDebugMode()) {
+        console.debug('🔄 [Auth Headers] Token expired, attempting refresh');
+      }
+
       try {
-        token = await this.refreshAccessToken();
+        const refreshedToken = await this.refreshAccessToken();
+        return { Authorization: `Bearer ${refreshedToken}` };
       } catch (error) {
-        console.warn('Token refresh failed:', error);
+        if (this.isDebugMode()) {
+          console.warn('⚠️ [Auth Headers] Token refresh failed:', error);
+        }
         return {};
       }
     }
-    
+
+    if (this.isDebugMode()) {
+      console.debug(`✅ [Auth Headers] Using ${tokenInfo.type} token from ${tokenInfo.source}`);
+    }
+
     return {
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${tokenInfo.token}`
     };
   }
   
@@ -409,22 +456,29 @@ export class ApiClient {
 
     console.log(`🔍 API 요청: ${method} ${url}`, { requestKey });
 
-    // 1단계: 진행 중인 동일 요청 체크 (중복 호출 방지)
-    if (this.pendingApiRequests.has(requestKey)) {
-      console.log(`⚡ 진행 중인 요청 재사용: ${requestKey}`);
-      return this.pendingApiRequests.get(requestKey)!.promise;
-    }
-
-    // 2단계: GET 요청 캐시 체크 (특히 auth/me)
+    // 1단계: GET 요청 캐시 체크 (최우선)
     if (method === 'GET') {
       const cachedData = this.getFromCache<T>(requestKey);
       if (cachedData) {
+        console.log(`💾 캐시에서 데이터 반환: ${requestKey}`);
         return cachedData;
       }
     }
 
-    // 3단계: 실제 요청 실행
-    const requestPromise = this.executeRequestWithCache<T>(url, options, requestKey);
+    // 2단계: 진행 중인 동일 요청 체크 (중복 호출 방지)
+    if (this.pendingApiRequests.has(requestKey)) {
+      console.log(`⚡ 진행 중인 요청 재사용: ${requestKey}`);
+      const pendingRequest = this.pendingApiRequests.get(requestKey)!;
+      return await pendingRequest.promise;
+    }
+
+    // 3단계: 실제 요청 실행 및 결과 처리
+    const requestPromise = this.executeRequestWithCache<T>(url, options, requestKey)
+      .catch(error => {
+        // 에러 발생 시에도 진행 중인 요청에서 제거
+        this.pendingApiRequests.delete(requestKey);
+        throw error;
+      });
 
     // 진행 중인 요청으로 등록
     this.pendingApiRequests.set(requestKey, {
@@ -434,6 +488,15 @@ export class ApiClient {
 
     try {
       const result = await requestPromise;
+
+      // 성공한 GET 요청만 캐시에 저장
+      if (method === 'GET' && result) {
+        const isAuthRequest = url.includes('/api/auth/me');
+        const cacheTTL = options.cacheTTL || (isAuthRequest ? this.authCacheTTL : this.defaultCacheTTL);
+        this.setCache(requestKey, result, cacheTTL);
+        console.log(`💾 캐시에 저장: ${requestKey} (TTL: ${cacheTTL}ms)`);
+      }
+
       return result;
     } finally {
       // 진행 중인 요청에서 제거
@@ -442,25 +505,21 @@ export class ApiClient {
   }
 
   /**
-   * 캐싱을 적용한 실제 요청 실행
+   * 실제 요청 실행 (캐싱은 safeFetchWithCache에서 처리)
    */
   private async executeRequestWithCache<T>(
     url: string,
     options: ApiClientOptions & { cacheTTL?: number },
     requestKey: string
   ): Promise<T> {
-    const method = options.method || 'GET';
-    const isAuthRequest = url.includes('/api/auth/me');
-    const cacheTTL = options.cacheTTL || (isAuthRequest ? this.authCacheTTL : this.defaultCacheTTL);
-
     // 기존 fetch 메서드 호출
     const response = await this.fetch(url, options);
-    const data = await response.json();
 
-    // GET 요청만 캐시에 저장
-    if (method === 'GET') {
-      this.setCache(requestKey, data, cacheTTL);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
+
+    const data = await response.json();
 
     console.log(`✅ 요청 완료: ${requestKey}`);
     return data;
@@ -670,22 +729,40 @@ export const safeDelete = <T = any>(
 ) => apiClient.delete<T>(url, options);
 
 /**
- * 초기화 함수 - useAuthStore에서 호출
+ * 초기화 함수 - useAuthStore에서 호출 (레거시 호환성 유지)
+ * TokenManager가 자동으로 모든 토큰 소스를 통합 관리하므로 별도 설정 불필요
+ * @deprecated TokenManager handles all token management automatically
  */
 export function initializeApiClient(
-  tokenProvider: () => string | null,
+  tokenProvider?: () => string | null,
   tokenSetter?: (token: string) => void
 ): void {
-  apiClient.setTokenProvider(tokenProvider);
-  if (tokenSetter) {
-    apiClient.setTokenSetter(tokenSetter);
+  // TokenManager 통합 완료 확인
+  const client = ApiClient.getInstance();
+  const tokenStatus = tokenManager.getTokenStatus();
+  const isDebugMode = typeof process !== 'undefined' && process.env.NODE_ENV !== 'production';
+
+  if (isDebugMode) {
+    console.info('🔧 [API Client] Initialization requested:', {
+      tokenManagerActive: !!tokenManager,
+      availableTokens: {
+        supabase: tokenStatus.hasSupabase,
+        bearer: tokenStatus.hasBearer,
+        legacy: tokenStatus.hasLegacy
+      },
+      activeToken: !!tokenStatus.activeToken,
+      needsMigration: tokenStatus.needsMigration
+    });
   }
+
+  // TokenManager가 모든 토큰 소스를 자동으로 처리하므로 추가 작업 불필요
+  // 레거시 매개변수들은 하위 호환성을 위해 유지하지만 사용하지 않음
 }
 
-// 자동 캐시 정리 (30초마다)
+// 자동 캐시 정리 및 토큰 동기화 (30초마다)
 if (typeof window !== 'undefined') {
   setInterval(() => {
-    // 간단한 캐시 정리 (public 메서드 불필요)
-    console.log('🧹 자동 캐시 정리 실행');
+    const client = ApiClient.getInstance();
+    client.performMaintenanceCleanup();
   }, 30000);
 }

@@ -3,13 +3,20 @@
  * CLAUDE.md 데이터 계약 원칙에 따른 중앙화된 변환 로직
  */
 
-import { 
-  type StorySuccessResponse, 
+import {
+  type StorySuccessResponse,
   type Act,
   validateStoryResponse,
-  StoryContractViolationError 
+  StoryContractViolationError
 } from '@/shared/contracts/story.contract';
 import { StoryStep, StoryInput } from '@/entities/scenario';
+import {
+  type SupabaseUserDTO,
+  type PrismaUserDomain,
+  SupabaseUserDTOSchema,
+  PrismaUserDomainSchema,
+  transformSupabaseUserToPrisma,
+} from '@/shared/contracts/user-sync.schema';
 
 /**
  * API Act DTO를 StoryStep View Model로 변환
@@ -163,16 +170,23 @@ export function transformApiError(
  * 요청 DTO 변환 - StoryInput을 API 요청 형식으로 변환
  * API 계약 준수: toneAndManner 배열을 문자열로 안전하게 변환
  */
-export function transformStoryInputToApiRequest(storyInput: StoryInput) {
-  // toneAndManner 배열을 문자열로 안전하게 변환
+export function transformStoryInputToApiRequest(storyInput: any) {
+  // toneAndManner 배열 또는 문자열을 문자열로 안전하게 변환
   let toneAndMannerString = '일반적';
-  if (storyInput.toneAndManner && Array.isArray(storyInput.toneAndManner)) {
-    const validTones = storyInput.toneAndManner
-      .filter((tone: string) => tone && typeof tone === 'string' && tone.trim())
-      .map((tone: string) => tone.trim());
 
-    if (validTones.length > 0) {
-      toneAndMannerString = validTones.join(', ');
+  if (storyInput.toneAndManner) {
+    if (Array.isArray(storyInput.toneAndManner)) {
+      // 배열인 경우: 유효한 문자열들을 쉼표로 연결
+      const validTones = storyInput.toneAndManner
+        .filter((tone: string) => tone && typeof tone === 'string' && tone.trim())
+        .map((tone: string) => tone.trim());
+
+      if (validTones.length > 0) {
+        toneAndMannerString = validTones.join(', ');
+      }
+    } else if (typeof storyInput.toneAndManner === 'string' && storyInput.toneAndManner.trim()) {
+      // 이미 문자열인 경우: 그대로 사용
+      toneAndMannerString = storyInput.toneAndManner.trim();
     }
   }
 
@@ -187,5 +201,141 @@ export function transformStoryInputToApiRequest(storyInput: StoryInput) {
     tempo: storyInput.tempo?.trim() || '보통',
     developmentMethod: storyInput.developmentMethod?.trim() || '클래식 기승전결',
     developmentIntensity: storyInput.developmentIntensity?.trim() || '보통',
+  };
+}
+
+// ============================================================================
+// User 데이터 DTO 변환 (데이터 계약 준수)
+// ============================================================================
+
+/**
+ * Supabase User DTO 검증 및 변환
+ * 런타임에 스키마 계약 위반 검출
+ */
+export function validateAndTransformSupabaseUser(
+  rawUserData: unknown,
+  context: string = 'Supabase User'
+): SupabaseUserDTO {
+  const validationResult = SupabaseUserDTOSchema.safeParse(rawUserData);
+
+  if (!validationResult.success) {
+    const error = new Error(
+      `${context} 데이터 계약 위반: ${validationResult.error.message}`
+    );
+    console.error('❌ Supabase User DTO 검증 실패:', {
+      context,
+      errors: validationResult.error.errors,
+      receivedData: rawUserData,
+    });
+    throw error;
+  }
+
+  return validationResult.data;
+}
+
+/**
+ * Prisma User 도메인 모델 검증
+ */
+export function validatePrismaUser(
+  userData: unknown,
+  context: string = 'Prisma User'
+): PrismaUserDomain {
+  const validationResult = PrismaUserDomainSchema.safeParse(userData);
+
+  if (!validationResult.success) {
+    const error = new Error(
+      `${context} 도메인 모델 계약 위반: ${validationResult.error.message}`
+    );
+    console.error('❌ Prisma User 도메인 검증 실패:', {
+      context,
+      errors: validationResult.error.errors,
+      receivedData: userData,
+    });
+    throw error;
+  }
+
+  return validationResult.data;
+}
+
+/**
+ * 안전한 사용자 DTO 변환 (Supabase -> Prisma)
+ * 데이터 계약 준수 및 에러 처리 내장
+ */
+export function safeTransformUserToPrisma(
+  supabaseUserData: unknown,
+  context: string = 'User Sync'
+): Omit<PrismaUserDomain, 'passwordHash' | 'updatedAt'> | null {
+  try {
+    // 1. Supabase DTO 검증
+    const validatedSupabaseUser = validateAndTransformSupabaseUser(supabaseUserData, context);
+
+    // 2. Prisma 도메인 모델로 변환
+    const prismaUserData = transformSupabaseUserToPrisma(validatedSupabaseUser);
+
+    console.log('✅ 사용자 DTO 변환 성공:', {
+      context,
+      userId: validatedSupabaseUser.id,
+      email: validatedSupabaseUser.email,
+    });
+
+    return prismaUserData;
+
+  } catch (error) {
+    console.error(`❌ 사용자 DTO 변환 실패 (${context}):`, {
+      error: error instanceof Error ? error.message : String(error),
+      inputData: supabaseUserData,
+    });
+
+    return null; // graceful degradation
+  }
+}
+
+/**
+ * 데이터 품질 검증 유틸리티
+ * 사용자 데이터의 완정성 및 일관성 검사
+ */
+export function validateUserDataQuality(userData: {
+  id?: string;
+  email?: string;
+  username?: string;
+}): {
+  isValid: boolean;
+  issues: string[];
+  score: number; // 0-100 점수
+} {
+  const issues: string[] = [];
+  let score = 100;
+
+  // 필수 필드 검증
+  if (!userData.id || !userData.id.trim()) {
+    issues.push('ID가 누락되었습니다');
+    score -= 40;
+  }
+
+  if (!userData.email || !userData.email.trim()) {
+    issues.push('이메일이 누락되었습니다');
+    score -= 30;
+  }
+
+  if (!userData.username || !userData.username.trim()) {
+    issues.push('사용자명이 누락되었습니다');
+    score -= 20;
+  }
+
+  // 형식 검증
+  if (userData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userData.email)) {
+    issues.push('이메일 형식이 올바르지 않습니다');
+    score -= 15;
+  }
+
+  if (userData.username && !/^[a-zA-Z0-9_-]{3,30}$/.test(userData.username)) {
+    issues.push('사용자명 형식이 올바르지 않습니다 (3-30자, 영문/숫자/_/- 만 허용)');
+    score -= 10;
+  }
+
+  return {
+    isValid: issues.length === 0,
+    issues,
+    score: Math.max(0, score),
   };
 }
