@@ -1,0 +1,62 @@
+name: 'Setup Node.js and pnpm'
+description: 'Node.js와 pnpm 설정 및 의존성 설치 (캐시 최적화)'
+
+inputs:
+  node-version:
+    description: 'Node.js 버전'
+    required: false
+    default: '20'
+  pnpm-version:
+    description: 'pnpm 버전'
+    required: false
+    default: '9'
+  install-deps:
+    description: '의존성 자동 설치 여부'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'pnpm'
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: ${{ inputs.pnpm-version }}
+
+    - name: Get pnpm store directory
+      shell: bash
+      run: |
+        echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+    - name: Setup pnpm cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.STORE_PATH }}
+        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-store-
+
+    - name: Install dependencies
+      if: inputs.install-deps == 'true'
+      shell: bash
+      run: |
+        echo "📦 의존성 설치 중..."
+        pnpm install --frozen-lockfile --prefer-offline --silent
+        echo "✅ 의존성 설치 완료 (캐시 활용)"
+
+    - name: Verify critical tools
+      shell: bash
+      run: |
+        echo "🔍 중요 도구 설치 검증..."
+        echo "- Node.js: $(node --version)"
+        echo "- pnpm: $(pnpm --version)"
+        echo "- TypeScript: $(pnpm tsc --version 2>/dev/null || echo 'Not installed')"
+        echo "- ESLint: $(pnpm eslint --version 2>/dev/null || echo 'Not installed')"
+        echo "- Vitest: $(pnpm vitest --version 2>/dev/null || echo 'Not installed')"
+        echo "✅ 도구 검증 완료"

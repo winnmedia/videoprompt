@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseAdminClient } from '@/shared/lib/supabase-client';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -82,6 +82,26 @@ export async function POST(request: NextRequest) {
   try {
     console.log('🚀 Auth 테이블 마이그레이션 시작...');
 
+    // 안전한 Supabase Admin 클라이언트 가져오기
+    const supabaseResult = await getSupabaseAdminClient({
+      throwOnError: false,
+      useCircuitBreaker: true,
+      serviceName: 'admin-migrate'
+    });
+
+    if (!supabaseResult.client || !supabaseResult.canProceed) {
+      console.error('❌ Supabase Admin 클라이언트 생성 실패:', supabaseResult.error);
+
+      return NextResponse.json({
+        success: false,
+        error: `Supabase 서비스를 사용할 수 없습니다: ${supabaseResult.error}`,
+        degradationMode: supabaseResult.degradationMode,
+        timestamp: new Date().toISOString()
+      }, { status: 503 });
+    }
+
+    const supabase = supabaseResult.client;
+
     // SQL 실행은 현재 제한적이므로 테이블별로 개별 생성 시도
     console.log('📋 테이블 생성 중...');
     const createdTables: string[] = [];
@@ -147,6 +167,22 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
+    // 안전한 Supabase Admin 클라이언트 가져오기
+    const supabaseResult = await getSupabaseAdminClient({
+      throwOnError: false,
+      useCircuitBreaker: true,
+      serviceName: 'admin-migrate-get'
+    });
+
+    if (!supabaseResult.client || !supabaseResult.canProceed) {
+      return NextResponse.json({
+        error: `Supabase 서비스를 사용할 수 없습니다: ${supabaseResult.error}`,
+        degradationMode: supabaseResult.degradationMode
+      }, { status: 503 });
+    }
+
+    const supabase = supabaseResult.client;
+
     // 각 테이블 존재 여부를 직접 확인하는 방식
     const authTables = ['User', 'RefreshToken', 'EmailVerification', 'PasswordReset'];
     const existingTables: string[] = [];

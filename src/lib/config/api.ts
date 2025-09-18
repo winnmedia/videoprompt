@@ -3,31 +3,37 @@
  * 환경별로 적절한 API 엔드포인트를 제공
  */
 
-// 배포 환경 전용 API 설정 관리
+// 현재 배포 환경 기반 API 설정 관리 (Railway 제거)
+const getEnvironmentBaseUrl = () => {
+  return process.env.NEXT_PUBLIC_API_URL ||
+         process.env.NEXT_PUBLIC_API_BASE ||
+         (process.env.NODE_ENV === 'production' ? 'https://videoprompt.vercel.app' : 'http://localhost:3000');
+};
+
 export const API_CONFIG = {
-  // 프로덕션 환경: Railway 백엔드 직접 연결
+  // 프로덕션 환경: 현재 배포 환경 사용
   production: {
-    baseUrl: 'https://videoprompt-production.up.railway.app',
+    baseUrl: getEnvironmentBaseUrl(),
     apiPrefix: '/api',
     useProxy: false, // 직접 연결
-    timeout: 120000, // 120초 - Railway 백엔드 처리 시간 고려
+    timeout: 120000, // 120초
     retryAttempts: 3, // 재시도 횟수
     retryDelay: 2000, // 재시도 간격 (ms)
   },
 
-  // 개발 환경: Railway 백엔드 직접 연결 (로컬 가정 제거)
+  // 개발 환경: 로컬 Next.js 서버 사용
   development: {
-    baseUrl: 'https://videoprompt-production.up.railway.app',
+    baseUrl: getEnvironmentBaseUrl(),
     apiPrefix: '/api',
     useProxy: false, // 직접 연결
-    timeout: 120000, // 120초 - Railway 백엔드 처리 시간 고려
+    timeout: 120000, // 120초
     retryAttempts: 3, // 재시도 횟수
     retryDelay: 2000, // 재시도 간격 (ms)
   },
 
-  // 테스트 환경: Railway 백엔드 직접 연결
+  // 테스트 환경: 로컬 테스트 서버 사용
   test: {
-    baseUrl: 'https://videoprompt-production.up.railway.app',
+    baseUrl: getEnvironmentBaseUrl(),
     apiPrefix: '/api',
     useProxy: false, // 직접 연결
     timeout: 60000, // 60초 - 테스트 환경
@@ -66,7 +72,7 @@ export const getApiUrl = (endpoint: string): string => {
   if (typeof window !== 'undefined') {
     return `/api/${cleanEndpoint}`;
   }
-  // 서버(SSR/라우트 핸들러)에서는 Railway 백엔드로 직접 연결
+  // 서버(SSR/라우트 핸들러)에서는 현재 배포 환경으로 직접 연결
   return buildApiUrl(endpoint);
 };
 
@@ -101,15 +107,16 @@ export const shouldUseProxy = () => {
   return false; // 직접 연결만 사용
 };
 
-// Railway 백엔드 상태 확인
-export const checkRailwayBackend = async () => {
+// 현재 배포 환경 백엔드 상태 확인
+export const checkBackendHealth = async () => {
   try {
-    const response = await fetch('https://videoprompt-production.up.railway.app/api/health', {
+    const baseUrl = getEnvironmentBaseUrl();
+    const response = await fetch(`${baseUrl}/api/health`, {
       signal: AbortSignal.timeout(10000),
     });
     return response.ok;
   } catch (error) {
-    console.error('Railway 백엔드 상태 확인 실패:', error);
+    console.error('백엔드 상태 확인 실패:', error);
     return false;
   }
 };

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { checkRateLimit, RATE_LIMITS } from '@/shared/lib/rate-limiter';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
 import { logger, LogCategory } from '@/shared/lib/structured-logger';
 
 export const runtime = 'nodejs';
@@ -44,6 +44,21 @@ async function uploadToSupabaseStorage(
   });
 
   try {
+    // getSupabaseClientSafe를 사용한 안전한 클라이언트 초기화
+    let supabase;
+    try {
+      supabase = await getSupabaseClientSafe('anon');
+    } catch (error) {
+      logger.error(LogCategory.DATABASE, 'Supabase client initialization failed', error, {
+        traceId,
+        function: 'uploadToSupabaseStorage'
+      });
+      if (error instanceof ServiceConfigError) {
+        throw new Error(error.message);
+      }
+      throw new Error('Supabase 클라이언트를 초기화할 수 없습니다.');
+    }
+
     // 파일을 ArrayBuffer로 변환
     const arrayBuffer = await file.arrayBuffer();
 
@@ -292,6 +307,19 @@ export async function POST(request: NextRequest) {
 // GET 요청으로 업로드 상태 확인
 export async function GET() {
   try {
+    // getSupabaseClientSafe를 사용한 안전한 클라이언트 초기화
+    let supabase;
+    try {
+      supabase = await getSupabaseClientSafe('anon');
+    } catch (error) {
+      const errorMessage = error instanceof ServiceConfigError ? error.message : 'Supabase client not initialized';
+      return NextResponse.json({
+        service: 'Video Upload (Supabase Storage)',
+        status: 'error',
+        error: errorMessage
+      }, { status: 503 });
+    }
+
     // Supabase Storage 상태 확인
     const { data: buckets, error } = await supabase.storage.listBuckets();
 

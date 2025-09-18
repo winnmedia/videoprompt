@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { saveFileFromUrl, saveMultipleFiles } from '@/lib/utils/file-storage';
+import { saveFileFromUrl, saveMultipleFiles } from '@/shared/lib/file-storage';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

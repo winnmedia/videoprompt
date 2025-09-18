@@ -1,5 +1,8 @@
 import type { NextRequest } from 'next/server';
 import jwt from 'jsonwebtoken';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import { supabaseAdmin } from '@/lib/supabase';
 
 type SessionPayload = {
   sub: string; // userId
@@ -40,16 +43,53 @@ export function verifySessionToken(token: string): SessionPayload | null {
 }
 
 export function getUserIdFromRequest(req: NextRequest): string | undefined {
-  // 🔥 401 오류 해결: Bearer 토큰 우선 검사 (프로덕션 환경에서 더 안정적)
-  
-  // 1) Authorization: Bearer <token> 우선
+  // 🔥 통합 인증 시스템: Supabase + 레거시 JWT 지원 (Node.js 호환)
+
+  // 1) Supabase 쿠키 확인 (최우선)
+  try {
+    const supabaseAccessToken = req.cookies.get('sb-access-token')?.value;
+    if (supabaseAccessToken) {
+      try {
+        // Node.js 환경에서 Buffer 사용
+        const tokenPayload = JSON.parse(
+          Buffer.from(supabaseAccessToken.split('.')[1], 'base64').toString()
+        );
+        if (tokenPayload.sub) {
+          console.log(`🔑 Supabase Cookie token authentication successful: ${tokenPayload.sub}`);
+          return tokenPayload.sub;
+        }
+      } catch (e) {
+        console.warn('🚨 Supabase cookie token parsing failed:', e);
+      }
+    }
+  } catch (error) {
+    console.error('🚨 Supabase cookie parsing error:', error);
+  }
+
+  // 2) Authorization 헤더 확인
   try {
     const auth = req.headers.get('authorization') || req.headers.get('Authorization');
     if (auth && auth.toLowerCase().startsWith('bearer ')) {
       const token = auth.slice(7).trim();
+
+      // Supabase 토큰인지 먼저 확인 (iss 필드로 판단)
+      try {
+        // Node.js 환경에서 Buffer 사용
+        const tokenPayload = JSON.parse(
+          Buffer.from(token.split('.')[1], 'base64').toString()
+        );
+        if (tokenPayload.iss && tokenPayload.iss.includes('supabase')) {
+          console.log(`🔑 Supabase Bearer token authentication successful: ${tokenPayload.sub}`);
+          return tokenPayload.sub;
+        }
+      } catch (e) {
+        // Supabase 토큰이 아니면 계속 진행
+      }
+
+      // 레거시 JWT도 확인
       const p = verifySessionToken(token);
       if (p?.sub) {
-        console.log(`🔑 Bearer token authentication successful: ${p.sub}`);
+        console.log(`🔑 Legacy Bearer token authentication successful: ${p.sub}`);
         return p.sub;
       } else {
         console.warn('🚨 Bearer token verification failed');
@@ -59,13 +99,13 @@ export function getUserIdFromRequest(req: NextRequest): string | undefined {
     console.error('🚨 Bearer token parsing error:', error);
   }
 
-  // 2) Cookie 차선
+  // 3) 레거시 Cookie 차선
   try {
     const cookie = req.cookies.get('session')?.value;
     if (cookie) {
       const p = verifySessionToken(cookie);
       if (p?.sub) {
-        console.log(`🔑 Cookie authentication successful: ${p.sub}`);
+        console.log(`🔑 Legacy Cookie authentication successful: ${p.sub}`);
         return p.sub;
       } else {
         console.warn('🚨 Cookie token verification failed');
@@ -75,7 +115,7 @@ export function getUserIdFromRequest(req: NextRequest): string | undefined {
     console.error('🚨 Cookie token parsing error:', error);
   }
 
-  // 3) 테스트 헤더(개발/테스트 환경만)
+  // 4) 테스트 헤더(개발/테스트 환경만)
   const allowHeader = process.env.E2E_DEBUG === '1' || process.env.NODE_ENV === 'test';
   if (allowHeader) {
     const uid = req.headers.get('x-user-id') || undefined;
@@ -97,7 +137,7 @@ export async function getUser(req: NextRequest) {
   const { prisma } = await import('@/lib/db');
 
   try {
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -107,6 +147,40 @@ export async function getUser(req: NextRequest) {
         updatedAt: true,
       }
     });
+
+    // 🔄 자동 동기화: Prisma User가 없으면 Supabase에서 동기화 시도
+    if (!user) {
+      console.log('🔄 사용자 동기화 시도:', userId);
+
+      try {
+        const { userSyncService } = await import('@/shared/lib/user-sync.service');
+
+        const syncResult = await userSyncService.syncUserFromSupabase(userId, {
+          createIfNotExists: true,
+          forceUpdate: false
+        });
+
+        if (syncResult.success) {
+          // 동기화 성공 후 다시 조회
+          user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+              id: true,
+              email: true,
+              username: true,
+              createdAt: true,
+              updatedAt: true,
+            }
+          });
+
+          console.log('✅ 자동 동기화 성공:', userId, syncResult.operation);
+        } else {
+          console.warn('⚠️ 자동 동기화 실패:', userId, syncResult.errors);
+        }
+      } catch (syncError) {
+        console.error('❌ 동기화 서비스 오류:', syncError);
+      }
+    }
 
     return user;
   } catch (error) {

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { success, failure, getTraceId } from '@/shared/lib/api-response';
+import { success, failure, getTraceId, supabaseErrors } from '@/shared/lib/api-response';
 import { signUpWithSupabase } from '@/shared/lib/auth-supabase';
 import { checkRateLimit, RATE_LIMITS } from '@/shared/lib/rate-limiter';
-import { supabaseAdmin } from '@/lib/supabase';
+import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
 
 export const runtime = 'nodejs';
 
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
 
     console.log(`📝 Registration attempt for email: ${email}, username: ${username}`);
 
-    // Supabase Auth로 회원가입
+    // 1단계: Supabase Auth로 회원가입
     const { user, session, error } = await signUpWithSupabase(email, password, {
       username,
     });
@@ -87,17 +87,75 @@ export async function POST(req: NextRequest) {
       return failure('REGISTRATION_FAILED', '회원가입에 실패했습니다.', 400, undefined, traceId);
     }
 
+    // 2단계: 실제 users 테이블에 사용자 정보 저장
+    let supabaseClient;
+    try {
+      supabaseClient = await getSupabaseClientSafe('anon');
+    } catch (error) {
+      console.error('❌ Supabase 클라이언트 접근 실패:', error);
+
+      if (error instanceof ServiceConfigError) {
+        return supabaseErrors.configError(traceId, error.message);
+      }
+
+      // 네트워크 관련 오류
+      const errorMessage = String(error);
+      if (errorMessage.includes('fetch') ||
+          errorMessage.includes('network') ||
+          errorMessage.includes('ENOTFOUND')) {
+        return supabaseErrors.unavailable(traceId, errorMessage);
+      }
+
+      // 기타 Supabase 오류
+      return supabaseErrors.unavailable(traceId, errorMessage);
+    }
+
+    try {
+      // users 테이블에 실제 데이터 저장
+      const { data: insertedUser, error: insertError } = await supabaseClient
+        .from('users')
+        .insert({
+          id: user.id,
+          email: user.email!,
+          username: username,
+          role: 'user',
+          email_verified: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('❌ users 테이블 저장 실패:', insertError);
+
+        // 중복 데이터 에러 처리
+        if (insertError.code === '23505') { // Unique constraint violation
+          return failure('DUPLICATE_USER', '이미 등록된 사용자입니다.', 409, insertError.message, traceId);
+        }
+
+        return failure('DATABASE_ERROR', '사용자 정보 저장에 실패했습니다.', 500, insertError.message, traceId);
+      }
+
+      console.log(`✅ User data saved to users table:`, insertedUser);
+    } catch (tableError) {
+      console.error('❌ 테이블 저장 중 예외 발생:', tableError);
+      return failure('DATABASE_ERROR', '데이터베이스 오류가 발생했습니다.', 500, String(tableError), traceId);
+    }
+
     console.log(`✅ Registration successful for ${email}, user ID: ${user.id}`);
 
     // 이메일 확인 필요 여부 체크
     let needsEmailConfirmation = !user.email_confirmed_at;
 
     // 개발 환경에서 자동 이메일 확인 (테스트 편의성)
-    if (process.env.NODE_ENV === 'development' && needsEmailConfirmation && supabaseAdmin) {
+    if (process.env.NODE_ENV === 'development' && needsEmailConfirmation) {
       try {
+        const adminClient = await getSupabaseClientSafe('admin');
+
         console.log(`🔧 개발 환경: 사용자 ${user.id}의 이메일 자동 확인 중...`);
 
-        const { error: confirmError } = await supabaseAdmin.auth.admin.updateUserById(
+        const { error: confirmError } = await adminClient.auth.admin.updateUserById(
           user.id,
           { email_confirm: true }
         );
@@ -105,11 +163,17 @@ export async function POST(req: NextRequest) {
         if (!confirmError) {
           needsEmailConfirmation = false;
           console.log(`✅ 개발 환경: 사용자 ${user.id}의 이메일이 자동 확인되었습니다.`);
+
+          // users 테이블도 업데이트
+          await supabaseClient
+            .from('users')
+            .update({ email_verified: true, verified_at: new Date().toISOString() })
+            .eq('id', user.id);
         } else {
           console.warn(`⚠️ 개발 환경: 이메일 자동 확인 실패:`, confirmError.message);
         }
       } catch (autoConfirmError) {
-        console.warn(`⚠️ 개발 환경: 이메일 자동 확인 중 오류:`, autoConfirmError);
+        console.warn(`⚠️ 개발 환경: Admin 클라이언트 사용 불가 또는 이메일 자동 확인 중 오류:`, autoConfirmError);
       }
     }
 

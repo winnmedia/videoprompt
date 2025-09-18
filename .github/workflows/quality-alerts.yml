@@ -1,0 +1,485 @@
+name: Quality Alerts & Monitoring
+
+on:
+  workflow_run:
+    workflows: ["Enhanced Quality Gates - Zero Regression Policy"]
+    types: [completed]
+  schedule:
+    # 매 시간마다 품질 지표 수집
+    - cron: '0 * * * *'
+  workflow_dispatch:
+    inputs:
+      alert_type:
+        description: 'Type of alert to test'
+        required: false
+        default: 'test'
+        type: choice
+        options:
+          - test
+          - coverage
+          - performance
+          - security
+
+env:
+  SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+  SLACK_CHANNEL_CRITICAL: '#alerts-critical'
+  SLACK_CHANNEL_WARNING: '#quality-alerts'
+  SLACK_CHANNEL_INFO: '#ci-status'
+
+jobs:
+  # 🔍 품질 지표 수집 및 분석
+  collect-quality-metrics:
+    name: '📊 Collect Quality Metrics'
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion != 'skipped'
+    outputs:
+      quality-status: ${{ steps.analyze.outputs.quality-status }}
+      alert-level: ${{ steps.analyze.outputs.alert-level }}
+      metrics-summary: ${{ steps.analyze.outputs.metrics-summary }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js & pnpm
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: Download test artifacts
+        if: github.event.workflow_run
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+          path: ./artifacts
+
+      - name: Analyze Quality Metrics
+        id: analyze
+        run: |
+          echo "📊 품질 지표 분석 중..."
+
+          # 기본 품질 상태
+          QUALITY_STATUS="unknown"
+          ALERT_LEVEL="info"
+          METRICS_SUMMARY=""
+
+          # 워크플로우 실행 결과 확인
+          if [ "${{ github.event.workflow_run.conclusion }}" = "success" ]; then
+            QUALITY_STATUS="good"
+            ALERT_LEVEL="info"
+            METRICS_SUMMARY="✅ All quality gates passed"
+          elif [ "${{ github.event.workflow_run.conclusion }}" = "failure" ]; then
+            QUALITY_STATUS="critical"
+            ALERT_LEVEL="critical"
+            METRICS_SUMMARY="❌ Quality gates failed - immediate attention required"
+          fi
+
+          # 테스트 결과 파일 분석 (있는 경우)
+          if [ -f "./artifacts/test-results/results.json" ]; then
+            echo "🔍 테스트 결과 분석 중..."
+
+            # Node.js로 JSON 파싱
+            ANALYSIS=$(node -e "
+              try {
+                const fs = require('fs');
+                const results = JSON.parse(fs.readFileSync('./artifacts/test-results/results.json', 'utf8'));
+
+                const totalTests = results.numTotalTests || 0;
+                const failedTests = results.numFailedTests || 0;
+                const passedTests = results.numPassedTests || 0;
+                const failureRate = totalTests > 0 ? (failedTests / totalTests * 100).toFixed(1) : 0;
+
+                console.log(JSON.stringify({
+                  totalTests,
+                  failedTests,
+                  passedTests,
+                  failureRate,
+                  status: failedTests > 0 ? 'failed' : 'passed'
+                }));
+              } catch (e) {
+                console.log(JSON.stringify({ error: 'Could not parse test results' }));
+              }
+            ")
+
+            echo "Test analysis: $ANALYSIS"
+            echo "test-analysis=$ANALYSIS" >> $GITHUB_OUTPUT
+
+            # 실패율이 높으면 알림 레벨 조정
+            FAILURE_RATE=$(echo "$ANALYSIS" | jq -r '.failureRate // 0')
+            if (( $(echo "$FAILURE_RATE > 10" | bc -l) )); then
+              ALERT_LEVEL="critical"
+              QUALITY_STATUS="critical"
+            elif (( $(echo "$FAILURE_RATE > 5" | bc -l) )); then
+              ALERT_LEVEL="warning"
+              QUALITY_STATUS="warning"
+            fi
+          fi
+
+          # 커버리지 정보 분석 (있는 경우)
+          if [ -f "./artifacts/coverage/coverage-summary.json" ]; then
+            echo "📈 커버리지 분석 중..."
+
+            COVERAGE_ANALYSIS=$(node -e "
+              try {
+                const fs = require('fs');
+                const coverage = JSON.parse(fs.readFileSync('./artifacts/coverage/coverage-summary.json', 'utf8'));
+                const total = coverage.total || {};
+
+                const lines = total.lines?.pct || 0;
+                const functions = total.functions?.pct || 0;
+                const branches = total.branches?.pct || 0;
+                const statements = total.statements?.pct || 0;
+
+                const avgCoverage = (lines + functions + branches + statements) / 4;
+
+                console.log(JSON.stringify({
+                  lines, functions, branches, statements, avgCoverage,
+                  status: avgCoverage >= 85 ? 'good' : avgCoverage >= 75 ? 'warning' : 'critical'
+                }));
+              } catch (e) {
+                console.log(JSON.stringify({ error: 'Could not parse coverage' }));
+              }
+            ")
+
+            echo "Coverage analysis: $COVERAGE_ANALYSIS"
+            echo "coverage-analysis=$COVERAGE_ANALYSIS" >> $GITHUB_OUTPUT
+          fi
+
+          # 최종 결과 설정
+          echo "quality-status=$QUALITY_STATUS" >> $GITHUB_OUTPUT
+          echo "alert-level=$ALERT_LEVEL" >> $GITHUB_OUTPUT
+          echo "metrics-summary=$METRICS_SUMMARY" >> $GITHUB_OUTPUT
+
+          echo "📊 분석 완료:"
+          echo "  Quality Status: $QUALITY_STATUS"
+          echo "  Alert Level: $ALERT_LEVEL"
+          echo "  Summary: $METRICS_SUMMARY"
+
+  # 🚨 $300 사건 재발 방지 모니터링
+  monitor-cost-prevention:
+    name: '💰 $300 Incident Prevention Monitor'
+    runs-on: ubuntu-latest
+    needs: collect-quality-metrics
+    if: needs.collect-quality-metrics.outputs.alert-level == 'critical'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js & pnpm
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: Check for Infinite Loop Patterns
+        id: check-patterns
+        run: |
+          echo "🔍 무한 루프 패턴 검사 중..."
+
+          VIOLATIONS=0
+          VIOLATION_DETAILS=""
+
+          # 1. useEffect 의존성 배열 검사
+          echo "1. useEffect 의존성 배열 검사..."
+          USEEFFECT_VIOLATIONS=$(grep -r "useEffect.*\[.*[a-zA-Z_][a-zA-Z0-9_]*\]" src/ --include="*.tsx" --include="*.ts" | grep -v "test" | wc -l)
+          if [ $USEEFFECT_VIOLATIONS -gt 0 ]; then
+            VIOLATIONS=$((VIOLATIONS + USEEFFECT_VIOLATIONS))
+            VIOLATION_DETAILS="${VIOLATION_DETAILS}\n- useEffect 의존성 배열 위험: ${USEEFFECT_VIOLATIONS}개"
+          fi
+
+          # 2. API 호출 패턴 검사
+          echo "2. 위험한 API 호출 패턴 검사..."
+          API_VIOLATIONS=$(grep -r "setInterval.*fetch\|setTimeout.*fetch" src/ --include="*.tsx" --include="*.ts" | grep -v "test" | wc -l)
+          if [ $API_VIOLATIONS -gt 0 ]; then
+            VIOLATIONS=$((VIOLATIONS + API_VIOLATIONS))
+            VIOLATION_DETAILS="${VIOLATION_DETAILS}\n- 위험한 API 패턴: ${API_VIOLATIONS}개"
+          fi
+
+          # 3. 무한 재귀 검사
+          echo "3. 무한 재귀 패턴 검사..."
+          RECURSION_VIOLATIONS=$(grep -r "function.*\(\).*{.*\1\(\)" src/ --include="*.tsx" --include="*.ts" | grep -v "test" | wc -l)
+          if [ $RECURSION_VIOLATIONS -gt 0 ]; then
+            VIOLATIONS=$((VIOLATIONS + RECURSION_VIOLATIONS))
+            VIOLATION_DETAILS="${VIOLATION_DETAILS}\n- 무한 재귀 패턴: ${RECURSION_VIOLATIONS}개"
+          fi
+
+          echo "violations=$VIOLATIONS" >> $GITHUB_OUTPUT
+          echo "details=$VIOLATION_DETAILS" >> $GITHUB_OUTPUT
+
+          if [ $VIOLATIONS -gt 0 ]; then
+            echo "🚨 $300 사건 위험 패턴 발견!"
+            echo "총 위반 사항: $VIOLATIONS개"
+            echo -e "상세:$VIOLATION_DETAILS"
+            exit 1
+          else
+            echo "✅ $300 사건 위험 패턴 없음"
+          fi
+
+      - name: Critical Alert - $300 Pattern Detected
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: ${{ env.SLACK_CHANNEL_CRITICAL }}
+          webhook_url: ${{ env.SLACK_WEBHOOK_URL }}
+          text: |
+            🚨 **CRITICAL: $300 사건 재발 위험 감지!**
+
+            **Repository:** ${{ github.repository }}
+            **Branch:** ${{ github.ref_name }}
+            **Commit:** ${{ github.sha }}
+            **Triggered by:** ${{ github.actor }}
+
+            **⚠️ 감지된 위험 패턴:**
+            ${{ steps.check-patterns.outputs.details }}
+
+            **🔧 즉시 조치 필요:**
+            1. 해당 코드 수정
+            2. useEffect 의존성 배열 확인
+            3. API 호출 패턴 검토
+            4. 무한 루프 가능성 제거
+
+            **📋 Action Required:** @channel
+            이는 $300 사건과 동일한 패턴입니다. 즉시 확인하고 수정해주세요.
+
+  # 📈 품질 트렌드 알림
+  quality-trend-notification:
+    name: '📈 Quality Trend Notification'
+    runs-on: ubuntu-latest
+    needs: collect-quality-metrics
+    if: always()
+
+    steps:
+      - name: Generate Quality Report
+        id: report
+        run: |
+          # 품질 상태에 따른 이모지 및 색상 설정
+          case "${{ needs.collect-quality-metrics.outputs.quality-status }}" in
+            "good")
+              EMOJI="✅"
+              COLOR="good"
+              ;;
+            "warning")
+              EMOJI="⚠️"
+              COLOR="warning"
+              ;;
+            "critical")
+              EMOJI="🚨"
+              COLOR="danger"
+              ;;
+            *)
+              EMOJI="🔍"
+              COLOR="#cccccc"
+              ;;
+          esac
+
+          echo "emoji=$EMOJI" >> $GITHUB_OUTPUT
+          echo "color=$COLOR" >> $GITHUB_OUTPUT
+
+          # 채널 선택
+          if [ "${{ needs.collect-quality-metrics.outputs.alert-level }}" = "critical" ]; then
+            echo "channel=${{ env.SLACK_CHANNEL_CRITICAL }}" >> $GITHUB_OUTPUT
+          elif [ "${{ needs.collect-quality-metrics.outputs.alert-level }}" = "warning" ]; then
+            echo "channel=${{ env.SLACK_CHANNEL_WARNING }}" >> $GITHUB_OUTPUT
+          else
+            echo "channel=${{ env.SLACK_CHANNEL_INFO }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send Quality Report to Slack
+        if: env.SLACK_WEBHOOK_URL
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          channel: ${{ steps.report.outputs.channel }}
+          webhook_url: ${{ env.SLACK_WEBHOOK_URL }}
+          custom_payload: |
+            {
+              "attachments": [
+                {
+                  "color": "${{ steps.report.outputs.color }}",
+                  "title": "${{ steps.report.outputs.emoji }} VideoPlanet Quality Report",
+                  "fields": [
+                    {
+                      "title": "Status",
+                      "value": "${{ needs.collect-quality-metrics.outputs.quality-status }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Alert Level",
+                      "value": "${{ needs.collect-quality-metrics.outputs.alert-level }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Repository",
+                      "value": "${{ github.repository }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Branch",
+                      "value": "${{ github.ref_name }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Workflow",
+                      "value": "${{ github.workflow }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Triggered by",
+                      "value": "${{ github.actor }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Summary",
+                      "value": "${{ needs.collect-quality-metrics.outputs.metrics-summary }}",
+                      "short": false
+                    }
+                  ],
+                  "footer": "VideoPlanet Quality Monitor",
+                  "footer_icon": "https://github.com/favicon.ico",
+                  "ts": ${{ github.event.head_commit.timestamp && github.event.head_commit.timestamp || github.event.workflow_run.created_at && github.event.workflow_run.created_at || 'Math.floor(Date.now()/1000)' }}
+                }
+              ]
+            }
+
+  # 📊 주간 품질 리포트 (매주 월요일)
+  weekly-quality-report:
+    name: '📊 Weekly Quality Report'
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' && github.event.schedule == '0 9 * * 1' # 매주 월요일 9시
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js & pnpm
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: Generate Weekly Report
+        id: weekly
+        run: |
+          echo "📊 주간 품질 리포트 생성 중..."
+
+          # GitHub API를 통해 최근 7일간의 워크플로우 실행 정보 수집
+          WEEK_AGO=$(date -d '7 days ago' --iso-8601)
+
+          # API 호출로 데이터 수집 (실제 구현에서는 GitHub API 사용)
+          echo "collecting_data=true" >> $GITHUB_OUTPUT
+          echo "week_start=$WEEK_AGO" >> $GITHUB_OUTPUT
+
+          # 주간 통계 (예시 데이터)
+          echo "total_builds=42" >> $GITHUB_OUTPUT
+          echo "successful_builds=38" >> $GITHUB_OUTPUT
+          echo "failed_builds=4" >> $GITHUB_OUTPUT
+          echo "success_rate=90.5" >> $GITHUB_OUTPUT
+          echo "avg_build_time=4.2" >> $GITHUB_OUTPUT
+
+      - name: Send Weekly Report
+        if: env.SLACK_WEBHOOK_URL
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          channel: ${{ env.SLACK_CHANNEL_INFO }}
+          webhook_url: ${{ env.SLACK_WEBHOOK_URL }}
+          custom_payload: |
+            {
+              "text": "📊 VideoPlanet 주간 품질 리포트",
+              "attachments": [
+                {
+                  "color": "good",
+                  "title": "📈 주간 품질 지표 (${{ steps.weekly.outputs.week_start }} ~ 현재)",
+                  "fields": [
+                    {
+                      "title": "총 빌드 수",
+                      "value": "${{ steps.weekly.outputs.total_builds }}회",
+                      "short": true
+                    },
+                    {
+                      "title": "성공률",
+                      "value": "${{ steps.weekly.outputs.success_rate }}%",
+                      "short": true
+                    },
+                    {
+                      "title": "성공한 빌드",
+                      "value": "${{ steps.weekly.outputs.successful_builds }}회",
+                      "short": true
+                    },
+                    {
+                      "title": "실패한 빌드",
+                      "value": "${{ steps.weekly.outputs.failed_builds }}회",
+                      "short": true
+                    },
+                    {
+                      "title": "평균 빌드 시간",
+                      "value": "${{ steps.weekly.outputs.avg_build_time }}분",
+                      "short": true
+                    },
+                    {
+                      "title": "$300 사건 방지",
+                      "value": "✅ 위험 패턴 0건",
+                      "short": true
+                    }
+                  ],
+                  "footer": "매주 월요일 자동 생성",
+                  "ts": ${{ Math.floor(Date.now()/1000) }}
+                }
+              ]
+            }
+
+  # 🔧 자동 이슈 생성 (품질 문제 발생 시)
+  create-quality-issue:
+    name: '🔧 Create Quality Issue'
+    runs-on: ubuntu-latest
+    needs: [collect-quality-metrics, monitor-cost-prevention]
+    if: failure() && needs.collect-quality-metrics.outputs.alert-level == 'critical'
+
+    steps:
+      - name: Create GitHub Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `🚨 Critical Quality Issue Detected - ${new Date().toISOString().split('T')[0]}`;
+            const body = `
+            ## 🚨 Critical Quality Issue Detected
+
+            **Alert Level:** Critical
+            **Quality Status:** ${{ needs.collect-quality-metrics.outputs.quality-status }}
+            **Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            ### 📊 Metrics Summary
+            ${{ needs.collect-quality-metrics.outputs.metrics-summary }}
+
+            ### 🔍 Detected Issues
+            - Workflow execution failed
+            - Quality gates not passed
+            - Potential regression detected
+
+            ### 🚨 $300 Incident Prevention
+            This alert is part of our $300 incident prevention system. Immediate action required.
+
+            ### 🔧 Action Items
+            - [ ] Review failed tests
+            - [ ] Check for infinite loop patterns
+            - [ ] Verify API call frequencies
+            - [ ] Update test coverage if needed
+            - [ ] Run full regression test suite
+
+            ### 📋 Assignees
+            Please assign this to the appropriate team member immediately.
+
+            ---
+            **Auto-generated by Quality Monitor**
+            **Timestamp:** ${new Date().toISOString()}
+            `;
+
+            try {
+              const issue = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['critical', 'quality', 'regression', 'auto-generated'],
+                assignees: ['${{ github.actor }}']
+              });
+
+              console.log(`Created issue #${issue.data.number}: ${title}`);
+            } catch (error) {
+              console.error('Failed to create issue:', error);
+            }

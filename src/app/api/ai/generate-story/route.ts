@@ -7,23 +7,14 @@ import {
   createSuccessResponse
 } from '@/shared/schemas/api.schema';
 import { getUserIdFromRequest } from '@/shared/lib/auth';
+import { requireSupabaseAuthentication, isAuthenticated, isGuest } from '@/shared/lib/supabase-auth';
+import { StoryGenerationSchema, type NormalizedStoryGenerationRequest } from '@/shared/schemas/story-generation.schema';
+import { transformStoryInputToApiRequest } from '@/shared/api/dto-transformers';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// 스토리 생성 요청 스키마
-const StoryGenerationSchema = z.object({
-  title: z.string().min(1, '제목을 입력해주세요').max(100, '제목은 100자 이하로 입력해주세요'),
-  oneLineStory: z.string().min(1, '한 줄 스토리를 입력해주세요').max(200, '한 줄 스토리는 200자 이하로 입력해주세요'),
-  toneAndManner: z.string().min(1, '톤앤매너를 선택해주세요'),
-  genre: z.string().min(1, '장르를 선택해주세요'),
-  target: z.string().min(1, '타겟 관객을 입력해주세요'),
-  duration: z.string().default('60초'),
-  format: z.string().default('16:9'),
-  tempo: z.string().default('보통'),
-  developmentMethod: z.string().default('클래식 기승전결'),
-  developmentIntensity: z.string().default('보통'),
-});
+// 스키마는 shared/schemas/story-generation.schema.ts에서 import
 
 interface StoryStep {
   step: number;
@@ -36,7 +27,7 @@ interface StoryStep {
 }
 
 // Gemini API를 사용한 스토리 생성
-async function generateStoryWithGemini(data: z.infer<typeof StoryGenerationSchema>): Promise<{
+async function generateStoryWithGemini(data: NormalizedStoryGenerationRequest): Promise<{
   success: boolean;
   steps?: StoryStep[];
   usage?: any;
@@ -186,10 +177,19 @@ export async function POST(request: NextRequest) {
       hasStory: !!body.oneLineStory,
       genre: body.genre,
       target: body.target,
+      toneAndMannerType: Array.isArray(body.toneAndManner) ? 'array' : typeof body.toneAndManner,
     });
 
-    // 입력 데이터 검증
-    const validationResult = StoryGenerationSchema.safeParse(body);
+    // 1단계: DTO 변환 (배열 -> 문자열 변환 포함)
+    const transformedBody = transformStoryInputToApiRequest(body);
+
+    console.log('DEBUG: DTO 변환 완료:', {
+      originalToneAndManner: body.toneAndManner,
+      transformedToneAndManner: transformedBody.toneAndManner,
+    });
+
+    // 2단계: 변환된 데이터 검증
+    const validationResult = StoryGenerationSchema.safeParse(transformedBody);
     if (!validationResult.success) {
       const errorDetails = validationResult.error.issues.map(issue => ({
         field: issue.path.join('.'),
@@ -206,19 +206,37 @@ export async function POST(request: NextRequest) {
 
     const data = validationResult.data;
 
-    // 사용자 인증 (선택적) - 인증 실패는 경고만 출력하고 계속 진행
+    // 통합 인증 처리 (Supabase + 레거시 JWT)
+    const authResult = await requireSupabaseAuthentication(request, { allowGuest: true });
     let userId: string | null = null;
-    try {
-      const user = await getUserIdFromRequest(request);
-      userId = user || null;
 
-      if (!userId) {
-        console.log('DEBUG: 스토리 생성 - 비인증 사용자 (게스트 모드)');
-      } else {
-        console.log(`DEBUG: 스토리 생성 - 인증된 사용자: ${userId}`);
-      }
-    } catch (authError) {
-      console.warn('DEBUG: 스토리 생성 인증 오류 (게스트 모드로 계속 진행):', authError);
+    if (isAuthenticated(authResult)) {
+      // 인증 성공
+      userId = authResult.id;
+      console.log(`DEBUG: 스토리 생성 - 인증된 사용자: ${userId} (토큰 타입: ${authResult.tokenType})`);
+    } else if (isGuest(authResult)) {
+      // 게스트 모드
+      console.log('DEBUG: 스토리 생성 - 비인증 사용자 (게스트 모드)');
+      userId = null;
+
+      // 게스트 모드 제한 확인 (필요시)
+      // 예: 일일 요청 횟수 제한, 기능 제한 등
+      // if (shouldRestrictGuestAccess()) {
+      //   return NextResponse.json(
+      //     createErrorResponse('GUEST_LIMIT_EXCEEDED', '게스트 사용자는 하루 5회까지 사용 가능합니다'),
+      //     { status: 429 }
+      //   );
+      // }
+    } else {
+      // 인증 오류
+      console.warn(`DEBUG: 스토리 생성 - 인증 오류: ${authResult.message}`);
+      return NextResponse.json(
+        createErrorResponse(
+          authResult.code,
+          authResult.message
+        ),
+        { status: authResult.statusCode }
+      );
     }
 
     console.log('DEBUG: 스토리 생성 시작 - Gemini 우선 시도');

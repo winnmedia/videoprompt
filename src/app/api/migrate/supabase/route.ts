@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase, supabaseAdmin } from '@/lib/supabase';
+import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 
 export const runtime = 'nodejs';
@@ -189,16 +189,21 @@ export async function POST(request: NextRequest) {
       tableNames = [] // 특정 테이블만 마이그레이션
     } = body;
 
-    if (!supabaseAdmin) {
+    // getSupabaseClientSafe를 사용한 안전한 Admin 클라이언트 초기화
+    let supabaseAdmin;
+    try {
+      supabaseAdmin = await getSupabaseClientSafe('admin');
+    } catch (error) {
+      const errorMessage = error instanceof ServiceConfigError ? error.message : 'SUPABASE_SERVICE_ROLE_KEY가 설정되지 않았습니다. Admin 권한이 필요합니다.';
       return NextResponse.json(
         failure(
           'ADMIN_CLIENT_UNAVAILABLE',
-          'SUPABASE_SERVICE_ROLE_KEY가 설정되지 않았습니다. Admin 권한이 필요합니다.',
-          500,
+          errorMessage,
+          503,
           undefined,
           traceId
         ),
-        { status: 500 }
+        { status: 503 }
       );
     }
 
@@ -362,6 +367,19 @@ async function validateMigration(traceId: string): Promise<MigrationResult[]> {
   const results: MigrationResult[] = [];
 
   try {
+    // getSupabaseClientSafe를 사용한 안전한 클라이언트 초기화
+    let supabase;
+    try {
+      supabase = await getSupabaseClientSafe('anon');
+    } catch (error) {
+      results.push({
+        step: 'validate_client_init',
+        success: false,
+        error: error instanceof ServiceConfigError ? error.message : 'Supabase client initialization failed'
+      });
+      return results;
+    }
+
     // 핵심 테이블 존재 확인
     const coreTableNames = Object.keys(CORE_TABLES_SQL);
 
@@ -427,6 +445,23 @@ export async function GET(request: NextRequest) {
   const traceId = getTraceId(request);
 
   try {
+    // getSupabaseClientSafe를 사용한 안전한 클라이언트 초기화 확인
+    try {
+      await getSupabaseClientSafe('anon');
+    } catch (error) {
+      const errorMessage = error instanceof ServiceConfigError ? error.message : 'Supabase client initialization failed';
+      return NextResponse.json(
+        failure(
+          'SUPABASE_CONFIG_ERROR',
+          errorMessage,
+          503,
+          undefined,
+          traceId
+        ),
+        { status: 503 }
+      );
+    }
+
     const validationResults = await validateMigration(traceId);
 
     return NextResponse.json(

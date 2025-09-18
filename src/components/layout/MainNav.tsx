@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSoftPrefetch } from '@/shared/lib/prefetch';
 import { useAuthStore } from '@/shared/store/useAuthStore';
+import { AuthStatus, AuthLoadingSkeleton } from '@/shared/ui/AuthStatus';
+import { useState } from 'react';
 
 const items = [
   { href: '/', label: '홈' },
@@ -18,6 +20,7 @@ export function MainNav() {
   const pathname = usePathname() || '';
   const router = useRouter();
   const { user, isAuthenticated, isLoading, logout } = useAuthStore();
+  const [logoutLoading, setLogoutLoading] = useState(false);
 
   // 🔥 401 오류 해결: 인증 체크는 AuthProvider에서 처리
   // MainNav는 상태만 읽어서 UI 표시
@@ -43,8 +46,19 @@ export function MainNav() {
   };
 
   const handleLogout = async () => {
-    await logout();
-    router.push('/');
+    if (logoutLoading) return; // 중복 클릭 방지
+
+    setLogoutLoading(true);
+    try {
+      await logout();
+      router.push('/');
+    } catch (error) {
+      console.error('로그아웃 실패:', error);
+      // 에러가 발생해도 홈으로 이동
+      router.push('/');
+    } finally {
+      setLogoutLoading(false);
+    }
   };
 
   return (
@@ -71,7 +85,7 @@ export function MainNav() {
       {/* 사용자 메뉴 */}
       <div className="ml-4 flex items-center gap-2">
         {isLoading ? (
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-600 border-t-transparent"></div>
+          <AuthLoadingSkeleton />
         ) : isAuthenticated && user ? (
           <div className="flex items-center gap-3">
             {/* 사용자 정보 */}
@@ -112,9 +126,17 @@ export function MainNav() {
             {/* 로그아웃 */}
             <button
               onClick={handleLogout}
-              className="rounded border px-3 py-1 text-gray-800 hover:text-danger-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-danger-400"
+              disabled={logoutLoading}
+              className="rounded border px-3 py-1 text-gray-800 hover:text-danger-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-danger-400 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              로그아웃
+              {logoutLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 animate-spin rounded-full border border-gray-400 border-t-transparent"></div>
+                  <span>로그아웃 중...</span>
+                </div>
+              ) : (
+                '로그아웃'
+              )}
             </button>
           </div>
         ) : (

@@ -1,4 +1,4 @@
-import { getApiConfig, buildApiUrl, getApiTimeout, checkRailwayBackend } from './config/api';
+import { getApiConfig, buildApiUrl, getApiTimeout } from './config/api';
 
 // API 클라이언트 설정 (배포 환경 전용)
 const apiConfig = getApiConfig();
@@ -110,7 +110,7 @@ export const apiRequest = async <T = any>(
 ): Promise<T> => {
   try {
     // Railway 백엔드 상태 확인
-    const isBackendHealthy = await checkRailwayBackend();
+    const isBackendHealthy = await checkBackendHealth();
     if (!isBackendHealthy) {
       throw new Error('Railway 백엔드 서비스가 사용할 수 없습니다.');
     }
@@ -194,10 +194,11 @@ export const veoApi = {
   getStatus: (jobId: string) => apiGet(`veo/status/${jobId}`, 30000),
 };
 
-// Railway 백엔드 상태 확인 함수
+// 백엔드 상태 확인 함수
 export const checkBackendHealth = async () => {
   try {
-    const response = await fetch('https://videoprompt-production.up.railway.app/api/health', {
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000';
+    const response = await fetch(`${apiBaseUrl}/api/health`, {
       signal: AbortSignal.timeout(10000),
     });
 

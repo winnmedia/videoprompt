@@ -1,79 +1,179 @@
-import { NextRequest } from 'next/server';
-import { prisma } from '@/lib/db';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { success, failure, getTraceId } from '@/shared/lib/api-response';
-import { getUserIdFromRequest } from '@/shared/lib/auth';
-import { logger } from '@/shared/lib/logger';
+import {
+  createValidationErrorResponse,
+  createErrorResponse
+} from '@/shared/schemas/api.schema';
+import {
+  createSuccessResponse,
+  createErrorResponse as createPlanningErrorResponse,
+  DualStorageResult
+} from '@/shared/schemas/planning-response.schema';
+import { withOptionalAuth } from '@/shared/lib/auth-middleware-v2';
+import { getPlanningRepository } from '@/entities/planning/model/repository';
+import { VideoContent } from '@/entities/planning/model/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function GET(req: NextRequest) {
-  const traceId = getTraceId(req);
-  try {
-    const userId = getUserIdFromRequest(req);
-    
-    const videos = await prisma.videoAsset.findMany({
-      where: userId ? { userId } : {},
-      orderBy: { createdAt: 'desc' },
-      include: {
-        prompt: {
-          select: {
-            id: true,
-            metadata: true,
-            timeline: true,
-          },
-        },
-      },
-    });
+const VideoRequestSchema = z.object({
+  title: z.string().min(1),
+  provider: z.enum(['seedance', 'veo3', 'mock']).or(z.string()),
+  status: z.enum(['queued', 'processing', 'completed', 'failed']).or(z.string()),
+  url: z.string().url().nullable().optional(),
+  codec: z.string().nullable().optional(),
+  duration: z.number().int().nullable().optional(),
+  prompt: z.string().optional(),
+});
 
-    logger.info('videoAssets fetched', { count: videos.length, traceId });
-    return success({ videos }, 200, traceId);
-  } catch (e: any) {
-    logger.error('videoAssets fetch failed', e, { traceId });
-    return failure('UNKNOWN', e?.message || 'Server error', 500);
-  }
-}
-
-export async function POST(req: NextRequest) {
-  const traceId = getTraceId(req);
+const getHandler = async (req: NextRequest, { user }: { user: { id: string | null } }) => {
   try {
-    const schema = z.object({
-      promptId: z.string().uuid(),
-      provider: z.enum(['seedance', 'veo3', 'mock']).or(z.string()),
-      status: z.enum(['queued', 'processing', 'completed', 'failed']).or(z.string()),
-      url: z.string().url().nullable().optional(),
-      codec: z.string().nullable().optional(),
-      duration: z.number().int().nullable().optional(),
-      version: z.number().int().min(1).default(1),
-    });
-    const { promptId, provider, status, url, codec, duration, version } = schema.parse(
-      await req.json(),
+    // Repository 호출
+    const repository = getPlanningRepository();
+    const allContent = await repository.findByUserId(user.id || 'guest');
+
+    // video 타입만 필터링
+    const videos = allContent
+      .filter(content => content.type === 'video')
+      .map(content => {
+        const video = content as VideoContent;
+        return {
+          id: video.id,
+          title: video.title || 'Untitled Video',
+          provider: video.provider || 'unknown',
+          status: video.status || 'queued',
+          url: video.videoUrl || null,
+          codec: video.codec || null,
+          duration: video.duration || null,
+          prompt: video.prompt || '',
+          createdAt: video.createdAt,
+          updatedAt: video.updatedAt
+        };
+      });
+
+    const healthStatus = repository.getStorageHealth();
+    const dualStorageResult: DualStorageResult = {
+      id: 'videos-query',
+      success: true,
+      prismaSuccess: healthStatus.prisma.isHealthy,
+      supabaseSuccess: healthStatus.supabase.isHealthy
+    };
+
+    return NextResponse.json(
+      createSuccessResponse({ videos }, dualStorageResult)
     );
 
-    const userId = getUserIdFromRequest(req);
-    const created = await prisma.videoAsset.create({
-      data: {
-        promptId,
-        provider,
-        status,
-        url: url ?? null,
-        codec: codec ?? null,
-        duration: duration ?? null,
-        version,
-        ...(userId ? { userId } : {}),
-      },
-    });
-    logger.info(
-      'videoAsset created',
-      { id: created.id, status: created.status, provider, traceId }
+  } catch (error) {
+    const dualStorageResult: DualStorageResult = {
+      id: 'videos-query-error',
+      success: false,
+      error: error instanceof Error ? error.message : '비디오 조회 중 오류 발생'
+    };
+
+    return NextResponse.json(
+      createPlanningErrorResponse('비디오 조회 중 오류가 발생했습니다.', dualStorageResult),
+      { status: 500 }
     );
-    return success({ id: created.id, status: created.status, url: created.url }, 200, traceId);
-  } catch (e: any) {
-    logger.error('videoAsset create failed', e, { traceId });
-    return failure('UNKNOWN', e?.message || 'Server error', 500);
   }
-}
+};
+
+const postHandler = async (req: NextRequest, { user }: { user: { id: string | null } }) => {
+  try {
+    // 입력 검증
+    const body = await req.json();
+    const validationResult = VideoRequestSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      return NextResponse.json(
+        createValidationErrorResponse(validationResult.error),
+        { status: 400 }
+      );
+    }
+
+    const validatedData = validationResult.data;
+
+    // VideoContent로 변환
+    const videoContent: VideoContent = {
+      id: crypto.randomUUID(),
+      projectId: crypto.randomUUID(),
+      type: 'video',
+      source: 'user-created',
+      status: validatedData.status,
+      storageStatus: 'pending',
+      title: validatedData.title,
+      prompt: validatedData.prompt || '',
+      provider: validatedData.provider,
+      duration: validatedData.duration || null,
+      aspectRatio: '16:9',
+      codec: validatedData.codec || 'H.264',
+      videoUrl: validatedData.url || null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      metadata: {
+        createdBy: user.id || undefined,
+        version: '1.0',
+        author: user.id || 'guest'
+      },
+      storage: {
+        prisma: { saved: false, lastAttempt: new Date().toISOString() },
+        supabase: { saved: false, lastAttempt: new Date().toISOString() }
+      }
+    };
+
+    // Repository 호출
+    const repository = getPlanningRepository();
+    const result = await repository.save(videoContent);
+
+    if (!result.success) {
+      const dualStorageResult: DualStorageResult = {
+        id: videoContent.id,
+        success: false,
+        error: result.error
+      };
+
+      return NextResponse.json(
+        createPlanningErrorResponse('비디오 생성 중 오류가 발생했습니다.', dualStorageResult),
+        { status: 500 }
+      );
+    }
+
+    const healthStatus = repository.getStorageHealth();
+    const dualStorageResult: DualStorageResult = {
+      id: result.id,
+      success: true,
+      prismaSuccess: healthStatus.prisma.isHealthy,
+      supabaseSuccess: healthStatus.supabase.isHealthy
+    };
+
+    const responseData = {
+      id: result.id,
+      title: videoContent.title,
+      provider: videoContent.provider,
+      status: videoContent.status,
+      url: videoContent.videoUrl
+    };
+
+    return NextResponse.json(
+      createSuccessResponse(responseData, dualStorageResult),
+      { status: 201 }
+    );
+
+  } catch (error) {
+    const dualStorageResult: DualStorageResult = {
+      id: 'unknown-video',
+      success: false,
+      error: error instanceof Error ? error.message : '비디오 생성 중 오류 발생'
+    };
+
+    return NextResponse.json(
+      createPlanningErrorResponse('비디오 생성 중 오류가 발생했습니다.', dualStorageResult),
+      { status: 500 }
+    );
+  }
+};
+
+export const GET = withOptionalAuth(getHandler, { endpoint: 'planning-videos-get', allowGuest: true });
+export const POST = withOptionalAuth(postHandler, { endpoint: 'planning-videos-post', allowGuest: false });
 
 export async function OPTIONS() {
   return new Response(null, {

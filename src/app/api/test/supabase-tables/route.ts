@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 
 export const runtime = 'nodejs';
@@ -13,6 +13,25 @@ export async function GET(req: NextRequest) {
   console.log(`[Tables Test ${traceId}] 📋 Supabase 테이블 검증 시작`);
 
   try {
+    // getSupabaseClientSafe를 사용한 안전한 클라이언트 초기화
+    let supabase;
+    try {
+      supabase = await getSupabaseClientSafe('anon');
+    } catch (error) {
+      const errorMessage = error instanceof ServiceConfigError ? error.message : 'Supabase client initialization failed';
+      console.error(`[Tables Test ${traceId}] ❌ Supabase client error:`, errorMessage);
+      return NextResponse.json(
+        failure(
+          'SUPABASE_CONFIG_ERROR',
+          errorMessage,
+          503,
+          undefined,
+          traceId
+        ),
+        { status: 503 }
+      );
+    }
+
     const requiredTables = ['users', 'projects', 'stories', 'templates', 'video_assets'];
     const tableStatus: Record<string, { exists: boolean; count?: number; error?: string }> = {};
 

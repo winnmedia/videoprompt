@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { success, failure, getTraceId } from '@/shared/lib/api-response';
-import { requireSupabaseAuthentication, getSupabaseUser } from '@/shared/lib/auth-supabase';
-import { supabase } from '@/lib/supabase';
+import { success, failure, getTraceId, supabaseErrors } from '@/shared/lib/api-response';
+import { withAuth } from '@/shared/lib/auth-middleware-v2';
+import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
 import { logger, LogCategory } from '@/shared/lib/structured-logger';
 import type { VideoMetadata } from '@/shared/types/metadata';
 
@@ -75,7 +75,7 @@ interface QueueItem {
  * - 실시간 업데이트 지원
  * - 기존 API 호환성 유지
  */
-export async function GET(req: NextRequest) {
+export const GET = withAuth(async (req, { user, authContext }) => {
   try {
     const traceId = getTraceId(req);
 
@@ -87,23 +87,47 @@ export async function GET(req: NextRequest) {
       userAgent: req.headers.get('user-agent') || undefined,
     });
 
-    logger.info(LogCategory.API, 'Queue list request started (Supabase)', {
+    logger.info(LogCategory.API, 'Queue list request started (withAuth v2)', {
       traceId,
+      userId: user.id,
+      tokenType: user.tokenType
     });
 
-    // Supabase 사용자 인증 확인
-    const userId = await requireSupabaseAuthentication(req);
-    if (!userId) {
-      logger.warn(LogCategory.API, 'Unauthorized queue list request', { traceId });
-      return failure('UNAUTHORIZED', '인증이 필요합니다.', 401, undefined, traceId);
-    }
-
-    const user = await getSupabaseUser(req);
     logger.debug(LogCategory.SECURITY, 'User authentication successful', {
-      userId,
-      userEmail: user?.email,
+      userId: user.id,
+      userEmail: user.email,
+      tokenType: user.tokenType,
       traceId
     });
+
+    // getSupabaseClientSafe를 사용한 안전한 클라이언트 초기화
+    let supabase;
+    try {
+      supabase = await getSupabaseClientSafe('anon');
+    } catch (error) {
+      if (error instanceof ServiceConfigError) {
+        logger.error(LogCategory.DATABASE, 'Supabase client initialization failed', error, {
+          userId: user.id,
+          traceId
+        });
+        return supabaseErrors.configError(traceId, error.message);
+      }
+
+      logger.error(LogCategory.DATABASE, 'Unexpected Supabase client error', error, {
+        userId: user.id,
+        traceId
+      });
+
+      // 네트워크 관련 오류 감지
+      const errorMessage = String(error);
+      if (errorMessage.includes('fetch') ||
+          errorMessage.includes('network') ||
+          errorMessage.includes('ENOTFOUND')) {
+        return supabaseErrors.unavailable(traceId, errorMessage);
+      }
+
+      return supabaseErrors.configError(traceId, errorMessage);
+    }
 
     // Supabase에서 video_assets 데이터 조회 (프로젝트 정보 포함)
     const { data: videoAssets, error } = await supabase
@@ -123,13 +147,13 @@ export async function GET(req: NextRequest) {
           metadata
         )
       `)
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(50);
 
     if (error) {
       logger.error(LogCategory.DATABASE, 'Supabase video_assets query failed', error, {
-        userId,
+        userId: user.id,
         traceId
       });
 
@@ -144,7 +168,7 @@ export async function GET(req: NextRequest) {
 
     logger.debug(LogCategory.DATABASE, 'Successfully fetched video assets', {
       count: videoAssets?.length || 0,
-      userId,
+      userId: user.id,
       traceId
     });
 
@@ -202,15 +226,15 @@ export async function GET(req: NextRequest) {
     logger.info(LogCategory.API, 'Queue list request completed successfully', {
       totalItems: queueItems.length,
       stats,
-      userId,
+      userId: user.id,
       traceId
     });
 
     // Realtime 채널 정보 추가 (클라이언트에서 실시간 업데이트 구독용)
     const realtimeInfo = {
-      channel: `video_assets:user_id=eq.${userId}`,
+      channel: `video_assets:user_id=eq.${user.id}`,
       table: 'video_assets',
-      filter: `user_id=eq.${userId}`,
+      filter: `user_id=eq.${user.id}`,
       events: ['INSERT', 'UPDATE', 'DELETE']
     };
 
@@ -232,4 +256,8 @@ export async function GET(req: NextRequest) {
     // 컨텍스트 정리
     logger.clearContext();
   }
-}
+}, {
+  endpoint: '/api/queue/list',
+  allowGuest: false,  // 인증 필수
+  requireEmailVerified: false
+});

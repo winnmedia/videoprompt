@@ -297,9 +297,11 @@ export function createValidationErrorResponse(error: z.ZodError) {
 
   return {
     success: false,
-    error: 'VALIDATION_ERROR',
-    message: '요청 데이터가 유효하지 않습니다',
-    validationErrors,
+    error: {
+      code: 'VALIDATION_ERROR',
+      message: '요청 데이터가 유효하지 않습니다',
+      validationErrors
+    },
     timestamp: new Date().toISOString(),
   };
 }
@@ -325,15 +327,17 @@ export function createSuccessResponse<T>(
  * 에러 응답을 생성하는 유틸리티
  */
 export function createErrorResponse(
-  error: string,
+  errorCode: string,
   message?: string,
   details?: Record<string, any>
 ) {
   return {
     success: false,
-    error,
-    message,
-    details,
+    error: {
+      code: errorCode,
+      message: message || errorCode,
+      details
+    },
     timestamp: new Date().toISOString(),
   };
 }

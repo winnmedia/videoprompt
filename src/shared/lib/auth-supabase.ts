@@ -4,7 +4,7 @@
  */
 
 import type { NextRequest } from 'next/server';
-import { supabase, supabaseAdmin } from '@/lib/supabase';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import type { User } from '@supabase/supabase-js';
 
 type AuthUser = {
@@ -42,6 +42,8 @@ export function getSupabaseUserFromRequest(req: NextRequest): Promise<User | nul
  */
 export async function getSupabaseUserFromToken(token: string): Promise<User | null> {
   try {
+    const supabase = await getSupabaseClientSafe('anon');
+
     const { data: { user }, error } = await supabase.auth.getUser(token);
 
     if (error || !user) {
@@ -74,6 +76,8 @@ export async function getSupabaseUser(req: NextRequest): Promise<AuthUser | null
   if (!user) return null;
 
   try {
+    const supabase = await getSupabaseClientSafe('anon');
+
     // Supabase users 테이블에서 추가 정보 조회 (있다면)
     const { data: userProfile, error } = await supabase
       .from('users')
@@ -133,6 +137,8 @@ export async function requireSupabaseAuthentication(req: NextRequest): Promise<s
  */
 export async function signInWithSupabase(email: string, password: string) {
   try {
+    const supabase = await getSupabaseClientSafe('anon');
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -153,6 +159,8 @@ export async function signInWithSupabase(email: string, password: string) {
  */
 export async function signUpWithSupabase(email: string, password: string, metadata?: { username?: string }) {
   try {
+    const supabase = await getSupabaseClientSafe('anon');
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -176,6 +184,8 @@ export async function signUpWithSupabase(email: string, password: string, metada
  */
 export async function signOutWithSupabase() {
   try {
+    const supabase = await getSupabaseClientSafe('anon');
+
     const { error } = await supabase.auth.signOut();
     return { error };
   } catch (error) {
@@ -187,10 +197,7 @@ export async function signOutWithSupabase() {
  * Supabase Admin으로 사용자 정보 조회 (서버사이드만)
  */
 export async function getSupabaseUserByIdAdmin(userId: string): Promise<User | null> {
-  if (!supabaseAdmin) {
-    console.error('Supabase Admin client not available');
-    return null;
-  }
+  const supabaseAdmin = await getSupabaseClientSafe('admin');
 
   try {
     const { data: { user }, error } = await supabaseAdmin.auth.admin.getUserById(userId);
@@ -212,6 +219,8 @@ export async function getSupabaseUserByIdAdmin(userId: string): Promise<User | n
  */
 export async function refreshSupabaseToken(refreshToken: string) {
   try {
+    const supabase = await getSupabaseClientSafe('anon');
+
     const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
 
     if (error) {

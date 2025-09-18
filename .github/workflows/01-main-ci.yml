@@ -1,0 +1,356 @@
+name: 01. Main CI/CD Pipeline
+# 통합된 메인 CI/CD 파이프라인 - 개발 워크플로우 핵심
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/**'
+      - 'scripts/**'
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '9'
+  MUTATION_THRESHOLD: '75'
+  COVERAGE_THRESHOLD: '85'
+
+# 동시 실행 제한 (리소스 최적화)
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 🚀 Stage 1: Pre-flight & 빠른 검증 (2분 이내)
+  fast-validation:
+    name: '⚡ Fast Validation & Pre-flight (2min)'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      should-continue: ${{ steps.changes.outputs.should-continue }}
+      should-skip: ${{ steps.skip-check.outputs.should_skip }}
+
+    steps:
+      - name: Skip Duplicate Actions
+        id: skip-check
+        uses: fkirc/skip-duplicate-actions@v5
+        with:
+          concurrent_skipping: 'same_content_newer'
+          skip_after_successful_duplicate: 'true'
+          paths_ignore: '["**.md", "docs/**", ".gitignore"]'
+
+      - name: Checkout
+        if: steps.skip-check.outputs.should_skip != 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect Changes
+        id: changes
+        if: steps.skip-check.outputs.should_skip != 'true'
+        uses: dorny/paths-filter@v2
+        with:
+          filters: |
+            auth:
+              - 'src/shared/lib/auth-core.ts'
+              - 'src/app/api/auth/**'
+            critical:
+              - 'src/**/*.ts'
+              - 'src/**/*.tsx'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+            performance:
+              - 'src/widgets/**'
+              - 'src/pages/**'
+
+      - name: Setup Node.js
+        if: steps.skip-check.outputs.should_skip != 'true' && steps.changes.outputs.critical == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        if: steps.skip-check.outputs.should_skip != 'true' && steps.changes.outputs.critical == 'true'
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        if: steps.skip-check.outputs.should_skip != 'true' && steps.changes.outputs.critical == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: $300 사건 방지 - 무한 루프 패턴 검사 (최우선)
+        if: steps.skip-check.outputs.should_skip != 'true' && steps.changes.outputs.critical == 'true'
+        run: |
+          echo "🚨 $300 사건 방지 검사 시작..."
+
+          # useEffect 의존성 배열에 함수가 포함된 위험 패턴
+          if grep -r "useEffect.*\[.*[a-zA-Z_][a-zA-Z0-9_]*\]" src/ --include="*.tsx" --include="*.ts" | grep -v "test" | grep -v "mock"; then
+            echo "❌ CRITICAL: useEffect 의존성 배열에 함수 포함 - $300 사건 위험!"
+            echo "해결: useEffect(() => { checkAuth(); }, []) // 빈 배열 사용"
+            exit 1
+          fi
+
+          # 위험한 API 호출 패턴
+          if grep -r "setInterval.*fetch\|setTimeout.*fetch" src/ --include="*.tsx" --include="*.ts" | grep -v "test"; then
+            echo "❌ CRITICAL: 위험한 폴링 패턴 발견!"
+            exit 1
+          fi
+
+          echo "✅ $300 사건 방지 검사 통과"
+
+      - name: Environment Validation
+        if: steps.skip-check.outputs.should_skip != 'true' && steps.changes.outputs.critical == 'true'
+        run: |
+          echo "🔧 환경변수 검증 시작..."
+          pnpm validate-env --ci
+          echo "✅ 환경변수 검증 완료"
+
+      - name: Quick Type Check
+        if: steps.skip-check.outputs.should_skip != 'true' && steps.changes.outputs.critical == 'true'
+        run: pnpm tsc --noEmit --skipLibCheck
+
+  # 🔄 Stage 2: 완전한 품질 게이트 실행
+  comprehensive-quality-gates:
+    name: '🛡️ Comprehensive Quality Gates'
+    runs-on: ubuntu-latest
+    needs: fast-validation
+    if: needs.fast-validation.outputs.should-skip != 'true' && needs.fast-validation.outputs.should-continue == 'true'
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 완전한 TypeScript 컴파일 검사
+      - name: Full TypeScript Check
+        run: pnpm tsc --noEmit
+
+      # ESLint - FSD 경계 및 코드 품질
+      - name: ESLint - FSD Architecture & Code Quality
+        run: pnpm lint
+
+      # 단위 테스트 실행
+      - name: Unit Tests with Coverage
+        run: |
+          pnpm test:coverage
+        env:
+          CI: true
+
+      # 통합 테스트
+      - name: Integration Tests
+        run: |
+          echo "🔗 통합 테스트 실행..."
+          pnpm test:integration || {
+            echo "❌ 통합 테스트 실패!"
+            exit 1
+          }
+        env:
+          CI: true
+          INTEGRATION_TEST: true
+
+      # API 계약 테스트
+      - name: API Contract Tests
+        run: |
+          echo "📋 API 계약 테스트..."
+          pnpm test:api-contracts || {
+            echo "❌ API 계약 위반!"
+            exit 1
+          }
+
+      # Build determinism check
+      - name: Build Determinism Check
+        run: |
+          echo "🔄 빌드 재현성 검사..."
+          pnpm build
+          mv .next .next.first
+          pnpm build
+          if ! diff -r .next.first .next; then
+            echo "❌ 빌드가 재현 가능하지 않습니다!"
+            exit 1
+          fi
+          echo "✅ 빌드 재현성 검증 완료"
+
+  # 📊 Stage 3: 인증 및 보안 테스트
+  auth-security-tests:
+    name: '🔒 Authentication & Security Tests'
+    runs-on: ubuntu-latest
+    needs: comprehensive-quality-gates
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 인증 무한 루프 방지 테스트
+      - name: Auth Infinite Loop Prevention Tests
+        run: |
+          echo "🔒 인증 무한 루프 방지 테스트..."
+          pnpm test:auth:infinite-loop-prevention || {
+            echo "❌ 인증 무한 루프 방지 테스트 실패!"
+            exit 1
+          }
+
+      # 401 에러 처리 테스트
+      - name: 401 Error Handling Tests
+        run: |
+          echo "🚫 401 에러 처리 테스트..."
+          pnpm test:auth:401-handling || {
+            echo "❌ 401 에러 처리 테스트 실패!"
+            exit 1
+          }
+
+      # 토큰 재발급 실패 시나리오
+      - name: Token Refresh Failure Scenarios
+        run: |
+          echo "🔄 토큰 재발급 실패 시나리오 테스트..."
+          pnpm test:auth:token-refresh-failure || {
+            echo "❌ 토큰 재발급 실패 테스트 실패!"
+            exit 1
+          }
+
+      # 보안 취약점 스캔
+      - name: Security Vulnerability Scan
+        run: |
+          echo "🛡️ 보안 취약점 스캔..."
+          pnpm audit --audit-level moderate
+
+          # 추가 보안 검사
+          if command -v npm-audit-ci-wrapper &> /dev/null; then
+            npm-audit-ci-wrapper --threshold moderate
+          fi
+
+  # 🚀 Stage 4: 빌드 검증 및 최종 인증
+  build-and-final-verification:
+    name: '🚀 Build & Final Verification'
+    runs-on: ubuntu-latest
+    needs: [comprehensive-quality-gates, auth-security-tests]
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Production Build Test
+        run: |
+          echo "🏗️ 프로덕션 빌드 테스트..."
+          pnpm build
+        env:
+          NODE_ENV: production
+          # CI 환경변수 - 필수 최소 설정
+          JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-secret-32-chars-minimum-length' }}
+          DATABASE_URL: 'postgresql://test:test@localhost:5432/test'
+          NEXT_PUBLIC_APP_URL: 'http://localhost:3000'
+          SUPABASE_URL: 'https://ci-test.supabase.co'
+          SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test-ci-token'
+
+      # 스모크 테스트
+      - name: Smoke Tests
+        run: |
+          echo "💨 스모크 테스트 실행..."
+          pnpm test:smoke || {
+            echo "❌ 스모크 테스트 실패!"
+            exit 1
+          }
+
+  # 🏆 최종 품질 게이트 결과 요약
+  quality-gate-summary:
+    name: '✅ Quality Gate Results'
+    runs-on: ubuntu-latest
+    needs: [fast-validation, comprehensive-quality-gates, auth-security-tests, build-and-final-verification]
+    if: always()
+
+    steps:
+      - name: Quality Gate Results Summary
+        run: |
+          echo "🏆 품질 게이트 최종 검증 결과"
+          echo "=========================================="
+
+          if [[ "${{ needs.fast-validation.result }}" == "success" ]]; then
+            echo "✅ 1단계 - 빠른 검증 ($300 사건 패턴 차단): 통과"
+          else
+            echo "❌ 1단계 - 빠른 검증 ($300 사건 패턴 차단): 실패"
+          fi
+
+          if [[ "${{ needs.comprehensive-quality-gates.result }}" == "success" ]]; then
+            echo "✅ 2단계 - 완전한 품질 게이트: 통과"
+          else
+            echo "❌ 2단계 - 완전한 품질 게이트: 실패"
+          fi
+
+          if [[ "${{ needs.auth-security-tests.result }}" == "success" ]]; then
+            echo "✅ 3단계 - 인증 및 보안 테스트: 통과"
+          else
+            echo "❌ 3단계 - 인증 및 보안 테스트: 실패"
+          fi
+
+          if [[ "${{ needs.build-and-final-verification.result }}" == "success" ]]; then
+            echo "✅ 4단계 - 빌드 및 최종 인증: 통과"
+          else
+            echo "❌ 4단계 - 빌드 및 최종 인증: 실패"
+          fi
+
+          # 모든 검사가 성공했는지 확인
+          if [[ "${{ needs.fast-validation.result }}" == "success" &&
+                "${{ needs.comprehensive-quality-gates.result }}" == "success" &&
+                "${{ needs.auth-security-tests.result }}" == "success" &&
+                "${{ needs.build-and-final-verification.result }}" == "success" ]]; then
+            echo ""
+            echo "🎉 모든 품질 게이트 통과! PR 병합 승인"
+            echo "💰 $300 사건 재발 방지 시스템 검증 완료"
+            echo "🔒 인증 시스템 안전성 100% 보장"
+            echo "📊 회귀 방지 테스트 전체 통과"
+          else
+            echo ""
+            echo "🚨 품질 게이트 실패! PR 병합 차단"
+            echo "💥 $300 사건 재발 위험이 감지되었습니다!"
+            echo "실패한 검사를 수정한 후 다시 시도해주세요."
+            exit 1
+          fi

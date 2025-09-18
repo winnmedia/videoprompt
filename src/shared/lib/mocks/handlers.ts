@@ -118,6 +118,319 @@ import { scenarioHandlers } from './scenario-handlers';
 export const handlers = [
   // 시나리오 관련 핸들러 추가
   ...scenarioHandlers,
+
+  // =============================================================================
+  // 테스트 전용 엔드포인트 (API 호출 모니터링용)
+  // =============================================================================
+
+  /**
+   * 캐시 만료 테스트용 엔드포인트
+   */
+  http.get('/api/test-cache-expire', async ({ request }) => {
+    await delay(100);
+
+    const callCount = parseInt(request.headers.get('x-call-count') || '1');
+
+    return HttpResponse.json({
+      success: true,
+      data: {
+        timestamp: Date.now(),
+        callNumber: callCount,
+        message: `Test endpoint called ${callCount} times`
+      },
+      meta: {
+        cacheControl: 'no-cache',
+        expires: new Date(Date.now() + 1000).toISOString() // 1초 후 만료
+      }
+    });
+  }),
+
+  /**
+   * API 성능 테스트용 엔드포인트
+   */
+  http.get('/api/test-performance', async ({ request }) => {
+    const delay_ms = parseInt(request.headers.get('x-delay') || '100');
+    await delay(delay_ms);
+
+    return HttpResponse.json({
+      success: true,
+      processingTime: delay_ms,
+      timestamp: Date.now()
+    });
+  }),
+
+  // =============================================================================
+  // AI 생성 API 핸들러
+  // =============================================================================
+
+  /**
+   * AI 스토리 생성
+   */
+  http.post('/api/ai/generate-story', async ({ request }) => {
+    await delay(500);
+    const body = await request.json() as any;
+
+    // 간헐적 400 에러 시뮬레이션 (10% 확률)
+    if (Math.random() < 0.1) {
+      return HttpResponse.json(
+        {
+          ok: false,
+          error: 'VALIDATION_ERROR',
+          message: 'toneAndManner 필드가 올바르지 않습니다.'
+        },
+        { status: 400 }
+      );
+    }
+
+    // toneAndManner 배열→문자열 변환 오류 시뮬레이션
+    if (Array.isArray(body.toneAndManner)) {
+      return HttpResponse.json(
+        {
+          ok: false,
+          error: 'FIELD_TYPE_ERROR',
+          message: 'toneAndManner는 문자열이어야 합니다.'
+        },
+        { status: 400 }
+      );
+    }
+
+    return HttpResponse.json({
+      ok: true,
+      data: {
+        id: `story_${Date.now()}`,
+        title: body.title || '생성된 스토리',
+        content: `이것은 "${body.prompt || 'AI 프롬프트'}"로 생성된 테스트 스토리입니다.`,
+        genre: body.genre || 'Drama',
+        tone: body.toneAndManner || 'Neutral',
+        generatedAt: new Date().toISOString(),
+        metadata: {
+          aiModel: 'gemini-1.5-flash',
+          processingTime: 450,
+          tokenCount: 850
+        }
+      }
+    });
+  }),
+
+  // =============================================================================
+  // 공유 및 댓글 API 핸들러
+  // =============================================================================
+
+  /**
+   * 공유 토큰 검증
+   */
+  http.get('/api/shares/:token', async ({ params }) => {
+    await delay(200);
+    const { token } = params;
+
+    // 유효한 토큰 목록
+    const validTokens = ['valid-share-token', 'test-token-123'];
+
+    if (!validTokens.includes(token as string)) {
+      return HttpResponse.json(
+        { ok: false, error: '유효하지 않은 공유 토큰입니다.' },
+        { status: 404 }
+      );
+    }
+
+    return HttpResponse.json({
+      ok: true,
+      data: {
+        id: 'video_123',
+        title: '공유된 비디오',
+        videoUrl: '/videos/shared-video.mp4',
+        thumbnailUrl: '/thumbnails/shared-video.jpg',
+        description: '테스트용 공유 비디오입니다.',
+        sharedAt: new Date().toISOString(),
+        permissions: {
+          canComment: true,
+          canDownload: false,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7일 후
+        }
+      }
+    });
+  }),
+
+  /**
+   * 공유 토큰 생성
+   */
+  http.post('/api/shares', async ({ request }) => {
+    await delay(300);
+    const body = await request.json() as any;
+
+    return HttpResponse.json({
+      ok: true,
+      data: {
+        token: `share_${Date.now()}`,
+        shareUrl: `https://example.com/share/share_${Date.now()}`,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        permissions: body.permissions || {
+          canComment: true,
+          canDownload: false
+        }
+      }
+    });
+  }),
+
+  /**
+   * 댓글 목록 조회
+   */
+  http.get('/api/comments', async ({ request }) => {
+    await delay(200);
+
+    const url = new URL(request.url);
+    const videoId = url.searchParams.get('videoId');
+    const shareToken = url.searchParams.get('shareToken');
+
+    const mockComments = [
+      {
+        id: 'comment_1',
+        author: '테스터1',
+        content: '훌륭한 영상이네요!',
+        timestamp: '00:30',
+        createdAt: new Date(Date.now() - 3600000).toISOString(),
+        replies: []
+      },
+      {
+        id: 'comment_2',
+        author: '테스터2',
+        content: '음향이 좀 개선되면 좋겠어요.',
+        timestamp: '01:15',
+        createdAt: new Date(Date.now() - 1800000).toISOString(),
+        replies: [
+          {
+            id: 'reply_1',
+            author: '제작자',
+            content: '피드백 감사합니다. 다음 버전에서 개선하겠습니다.',
+            createdAt: new Date(Date.now() - 900000).toISOString()
+          }
+        ]
+      }
+    ];
+
+    return HttpResponse.json({
+      ok: true,
+      data: mockComments,
+      meta: {
+        total: mockComments.length,
+        videoId,
+        shareToken
+      }
+    });
+  }),
+
+  /**
+   * 댓글 작성
+   */
+  http.post('/api/comments', async ({ request }) => {
+    await delay(300);
+    const body = await request.json() as any;
+
+    // 5% 확률로 스팸 필터링 시뮬레이션
+    if (body.content?.toLowerCase().includes('spam')) {
+      return HttpResponse.json(
+        { ok: false, error: '스팸으로 감지된 내용입니다.' },
+        { status: 400 }
+      );
+    }
+
+    return HttpResponse.json({
+      ok: true,
+      data: {
+        id: `comment_${Date.now()}`,
+        author: body.author || '익명',
+        content: body.content,
+        timestamp: body.timestamp || '00:00',
+        createdAt: new Date().toISOString(),
+        replies: []
+      }
+    });
+  }),
+
+  // =============================================================================
+  // 프롬프트 관리 API 핸들러
+  // =============================================================================
+
+  /**
+   * 프롬프트 목록 조회
+   */
+  http.get('/api/planning/prompt', async ({ request }) => {
+    await delay(200);
+
+    const url = new URL(request.url);
+    const version = url.searchParams.get('version');
+    const scenarioId = url.searchParams.get('scenarioId');
+
+    const mockPrompts = [
+      {
+        id: 'prompt_1',
+        title: 'V3.1 프롬프트 예시',
+        content: '고품질 영상 생성을 위한 프롬프트',
+        version: '3.1',
+        scenarioId: '123e4567-e89b-12d3-a456-426614174000',
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'prompt_2',
+        title: 'V2.x 호환 프롬프트',
+        content: '레거시 호환 프롬프트',
+        version: '2.x',
+        scenarioId: 'legacy-scenario',
+        createdAt: new Date().toISOString()
+      }
+    ];
+
+    // 버전 필터링
+    let filteredPrompts = mockPrompts;
+    if (version) {
+      filteredPrompts = mockPrompts.filter(p => p.version === version);
+    }
+
+    // 시나리오 ID 필터링
+    if (scenarioId) {
+      filteredPrompts = filteredPrompts.filter(p => p.scenarioId === scenarioId);
+    }
+
+    return HttpResponse.json({
+      ok: true,
+      data: filteredPrompts,
+      meta: {
+        total: filteredPrompts.length,
+        version,
+        scenarioId
+      }
+    });
+  }),
+
+  /**
+   * 프롬프트 생성
+   */
+  http.post('/api/planning/prompt', async ({ request }) => {
+    await delay(400);
+    const body = await request.json() as any;
+
+    // 필수 필드 검증
+    if (!body.title || !body.content) {
+      return HttpResponse.json(
+        { ok: false, error: '제목과 내용은 필수입니다.' },
+        { status: 400 }
+      );
+    }
+
+    return HttpResponse.json({
+      ok: true,
+      data: {
+        id: `prompt_${Date.now()}`,
+        title: body.title,
+        content: body.content,
+        version: body.version || '3.1',
+        scenarioId: body.scenarioId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    }, { status: 201 });
+  }),
+
   // =============================================================================
   // 인증 API 핸들러
   // =============================================================================
@@ -200,28 +513,189 @@ export const handlers = [
   }),
 
   /**
-   * 사용자 정보 조회
+   * 사용자 정보 조회 (통합 인증 시스템 호환)
    */
   http.get('/api/auth/me', async ({ request }) => {
     await delay(200);
-    
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader || authHeader === 'Bearer invalid-token') {
+
+    // 새로운 withAuth 미들웨어 호환 인증 처리
+    const authHeader = request.headers.get('Authorization') || request.headers.get('authorization');
+    const supabaseToken = request.headers.get('x-supabase-token');
+    const legacyToken = request.headers.get('x-legacy-token');
+
+    // ETag 기반 캐싱 지원
+    const ifNoneMatch = request.headers.get('if-none-match');
+    const userETag = '"user-test-user-id-test@example.com"';
+
+    if (ifNoneMatch === userETag) {
+      return new HttpResponse(null, {
+        status: 304,
+        headers: {
+          'ETag': userETag,
+          'Cache-Control': 'public, max-age=60',
+          'X-Service-Mode': 'full'
+        }
+      });
+    }
+
+    // 인증 토큰 검증
+    if (!authHeader && !supabaseToken && !legacyToken) {
       return HttpResponse.json(
-        { ok: false, message: '인증이 필요합니다.' },
+        {
+          ok: false,
+          error: 'UNAUTHORIZED',
+          message: '인증이 필요합니다.',
+          code: 'AUTH_REQUIRED'
+        },
         { status: 401 }
       );
     }
-    
+
+    // 무효한 토큰 처리 (TEST_TOKENS와 일치)
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
+
+    const invalidTokens = [
+      'invalid-token',
+      'invalid-supabase-token', // TEST_TOKENS.INVALID
+      'expired-supabase-token'  // TEST_TOKENS.EXPIRED
+    ];
+
+    const isInvalidToken = invalidTokens.includes(bearerToken || '') ||
+                          invalidTokens.includes(supabaseToken || '') ||
+                          invalidTokens.includes(legacyToken || '');
+
+    if (isInvalidToken) {
+      return HttpResponse.json(
+        {
+          ok: false,
+          error: 'INVALID_TOKEN',
+          message: '유효하지 않은 토큰입니다.',
+          code: 'TOKEN_INVALID'
+        },
+        { status: 401 }
+      );
+    }
+
+    // 성공 응답 (통합 인증 시스템 형식)
+    const responseData = {
+      id: 'test-user-id',
+      email: 'test@example.com',
+      username: 'testuser',
+      role: 'user',
+      avatarUrl: null,
+      createdAt: new Date().toISOString(),
+
+      // 새로운 필드들
+      accessToken: supabaseToken ? 'supabase-token' : 'legacy-token',
+      token: 'legacy-compat-token',
+      tokenType: supabaseToken ? 'supabase' : 'legacy',
+      isEmailVerified: true,
+      serviceMode: 'full'
+    };
+
+    const response = HttpResponse.json({
+      ok: true,
+      data: responseData,
+      traceId: 'test-trace-id'
+    });
+
+    // 캐싱 헤더 설정
+    response.headers.set('ETag', userETag);
+    response.headers.set('Cache-Control', 'public, max-age=60');
+    response.headers.set('X-Service-Mode', 'full');
+    response.headers.set('X-Token-Type', responseData.tokenType);
+    response.headers.set('X-Loop-Prevention', 'active');
+    response.headers.set('X-Cache-Policy', 'client-cache-required');
+
+    return response;
+  }),
+
+  /**
+   * 토큰 새로고침
+   */
+  http.post('/api/auth/refresh', async ({ request }) => {
+    await delay(300);
+
+    const body = await request.json() as any;
+    const authHeader = request.headers.get('Authorization') || request.headers.get('authorization');
+    const refreshToken = body.refreshToken || request.headers.get('x-refresh-token');
+
+    // 만료된 토큰 시뮬레이션
+    if (refreshToken === 'expired-refresh-token' || refreshToken === 'invalid-refresh-token') {
+      return HttpResponse.json(
+        {
+          ok: false,
+          error: 'REFRESH_TOKEN_EXPIRED',
+          message: 'Refresh token expired - authentication required',
+          code: 'TOKEN_EXPIRED'
+        },
+        { status: 401 }
+      );
+    }
+
+    // 유효하지 않은 토큰
+    if (!refreshToken || refreshToken === 'invalid-token') {
+      return HttpResponse.json(
+        {
+          ok: false,
+          error: 'INVALID_REFRESH_TOKEN',
+          message: 'Invalid refresh token',
+          code: 'TOKEN_INVALID'
+        },
+        { status: 401 }
+      );
+    }
+
+    // 성공적인 토큰 새로고침
     return HttpResponse.json({
       ok: true,
       data: {
-        id: 'test-user-id',
-        email: 'test@example.com',
-        username: 'testuser',
-        role: 'user',
-      }
+        accessToken: `new-access-token-${Date.now()}`,
+        refreshToken: `new-refresh-token-${Date.now()}`,
+        expiresIn: 3600,
+        tokenType: 'Bearer',
+        user: {
+          id: 'test-user-id',
+          email: 'test@example.com',
+          username: 'testuser',
+          role: 'user'
+        }
+      },
+      traceId: 'test-trace-id'
     });
+  }),
+
+  /**
+   * Service Role Key 없을 때 degraded mode 테스트용 핸들러
+   */
+  http.get('/api/auth/me/degraded', async ({ request }) => {
+    await delay(200);
+
+    // Degraded mode 응답 (Service Role Key 없을 때)
+    const responseData = {
+      id: 'test-user-id',
+      email: 'test@example.com',
+      username: 'testuser',
+      role: 'user',
+      avatarUrl: null,
+      createdAt: new Date().toISOString(),
+      accessToken: 'degraded-mode-token',
+      token: 'degraded-mode-token',
+      tokenType: 'supabase',
+      isEmailVerified: false,
+      serviceMode: 'degraded'
+    };
+
+    const response = HttpResponse.json({
+      ok: true,
+      data: responseData,
+      traceId: 'test-trace-id'
+    });
+
+    response.headers.set('X-Service-Mode', 'degraded');
+    response.headers.set('X-Degradation-Reason', 'service-role-key-unavailable');
+
+    return response;
   }),
 
   // =============================================================================
@@ -740,10 +1214,96 @@ export const handlers = [
    */
   http.post('/api/storyboard/cache/clear', async () => {
     await delay(500);
-    
+
     return HttpResponse.json({
       success: true,
       clearedAt: new Date().toISOString(),
+    });
+  }),
+
+  // =============================================================================
+  // Seedance API Mock 핸들러들
+  // =============================================================================
+
+  /**
+   * Seedance 비디오 생성 API
+   */
+  http.post('/api/seedance/create', async ({ request }) => {
+    await delay(1000); // 비디오 생성 시뮬레이션
+
+    const body = await request.json() as any;
+
+    // Mock 성공 응답
+    return HttpResponse.json({
+      success: true,
+      jobId: `mock-job-${Date.now()}`,
+      status: 'queued',
+      dashboardUrl: 'https://mock.seedance.co/dashboard/mock-job',
+      serviceInfo: {
+        source: 'mock',
+        fallbackUsed: false,
+        isProductionReady: false
+      },
+      metadata: {
+        prompt: body.prompt,
+        aspectRatio: body.aspect_ratio || '16:9',
+        duration: body.duration_seconds || 8,
+        quality: body.quality || 'standard'
+      }
+    });
+  }),
+
+  /**
+   * Seedance 상태 확인 API
+   */
+  http.get('/api/seedance/status/:jobId', async ({ params }) => {
+    await delay(500);
+
+    const { jobId } = params;
+
+    // Mock 완료 응답
+    return HttpResponse.json({
+      ok: true,
+      status: 'completed',
+      progress: 100,
+      result: {
+        videoUrl: `https://mock.seedance.co/videos/${jobId}.mp4`,
+        thumbnailUrl: `https://mock.seedance.co/thumbnails/${jobId}.jpg`,
+        duration: 8,
+        format: 'mp4'
+      }
+    });
+  }),
+
+  /**
+   * Seedance 서비스 상태 확인 API (GET /api/seedance/create)
+   */
+  http.get('/api/seedance/create', async () => {
+    await delay(200);
+
+    return HttpResponse.json({
+      service: 'SeeDance Video Generation',
+      status: 'operational',
+      configuration: {
+        hasApiKey: true,
+        mode: 'mock',
+        environmentValidation: {
+          passed: true,
+          minimumKeyLength: 40,
+          currentKeyLength: 52
+        }
+      },
+      capabilities: {
+        textToVideo: true,
+        imageToVideo: true,
+        customDuration: true,
+        customAspectRatio: true,
+        qualityControl: true,
+        webhookSupport: true,
+        maxDuration: 30,
+        supportedAspectRatios: ['16:9', '9:16', '1:1', '4:3', '3:4'],
+        supportedQualities: ['standard', 'pro']
+      }
     });
   }),
 ];

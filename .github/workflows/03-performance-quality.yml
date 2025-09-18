@@ -1,0 +1,446 @@
+name: 03. Performance & Quality
+# 통합된 성능 모니터링 및 품질 보증 파이프라인
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
+  schedule:
+    # 매일 오전 9시 성능 베이스라인 체크
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+    inputs:
+      performance_mode:
+        description: 'Performance test mode'
+        required: false
+        default: 'standard'
+        type: choice
+        options:
+          - 'standard'
+          - 'comprehensive'
+          - 'stress'
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '9'
+  LIGHTHOUSE_CI_BUILD_PATH: '.next'
+
+# 동시 실행 제한
+concurrency:
+  group: performance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 📊 Stage 1: 성능 예산 검증
+  performance-budget-check:
+    name: '⚡ Performance Budget Check'
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 번들 사이즈 분석
+      - name: Bundle Size Analysis
+        run: |
+          echo "📱 번들 크기 분석..."
+
+          pnpm build
+
+          # 번들 크기 체크
+          MAIN_BUNDLE_SIZE=$(du -b .next/static/chunks/pages/_app-*.js 2>/dev/null | cut -f1 | head -1 || echo "0")
+          MAX_BUNDLE_SIZE=500000  # 500KB
+
+          echo "메인 번들 크기: $MAIN_BUNDLE_SIZE bytes"
+          echo "최대 허용 크기: $MAX_BUNDLE_SIZE bytes"
+
+          if [ "$MAIN_BUNDLE_SIZE" -gt "$MAX_BUNDLE_SIZE" ]; then
+            echo "❌ 번들 크기가 예산을 초과했습니다!"
+            echo "초과량: $(( MAIN_BUNDLE_SIZE - MAX_BUNDLE_SIZE )) bytes"
+            exit 1
+          fi
+
+          echo "✅ 번들 크기 예산 통과"
+
+      # Core Web Vitals 체크
+      - name: Core Web Vitals Check
+        run: |
+          echo "⚡ Core Web Vitals 체크..."
+
+          # Lighthouse CI 설정
+          echo '{
+            "ci": {
+              "collect": {
+                "startServerCommand": "pnpm start",
+                "startServerReadyPattern": "ready",
+                "url": ["http://localhost:3000"]
+              },
+              "assert": {
+                "assertions": {
+                  "categories:performance": ["error", {"minScore": 0.9}],
+                  "categories:accessibility": ["error", {"minScore": 0.9}],
+                  "categories:best-practices": ["error", {"minScore": 0.9}],
+                  "categories:seo": ["error", {"minScore": 0.9}]
+                }
+              }
+            }
+          }' > lighthouserc.json
+
+          # Lighthouse CI 실행
+          npx @lhci/cli@0.12.x autorun || {
+            echo "❌ Lighthouse 성능 기준 미달!"
+            exit 1
+          }
+
+      # 성능 회귀 검사
+      - name: Performance Regression Check
+        run: |
+          echo "📈 성능 회귀 검사..."
+
+          # 이전 빌드와 비교 (베이스 브랜치)
+          git checkout ${{ github.base_ref }}
+          pnpm install --frozen-lockfile
+          pnpm build
+
+          # 현재 번들 크기 저장
+          BASE_SIZE=$(du -sb .next | cut -f1)
+
+          # PR 브랜치로 돌아가기
+          git checkout ${{ github.sha }}
+          pnpm install --frozen-lockfile
+          pnpm build
+
+          # PR 번들 크기
+          PR_SIZE=$(du -sb .next | cut -f1)
+
+          # 회귀 검사 (10% 이상 증가 시 실패)
+          REGRESSION_THRESHOLD=$(echo "$BASE_SIZE * 1.1" | bc)
+
+          echo "베이스 빌드 크기: $BASE_SIZE bytes"
+          echo "PR 빌드 크기: $PR_SIZE bytes"
+          echo "회귀 임계값: $REGRESSION_THRESHOLD bytes"
+
+          if (( $(echo "$PR_SIZE > $REGRESSION_THRESHOLD" | bc -l) )); then
+            INCREASE_PERCENT=$(echo "scale=2; ($PR_SIZE - $BASE_SIZE) * 100 / $BASE_SIZE" | bc)
+            echo "❌ 성능 회귀 감지! 빌드 크기가 ${INCREASE_PERCENT}% 증가했습니다."
+            exit 1
+          fi
+
+          echo "✅ 성능 회귀 없음"
+
+  # 🧪 Stage 2: 뮤테이션 테스트 및 코드 품질
+  mutation-testing:
+    name: '🧬 Mutation Testing & Code Quality'
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 테스트 커버리지 체크
+      - name: Test Coverage Analysis
+        run: |
+          echo "📊 테스트 커버리지 분석..."
+
+          pnpm test:coverage
+
+          # 커버리지 임계값 체크
+          COVERAGE=$(npm run test:coverage:report -- --reporter=text-summary | grep "Lines" | grep -oP '\d+(?=\.\d+%)' | head -1)
+          MIN_COVERAGE=85
+
+          echo "현재 커버리지: ${COVERAGE}%"
+          echo "최소 요구 커버리지: ${MIN_COVERAGE}%"
+
+          if [ "$COVERAGE" -lt "$MIN_COVERAGE" ]; then
+            echo "❌ 테스트 커버리지가 기준에 미달합니다!"
+            exit 1
+          fi
+
+          echo "✅ 테스트 커버리지 기준 통과"
+
+      # 뮤테이션 테스트
+      - name: Mutation Testing with Stryker
+        run: |
+          echo "🧬 뮤테이션 테스트 실행..."
+
+          # Stryker 뮤테이션 테스트
+          if command -v stryker &> /dev/null; then
+            pnpm run test:mutation || {
+              echo "❌ 뮤테이션 테스트 실패!"
+              echo "테스트의 품질을 개선해야 합니다."
+              exit 1
+            }
+          else
+            echo "⚠️ Stryker 미설치 - 뮤테이션 테스트 건너뜀"
+          fi
+
+      # 코드 복잡도 분석
+      - name: Code Complexity Analysis
+        run: |
+          echo "🔍 코드 복잡도 분석..."
+
+          # ESLint complexity 규칙
+          pnpm lint:complexity || {
+            echo "❌ 코드 복잡도가 기준을 초과합니다!"
+            exit 1
+          }
+
+          echo "✅ 코드 복잡도 기준 통과"
+
+  # 🚀 Stage 3: 종합 성능 테스트 (스케줄/수동 실행)
+  comprehensive-performance-test:
+    name: '🚀 Comprehensive Performance Test'
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 전체 빌드 성능 테스트
+      - name: Build Performance Test
+        run: |
+          echo "🏗️ 빌드 성능 테스트..."
+
+          start_time=$(date +%s)
+          pnpm build
+          end_time=$(date +%s)
+
+          build_duration=$((end_time - start_time))
+          max_build_time=300  # 5분
+
+          echo "빌드 시간: ${build_duration}초"
+          echo "최대 허용 시간: ${max_build_time}초"
+
+          if [ "$build_duration" -gt "$max_build_time" ]; then
+            echo "❌ 빌드 시간이 너무 깁니다!"
+            exit 1
+          fi
+
+          echo "✅ 빌드 성능 기준 통과"
+
+      # 로드 테스트 (가벼운)
+      - name: Load Testing
+        run: |
+          echo "⚡ 로드 테스트..."
+
+          # 서버 시작
+          pnpm start &
+          SERVER_PID=$!
+
+          # 서버 준비 대기
+          sleep 30
+
+          # ApacheBench로 로드 테스트
+          if command -v ab &> /dev/null; then
+            ab -n 100 -c 10 http://localhost:3000/ || {
+              echo "❌ 로드 테스트 실패!"
+              kill $SERVER_PID
+              exit 1
+            }
+          else
+            echo "⚠️ ApacheBench 미설치 - 로드 테스트 건너뜀"
+          fi
+
+          # 서버 종료
+          kill $SERVER_PID
+
+          echo "✅ 로드 테스트 통과"
+
+      # 메모리 사용량 프로파일링
+      - name: Memory Usage Profiling
+        run: |
+          echo "💾 메모리 사용량 프로파일링..."
+
+          # 빌드 시 메모리 사용량 체크
+          /usr/bin/time -v pnpm build 2>&1 | grep "Maximum resident set size" | grep -oP '\d+' > memory_usage.txt
+
+          MEMORY_KB=$(cat memory_usage.txt)
+          MEMORY_MB=$((MEMORY_KB / 1024))
+          MAX_MEMORY_MB=2048  # 2GB
+
+          echo "최대 메모리 사용량: ${MEMORY_MB}MB"
+          echo "허용 한도: ${MAX_MEMORY_MB}MB"
+
+          if [ "$MEMORY_MB" -gt "$MAX_MEMORY_MB" ]; then
+            echo "❌ 메모리 사용량이 한도를 초과했습니다!"
+            exit 1
+          fi
+
+          echo "✅ 메모리 사용량 정상"
+
+  # 🎯 Stage 4: 성능 베이스라인 업데이트
+  performance-baseline-update:
+    name: '📊 Performance Baseline Update'
+    runs-on: ubuntu-latest
+    needs: [performance-budget-check, mutation-testing, comprehensive-performance-test]
+    if: always() && github.event_name == 'schedule'
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 현재 성능 메트릭 수집
+      - name: Collect Performance Metrics
+        run: |
+          echo "📊 성능 메트릭 수집..."
+
+          pnpm build
+
+          # 번들 크기
+          BUNDLE_SIZE=$(du -sb .next | cut -f1)
+
+          # 파일 수
+          FILE_COUNT=$(find .next -type f | wc -l)
+
+          # 메트릭 저장
+          echo "bundle_size:$BUNDLE_SIZE" > performance_metrics.txt
+          echo "file_count:$FILE_COUNT" >> performance_metrics.txt
+          echo "timestamp:$(date +%s)" >> performance_metrics.txt
+
+          cat performance_metrics.txt
+
+      # 베이스라인 업데이트 (Git으로 저장)
+      - name: Update Performance Baseline
+        run: |
+          echo "📈 성능 베이스라인 업데이트..."
+
+          # 성능 히스토리 디렉토리 생성
+          mkdir -p .github/performance-history
+
+          # 타임스탬프 파일명으로 저장
+          cp performance_metrics.txt .github/performance-history/$(date +%Y-%m-%d).txt
+
+          # Git 커밋 (베이스라인 업데이트)
+          git config user.name "Performance Bot"
+          git config user.email "performance@videoprompt.com"
+
+          git add .github/performance-history/
+          git commit -m "chore: update performance baseline $(date +%Y-%m-%d)" || echo "베이스라인 변경 사항 없음"
+
+  # 📊 결과 요약 및 보고
+  performance-quality-summary:
+    name: '📊 Performance & Quality Summary'
+    runs-on: ubuntu-latest
+    needs: [performance-budget-check, mutation-testing, comprehensive-performance-test]
+    if: always()
+
+    steps:
+      - name: Performance Quality Results Summary
+        run: |
+          echo "📊 성능 및 품질 검사 결과 요약"
+          echo "======================================"
+
+          if [[ "${{ needs.performance-budget-check.result }}" == "success" ]]; then
+            echo "✅ 성능 예산 검증: 통과"
+          elif [[ "${{ needs.performance-budget-check.result }}" == "skipped" ]]; then
+            echo "⏸️ 성능 예산 검증: 건너뜀"
+          else
+            echo "❌ 성능 예산 검증: 실패"
+          fi
+
+          if [[ "${{ needs.mutation-testing.result }}" == "success" ]]; then
+            echo "✅ 뮤테이션 테스트: 통과"
+          elif [[ "${{ needs.mutation-testing.result }}" == "skipped" ]]; then
+            echo "⏸️ 뮤테이션 테스트: 건너뜀"
+          else
+            echo "❌ 뮤테이션 테스트: 실패"
+          fi
+
+          if [[ "${{ needs.comprehensive-performance-test.result }}" == "success" ]]; then
+            echo "✅ 종합 성능 테스트: 통과"
+          elif [[ "${{ needs.comprehensive-performance-test.result }}" == "skipped" ]]; then
+            echo "⏸️ 종합 성능 테스트: 건너뜀"
+          else
+            echo "❌ 종합 성능 테스트: 실패"
+          fi
+
+      # 성능 실패 알림
+      - name: Performance Failure Notification
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#alerts-performance'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          text: |
+            ⚡ 성능 및 품질 검사 실패!
+            PR: ${{ github.event.pull_request.html_url }}
+            성능 회귀 또는 품질 저하가 감지되었습니다.
+
+      # 성능 성공 알림 (베이스라인 업데이트 시)
+      - name: Performance Success Notification
+        if: success() && github.event_name == 'schedule'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          channel: '#performance-reports'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          text: |
+            📊 일일 성능 체크 완료!
+            모든 성능 메트릭이 정상 범위 내에 있습니다.
+            베이스라인이 업데이트되었습니다.

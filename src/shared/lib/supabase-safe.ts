@@ -1,242 +1,174 @@
 /**
- * Supabase 안전 래퍼 인터페이스
- * FSD Architecture - Shared Layer Library
+ * 🔒 Supabase Safe 안전망 시스템
+ * 통합 환경변수 관리 시스템과 연동하여 안전한 Supabase 클라이언트 제공
  *
  * 핵심 원칙:
- * - 환경변수 누락 시 null 체크 강제
- * - 명확한 503 에러 응답 또는 조기 실패
- * - API 레이어에서 안전한 Supabase 사용 보장
+ * - Contract-first: ServiceConfigError를 통한 명확한 에러 체계
+ * - Fail-fast: 환경변수 누락 시 즉시 실패
+ * - 복구 가능: Circuit Breaker로 일시적 장애 차단
+ * - 안전 우선: 503 Service Unavailable로 degradation 명시
  */
 
-import { SupabaseClient } from '@supabase/supabase-js'
-import { createClient } from '@supabase/supabase-js'
-import { ENV_VALIDATION, canUseSupabase, getEnvConfig } from './env-validation'
+import { getSupabaseClient, getSupabaseAdminClient, createSupabaseErrorResponse } from './supabase-client';
+import { getDegradationMode } from '../config/env';
 
 /**
- * Supabase 동작 결과 타입
+ * Service Configuration Error - API Contract 준수
+ * 환경설정 오류를 명확히 전달
  */
-export interface SupabaseOperationResult<T = any> {
-  success: boolean
-  data?: T
-  error?: string
-  mode: 'full' | 'degraded' | 'disabled'
-  shouldReturn503?: boolean // API에서 503 응답을 보내야 하는지
-}
-
-/**
- * 안전한 Supabase 클라이언트 래퍼
- */
-export class SafeSupabaseClient {
-  private client: SupabaseClient | null = null
-  private adminClient: SupabaseClient | null = null
-  private readonly mode: 'full' | 'degraded' | 'disabled'
-
-  constructor() {
-    this.mode = ENV_VALIDATION.mode
-
-    if (canUseSupabase()) {
-      const config = getEnvConfig()!
-
-      // 공개 클라이언트 초기화
-      this.client = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY, {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: true,
-        },
-      })
-
-      // Admin 클라이언트 초기화 (Service Role Key가 있는 경우만)
-      if (config.SUPABASE_SERVICE_ROLE_KEY) {
-        this.adminClient = createClient(config.SUPABASE_URL, config.SUPABASE_SERVICE_ROLE_KEY, {
-          auth: {
-            autoRefreshToken: false,
-            persistSession: false,
-          },
-        })
-      }
-    }
-  }
-
-  /**
-   * 공개 클라이언트 안전 접근
-   */
-  getClient(): SupabaseOperationResult<SupabaseClient> {
-    if (!this.client) {
-      return {
-        success: false,
-        error: `Supabase client not available. Mode: ${this.mode}. Errors: ${ENV_VALIDATION.errors.join(', ')}`,
-        mode: this.mode,
-        shouldReturn503: true
-      }
-    }
-
-    return {
-      success: true,
-      data: this.client,
-      mode: this.mode
-    }
-  }
-
-  /**
-   * Admin 클라이언트 안전 접근
-   */
-  getAdminClient(): SupabaseOperationResult<SupabaseClient> {
-    if (!this.adminClient) {
-      const errorReason = !this.client
-        ? 'Supabase not configured'
-        : 'Service Role Key not available'
-
-      return {
-        success: false,
-        error: `Admin client not available: ${errorReason}. Mode: ${this.mode}`,
-        mode: this.mode,
-        shouldReturn503: this.mode === 'disabled' // disabled 모드에서만 503
-      }
-    }
-
-    return {
-      success: true,
-      data: this.adminClient,
-      mode: this.mode
-    }
-  }
-
-  /**
-   * 연결 상태 확인
-   */
-  async checkConnection(): Promise<SupabaseOperationResult<{ latency: number }>> {
-    const clientResult = this.getClient()
-    if (!clientResult.success) {
-      return {
-        success: false,
-        error: clientResult.error,
-        mode: clientResult.mode,
-        shouldReturn503: clientResult.shouldReturn503
-      }
-    }
-
-    const startTime = Date.now()
-
-    try {
-      const { error } = await clientResult.data!
-        .from('_health_check')
-        .select('count(*)')
-        .limit(1)
-
-      const latency = Date.now() - startTime
-
-      if (error && error.code !== 'PGRST116') {
-        // PGRST116은 테이블이 존재하지 않음을 의미하지만 연결은 정상
-        throw error
-      }
-
-      return {
-        success: true,
-        data: { latency },
-        mode: this.mode
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-
-      return {
-        success: false,
-        error: `Connection check failed: ${errorMessage}`,
-        mode: this.mode
-      }
-    }
-  }
-
-  /**
-   * 현재 동작 모드 반환
-   */
-  getMode(): 'full' | 'degraded' | 'disabled' {
-    return this.mode
-  }
-
-  /**
-   * 환경변수 오류 목록 반환
-   */
-  getErrors(): string[] {
-    return ENV_VALIDATION.errors
+export class ServiceConfigError extends Error {
+  constructor(
+    public readonly statusCode: number,
+    message: string,
+    public readonly errorCode: string = 'SERVICE_UNAVAILABLE'
+  ) {
+    super(message);
+    this.name = 'ServiceConfigError';
   }
 }
 
 /**
- * 전역 안전 Supabase 인스턴스
+ * 안전한 Supabase 클라이언트 가져오기
+ * 환경변수 검증, Circuit Breaker, 에러 변환을 통합 처리
+ *
+ * @param kind - 클라이언트 종류 ('anon' | 'admin')
+ * @throws ServiceConfigError - 환경설정 오류 시 명확한 에러 발생
  */
-export const safeSupabase = new SafeSupabaseClient()
+export async function getSupabaseClientSafe(kind: 'anon' | 'admin') {
+  try {
+    if (kind === 'admin') {
+      const result = await getSupabaseAdminClient({
+        throwOnError: true,
+        serviceName: 'api-admin',
+        useCircuitBreaker: true
+      });
 
-/**
- * API 레이어용 헬퍼 함수들
- */
+      if (!result.client) {
+        throw new ServiceConfigError(
+          503,
+          result.error || 'Admin Supabase client not available',
+          'SUPABASE_ADMIN_UNAVAILABLE'
+        );
+      }
 
-/**
- * 안전한 Supabase 클라이언트 가져오기 (API용)
- * @returns 클라이언트 또는 NextResponse 에러 객체
- */
-export function getSupabaseClientForAPI() {
-  const result = safeSupabase.getClient()
+      return result.client;
+    } else {
+      const result = await getSupabaseClient({
+        throwOnError: true,
+        serviceName: 'api-anon',
+        useCircuitBreaker: true
+      });
 
-  if (!result.success) {
-    return {
-      client: null,
-      error: {
-        success: false,
-        message: result.error!,
-        mode: result.mode,
-        shouldReturn503: result.shouldReturn503
+      if (!result.client) {
+        throw new ServiceConfigError(
+          503,
+          result.error || 'Supabase client not available',
+          'SUPABASE_UNAVAILABLE'
+        );
+      }
+
+      return result.client;
+    }
+  } catch (error) {
+    console.error('🚨 getSupabaseClientSafe failed:', {
+      kind,
+      error: error instanceof Error ? error.message : String(error)
+    });
+
+    // ServiceConfigError는 그대로 전파
+    if (error instanceof ServiceConfigError) {
+      throw error;
+    }
+
+    // 일반 에러를 ServiceConfigError로 변환
+    if (error instanceof Error) {
+      // 환경설정 관련 에러 패턴 매칭
+      if (error.message.includes('SERVICE_ROLE_KEY_REQUIRED')) {
+        throw new ServiceConfigError(503, 'SUPABASE_SERVICE_ROLE_KEY를 설정하세요', 'SERVICE_ROLE_KEY_REQUIRED');
+      }
+
+      if (error.message.includes('SUPABASE_NOT_CONFIGURED') || error.message.includes('환경변수')) {
+        throw new ServiceConfigError(503, 'Supabase 환경이 설정되지 않았습니다', 'SUPABASE_NOT_CONFIGURED');
+      }
+
+      if (error.message.includes('Circuit breaker') || error.message.includes('차단')) {
+        throw new ServiceConfigError(503, 'Supabase 서비스가 일시적으로 차단되었습니다', 'CIRCUIT_BREAKER_OPEN');
       }
     }
-  }
 
-  return {
-    client: result.data!,
-    error: null
+    // 알 수 없는 에러
+    throw new ServiceConfigError(503, 'Supabase 서비스를 사용할 수 없습니다', 'SUPABASE_UNKNOWN_ERROR');
   }
 }
 
 /**
- * 안전한 Supabase Admin 클라이언트 가져오기 (API용)
+ * API 라우트용 안전한 Supabase 응답 생성
+ * 환경설정 오류를 사용자 친화적 HTTP 응답으로 변환
  */
-export function getSupabaseAdminForAPI() {
-  const result = safeSupabase.getAdminClient()
+export async function handleSupabaseRequest<T>(
+  handler: (client: any) => Promise<T>,
+  kind: 'anon' | 'admin' = 'anon'
+): Promise<T | Response> {
+  try {
+    const client = await getSupabaseClientSafe(kind);
+    return await handler(client);
+  } catch (error) {
+    if (error instanceof ServiceConfigError) {
+      console.error(`🚨 Supabase ${kind} client error:`, {
+        statusCode: error.statusCode,
+        errorCode: error.errorCode,
+        message: error.message
+      });
 
-  if (!result.success) {
-    return {
-      client: null,
-      error: {
-        success: false,
-        message: result.error!,
-        mode: result.mode,
-        shouldReturn503: result.shouldReturn503
-      }
+      return new Response(JSON.stringify({
+        error: error.errorCode,
+        message: error.message,
+        recommendation: getRecommendation(error.errorCode),
+        degradationMode: getDegradationMode(),
+        timestamp: new Date().toISOString()
+      }), {
+        status: error.statusCode,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Error-Type': 'service-config',
+          'X-Service': `supabase-${kind}`,
+          'X-Degradation-Mode': getDegradationMode()
+        }
+      });
     }
-  }
 
-  return {
-    client: result.data!,
-    error: null
+    // 예상치 못한 에러는 500으로 처리
+    console.error('🚨 Unexpected error in handleSupabaseRequest:', error);
+    return new Response(JSON.stringify({
+      error: 'INTERNAL_ERROR',
+      message: 'Internal server error',
+      recommendation: '시스템 관리자에게 문의하세요',
+      timestamp: new Date().toISOString()
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
 
 /**
- * Supabase 연결 상태 체크 (API용)
+ * 에러 코드별 사용자 권장사항 제공
  */
-export async function checkSupabaseForAPI() {
-  return await safeSupabase.checkConnection()
+function getRecommendation(errorCode: string): string {
+  const recommendations = {
+    'SERVICE_ROLE_KEY_REQUIRED': 'SUPABASE_SERVICE_ROLE_KEY 환경변수를 설정하세요. Supabase 대시보드의 Settings > API에서 확인할 수 있습니다.',
+    'SUPABASE_NOT_CONFIGURED': 'SUPABASE_URL과 SUPABASE_ANON_KEY 환경변수를 설정하세요. .env.local 파일을 확인하세요.',
+    'CIRCUIT_BREAKER_OPEN': '잠시 후 다시 시도하세요. 연속된 오류로 인해 일시적으로 차단되었습니다.',
+    'SUPABASE_UNAVAILABLE': 'Supabase 서비스에 연결할 수 없습니다. 네트워크 상태를 확인하거나 관리자에게 문의하세요.',
+    'SUPABASE_UNKNOWN_ERROR': '시스템 관리자에게 문의하세요.'
+  };
+
+  return recommendations[errorCode as keyof typeof recommendations] || '관리자에게 문의하세요.';
 }
 
-/**
- * 개발 환경에서 초기화 상태 로깅
- */
+
+// 환경 초기화 시 상태 로그
 if (process.env.NODE_ENV === 'development') {
-  const mode = safeSupabase.getMode()
-  const errors = safeSupabase.getErrors()
-
-  if (mode === 'disabled') {
-    console.error('❌ SafeSupabaseClient: Disabled mode', { errors })
-  } else {
-    console.log(`✅ SafeSupabaseClient: ${mode} mode initialized`)
-  }
+  const mode = getDegradationMode();
+  console.log(`🔒 Supabase Safe initialized in ${mode} mode`);
 }

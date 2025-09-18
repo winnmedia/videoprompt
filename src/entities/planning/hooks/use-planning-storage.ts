@@ -1,0 +1,288 @@
+/**
+ * Planning Storage React Hook
+ *
+ * 목적: 이중 저장 시스템의 React 인터페이스 제공
+ * 책임: Redux 상태 연결, 액션 디스패치, 타입 안전성
+ */
+
+import { useCallback, useMemo } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '@/app/store';
+import {
+  submitDualStorage,
+  retryFailedStorage,
+  resetStorageState,
+  clearLastError,
+  resetMetrics,
+} from '../model/planning-storage.slice';
+import type {
+  StorageRequest,
+  DualStorageResult,
+  UsePlanningStorageReturn,
+  METRICS_THRESHOLDS,
+} from '../types/planning-storage.types';
+
+// ============================================================================
+// 메인 Hook
+// ============================================================================
+
+/**
+ * Planning Storage Hook
+ *
+ * 이중 저장 시스템과 상호작용하기 위한 통합 인터페이스
+ */
+export function usePlanningStorage(): UsePlanningStorageReturn {
+  const dispatch = useDispatch<AppDispatch>();
+
+  // Redux 상태 선택
+  const state = useSelector((state: RootState) => state.planningStorage);
+
+  // ========================================================================
+  // 파생 상태 계산
+  // ========================================================================
+
+  const derivedState = useMemo(() => ({
+    isLoading: state.status === 'loading',
+    hasError: state.status === 'error' || state.lastError !== null,
+    recentResults: state.results.successful.slice(-10), // 최근 10개
+    retryQueueSize: state.retryQueue.length,
+  }), [state.status, state.lastError, state.results.successful, state.retryQueue.length]);
+
+  // ========================================================================
+  // 액션 함수들
+  // ========================================================================
+
+  /**
+   * 이중 저장 요청 제출
+   */
+  const submitStorage = useCallback(async (request: StorageRequest): Promise<DualStorageResult> => {
+    console.log('🚀 Hook: 이중 저장 요청 시작', {
+      type: request.type,
+      projectId: request.projectId,
+    });
+
+    try {
+      const result = await dispatch(submitDualStorage(request)).unwrap();
+
+      console.log('✅ Hook: 이중 저장 성공', {
+        projectId: request.projectId,
+        latency: result.latencyMs,
+        prismaStored: result.prismaResult.saved,
+        supabaseStored: result.supabaseResult.saved,
+      });
+
+      return result;
+    } catch (error) {
+      console.error('❌ Hook: 이중 저장 실패', {
+        projectId: request.projectId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      throw error;
+    }
+  }, [dispatch]);
+
+  /**
+   * 실패한 요청들 재시도
+   */
+  const retryFailed = useCallback(async (): Promise<void> => {
+    if (state.retryQueue.length === 0) {
+      console.warn('⚠️ Hook: 재시도할 요청이 없습니다');
+      return;
+    }
+
+    console.log(`🔄 Hook: ${state.retryQueue.length}개 요청 재시도 시작`);
+
+    try {
+      const results = await dispatch(retryFailedStorage()).unwrap();
+
+      console.log('✅ Hook: 재시도 완료', {
+        successCount: results.length,
+        originalQueueSize: state.retryQueue.length,
+      });
+    } catch (error) {
+      console.error('❌ Hook: 재시도 실패', error);
+      throw error;
+    }
+  }, [dispatch, state.retryQueue.length]);
+
+  /**
+   * 에러 상태 지우기
+   */
+  const clearError = useCallback(() => {
+    dispatch(clearLastError());
+  }, [dispatch]);
+
+  /**
+   * 전체 상태 초기화
+   */
+  const resetState = useCallback(() => {
+    dispatch(resetStorageState());
+  }, [dispatch]);
+
+  /**
+   * 메트릭 초기화
+   */
+  const resetStorageMetrics = useCallback(() => {
+    dispatch(resetMetrics());
+  }, [dispatch]);
+
+  // ========================================================================
+  // 반환 객체 구성
+  // ========================================================================
+
+  return {
+    // 상태
+    status: state.status,
+    isLoading: derivedState.isLoading,
+    hasError: derivedState.hasError,
+
+    // 데이터
+    metrics: state.metrics,
+    recentResults: derivedState.recentResults,
+    failedRequests: state.results.failed,
+    retryQueueSize: derivedState.retryQueueSize,
+
+    // 액션
+    submitStorage,
+    retryFailed,
+    clearError,
+    resetState,
+    resetMetrics: resetStorageMetrics,
+  };
+}
+
+// ============================================================================
+// 특화된 Hook들
+// ============================================================================
+
+/**
+ * 특정 프로젝트의 저장 상태만 추적하는 Hook
+ */
+export function useProjectStorageStatus(projectId: string) {
+  const { recentResults, failedRequests } = usePlanningStorage();
+
+  return useMemo(() => {
+    // 최근 성공한 저장 중에서 해당 프로젝트 찾기
+    const successfulResult = recentResults.find(
+      result => result.request?.projectId === projectId
+    );
+
+    // 실패한 저장 중에서 해당 프로젝트 찾기
+    const failedResult = failedRequests.find(
+      result => result.request.projectId === projectId
+    );
+
+    return {
+      isStored: !!successfulResult,
+      lastStoredAt: successfulResult?.timestamp,
+      hasFailed: !!failedResult,
+      lastError: failedResult?.error,
+      needsRetry: !!failedResult,
+    };
+  }, [projectId, recentResults, failedRequests]);
+}
+
+/**
+ * 저장 시스템 건강성 모니터링 Hook
+ */
+export function useStorageHealthMonitor() {
+  const { metrics } = usePlanningStorage();
+
+  return useMemo(() => {
+    const health = {
+      overall: 'healthy' as 'healthy' | 'warning' | 'critical',
+      issues: [] as string[],
+      recommendations: [] as string[],
+    };
+
+    // 성공률 검사
+    if (metrics.successRate < METRICS_THRESHOLDS.SUCCESS_RATE_CRITICAL) {
+      health.overall = 'critical';
+      health.issues.push(`성공률이 매우 낮습니다 (${metrics.successRate.toFixed(1)}%)`);
+      health.recommendations.push('시스템 점검이 필요합니다');
+    } else if (metrics.successRate < METRICS_THRESHOLDS.SUCCESS_RATE_WARNING) {
+      if (health.overall === 'healthy') health.overall = 'warning';
+      health.issues.push(`성공률이 낮습니다 (${metrics.successRate.toFixed(1)}%)`);
+      health.recommendations.push('네트워크 상태를 확인하세요');
+    }
+
+    // 응답 시간 검사
+    if (metrics.averageLatency > METRICS_THRESHOLDS.LATENCY_CRITICAL) {
+      health.overall = 'critical';
+      health.issues.push(`응답 시간이 매우 느립니다 (${metrics.averageLatency.toFixed(0)}ms)`);
+      health.recommendations.push('서버 성능을 점검하세요');
+    } else if (metrics.averageLatency > METRICS_THRESHOLDS.LATENCY_WARNING) {
+      if (health.overall === 'healthy') health.overall = 'warning';
+      health.issues.push(`응답 시간이 느립니다 (${metrics.averageLatency.toFixed(0)}ms)`);
+      health.recommendations.push('네트워크 최적화를 고려하세요');
+    }
+
+    // 롤백 횟수 검사
+    if (metrics.rollbackCount >= METRICS_THRESHOLDS.ROLLBACK_WARNING) {
+      if (health.overall === 'healthy') health.overall = 'warning';
+      health.issues.push(`롤백이 자주 발생합니다 (${metrics.rollbackCount}회)`);
+      health.recommendations.push('Supabase 연결 상태를 확인하세요');
+    }
+
+    // Supabase 개별 성공률 검사
+    if (metrics.supabaseSuccessRate < 80) {
+      if (health.overall === 'healthy') health.overall = 'warning';
+      health.issues.push(`Supabase 저장 실패율이 높습니다 (${metrics.supabaseSuccessRate.toFixed(1)}%)`);
+      health.recommendations.push('Supabase RLS 정책과 Service Role 키를 확인하세요');
+    }
+
+    return health;
+  }, [metrics]);
+}
+
+/**
+ * 타입별 저장 통계를 제공하는 Hook
+ */
+export function useStorageStatsByType() {
+  const { recentResults, failedRequests } = usePlanningStorage();
+
+  return useMemo(() => {
+    const stats = {
+      story: { successful: 0, failed: 0 },
+      scenario: { successful: 0, failed: 0 },
+      prompt: { successful: 0, failed: 0 },
+      video: { successful: 0, failed: 0 },
+    };
+
+    // 성공한 저장 집계
+    recentResults.forEach(result => {
+      if (result.request?.type && stats[result.request.type]) {
+        stats[result.request.type].successful += 1;
+      }
+    });
+
+    // 실패한 저장 집계
+    failedRequests.forEach(result => {
+      if (result.request.type && stats[result.request.type]) {
+        stats[result.request.type].failed += 1;
+      }
+    });
+
+    // 각 타입별 성공률 계산
+    const statsWithRates = Object.entries(stats).map(([type, data]) => {
+      const total = data.successful + data.failed;
+      const successRate = total > 0 ? (data.successful / total) * 100 : 100;
+
+      return {
+        type,
+        ...data,
+        total,
+        successRate,
+      };
+    });
+
+    return statsWithRates;
+  }, [recentResults, failedRequests]);
+}
+
+// ============================================================================
+// Export
+// ============================================================================
+
+export type { UsePlanningStorageReturn };

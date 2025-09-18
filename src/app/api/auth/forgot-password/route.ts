@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { supabase } from '@/lib/supabase';
-import { success, failure, getTraceId } from '@/shared/lib/api-response';
+import { getSupabaseClient } from '@/shared/lib/supabase-client';
+import { success, failure, getTraceId, supabaseErrors } from '@/shared/lib/api-response';
 import { addCorsHeaders } from '@/shared/lib/cors-utils';
 import { checkRateLimit, RATE_LIMITS } from '@/shared/lib/rate-limiter';
 
@@ -54,6 +54,26 @@ export async function POST(req: NextRequest) {
     const { email } = ForgotPasswordSchema.parse(body);
 
     console.log(`🔐 Password reset request for email: ${email}`);
+
+    // 안전한 Supabase 클라이언트 가져오기
+    const supabaseResult = await getSupabaseClient({
+      throwOnError: false,
+      useCircuitBreaker: true,
+      serviceName: 'forgot-password'
+    });
+
+    if (!supabaseResult.client || !supabaseResult.canProceed) {
+      console.error('❌ Supabase 클라이언트 생성 실패:', supabaseResult.error);
+
+      const response = supabaseErrors.unavailable(
+        traceId,
+        `degradationMode: ${supabaseResult.degradationMode}`
+      );
+
+      return addCorsHeaders(response);
+    }
+
+    const supabase = supabaseResult.client;
 
     // Supabase Auth로 비밀번호 재설정 이메일 발송
     // redirectTo는 사용자가 이메일에서 클릭할 링크 주소

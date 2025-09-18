@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { Plus, X, Upload, User, Box } from 'lucide-react';
-import { type Character, type CoreObject, type Elements } from '@/types/video-prompt';
+import { type Character, type CoreObject, type Elements } from '@/shared/types/video-prompt';
 import { generateId } from '@/shared/lib/utils';
 import { cn } from '@/shared/lib/utils';
 

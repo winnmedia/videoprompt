@@ -7,7 +7,7 @@ import {
   CAMERA_MOVEMENTS,
   PACING_OPTIONS,
   AUDIO_QUALITY,
-} from '@/types/video-prompt';
+} from '@/shared/types/video-prompt';
 import { generateId } from '@/shared/lib/utils';
 import { cn } from '@/shared/lib/utils';
 

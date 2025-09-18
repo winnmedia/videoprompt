@@ -8,8 +8,8 @@ import {
   LLMAssistant,
 } from '@/features/prompt-generator';
 import { ErrorBoundary } from '@/shared/ui';
-import { type PromptGenerationState, type VideoPrompt } from '@/types/video-prompt';
-import { type PromptGenerationStateV31 } from '@/types/video-prompt-v3.1';
+import { type PromptGenerationState, type VideoPrompt } from '@/shared/types/video-prompt';
+import { type PromptGenerationStateV31 } from '@/shared/types/video-prompt-v3.1';
 import { generateId } from '@/shared/lib/utils';
 import { useProjectStore } from '@/entities/project';
 import { createEmptyV31Instance, compilePromptSimple, type CineGeniusV31Simple } from '@/lib/schemas/cinegenius-v3.1-simple';

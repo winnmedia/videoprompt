@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
 import { logger, LogCategory } from '@/shared/lib/structured-logger';
 
 export const runtime = 'nodejs';
@@ -50,6 +50,20 @@ export async function GET(request: NextRequest) {
   };
 
   try {
+    // getSupabaseClientSafe를 사용한 안전한 클라이언트 초기화
+    let supabase;
+    try {
+      supabase = await getSupabaseClientSafe('anon');
+    } catch (error) {
+      const errorMessage = error instanceof ServiceConfigError ? error.message : 'Supabase client initialization failed';
+      return NextResponse.json({
+        ...testResults,
+        status: 'failed',
+        error: errorMessage,
+        duration: Date.now() - startTime
+      }, { status: 503 });
+    }
+
     // 1. 기본 연결 테스트
     const connStart = Date.now();
     try {

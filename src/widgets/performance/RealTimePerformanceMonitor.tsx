@@ -70,7 +70,7 @@ export const RealTimePerformanceMonitor = ({
     })
 
     setAlertsSystem(system)
-  }, [budget, alertHandlers])
+  }, []); // $300 방지: 마운트 시에만 실행
 
   // 알림 추가 핸들러
   const addAlert = useCallback((payload: AlertPayload) => {
@@ -90,8 +90,6 @@ export const RealTimePerformanceMonitor = ({
   // 실시간 성능 모니터링
   useEffect(() => {
     if (!realtime || !isMonitoring || !alertsSystem) return
-
-    let intervalId: NodeJS.Timeout
 
     const checkPerformance = async () => {
       if (processingAlert) return
@@ -128,14 +126,12 @@ export const RealTimePerformanceMonitor = ({
     checkPerformance()
 
     // 주기적 검사 (10초마다)
-    intervalId = setInterval(checkPerformance, 10000)
+    const monitoringInterval = setInterval(checkPerformance, 10000)
 
     return () => {
-      if (intervalId) {
-        clearInterval(intervalId)
-      }
+      clearInterval(monitoringInterval)
     }
-  }, [realtime, isMonitoring, alertsSystem, getCurrentSessionMetrics, addAlert, processingAlert])
+  }, [isMonitoring]); // $300 방지: 안전한 의존성만 사용
 
   // 알림 승인 처리
   const acknowledgeAlert = useCallback((alertId: string) => {
