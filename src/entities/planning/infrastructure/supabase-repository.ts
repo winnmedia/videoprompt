@@ -7,13 +7,13 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseRepository } from '../model/services';
 import type {
-  SupabaseRepository,
   ScenarioContent,
   PromptContent,
   VideoContent,
   PlanningContent
-} from '../model/services';
+} from '../model/types';
 
 interface SupabaseRepositoryDependencies {
   supabase: SupabaseClient;
@@ -185,6 +185,7 @@ export class SupabaseRepositoryImpl implements SupabaseRepository {
           id: prompt.id,
           projectId: prompt.project_id,
           type: 'prompt' as const,
+          title: prompt.scenario_title || `Prompt ${prompt.id}`,
           scenarioTitle: prompt.scenario_title,
           finalPrompt: prompt.final_prompt,
           keywords: prompt.keywords || [],
@@ -195,7 +196,7 @@ export class SupabaseRepositoryImpl implements SupabaseRepository {
           updatedAt: prompt.updated_at,
           metadata: prompt.metadata || {},
           storage: prompt.storage || { prisma: { saved: false }, supabase: { saved: false } },
-        };
+        } as PromptContent;
       }
 
       // 영상 검색
@@ -210,6 +211,7 @@ export class SupabaseRepositoryImpl implements SupabaseRepository {
           id: video.id,
           projectId: video.project_id,
           type: 'video' as const,
+          title: `Video ${video.id.slice(0, 8)}`,
           videoUrl: video.video_url,
           thumbnailUrl: video.thumbnail_url,
           processingJobId: video.processing_job_id,
@@ -220,7 +222,7 @@ export class SupabaseRepositoryImpl implements SupabaseRepository {
           updatedAt: video.updated_at,
           metadata: video.metadata || {},
           storage: video.storage || { prisma: { saved: false }, supabase: { saved: false } },
-        };
+        } as VideoContent;
       }
 
       return null;

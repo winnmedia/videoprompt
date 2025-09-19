@@ -1,301 +1,339 @@
 -- ============================================================================
--- Planning 테이블 생성 및 RLS 설정
--- 이중 저장소 시스템을 위한 Supabase 테이블
+-- Supabase Planning 테이블 스키마 동기화 마이그레이션
+-- Prisma Schema와 100% 일치하도록 누락된 필드 추가
 -- ============================================================================
 
--- Planning 테이블 생성
-CREATE TABLE IF NOT EXISTS public.planning (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    type TEXT NOT NULL CHECK (type IN ('scenario', 'video', 'story', 'prompt', 'image')),
-    title TEXT NOT NULL,
-    content JSONB NOT NULL, -- 실제 콘텐츠 데이터
-    status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'in-progress', 'completed', 'failed')),
-    user_id UUID, -- NULL 허용 (게스트 사용자 고려)
-    version INTEGER DEFAULT 1 CHECK (version > 0),
-    metadata JSONB, -- 부가 메타데이터
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+-- 마이그레이션 시작 시간 기록
+SELECT 'Planning 테이블 마이그레이션 시작: ' || NOW() as migration_start;
 
--- 인덱스 생성 (성능 최적화)
-CREATE INDEX IF NOT EXISTS idx_planning_user_type ON public.planning (user_id, type);
-CREATE INDEX IF NOT EXISTS idx_planning_user_status ON public.planning (user_id, status);
-CREATE INDEX IF NOT EXISTS idx_planning_type_status ON public.planning (type, status);
-CREATE INDEX IF NOT EXISTS idx_planning_created_at ON public.planning (created_at);
-CREATE INDEX IF NOT EXISTS idx_planning_updated_at ON public.planning (updated_at);
+-- ============================================================================
+-- 1단계: 백업 테이블 생성 (안전장치)
+-- ============================================================================
 
--- JSONB 필드 인덱스 (콘텐츠 검색 최적화)
-CREATE INDEX IF NOT EXISTS idx_planning_content_gin ON public.planning USING GIN (content);
-CREATE INDEX IF NOT EXISTS idx_planning_metadata_gin ON public.planning USING GIN (metadata);
+-- 기존 데이터 백업 (롤백 시 사용)
+CREATE TABLE IF NOT EXISTS public.planning_backup_20250918 AS
+SELECT * FROM public.planning;
 
--- updated_at 자동 업데이트 트리거 함수
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
+SELECT 'Planning 데이터 백업 완료. 레코드 수: ' || COUNT(*) as backup_status
+FROM public.planning_backup_20250918;
+
+-- ============================================================================
+-- 2단계: 누락된 필드 추가 (Non-breaking Changes)
+-- ============================================================================
+
+-- project_id 필드 추가 (NULL 허용)
+DO $$
 BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'planning'
+        AND column_name = 'project_id'
+        AND table_schema = 'public'
+    ) THEN
+        ALTER TABLE public.planning
+        ADD COLUMN project_id UUID;
 
--- updated_at 트리거 생성
-DROP TRIGGER IF EXISTS update_planning_updated_at ON public.planning;
-CREATE TRIGGER update_planning_updated_at
-    BEFORE UPDATE ON public.planning
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+        RAISE NOTICE 'project_id 필드 추가 완료';
+    ELSE
+        RAISE NOTICE 'project_id 필드가 이미 존재합니다';
+    END IF;
+END $$;
+
+-- storage 필드 추가 (JSON)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'planning'
+        AND column_name = 'storage'
+        AND table_schema = 'public'
+    ) THEN
+        ALTER TABLE public.planning
+        ADD COLUMN storage JSONB;
+
+        RAISE NOTICE 'storage 필드 추가 완료';
+    ELSE
+        RAISE NOTICE 'storage 필드가 이미 존재합니다';
+    END IF;
+END $$;
+
+-- storage_status 필드 추가 (기본값: pending)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'planning'
+        AND column_name = 'storage_status'
+        AND table_schema = 'public'
+    ) THEN
+        ALTER TABLE public.planning
+        ADD COLUMN storage_status TEXT DEFAULT 'pending';
+
+        -- 기존 레코드에 기본값 설정
+        UPDATE public.planning
+        SET storage_status = 'pending'
+        WHERE storage_status IS NULL;
+
+        RAISE NOTICE 'storage_status 필드 추가 완료';
+    ELSE
+        RAISE NOTICE 'storage_status 필드가 이미 존재합니다';
+    END IF;
+END $$;
+
+-- source 필드 추가 (NULL 허용)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'planning'
+        AND column_name = 'source'
+        AND table_schema = 'public'
+    ) THEN
+        ALTER TABLE public.planning
+        ADD COLUMN source TEXT;
+
+        RAISE NOTICE 'source 필드 추가 완료';
+    ELSE
+        RAISE NOTICE 'source 필드가 이미 존재합니다';
+    END IF;
+END $$;
 
 -- ============================================================================
--- RLS (Row Level Security) 설정
+-- 3단계: 새로운 인덱스 추가 (성능 최적화)
 -- ============================================================================
 
--- RLS 활성화
-ALTER TABLE public.planning ENABLE ROW LEVEL SECURITY;
+-- project_id 인덱스 (Prisma 스키마와 일치)
+CREATE INDEX IF NOT EXISTS idx_planning_project_id
+ON public.planning (project_id);
 
--- 정책 1: 본인 데이터만 조회 가능 (인증된 사용자)
-CREATE POLICY "Users can view own planning data" ON public.planning
+-- storage_status 인덱스 (Prisma 스키마와 일치)
+CREATE INDEX IF NOT EXISTS idx_planning_storage_status
+ON public.planning (storage_status);
+
+-- storage JSONB 인덱스 (성능 최적화)
+CREATE INDEX IF NOT EXISTS idx_planning_storage_gin
+ON public.planning USING GIN (storage);
+
+-- 복합 인덱스: user_id + project_id (일반적인 쿼리 패턴)
+CREATE INDEX IF NOT EXISTS idx_planning_user_project
+ON public.planning (user_id, project_id);
+
+-- 복합 인덱스: project_id + status (프로젝트별 상태 조회)
+CREATE INDEX IF NOT EXISTS idx_planning_project_status
+ON public.planning (project_id, status);
+
+-- 복합 인덱스: project_id + type (프로젝트별 타입 조회)
+CREATE INDEX IF NOT EXISTS idx_planning_project_type
+ON public.planning (project_id, type);
+
+SELECT 'Planning 테이블 인덱스 생성 완료' as index_status;
+
+-- ============================================================================
+-- 4단계: RLS 정책 업데이트 (project_id 고려)
+-- ============================================================================
+
+-- 기존 정책에 project_id 조건 추가를 위해 새로운 정책 생성
+
+-- 정책: 프로젝트 소유자도 접근 가능 (project 테이블 조인 필요)
+DROP POLICY IF EXISTS "Users can view project planning data" ON public.planning;
+CREATE POLICY "Users can view project planning data" ON public.planning
     FOR SELECT
     USING (
         auth.uid() IS NOT NULL
-        AND user_id = auth.uid()
+        AND (
+            user_id = auth.uid()
+            OR project_id IN (
+                SELECT id FROM public.projects
+                WHERE user_id = auth.uid()
+            )
+        )
     );
 
--- 정책 2: 본인 데이터만 삽입 가능 (인증된 사용자)
-CREATE POLICY "Users can insert own planning data" ON public.planning
+-- project_id 기반 삽입 정책 (프로젝트 소유자만)
+DROP POLICY IF EXISTS "Users can insert project planning data" ON public.planning;
+CREATE POLICY "Users can insert project planning data" ON public.planning
     FOR INSERT
     WITH CHECK (
         auth.uid() IS NOT NULL
-        AND user_id = auth.uid()
+        AND (
+            user_id = auth.uid()
+            OR (
+                project_id IS NOT NULL
+                AND project_id IN (
+                    SELECT id FROM public.projects
+                    WHERE user_id = auth.uid()
+                )
+            )
+        )
     );
 
--- 정책 3: 본인 데이터만 수정 가능 (인증된 사용자)
-CREATE POLICY "Users can update own planning data" ON public.planning
+-- project_id 기반 수정 정책
+DROP POLICY IF EXISTS "Users can update project planning data" ON public.planning;
+CREATE POLICY "Users can update project planning data" ON public.planning
     FOR UPDATE
     USING (
         auth.uid() IS NOT NULL
-        AND user_id = auth.uid()
+        AND (
+            user_id = auth.uid()
+            OR project_id IN (
+                SELECT id FROM public.projects
+                WHERE user_id = auth.uid()
+            )
+        )
     )
     WITH CHECK (
         auth.uid() IS NOT NULL
-        AND user_id = auth.uid()
+        AND (
+            user_id = auth.uid()
+            OR project_id IN (
+                SELECT id FROM public.projects
+                WHERE user_id = auth.uid()
+            )
+        )
     );
 
--- 정책 4: 본인 데이터만 삭제 가능 (인증된 사용자)
-CREATE POLICY "Users can delete own planning data" ON public.planning
+-- project_id 기반 삭제 정책
+DROP POLICY IF EXISTS "Users can delete project planning data" ON public.planning;
+CREATE POLICY "Users can delete project planning data" ON public.planning
     FOR DELETE
     USING (
         auth.uid() IS NOT NULL
-        AND user_id = auth.uid()
+        AND (
+            user_id = auth.uid()
+            OR project_id IN (
+                SELECT id FROM public.projects
+                WHERE user_id = auth.uid()
+            )
+        )
     );
 
--- 정책 5: Service Role 전체 액세스 (서버 측 작업용)
+-- Service Role 전체 액세스 (서버 측 작업용) - 기존 유지
+DROP POLICY IF EXISTS "Service role has full access" ON public.planning;
 CREATE POLICY "Service role has full access" ON public.planning
     FOR ALL
     TO service_role
     USING (true)
     WITH CHECK (true);
 
--- ============================================================================
--- 데이터 품질 제약조건
--- ============================================================================
-
--- 제약조건 1: title은 비어있을 수 없음
-ALTER TABLE public.planning
-ADD CONSTRAINT planning_title_not_empty
-CHECK (length(trim(title)) > 0);
-
--- 제약조건 2: content는 유효한 JSON이어야 함 (JSONB로 이미 보장됨)
--- 추가 검증: 필수 필드 존재 확인
-ALTER TABLE public.planning
-ADD CONSTRAINT planning_content_has_id
-CHECK (content ? 'id');
-
-ALTER TABLE public.planning
-ADD CONSTRAINT planning_content_has_type
-CHECK (content ? 'type');
-
--- 제약조건 3: version은 양수여야 함 (이미 CHECK 제약조건으로 설정됨)
+SELECT 'Planning 테이블 RLS 정책 업데이트 완료' as rls_status;
 
 -- ============================================================================
--- 데이터 무결성 함수
+-- 5단계: 데이터 무결성 검증
 -- ============================================================================
 
--- Planning 데이터 검증 함수
-CREATE OR REPLACE FUNCTION validate_planning_data()
-RETURNS TRIGGER AS $$
-DECLARE
-    content_id TEXT;
-    content_type TEXT;
-BEGIN
-    -- content에서 id와 type 추출
-    content_id := NEW.content->>'id';
-    content_type := NEW.content->>'type';
+-- 스키마 일치 검증
+SELECT
+    'Schema Validation' as check_type,
+    CASE
+        WHEN COUNT(*) = 4 THEN 'PASS: 모든 필드 존재'
+        ELSE 'FAIL: 누락된 필드 있음'
+    END as result,
+    COUNT(*) as field_count
+FROM information_schema.columns
+WHERE table_name = 'planning'
+AND table_schema = 'public'
+AND column_name IN ('project_id', 'storage', 'storage_status', 'source');
 
-    -- id 일치 검증
-    IF content_id IS NULL OR content_id != NEW.id::TEXT THEN
-        RAISE EXCEPTION 'Planning content.id must match table id';
-    END IF;
+-- 기본값 설정 검증
+SELECT
+    'Default Values' as check_type,
+    CASE
+        WHEN COUNT(*) = 0 THEN 'PASS: storage_status 기본값 적용'
+        ELSE 'FAIL: NULL 값 존재'
+    END as result,
+    COUNT(*) as null_count
+FROM public.planning
+WHERE storage_status IS NULL;
 
-    -- type 일치 검증
-    IF content_type IS NULL OR content_type != NEW.type THEN
-        RAISE EXCEPTION 'Planning content.type must match table type';
-    END IF;
-
-    -- title이 없으면 기본값 설정
-    IF NEW.title IS NULL OR length(trim(NEW.title)) = 0 THEN
-        NEW.title := NEW.type || ' - ' || NEW.created_at::TEXT;
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- 데이터 검증 트리거
-DROP TRIGGER IF EXISTS validate_planning_data_trigger ON public.planning;
-CREATE TRIGGER validate_planning_data_trigger
-    BEFORE INSERT OR UPDATE ON public.planning
-    FOR EACH ROW
-    EXECUTE FUNCTION validate_planning_data();
-
--- ============================================================================
--- 성능 최적화 설정
--- ============================================================================
-
--- 통계 정보 업데이트
-ANALYZE public.planning;
-
--- ============================================================================
--- 초기 데이터 및 테스트
--- ============================================================================
-
--- 테스트 데이터 삽입 (개발 환경에서만)
--- Service Role로 실행되어야 함
-DO $$
-BEGIN
-    -- 환경이 개발 환경인지 확인 (SUPABASE_URL에 localhost나 staging 포함)
-    IF current_setting('app.environment', true) = 'development' THEN
-        INSERT INTO public.planning (
-            id,
-            type,
-            title,
-            content,
-            status,
-            user_id,
-            metadata
-        ) VALUES (
-            'test-planning-001',
-            'scenario',
-            'Test Scenario Planning',
-            '{"id": "test-planning-001", "type": "scenario", "title": "Test Scenario", "description": "테스트용 시나리오"}',
-            'draft',
-            NULL,
-            '{"test": true, "created_by": "migration"}'
-        ) ON CONFLICT (id) DO NOTHING;
-
-        RAISE NOTICE 'Test planning data inserted successfully';
-    END IF;
-EXCEPTION
-    WHEN OTHERS THEN
-        RAISE NOTICE 'Could not insert test data: %', SQLERRM;
-END $$;
-
--- ============================================================================
--- 권한 설정
--- ============================================================================
-
--- authenticated 역할에 테이블 액세스 권한 부여
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.planning TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.planning TO anon;
-
--- service_role에 모든 권한 부여 (이미 정책에서 처리됨)
-GRANT ALL ON public.planning TO service_role;
-
--- ============================================================================
--- 모니터링 및 로깅 설정
--- ============================================================================
-
--- Planning 작업 로그 테이블 생성
-CREATE TABLE IF NOT EXISTS public.planning_audit_log (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    planning_id UUID NOT NULL,
-    operation TEXT NOT NULL CHECK (operation IN ('INSERT', 'UPDATE', 'DELETE')),
-    old_data JSONB,
-    new_data JSONB,
-    user_id UUID,
-    ip_address INET,
-    user_agent TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+-- 인덱스 존재 검증
+SELECT
+    'Index Validation' as check_type,
+    CASE
+        WHEN COUNT(*) >= 6 THEN 'PASS: 필수 인덱스 존재'
+        ELSE 'FAIL: 인덱스 누락'
+    END as result,
+    COUNT(*) as index_count
+FROM pg_indexes
+WHERE tablename = 'planning'
+AND indexname LIKE 'idx_planning_%'
+AND indexname IN (
+    'idx_planning_project_id',
+    'idx_planning_storage_status',
+    'idx_planning_storage_gin',
+    'idx_planning_user_project',
+    'idx_planning_project_status',
+    'idx_planning_project_type'
 );
 
--- 감사 로그 인덱스
-CREATE INDEX IF NOT EXISTS idx_planning_audit_planning_id ON public.planning_audit_log (planning_id);
-CREATE INDEX IF NOT EXISTS idx_planning_audit_created_at ON public.planning_audit_log (created_at);
-
--- 감사 로그 함수
-CREATE OR REPLACE FUNCTION log_planning_changes()
-RETURNS TRIGGER AS $$
-DECLARE
-    operation_type TEXT;
-BEGIN
-    -- 작업 타입 결정
-    IF TG_OP = 'INSERT' THEN
-        operation_type := 'INSERT';
-    ELSIF TG_OP = 'UPDATE' THEN
-        operation_type := 'UPDATE';
-    ELSIF TG_OP = 'DELETE' THEN
-        operation_type := 'DELETE';
-    END IF;
-
-    -- 감사 로그 삽입
-    INSERT INTO public.planning_audit_log (
-        planning_id,
-        operation,
-        old_data,
-        new_data,
-        user_id
-    ) VALUES (
-        COALESCE(NEW.id, OLD.id),
-        operation_type,
-        CASE WHEN TG_OP != 'INSERT' THEN to_jsonb(OLD) ELSE NULL END,
-        CASE WHEN TG_OP != 'DELETE' THEN to_jsonb(NEW) ELSE NULL END,
-        COALESCE(NEW.user_id, OLD.user_id)
-    );
-
-    RETURN COALESCE(NEW, OLD);
-EXCEPTION
-    WHEN OTHERS THEN
-        -- 감사 로그 실패가 메인 작업을 방해하지 않도록
-        RAISE NOTICE 'Audit log failed: %', SQLERRM;
-        RETURN COALESCE(NEW, OLD);
-END;
-$$ LANGUAGE plpgsql;
-
--- 감사 로그 트리거
-DROP TRIGGER IF EXISTS planning_audit_trigger ON public.planning;
-CREATE TRIGGER planning_audit_trigger
-    AFTER INSERT OR UPDATE OR DELETE ON public.planning
-    FOR EACH ROW
-    EXECUTE FUNCTION log_planning_changes();
-
--- 감사 로그 테이블 RLS 설정
-ALTER TABLE public.planning_audit_log ENABLE ROW LEVEL SECURITY;
-
--- Service Role만 감사 로그 접근 가능
-CREATE POLICY "Service role audit access" ON public.planning_audit_log
-    FOR ALL
-    TO service_role
-    USING (true)
-    WITH CHECK (true);
-
 -- ============================================================================
--- 완료 메시지
+-- 6단계: 마이그레이션 완료 기록
 -- ============================================================================
 
-DO $$
-BEGIN
-    RAISE NOTICE '✅ Planning 테이블 생성 및 설정 완료';
-    RAISE NOTICE '📊 인덱스: 5개 생성';
-    RAISE NOTICE '🔒 RLS 정책: 5개 설정';
-    RAISE NOTICE '✅ 데이터 무결성 제약조건: 4개 설정';
-    RAISE NOTICE '📝 감사 로그 시스템 활성화';
-    RAISE NOTICE '🚀 Planning 이중 저장소 시스템 준비 완료';
-END $$;
+-- 마이그레이션 로그 기록 (추적 가능성)
+INSERT INTO public.migration_log (
+    migration_id,
+    migration_name,
+    applied_at,
+    execution_time_ms,
+    status,
+    metadata,
+    created_by
+) VALUES (
+    'planning_schema_sync_' || TO_CHAR(NOW(), 'YYYYMMDDHH24MISS'),
+    'Planning Table Schema Synchronization with Prisma',
+    NOW(),
+    0, -- 실행 시간은 별도 측정 필요
+    'APPLIED',
+    jsonb_build_object(
+        'added_fields', array['project_id', 'storage', 'storage_status', 'source'],
+        'added_indexes', array['idx_planning_project_id', 'idx_planning_storage_status', 'idx_planning_storage_gin', 'idx_planning_user_project', 'idx_planning_project_status', 'idx_planning_project_type'],
+        'updated_policies', array['project_id based RLS policies'],
+        'backup_table', 'planning_backup_' || TO_CHAR(NOW(), 'YYYYMMDD_HH24MI')
+    ),
+    'data_lead_daniel'
+);
+
+-- 최종 스키마 상태 리포트
+SELECT
+    column_name,
+    data_type,
+    is_nullable,
+    column_default,
+    'Added in migration' as notes
+FROM information_schema.columns
+WHERE table_name = 'planning'
+AND table_schema = 'public'
+AND column_name IN ('project_id', 'storage', 'storage_status', 'source')
+ORDER BY ordinal_position;
+
+SELECT 'Planning 테이블 스키마 동기화 마이그레이션 완료: ' || NOW() as migration_complete;
+
+-- ============================================================================
+-- 롤백 스크립트 (비상시 사용)
+-- ============================================================================
+
+/*
+-- 롤백이 필요한 경우 아래 스크립트 사용:
+
+-- 1. 추가된 필드 제거
+ALTER TABLE public.planning DROP COLUMN IF EXISTS project_id;
+ALTER TABLE public.planning DROP COLUMN IF EXISTS storage;
+ALTER TABLE public.planning DROP COLUMN IF EXISTS storage_status;
+ALTER TABLE public.planning DROP COLUMN IF EXISTS source;
+
+-- 2. 추가된 인덱스 제거
+DROP INDEX IF EXISTS idx_planning_project_id;
+DROP INDEX IF EXISTS idx_planning_storage_status;
+DROP INDEX IF EXISTS idx_planning_storage_gin;
+DROP INDEX IF EXISTS idx_planning_user_project;
+DROP INDEX IF EXISTS idx_planning_project_status;
+DROP INDEX IF EXISTS idx_planning_project_type;
+
+-- 3. RLS 정책 원복 (기존 정책으로)
+-- (원본 create-planning-table.sql의 정책들로 복원)
+
+-- 4. 백업에서 데이터 복원 (필요시)
+-- TRUNCATE public.planning;
+-- INSERT INTO public.planning SELECT * FROM public.planning_backup_20250918;
+*/
+

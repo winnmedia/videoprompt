@@ -32,7 +32,8 @@ function VerifyEmailForm() {
     if (sentParam === 'true') {
       setMode('sent');
     }
-  }, [searchParams]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // $300 방지: 마운트 시에만 실행
 
   const handleCodeComplete = async (verificationCode: string) => {
     setError('');

@@ -8,7 +8,8 @@
 
 import { PrismaClient } from '@prisma/client';
 import { SupabaseClient } from '@supabase/supabase-js';
-import type { DualStorageDependencies, DualStorageConfig } from '../model/services';
+import type { DualStorageDependencies } from '../model/services';
+import type { DualStorageConfig } from '../model/types';
 import { createPrismaRepository } from './prisma-repository';
 import { createSupabaseRepository } from './supabase-repository';
 import { getEnvironmentCapabilities, getDegradationMode } from '@/shared/config/env';

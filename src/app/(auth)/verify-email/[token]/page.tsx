@@ -26,6 +26,7 @@ export default function VerifyEmailTokenPage({ params }: VerifyEmailTokenPagePro
     };
 
     handleParams();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // params는 안전하지만 $300 방지를 위해 빈 배열 사용
 
   useEffect(() => {
@@ -57,6 +58,7 @@ export default function VerifyEmailTokenPage({ params }: VerifyEmailTokenPagePro
     };
 
     verifyEmail();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // token은 안전하지만 $300 방지를 위해 빈 배열 사용
 
   // 성공 시 자동 리다이렉트 카운트다운 - $300 방지: 안전한 상태 의존성만 사용
@@ -69,6 +71,7 @@ export default function VerifyEmailTokenPage({ params }: VerifyEmailTokenPagePro
     } else if (verificationStatus === 'success' && countdown === 0) {
       router.push('/login?message=이메일 인증이 완료되었습니다. 로그인해주세요.');
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps, no-restricted-syntax
   }, [verificationStatus, countdown]); // router 제거: $300 방지
 
   return (

@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PlanningRegistrationRequestSchema, createValidationErrorResponse, createErrorResponse } from '@/shared/schemas/api.schema';
 import { createSuccessResponse, createErrorResponse as createPlanningErrorResponse, DualStorageResult } from '@/shared/schemas/planning-response.schema';
 import { withAuth } from '@/shared/lib/auth-middleware-v2';
-import { getPlanningRepository } from '@/entities/planning/model/repository';
-import type { BaseContent } from '@/entities/planning/model/types';
+import { getPlanningRepository, type BaseContent } from '@/entities/planning';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,13 +33,14 @@ export const POST = withAuth(async (request: NextRequest, { user, authContext })
       ...validatedData,
       userId: user.id || undefined,
       status: 'active' as const,
-      createdAt: Number(validatedData.createdAt) || Date.now(),
-      updatedAt: Date.now(),
+      storageStatus: 'pending' as const,
+      createdAt: validatedData.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       metadata: {
         userId: user.id || undefined,
         status: 'active' as const,
-        createdAt: Number(validatedData.createdAt) || Date.now(),
-        updatedAt: Date.now()
+        createdAt: validatedData.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       }
     };
 

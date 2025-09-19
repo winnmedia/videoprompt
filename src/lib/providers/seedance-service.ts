@@ -88,10 +88,6 @@ export async function createSeedanceVideoWithFallback(
       ok: false,
       error: '모든 영상 생성 서비스가 사용 불가능합니다',
       source: 'mock',
-      details: {
-        realApiError: realResult.error,
-        mockApiError: mockResult.error,
-      },
     };
   } catch (error) {
     // 네트워크 에러 등 예외 상황
@@ -110,10 +106,6 @@ export async function createSeedanceVideoWithFallback(
         ok: false,
         error: '모든 영상 생성 서비스가 사용 불가능합니다',
         source: 'mock',
-        details: {
-          realApiError: errorMessage,
-          mockApiError: mockError instanceof Error ? mockError.message : 'Mock service error',
-        },
       };
     }
   }

@@ -28,6 +28,7 @@ function LoginForm() {
     if (message) {
       setSuccessMessage(message);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // searchParams는 안전하지만 $300 방지를 위해 빈 배열 사용
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -340,10 +340,11 @@ function validateVideo(video: VideoContent): void {
 // 유틸리티 함수
 // ============================================================================
 
-function generateContentId(type: string, projectId: string): string {
+function generateContentId(type: string, projectId?: string): string {
   const timestamp = Date.now();
   const random = Math.random().toString(36).substring(2, 8);
-  return `${type}_${projectId}_${timestamp}_${random}`;
+  const safeProjectId = projectId || 'default';
+  return `${type}_${safeProjectId}_${timestamp}_${random}`;
 }
 
 function isValidUrl(url: string): boolean {
@@ -359,16 +360,5 @@ function isValidUrl(url: string): boolean {
 // Public API (FSD 원칙에 따른 명시적 export)
 // ============================================================================
 
-export {
-  saveScenario,
-  savePrompt,
-  saveVideo,
-  type PrismaRepository,
-  type SupabaseRepository,
-  type DualStorageDependencies,
-  type DualStorageConfig,
-  type PlanningContent,
-  type ScenarioContent,
-  type PromptContent,
-  type VideoContent
-};
+// Note: 함수들은 이미 개별적으로 export되어 있음
+// 타입들은 types.ts에서 re-export

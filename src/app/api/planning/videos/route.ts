@@ -10,8 +10,8 @@ import {
   DualStorageResult
 } from '@/shared/schemas/planning-response.schema';
 import { withOptionalAuth } from '@/shared/lib/auth-middleware-v2';
-import { getPlanningRepository } from '@/entities/planning/model/repository';
-import { VideoContent } from '@/entities/planning/model/types';
+import { getPlanningRepository } from '@/entities/planning';
+import { type VideoContent } from '@/entities/planning';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -96,10 +96,12 @@ const postHandler = async (req: NextRequest, { user }: { user: { id: string | nu
     const videoContent: VideoContent = {
       id: crypto.randomUUID(),
       type: 'video',
+      status: 'draft',
+      storageStatus: 'pending',
       title: validatedData.title,
       videoUrl: validatedData.url || undefined,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       metadata: {
         version: 1,
         author: user.id || 'guest'

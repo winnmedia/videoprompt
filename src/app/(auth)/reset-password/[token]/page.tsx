@@ -52,6 +52,7 @@ export default function ResetPasswordPage() {
     if (token) {
       validateToken();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // token은 안전하지만 $300 방지를 위해 빈 배열 사용
 
   const validatePassword = (password: string): string | null => {

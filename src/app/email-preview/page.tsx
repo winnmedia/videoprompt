@@ -1,6 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
+
+// Force dynamic rendering to avoid static generation issues
+export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { generateVerificationTemplate, generatePasswordResetTemplate, generateWelcomeTemplate } from '@/lib/email/templates';
 

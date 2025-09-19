@@ -18,7 +18,7 @@ interface StoryboardProgressProps {
 
 export const StoryboardProgress: React.FC<StoryboardProgressProps> = ({
   steps,
-  currentStep = 0,
+  currentStep: _currentStep = 0,
   className,
 }) => {
   const getStepIcon = (status: ProgressStep['status'], index: number) => {

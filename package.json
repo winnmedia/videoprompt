@@ -101,7 +101,14 @@
     "test:mutation": "stryker run",
     "test:mutation:auth": "stryker run --mutate='src/shared/lib/auth*.ts,src/app/api/auth/**/*.ts'",
     "test:flaky-detection": "vitest run --reporter=verbose --repeat=5",
-    "ci:quality-gates-full": "pnpm run validate-env && pnpm run quality-gates && pnpm run test:e2e:quality-gates"
+    "ci:quality-gates-full": "pnpm run validate-env && pnpm run quality-gates && pnpm run test:e2e:quality-gates",
+    "deploy:monitor": "node scripts/vercel-deployment-monitor.js once",
+    "deploy:monitor:continuous": "node scripts/vercel-deployment-monitor.js continuous",
+    "deploy:test-alert": "node scripts/vercel-deployment-monitor.js test-alert",
+    "performance:budget": "node scripts/performance-budget-enforcer.js check",
+    "performance:budget:config": "node scripts/performance-budget-enforcer.js config",
+    "ci:deployment-safety": "pnpm run performance:budget && pnpm run deploy:monitor",
+    "build:production": "pnpm run performance:budget && pnpm run vercel-build && pnpm run deploy:monitor"
   },
   "dependencies": {
     "@prisma/client": "^5.18.0",

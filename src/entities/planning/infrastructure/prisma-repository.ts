@@ -4,16 +4,21 @@
  *
  * 목적: Prisma ORM을 통한 데이터 저장 구현
  * 패턴: Repository Pattern + Dependency Injection
+ * 저장소: Planning 통합 테이블 활용 (Type-safe)
+ *
+ * Contract Verification: Planning 모델 기반 저장으로 타입 안전성 보장
+ * Error Handling: 필드 매핑 실패 시 명확한 에러 메시지 제공
  */
 
 import { PrismaClient } from '@prisma/client';
+import type { PrismaRepository } from '../model/services';
 import type {
-  PrismaRepository,
   ScenarioContent,
   PromptContent,
   VideoContent,
   PlanningContent
-} from '../model/services';
+} from '../model/types';
+import type { ContentType, ContentStatus, StorageStatus } from '../model/types';
 
 interface PrismaRepositoryDependencies {
   prisma: PrismaClient;
@@ -29,28 +34,11 @@ export class PrismaRepositoryImpl implements PrismaRepository {
     try {
       const { prisma } = this.dependencies;
 
-      await prisma.scenario.create({
-        data: {
-          id: data.id,
-          projectId: data.projectId,
-          title: data.title,
-          story: data.story,
-          genre: data.genre,
-          tone: data.tone,
-          target: data.target,
-          format: data.format,
-          tempo: data.tempo,
-          developmentMethod: data.developmentMethod,
-          developmentIntensity: data.developmentIntensity,
-          durationSec: data.durationSec,
-          source: data.source,
-          status: data.status,
-          storageStatus: data.storageStatus,
-          createdAt: new Date(data.createdAt),
-          updatedAt: new Date(data.updatedAt),
-          metadata: data.metadata ? JSON.stringify(data.metadata) : null,
-          storage: data.storage ? JSON.stringify(data.storage) : null,
-        },
+      // Type-safe 필드 매핑: Planning 테이블 활용
+      const planningData = this.mapScenarioToPlanning(data);
+
+      await prisma.planning.create({
+        data: planningData
       });
 
       console.log(`✅ Prisma: 시나리오 저장 성공 - ${data.id}`);
@@ -67,21 +55,11 @@ export class PrismaRepositoryImpl implements PrismaRepository {
     try {
       const { prisma } = this.dependencies;
 
-      await prisma.prompt.create({
-        data: {
-          id: data.id,
-          projectId: data.projectId,
-          scenarioTitle: data.scenarioTitle,
-          finalPrompt: data.finalPrompt,
-          keywords: data.keywords ? JSON.stringify(data.keywords) : null,
-          source: data.source,
-          status: data.status,
-          storageStatus: data.storageStatus,
-          createdAt: new Date(data.createdAt),
-          updatedAt: new Date(data.updatedAt),
-          metadata: data.metadata ? JSON.stringify(data.metadata) : null,
-          storage: data.storage ? JSON.stringify(data.storage) : null,
-        },
+      // Type-safe 필드 매핑: Planning 테이블 활용
+      const planningData = this.mapPromptToPlanning(data);
+
+      await prisma.planning.create({
+        data: planningData
       });
 
       console.log(`✅ Prisma: 프롬프트 저장 성공 - ${data.id}`);
@@ -98,21 +76,11 @@ export class PrismaRepositoryImpl implements PrismaRepository {
     try {
       const { prisma } = this.dependencies;
 
-      await prisma.video.create({
-        data: {
-          id: data.id,
-          projectId: data.projectId,
-          videoUrl: data.videoUrl,
-          thumbnailUrl: data.thumbnailUrl,
-          processingJobId: data.processingJobId,
-          source: data.source,
-          status: data.status,
-          storageStatus: data.storageStatus,
-          createdAt: new Date(data.createdAt),
-          updatedAt: new Date(data.updatedAt),
-          metadata: data.metadata ? JSON.stringify(data.metadata) : null,
-          storage: data.storage ? JSON.stringify(data.storage) : null,
-        },
+      // Type-safe 필드 매핑: Planning 테이블 활용
+      const planningData = this.mapVideoToPlanning(data);
+
+      await prisma.planning.create({
+        data: planningData
       });
 
       console.log(`✅ Prisma: 영상 저장 성공 - ${data.id}`);
@@ -129,47 +97,15 @@ export class PrismaRepositoryImpl implements PrismaRepository {
     try {
       const { prisma } = this.dependencies;
 
-      // 시나리오 검색
-      const scenario = await prisma.scenario.findUnique({ where: { id } });
-      if (scenario) {
-        return {
-          ...scenario,
-          type: 'scenario' as const,
-          metadata: scenario.metadata ? JSON.parse(scenario.metadata) : {},
-          storage: scenario.storage ? JSON.parse(scenario.storage) : { prisma: { saved: false }, supabase: { saved: false } },
-          createdAt: scenario.createdAt.toISOString(),
-          updatedAt: scenario.updatedAt.toISOString(),
-        };
+      // Planning 테이블에서 통합 검색
+      const planning = await prisma.planning.findUnique({ where: { id } });
+
+      if (!planning) {
+        return null;
       }
 
-      // 프롬프트 검색
-      const prompt = await prisma.prompt.findUnique({ where: { id } });
-      if (prompt) {
-        return {
-          ...prompt,
-          type: 'prompt' as const,
-          keywords: prompt.keywords ? JSON.parse(prompt.keywords) : [],
-          metadata: prompt.metadata ? JSON.parse(prompt.metadata) : {},
-          storage: prompt.storage ? JSON.parse(prompt.storage) : { prisma: { saved: false }, supabase: { saved: false } },
-          createdAt: prompt.createdAt.toISOString(),
-          updatedAt: prompt.updatedAt.toISOString(),
-        };
-      }
-
-      // 영상 검색
-      const video = await prisma.video.findUnique({ where: { id } });
-      if (video) {
-        return {
-          ...video,
-          type: 'video' as const,
-          metadata: video.metadata ? JSON.parse(video.metadata) : {},
-          storage: video.storage ? JSON.parse(video.storage) : { prisma: { saved: false }, supabase: { saved: false } },
-          createdAt: video.createdAt.toISOString(),
-          updatedAt: video.updatedAt.toISOString(),
-        };
-      }
-
-      return null;
+      // Type-safe 역변환: Planning -> Domain Content
+      return this.mapPlanningToContent(planning);
 
     } catch (error) {
       console.error(`❌ Prisma: ID로 조회 실패 - ${id}:`, error);
@@ -181,30 +117,43 @@ export class PrismaRepositoryImpl implements PrismaRepository {
     try {
       const { prisma } = this.dependencies;
 
-      // 먼저 어떤 테이블의 데이터인지 확인
-      const existing = await this.findById(id);
-      if (!existing) {
-        return { success: false, error: 'Content not found' };
-      }
-
-      const updateData = {
-        ...(status.status && { status: status.status }),
-        ...(status.storageStatus && { storageStatus: status.storageStatus }),
-        ...(status.storage && { storage: JSON.stringify(status.storage) }),
-        updatedAt: new Date(),
+      // Planning 테이블에서 직접 업데이트
+      const updateData: any = {
+        updatedAt: new Date()
       };
 
-      switch (existing.type) {
-        case 'scenario':
-          await prisma.scenario.update({ where: { id }, data: updateData });
-          break;
-        case 'prompt':
-          await prisma.prompt.update({ where: { id }, data: updateData });
-          break;
-        case 'video':
-          await prisma.video.update({ where: { id }, data: updateData });
-          break;
+      // Type-safe 상태 업데이트
+      if (status.status) {
+        updateData.status = this.mapContentStatusToPrisma(status.status);
       }
+
+      if (status.storageStatus) {
+        updateData.storageStatus = this.mapStorageStatusToPrisma(status.storageStatus);
+      }
+
+      // 메타데이터 업데이트 (기존 데이터와 병합)
+      if (status.metadata) {
+        const existing = await prisma.planning.findUnique({ where: { id } });
+        if (existing) {
+          const existingMetadata = existing.metadata as any || {};
+          updateData.metadata = {
+            ...existingMetadata,
+            ...status.metadata
+          };
+        } else {
+          updateData.metadata = status.metadata;
+        }
+      }
+
+      // 저장소 상태 업데이트 (별도 필드)
+      if (status.storage) {
+        updateData.storage = status.storage;
+      }
+
+      await prisma.planning.update({
+        where: { id },
+        data: updateData
+      });
 
       console.log(`✅ Prisma: 상태 업데이트 성공 - ${id}`);
       return { success: true };
@@ -214,6 +163,166 @@ export class PrismaRepositoryImpl implements PrismaRepository {
       console.error(`❌ Prisma: 상태 업데이트 실패 - ${id}:`, errorMessage);
       return { success: false, error: errorMessage };
     }
+  }
+
+  /**
+   * Type-safe 매핑 메서드들
+   * Contract Verification: 도메인 모델과 DB 스키마 간 안전한 변환
+   */
+  private mapScenarioToPlanning(data: ScenarioContent) {
+    return {
+      id: data.id,
+      type: 'scenario' as const,
+      title: data.title,
+      content: {
+        // 시나리오 핵심 데이터
+        story: data.story,
+        genre: data.genre,
+        tone: data.tone,
+        target: data.target,
+        format: data.format,
+        tempo: data.tempo,
+        developmentMethod: data.developmentMethod,
+        developmentIntensity: data.developmentIntensity,
+        durationSec: data.durationSec
+      },
+      status: this.mapContentStatusToPrisma(data.status),
+      userId: data.userId || null,
+      projectId: data.projectId || null, // 새로운 필드 지원
+      version: 1,
+      metadata: data.metadata || {},
+      storage: data.storage || { prisma: { saved: false }, supabase: { saved: false } },
+      source: data.source || 'user',
+      storageStatus: this.mapStorageStatusToPrisma(data.storageStatus)
+    };
+  }
+
+  private mapPromptToPlanning(data: PromptContent) {
+    return {
+      id: data.id,
+      type: 'prompt' as const,
+      title: data.scenarioTitle || data.title || `Prompt ${data.id}`,
+      content: {
+        // 프롬프트 핵심 데이터
+        finalPrompt: data.finalPrompt,
+        keywords: data.keywords || [],
+        scenarioTitle: data.scenarioTitle
+      },
+      status: this.mapContentStatusToPrisma(data.status),
+      userId: data.userId || null,
+      projectId: data.projectId || null, // 새로운 필드 지원
+      version: 1,
+      metadata: data.metadata || {},
+      storage: data.storage || { prisma: { saved: false }, supabase: { saved: false } },
+      source: data.source || 'user',
+      storageStatus: this.mapStorageStatusToPrisma(data.storageStatus)
+    };
+  }
+
+  private mapVideoToPlanning(data: VideoContent) {
+    return {
+      id: data.id,
+      type: 'video' as const,
+      title: data.title || `Video ${data.id}`,
+      content: {
+        // 영상 핵심 데이터
+        videoUrl: data.videoUrl,
+        thumbnailUrl: data.thumbnailUrl,
+        processingJobId: data.processingJobId
+      },
+      status: this.mapContentStatusToPrisma(data.status),
+      userId: data.userId || null,
+      projectId: data.projectId || null, // 새로운 필드 지원
+      version: 1,
+      metadata: data.metadata || {},
+      storage: data.storage || { prisma: { saved: false }, supabase: { saved: false } },
+      source: data.source || 'user',
+      storageStatus: this.mapStorageStatusToPrisma(data.storageStatus)
+    };
+  }
+
+  private mapPlanningToContent(planning: any): PlanningContent {
+    const content = planning.content as any;
+    const metadata = planning.metadata as any;
+    const storage = planning.storage || { prisma: { saved: true }, supabase: { saved: false } };
+
+    const baseFields = {
+      id: planning.id,
+      title: planning.title,
+      userId: planning.userId,
+      projectId: planning.projectId,
+      status: this.mapPrismaStatusToContent(planning.status),
+      source: planning.source,
+      storageStatus: this.mapPrismaStorageStatusToContent(planning.storageStatus),
+      createdAt: planning.createdAt.toISOString(),
+      updatedAt: planning.updatedAt.toISOString(),
+      metadata: metadata || {},
+      storage
+    };
+
+    switch (planning.type) {
+      case 'scenario':
+        return {
+          ...baseFields,
+          type: 'scenario' as const,
+          story: content.story,
+          genre: content.genre,
+          tone: content.tone,
+          target: content.target,
+          format: content.format,
+          tempo: content.tempo,
+          developmentMethod: content.developmentMethod,
+          developmentIntensity: content.developmentIntensity,
+          durationSec: content.durationSec
+        } as ScenarioContent;
+
+      case 'prompt':
+        return {
+          ...baseFields,
+          type: 'prompt' as const,
+          finalPrompt: content.finalPrompt,
+          keywords: content.keywords || [],
+          scenarioTitle: content.scenarioTitle
+        } as PromptContent;
+
+      case 'video':
+        return {
+          ...baseFields,
+          type: 'video' as const,
+          videoUrl: content.videoUrl,
+          thumbnailUrl: content.thumbnailUrl,
+          processingJobId: content.processingJobId
+        } as VideoContent;
+
+      default:
+        throw new Error(`Unsupported planning type: ${planning.type}`);
+    }
+  }
+
+  private mapContentStatusToPrisma(status: ContentStatus): string {
+    // ContentStatus -> Prisma status 매핑 (완전 매핑)
+    return status;
+  }
+
+  private mapPrismaStatusToContent(status: string): ContentStatus {
+    // Prisma status -> ContentStatus 매핑 (타입 안전성 보장)
+    const validStatuses: ContentStatus[] = ['draft', 'active', 'processing', 'completed', 'failed', 'archived'];
+    return validStatuses.includes(status as ContentStatus)
+      ? (status as ContentStatus)
+      : 'draft';
+  }
+
+  private mapStorageStatusToPrisma(storageStatus: StorageStatus): string {
+    // StorageStatus -> Prisma storageStatus 매핑
+    return storageStatus;
+  }
+
+  private mapPrismaStorageStatusToContent(storageStatus: string): StorageStatus {
+    // Prisma storageStatus -> StorageStatus 매핑 (타입 안전성 보장)
+    const validStorageStatuses: StorageStatus[] = ['pending', 'saving', 'saved', 'failed', 'partial'];
+    return validStorageStatuses.includes(storageStatus as StorageStatus)
+      ? (storageStatus as StorageStatus)
+      : 'pending';
   }
 }
 

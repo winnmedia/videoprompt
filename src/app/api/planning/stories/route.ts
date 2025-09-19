@@ -15,8 +15,7 @@ import {
   DualStorageResult
 } from '@/shared/schemas/planning-response.schema';
 import { withOptionalAuth } from '@/shared/lib/auth-middleware-v2';
-import { getPlanningRepository } from '@/entities/planning/model/repository';
-import { ScenarioContent } from '@/entities/planning/model/types';
+import { getPlanningRepository, type ScenarioContent } from '@/entities/planning';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -124,13 +123,14 @@ const postHandler = async (request: NextRequest, { user, authContext }: { user: 
       id: crypto.randomUUID(),
       type: 'scenario',
       status: 'draft',
+      storageStatus: 'pending',
       title: validatedData.title,
       story: validatedData.content,
       genre: validatedData.genre,
       tone: validatedData.tone,
       target: validatedData.targetAudience || 'General',
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       metadata: {
         version: 1,
         author: user.id || 'guest'

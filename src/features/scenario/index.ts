@@ -3,12 +3,14 @@
  * FSD features 레이어 - 시나리오 기능의 공개 인터페이스
  */
 
-// Redux slices
-export { default as scenarioReducer } from '@/entities/scenario/store/scenario-slice';
-export { default as storyReducer } from '@/entities/scenario/store/story-slice';
-export { default as storyboardReducer } from '@/entities/scenario/store/storyboard-slice';
+// Redux slices - entities Public API 경유
+export {
+  scenarioReducer,
+  storyReducer,
+  storyboardReducer
+} from '@/entities/scenario';
 
-// Slice actions and selectors
+// Slice actions and selectors - entities Public API 경유
 export {
   setWorkflowStep,
   setCanProceed,
@@ -23,22 +25,18 @@ export {
   selectStoryInput,
   selectIsValid,
   selectWorkflowProgress,
-} from '@/entities/scenario/store/scenario-slice';
+} from '@/entities/scenario';
 
+// Story actions - entities Public API 경유
 export {
   setLoading,
-  setError,
+  setError as setStoryError,
   setStorySteps,
   updateStoryStep,
-  startEditing,
-  saveEditing,
-  selectStorySteps,
-  selectIsLoading as selectStoryLoading,
-  selectError as selectStoryError,
-  selectIsEditing,
-  selectStoryProgress,
-} from '@/entities/scenario/store/story-slice';
+  resetStory as clearStory,
+} from '@/entities/scenario';
 
+// Storyboard actions - entities Public API 경유
 export {
   setShots,
   setStoryboardShots,
@@ -50,7 +48,7 @@ export {
   selectIsGenerating,
   selectGenerationProgress,
   selectStoryboardStats,
-} from '@/entities/scenario/store/storyboard-slice';
+} from '@/entities/scenario';
 
 // React Query hooks
 export {

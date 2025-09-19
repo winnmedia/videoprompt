@@ -7,9 +7,9 @@ import {
   normalizeRepositoryResult
 } from '@/shared/schemas/planning-response.schema';
 import { withAuth } from '@/shared/lib/auth-middleware-v2';
-import { getPlanningRepository } from '@/entities/planning/model/repository';
+import { getPlanningRepository } from '@/entities/planning';
 import type { ScenarioMetadata } from '@/shared/types/metadata';
-import type { BaseContent, ScenarioContent } from '@/entities/planning/model/types';
+import type { BaseContent, ScenarioContent } from '@/entities/planning';
 
 export const dynamic = 'force-dynamic';
 

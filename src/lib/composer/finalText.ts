@@ -1,4 +1,4 @@
-import type { ScenePrompt } from '@/types/api';
+import type { ScenePrompt } from '@/shared/types/api';
 
 const SEP = '—'.repeat(109);
 
