@@ -59,7 +59,7 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
         }
       });
     }
-  }, [pollingResult.status, pollingResult.videoUrl, pollingResult.error, workflowData.video.jobId, updateWorkflowData]);
+  }, [pollingResult.status, pollingResult.videoUrl, pollingResult.error, workflowData.video.jobId]);
 
   const renderStepContent = () => {
     switch (currentStep) {

@@ -1,4 +1,4 @@
-import { ScenePrompt } from '@/types/api';
+import { ScenePrompt } from '@/shared/types/api';
 import {
   translateKoreanToEnglish,
   translateArray,

@@ -224,7 +224,7 @@ export function validateAndTransformSupabaseUser(
     );
     console.error('❌ Supabase User DTO 검증 실패:', {
       context,
-      errors: validationResult.error.errors,
+      errors: validationResult.error.issues,
       receivedData: rawUserData,
     });
     throw error;
@@ -248,7 +248,7 @@ export function validatePrismaUser(
     );
     console.error('❌ Prisma User 도메인 검증 실패:', {
       context,
-      errors: validationResult.error.errors,
+      errors: validationResult.error.issues,
       receivedData: userData,
     });
     throw error;

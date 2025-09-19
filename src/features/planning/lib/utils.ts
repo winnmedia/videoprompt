@@ -3,7 +3,7 @@
  * FSD Architecture - Features Layer
  */
 
-import type { VideoItem } from '@/entities/planning';
+import type { VideoContent } from '@/entities/planning';
 
 export const getStatusColor = (status: string) => {
   switch (status) {
@@ -55,7 +55,7 @@ export const formatDate = (dateString: string) => {
   });
 };
 
-export const handleDownloadVideo = (video: VideoItem) => {
+export const handleDownloadVideo = (video: VideoContent) => {
   if (!video.videoUrl) {
     alert('다운로드할 수 있는 비디오가 없습니다.');
     return;

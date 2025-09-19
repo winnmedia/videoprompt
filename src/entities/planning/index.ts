@@ -25,7 +25,14 @@ export type {
   PlanningDomainError,
   StorageConsistencyError,
   InvalidContentError,
-  DualStorageError
+  DualStorageError,
+  // 하위 호환성 타입들
+  VideoItem,
+  ScenarioItem,
+  PromptItem,
+  PlanningItem,
+  PlanningState,
+  ImageAsset
 } from './model/types';
 
 // 도메인 서비스 Export
@@ -37,6 +44,12 @@ export {
   type SupabaseRepository,
   type DualStorageDependencies
 } from './model/services';
+
+// Repository Export
+export {
+  getPlanningRepository,
+  type DualPlanningRepository
+} from './model/repository';
 
 // Infrastructure Export (Repository 구현체)
 export {

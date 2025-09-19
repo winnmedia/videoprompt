@@ -151,7 +151,7 @@ class PrismaRepositoryImpl implements PrismaRepository {
 
       if (!planning) return null;
 
-      const content = JSON.parse(planning.content) as BaseContent;
+      const content = JSON.parse(planning.content as string) as BaseContent;
       updateStorageHealth('prisma', true);
 
       return content;
@@ -172,7 +172,7 @@ class PrismaRepositoryImpl implements PrismaRepository {
         orderBy: { updatedAt: 'desc' }
       });
 
-      const contents = plannings.map(p => JSON.parse(p.content) as BaseContent);
+      const contents = plannings.map(p => JSON.parse(p.content as string) as BaseContent);
       updateStorageHealth('prisma', true);
 
       return contents;
@@ -191,7 +191,7 @@ class PrismaRepositoryImpl implements PrismaRepository {
       const existing = await prisma.planning.findUnique({ where: { id } });
       if (!existing) return false;
 
-      const existingContent = JSON.parse(existing.content) as BaseContent;
+      const existingContent = JSON.parse(existing.content as string) as BaseContent;
       const updatedContent = { ...existingContent, ...content };
 
       await prisma.planning.update({
@@ -940,6 +940,10 @@ export class DualPlanningRepository implements PlanningRepository {
       id: `health-check-${Date.now()}`,
       type: 'scenario',
       title: 'Health Check',
+      status: 'draft',
+      storageStatus: 'pending',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       metadata: {
         userId: 'health-check',
         status: 'draft',

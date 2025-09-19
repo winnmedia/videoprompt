@@ -1,4 +1,4 @@
-import type { ScenePrompt, TimelineElement } from '@/types/api';
+import type { ScenePrompt, TimelineElement } from '@/shared/types/api';
 import { PROFILES } from '@/lib/presets/profiles';
 import { buildTimeline } from '@/lib/timeline/build';
 import { normalizeNegatives } from '@/lib/policy/negative';

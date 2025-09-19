@@ -30,26 +30,27 @@ export type StorageStatus =
 // ============================================================================
 
 /**
- * 기본 컨텐츠 엔티티 (Repository 호환)
+ * 기본 컨텐츠 엔티티 (Prisma Planning 모델 호환)
  */
 export interface BaseContent {
   id: string;
   type: ContentType;
-  title?: string;
+  title: string;
   userId?: string;
-  status?: ContentStatus;
-  createdAt?: number;
-  updatedAt?: number;
+  projectId?: string;
+  status: ContentStatus;
+  source?: string;
+  storageStatus: StorageStatus;
+  createdAt: string; // ISO string format for consistency
+  updatedAt: string; // ISO string format for consistency
 
-  // 메타데이터 (Repository 호환)
-  metadata?: {
-    userId?: string;
-    status?: ContentStatus;
-    createdAt?: number;
-    updatedAt?: number;
-    projectId?: string;
-    version?: number;
-    author?: string;
+  // 메타데이터 (JSON 필드)
+  metadata?: Record<string, any>;
+
+  // 저장소 상태 추적 (JSON 필드)
+  storage?: {
+    prisma: { saved: boolean; error?: string };
+    supabase: { saved: boolean; error?: string };
   };
 }
 
@@ -58,7 +59,6 @@ export interface BaseContent {
  */
 export interface ScenarioContent extends BaseContent {
   type: 'scenario';
-  title: string;
   story: string;
   genre?: string;
   tone?: string;
@@ -70,7 +70,7 @@ export interface ScenarioContent extends BaseContent {
   durationSec?: number;
 
   // 시나리오 특화 메타데이터
-  metadata: BaseContent['metadata'] & {
+  metadata?: Record<string, any> & {
     hasFourStep?: boolean;
     hasTwelveShot?: boolean;
     wordCount?: number;
@@ -87,7 +87,7 @@ export interface PromptContent extends BaseContent {
   keywords?: string[];
 
   // 프롬프트 특화 메타데이터
-  metadata: BaseContent['metadata'] & {
+  metadata?: Record<string, any> & {
     keywordCount?: number;
     segmentCount?: number;
     promptLength?: number;
@@ -104,7 +104,7 @@ export interface VideoContent extends BaseContent {
   processingJobId?: string;
 
   // 영상 특화 메타데이터
-  metadata: BaseContent['metadata'] & {
+  metadata?: Record<string, any> & {
     duration?: number;
     resolution?: string;
     fileSize?: number;
@@ -116,6 +116,50 @@ export interface VideoContent extends BaseContent {
  * 유니온 타입 - 모든 컨텐츠 타입
  */
 export type PlanningContent = ScenarioContent | PromptContent | VideoContent;
+
+/**
+ * 하위 호환성을 위한 타입 별칭들
+ */
+export type VideoItem = VideoContent;
+export type ScenarioItem = ScenarioContent;
+export type PromptItem = PromptContent;
+export type PlanningItem = PlanningContent;
+
+/**
+ * 플래닝 상태 관리 타입
+ */
+export interface PlanningState {
+  scenarios: ScenarioContent[];
+  prompts: PromptContent[];
+  videos: VideoContent[];
+  loading: boolean;
+  error?: string;
+}
+
+/**
+ * 이미지 자산 타입 (플래이스홀더)
+ */
+export interface ImageAsset {
+  id: string;
+  url: string;
+  alt?: string;
+  metadata?: Record<string, any>;
+}
+
+/**
+ * 플래닝 메타데이터 (Repository 호환)
+ */
+export interface PlanningMetadata {
+  userId?: string;
+  projectId?: string;
+  status?: ContentStatus;
+  storageStatus?: StorageStatus;
+  createdAt?: number;
+  updatedAt?: number;
+  version?: number;
+  author?: string;
+  source?: string;
+}
 
 // ============================================================================
 // Value Objects

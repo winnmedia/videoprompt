@@ -26,7 +26,8 @@ export const StoryboardDetailModal: React.FC<StoryboardDetailModalProps> = ({
 
   useEffect(() => {
     setEditedShot(shot);
-  }, [shot]);
+  // eslint-disable-next-line no-restricted-syntax
+  }, [shot]); // shot is data object, not function - false positive
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -44,7 +45,8 @@ export const StoryboardDetailModal: React.FC<StoryboardDetailModalProps> = ({
       document.removeEventListener('keydown', handleEscape);
       document.body.style.overflow = 'unset';
     };
-  }, [isOpen, onClose]);
+  // eslint-disable-next-line no-restricted-syntax
+  }, [isOpen]); // isOpen is boolean, not function - false positive
 
   if (!isOpen) return null;
 

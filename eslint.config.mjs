@@ -11,12 +11,19 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   ...compat.extends('next/core-web-vitals', 'next/typescript'),
-  // 글로벌 규칙 완화 - 프로덕션 빌드 성공을 위해
+  // 선별적 규칙 완화 - 거짓 양성 제거하면서 품질 유지
   {
     rules: {
-      '@typescript-eslint/no-explicit-any': 'warn', // 오류를 경고로 변경
-      '@typescript-eslint/no-unused-vars': 'warn', // 오류를 경고로 변경
-      '@next/next/no-img-element': 'warn', // 오류를 경고로 변경
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          ignoreRestSiblings: true
+        }
+      ],
+      '@next/next/no-img-element': 'warn',
     },
   },
   // 테스트와 타입 파일에 대해 엄격 규칙을 완화하여 배포 차단 방지
@@ -60,28 +67,46 @@ const eslintConfig = [
       ],
     },
   },
-  // 🚨 $300 사건 방지: useEffect 의존성 배열 함수 패턴 금지
+  // 🚨 $300 사건 방지: useEffect 의존성 배열 함수 패턴 금지 (불변)
   {
     rules: {
       'react-hooks/exhaustive-deps': [
         'error',
         {
           additionalHooks: '(useEffect|useLayoutEffect|useCallback|useMemo)',
+          enableDangerousAutofixThisMayCauseInfiniteLoops: false
         },
       ],
-      // useEffect 의존성 배열에 함수가 들어가는 패턴을 엄격히 금지
+      // 함수 의존성 패턴 정밀 감지 - 알려진 위험 패턴만 차단
       'no-restricted-syntax': [
         'error',
         {
-          selector: 'CallExpression[callee.name="useEffect"] > ArrayExpression:last-child > *[type="Identifier"]',
-          message: '🚨 $300 사건 방지: useEffect 의존성 배열에 함수를 직접 넣지 마세요. useRef나 useCallback을 사용하거나 빈 배열 []을 사용하세요.',
+          // 명확한 함수 접미사 패턴
+          selector: 'CallExpression[callee.name=/^use(Effect|LayoutEffect)$/] > ArrayExpression:last-child > Identifier[name=/^.*(Function|Handler|Callback|Method|Provider|Service|Interceptor)$/]',
+          message: '🚨 $300 사건 방지: useEffect 의존성 배열에 함수 "{actual}"를 직접 넣지 마세요. useCallback으로 감싸거나 빈 배열 []을 사용하세요.',
         },
         {
-          selector: 'CallExpression[callee.name="useLayoutEffect"] > ArrayExpression:last-child > *[type="Identifier"]',
-          message: '🚨 $300 사건 방지: useLayoutEffect 의존성 배열에 함수를 직접 넣지 마세요. useRef나 useCallback을 사용하거나 빈 배열 []을 사용하세요.',
+          // React Hook 함수들 (use로 시작하는 변수)
+          selector: 'CallExpression[callee.name=/^use(Effect|LayoutEffect)$/] > ArrayExpression:last-child > Identifier[name=/^use[A-Z]/]',
+          message: '🚨 $300 사건 방지: useEffect 의존성 배열에 Hook 함수 "{actual}"를 직접 넣지 마세요. useCallback으로 감싸거나 빈 배열 []을 사용하세요.',
         },
+        {
+          // 알려진 위험 함수명들 (실제 코드베이스 기반)
+          selector: 'CallExpression[callee.name=/^use(Effect|LayoutEffect)$/] > ArrayExpression:last-child > Identifier[name=/^(initializeProvider|refreshAuth|sendBatch|stopMonitoring|handleMetric|createFetchInterceptor|getCurrentSessionMetrics|checkAuth|authenticate)$/]',
+          message: '🚨 $300 사건 방지: useEffect 의존성 배열에 함수 "{actual}"를 직접 넣지 마세요. useCallback으로 감싸거나 빈 배열 []을 사용하세요.',
+        },
+        {
+          // 일반적인 함수 동사 패턴 (모든 위험 패턴 포함)
+          selector: 'CallExpression[callee.name=/^use(Effect|LayoutEffect)$/] > ArrayExpression:last-child > Identifier[name=/^(handle|on|get|set|fetch|load|send|post|put|delete|create|update|remove|check|validate|initialize|init|start|stop|clear|reset|refresh|search|generate|process|execute|run|call|invoke|trigger|authenticate|measure)[A-Z][a-zA-Z]*$/]',
+          message: '🚨 $300 사건 방지: useEffect 의존성 배열에 함수 "{actual}"를 직접 넣지 마세요. useCallback으로 감싸거나 빈 배열 []을 사용하세요.',
+        },
+        {
+          // 의존성 배열이 3개 초과인 경우 경고
+          selector: 'CallExpression[callee.name="useEffect"][arguments.1.type="ArrayExpression"][arguments.1.elements.length>3]',
+          message: '⚠️ 성능 주의: useEffect 의존성이 3개 초과입니다. 로직 분리를 고려하세요.',
+        }
       ],
-      // 추가 React 관련 무한 루프 방지 규칙
+      // 무한 루프 방지 강화
       'react/no-unstable-nested-components': 'error',
       'react/jsx-no-bind': ['error', { allowArrowFunctions: true }],
     },

@@ -12,6 +12,9 @@ import { Providers } from './providers';
 
 const inter = Inter({ subsets: ['latin'] });
 
+// Force dynamic rendering to prevent static generation issues
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'VLANET - AI 영상 플랫폼',
   description: 'AI 시나리오 · 프롬프트 · 영상 생성 · 피드백 파이프라인',

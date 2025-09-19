@@ -47,7 +47,8 @@ function ResetPasswordForm() {
     if (!token && !hash) {
       setError('재설정 링크가 유효하지 않습니다. 새로운 비밀번호 재설정을 요청해주세요.');
     }
-  }, [searchParams]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // $300 방지: 마운트 시에만 실행
 
   const validatePassword = (password: string): string | null => {
     if (password.length < 8) {

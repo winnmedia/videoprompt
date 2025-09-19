@@ -15,7 +15,7 @@ import {
   startGeneration,
   updateGenerationProgress,
   completeGeneration
-} from '@/entities/scenario/store/storyboard-slice';
+} from '@/entities/scenario';
 import { addToast } from '@/shared/store/ui-slice';
 
 // Query Keys

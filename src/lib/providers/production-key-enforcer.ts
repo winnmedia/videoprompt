@@ -246,15 +246,25 @@ export function validateEnvironmentConfiguration(): void {
       checkMockApiProhibition();
       break;
 
-    case 'staging':
-    case 'preview':
-      // 스테이징: 실제 키 권장, Mock 허용
-      enforceProductionKeyValidation({
-        strictMode: false,
-        allowedEnvironments: ['staging', 'preview'],
-        requiredKeyPatterns: ['ark_'],
-        logLevel: 'warn',
-      });
+    case 'production':
+      // 프로덕션과 스테이징: 실제 키 권장, Mock 허용
+      if (process.env.VERCEL_ENV === 'staging' || process.env.VERCEL_ENV === 'preview') {
+        enforceProductionKeyValidation({
+          strictMode: false,
+          allowedEnvironments: ['staging', 'preview'],
+          requiredKeyPatterns: ['ark_'],
+          logLevel: 'warn',
+        });
+      } else {
+        // 실제 프로덕션: 엄격한 검증
+        enforceProductionKeyValidation({
+          strictMode: true,
+          allowedEnvironments: ['production'],
+          requiredKeyPatterns: ['ark_'],
+          logLevel: 'error',
+        });
+        checkMockApiProhibition();
+      }
       break;
 
     case 'development':

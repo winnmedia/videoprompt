@@ -13,11 +13,22 @@ import { ENV_STATUS } from '@/shared/lib/env-validation'
  * Legacy 호환성을 위한 export
  * @deprecated Use safeSupabase from @/shared/lib/supabase-safe instead
  */
-const clientResult = safeSupabase.getClient()
-export const supabase = clientResult.success ? clientResult.data! : null
+let supabase: any = null;
+let supabaseAdmin: any = null;
 
-const adminResult = safeSupabase.getAdminClient()
-export const supabaseAdmin = adminResult.success ? adminResult.data! : null
+// 초기화 함수
+async function initializeClients() {
+  const clientResult = await safeSupabase.getClient();
+  supabase = clientResult.success ? clientResult.data ?? null : null;
+
+  const adminResult = await safeSupabase.getAdminClient();
+  supabaseAdmin = adminResult.success ? adminResult.data ?? null : null;
+}
+
+// 모듈 로드 시 초기화
+initializeClients().catch(console.error);
+
+export { supabase, supabaseAdmin };
 
 /**
  * Legacy 호환성을 위한 설정 정보
