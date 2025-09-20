@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import { logger } from '@/shared/lib/logger';
 
 
@@ -26,8 +27,8 @@ export async function GET(request: NextRequest) {
     let queryResults = null;
     if (connectionStatus.success) {
       try {
-        const userCount = await prisma.user.count();
-        const projectCount = await prisma.project.count();
+        // PRISMA_DISABLED: const userCount = awaitprisma.user.count();
+        // PRISMA_DISABLED: const projectCount = awaitprisma.project.count();
         queryResults = { users: userCount, projects: projectCount };
       } catch (queryError) {
         queryResults = {
@@ -45,18 +46,18 @@ export async function GET(request: NextRequest) {
       message: 'Full diagnostic complete'
     });
 
-  } catch (error) {
-    return NextResponse.json({
-      env: {
-        NODE_ENV: process.env.NODE_ENV,
-        hasJwtSecret: !!process.env.JWT_SECRET,
-        hasDatabaseUrl: !!process.env.DATABASE_URL,
-        timestamp: new Date().toISOString(),
-      },
-      error: error instanceof Error ? error.message : String(error),
-      message: 'Diagnostic failed'
-    }, { status: 500 });
-  }
+  // ORPHANED_CATCH: } catch (error) {
+    // ORPHANED_CATCH: return NextResponse.json({
+      // ORPHANED_CATCH: env: {
+        // ORPHANED_CATCH: NODE_ENV: process.env.NODE_ENV,
+        // ORPHANED_CATCH: hasJwtSecret: !!process.env.JWT_SECRET,
+        // ORPHANED_CATCH: hasDatabaseUrl: !!process.env.DATABASE_URL,
+        // ORPHANED_CATCH: timestamp: new Date().toISOString(),
+      // ORPHANED_CATCH: },
+      // ORPHANED_CATCH: error: error instanceof Error ? error.message : String(error),
+      // ORPHANED_CATCH: message: 'Diagnostic failed'
+    // ORPHANED_CATCH: }, { status: 500 });
+  // ORPHANED_CATCH: }
 }
 
 export async function POST() {
@@ -90,16 +91,16 @@ export async function POST() {
 
     logger.info('🔍 테스트 데이터 생성 시도:', testId);
 
-    const savedItem = await prisma.project.create({
-      data: testData,
-    });
+    // PRISMA_DISABLED: const savedItem = awaitprisma.project.create({
+      // PRISMA_CONTINUATION: data: testData,
+    // PRISMA_CONTINUATION: });
 
     logger.info('✅ 테스트 데이터 생성 성공:', savedItem.id);
 
     // 생성된 데이터 즉시 삭제
-    await prisma.project.delete({
-      where: { id: savedItem.id }
-    });
+    // PRISMA_DISABLED: awaitprisma.project.delete({
+      // PRISMA_CONTINUATION: where: { id: savedItem.id }
+    // PRISMA_CONTINUATION: });
 
     logger.info('🗑️ 테스트 데이터 삭제 완료');
 
@@ -114,14 +115,14 @@ export async function POST() {
       timestamp: new Date().toISOString()
     });
 
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('❌ 디버그 POST 오류:', errorMessage);
-
-    return NextResponse.json({
-      success: false,
-      error: errorMessage,
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
-  }
+  // ORPHANED_CATCH: } catch (error) {
+    // ORPHANED_CATCH: const errorMessage = error instanceof Error ? error.message : String(error);
+    // ORPHANED_CATCH: console.error('❌ 디버그 POST 오류:', errorMessage);
+// ORPHANED_CATCH: 
+    // ORPHANED_CATCH: return NextResponse.json({
+      // ORPHANED_CATCH: success: false,
+      // ORPHANED_CATCH: error: errorMessage,
+      // ORPHANED_CATCH: timestamp: new Date().toISOString()
+    // ORPHANED_CATCH: }, { status: 500 });
+  // ORPHANED_CATCH: }
 }

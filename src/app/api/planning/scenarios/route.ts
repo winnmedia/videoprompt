@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import { createErrorResponse } from '@/shared/schemas/api.schema';
 import { logger } from '@/shared/lib/logger';
 import {
@@ -49,7 +50,7 @@ const getHandler = async (request: NextRequest, { user, authContext }: { user: {
     // 저장소 상태 확인 및 표준화된 응답 생성
     const healthStatus = await repository.getStorageHealth();
     const adaptedHealthStatus = {
-      prisma: { isHealthy: healthStatus.prisma.status === 'healthy' },
+      // PRISMA_DISABLED: prisma: { isHealthy: healthStatus.prisma.status === 'healthy' },
       supabase: { isHealthy: healthStatus.supabase.status === 'healthy' }
     };
     const dualStorageResult = normalizeRepositoryResult(

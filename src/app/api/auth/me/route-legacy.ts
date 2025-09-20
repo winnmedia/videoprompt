@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 // import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { getUserIdFromRequest } from '@/shared/lib/auth';
@@ -43,18 +44,30 @@ export async function GET(req: NextRequest) {
       return failure('UNAUTHORIZED', '인증이 필요합니다.', 401, undefined, traceId);
     }
 
-    // 사용자 정보 조회 (데이터베이스 연결은 Prisma Proxy에서 자동 처리)
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        role: true,
-        avatarUrl: true,
-        createdAt: true,
-      },
-    });
+    // 사용자 정보 조회 - Supabase 구현
+    const supabase = await getSupabaseClientSafe('service-role');
+    let user = null;
+
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, email, username, role, avatar_url, created_at')
+        .eq('id', userId)
+        .single();
+
+      if (!error && data) {
+        user = {
+          id: data.id,
+          email: data.email,
+          username: data.username,
+          role: data.role,
+          avatarUrl: data.avatar_url,
+          createdAt: data.created_at
+        };
+      }
+    } catch (error) {
+      console.warn('Supabase user lookup failed:', error);
+    }
 
     if (!user) {
       return failure('NOT_FOUND', '사용자를 찾을 수 없습니다.', 404, undefined, traceId);

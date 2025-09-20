@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import { logger } from '@/shared/lib/logger';
-
-// import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { getUser } from '@/shared/lib/auth';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { z } from 'zod';
@@ -69,31 +68,32 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return failure('UNAUTHORIZED', '로그인이 필요합니다.', 401, undefined, traceId);
     }
 
-    // Find project
-    const project = await prisma.project.findFirst({
-      where: {
-        id,
-        userId: user.id,
-      },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        metadata: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    // Find project using Supabase
+    const supabase = await getSupabaseClientSafe('service-role');
+    const { data: project, error } = await supabase
+      .from('projects')
+      .select('id, title, description, metadata, status, created_at, updated_at')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single();
 
-    if (!project) {
+    if (error || !project) {
+      logger.warn(`[Project ${traceId}] ⚠️ 프로젝트 없음: ${error?.message}`);
       return failure('NOT_FOUND', '프로젝트를 찾을 수 없습니다.', 404, undefined, traceId);
     }
 
     logger.info(`[Project ${traceId}] ✅ 프로젝트 조회 완료`);
 
-    // Prisma automatically handles JSON fields
-    const response = project;
+    // Transform response to match Prisma format
+    const response = {
+      id: project.id,
+      title: project.title,
+      description: project.description,
+      metadata: project.metadata,
+      status: project.status,
+      createdAt: project.created_at,
+      updatedAt: project.updated_at,
+    };
 
     return success(response, 200, traceId);
 
@@ -122,46 +122,54 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     logger.info(`[Project ${traceId}] ✅ 입력 데이터 검증 완료`);
 
-    // Check if project exists and belongs to user
-    const existingProject = await prisma.project.findFirst({
-      where: {
-        id,
-        userId: user.id,
-      },
-    });
+    // Check if project exists and belongs to user using Supabase
+    const supabase = await getSupabaseClientSafe('service-role');
+    const { data: existingProject, error: checkError } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single();
 
-    if (!existingProject) {
+    if (checkError || !existingProject) {
       return failure('NOT_FOUND', '프로젝트를 찾을 수 없습니다.', 404, undefined, traceId);
     }
 
-    // Update project
-    const updateData: any = {};
-    
+    // Update project using Supabase
+    const updateData: any = {
+      updated_at: new Date().toISOString()
+    };
+
     if (validatedData.title !== undefined) updateData.title = validatedData.title;
     if (validatedData.description !== undefined) updateData.description = validatedData.description;
-    if (validatedData.scenario !== undefined) updateData.scenario = JSON.stringify(validatedData.scenario);
-    if (validatedData.prompt !== undefined) updateData.prompt = JSON.stringify(validatedData.prompt);
-    if (validatedData.video !== undefined) updateData.video = JSON.stringify(validatedData.video);
+    if (validatedData.scenario !== undefined) updateData.scenario = validatedData.scenario;
+    if (validatedData.prompt !== undefined) updateData.prompt = validatedData.prompt;
+    if (validatedData.video !== undefined) updateData.video = validatedData.video;
     if (validatedData.status !== undefined) updateData.status = validatedData.status;
 
-    const project = await prisma.project.update({
-      where: { id },
-      data: updateData,
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        metadata: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    const { data: project, error: updateError } = await supabase
+      .from('projects')
+      .update(updateData)
+      .eq('id', id)
+      .select('id, title, description, metadata, status, created_at, updated_at')
+      .single();
+
+    if (updateError || !project) {
+      throw new Error(updateError?.message || 'Update failed');
+    }
 
     logger.info(`[Project ${traceId}] ✅ 프로젝트 수정 완료`);
 
-    // Prisma automatically handles JSON fields
-    const response = project;
+    // Transform response to match Prisma format
+    const response = {
+      id: project.id,
+      title: project.title,
+      description: project.description,
+      metadata: project.metadata,
+      status: project.status,
+      createdAt: project.created_at,
+      updatedAt: project.updated_at,
+    };
 
     return success(response, 200, traceId);
 
@@ -189,22 +197,28 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       return failure('UNAUTHORIZED', '로그인이 필요합니다.', 401, undefined, traceId);
     }
 
-    // Check if project exists and belongs to user
-    const existingProject = await prisma.project.findFirst({
-      where: {
-        id,
-        userId: user.id,
-      },
-    });
+    // Check if project exists and belongs to user using Supabase
+    const supabase = await getSupabaseClientSafe('service-role');
+    const { data: existingProject, error: checkError } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single();
 
-    if (!existingProject) {
+    if (checkError || !existingProject) {
       return failure('NOT_FOUND', '프로젝트를 찾을 수 없습니다.', 404, undefined, traceId);
     }
 
-    // Delete project
-    await prisma.project.delete({
-      where: { id },
-    });
+    // Delete project using Supabase
+    const { error: deleteError } = await supabase
+      .from('projects')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) {
+      throw new Error(deleteError.message);
+    }
 
     logger.info(`[Project ${traceId}] ✅ 프로젝트 삭제 완료`);
 

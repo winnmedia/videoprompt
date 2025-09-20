@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import { z } from 'zod';
 import { logger } from '@/shared/lib/logger';
 
@@ -43,15 +44,15 @@ export async function POST(req: NextRequest) {
     // 데이터베이스 작업을 안전하게 실행
     const result = await executeDatabaseOperation(async () => {
       // 인증 레코드 조회
-      const verification = await prisma.emailVerification.findFirst({
-        where: {
-          email,
-          code,
-          expiresAt: {
+      // PRISMA_DISABLED: const verification = awaitprisma.emailVerification.findFirst({
+        // PRISMA_CONTINUATION: where: {
+          // PRISMA_CONTINUATION: email,
+          // PRISMA_CONTINUATION: code,
+          // PRISMA_CONTINUATION: expiresAt: {
             gt: new Date(), // 만료되지 않은 것만
-          },
-        },
-      });
+          // PRISMA_CONTINUATION: },
+        // PRISMA_CONTINUATION: },
+      // PRISMA_CONTINUATION: });
 
       if (!verification) {
         logger.info(`[VerifyCode ${traceId}] ❌ 인증 코드가 유효하지 않음`);
@@ -61,24 +62,24 @@ export async function POST(req: NextRequest) {
       logger.info(`[VerifyCode ${traceId}] ✅ 인증 코드 확인 성공`);
 
       // 사용된 인증 레코드 삭제
-      await prisma.emailVerification.delete({
-        where: {
-          id: verification.id,
-        },
-      });
+      // PRISMA_DISABLED: awaitprisma.emailVerification.delete({
+        // PRISMA_CONTINUATION: where: {
+          // PRISMA_CONTINUATION: id: verification.id,
+        // PRISMA_CONTINUATION: },
+      // PRISMA_CONTINUATION: });
 
       // 사용자가 존재하면 이메일 인증 상태 업데이트
       if (verification.userId) {
-        await prisma.user.update({
-          where: {
-            id: verification.userId,
-          },
-          data: {
-            emailVerified: true,
-            verifiedAt: new Date(),
-          },
-        });
-      }
+        // PRISMA_DISABLED: awaitprisma.user.update({
+          // PRISMA_CONTINUATION: where: {
+            // PRISMA_CONTINUATION: id: verification.userId,
+          // PRISMA_CONTINUATION: },
+          // PRISMA_CONTINUATION: data: {
+            // PRISMA_CONTINUATION: emailVerified: true,
+            // PRISMA_CONTINUATION: verifiedAt: new Date(),
+          // PRISMA_CONTINUATION: },
+        // PRISMA_CONTINUATION: });
+      // PRISMA_CONTINUATION: }
 
       return { verified: true };
     }, {

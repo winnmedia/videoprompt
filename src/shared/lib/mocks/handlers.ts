@@ -8,7 +8,7 @@ import { safeBase64Encode } from '../encoding-utils';
 import type { StoryboardResult } from '../types/storyboard';
 import Busboy from 'busboy';
 import { Readable } from 'stream';
-import { logger } from './logger';
+import { logger } from '../logger';
 
 
 // multipart/form-data 파싱 헬퍼

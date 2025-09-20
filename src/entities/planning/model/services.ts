@@ -10,6 +10,7 @@
  */
 
 import { logger } from '@/shared/lib/logger';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import {
 
 
@@ -226,7 +227,7 @@ function analyzeStorageResults(
   const { prisma, supabase } = results;
 
   // 완전 성공
-  if (prisma.success && supabase.success) {
+  // PRISMA_DISABLED: if (prisma.success && supabase.success) {
     logger.info(`🎉 Full consistency achieved for ${contentId}`);
     return {
       success: true,
@@ -238,9 +239,9 @@ function analyzeStorageResults(
   }
 
   // 부분 성공 - requireBoth 설정에 따라 처리
-  if (prisma.success || supabase.success) {
-    const successfulStorage = prisma.success ? 'Prisma' : 'Supabase';
-    const failedStorage = !prisma.success ? 'Prisma' : 'Supabase';
+  // PRISMA_DISABLED: if (prisma.success || supabase.success) {
+    // PRISMA_DISABLED: const successfulStorage =prisma.success ? 'Prisma' : 'Supabase';
+    // PRISMA_DISABLED: const failedStorage = !prisma.success ? 'Prisma' : 'Supabase';
 
     if (config.requireBoth) {
       console.error(`❌ Partial storage not acceptable for ${contentId} (requireBoth=true)`);
@@ -254,7 +255,7 @@ function analyzeStorageResults(
     }
 
     // Prisma 우선 정책 적용
-    if (config.fallbackToPrisma && prisma.success) {
+    // PRISMA_DISABLED: if (config.fallbackToPrisma &&prisma.success) {
       console.warn(`⚠️ Partial consistency for ${contentId}: Prisma saved, Supabase failed`);
       return {
         success: true,
@@ -265,7 +266,7 @@ function analyzeStorageResults(
       };
     }
 
-    if (supabase.success && !prisma.success) {
+    // PRISMA_DISABLED: if (supabase.success && !prisma.success) {
       console.warn(`⚠️ Partial consistency for ${contentId}: Supabase saved, Prisma failed`);
       return {
         success: true,
@@ -283,7 +284,7 @@ function analyzeStorageResults(
     success: false,
     contentId,
     storage: results,
-    message: `Complete storage failure. Prisma: ${prisma.error || 'Unknown error'}, Supabase: ${supabase.error || 'Unknown error'}`,
+    // PRISMA_DISABLED: message: `Complete storage failure. Prisma: ${prisma.error || 'Unknown error'}, Supabase: ${supabase.error || 'Unknown error'}`,
     consistency: 'failed'
   };
 }

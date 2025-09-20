@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import { z } from 'zod';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { getUserIdFromRequest } from '@/shared/lib/auth';
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
     const userId = getUserIdFromRequest(req);
     const token = randomBytes(16).toString('hex');
     const expiresAt = new Date(Date.now() + expiresIn * 1000);
-    const created = await prisma.shareToken.create({
+    // PRISMA_DISABLED: const created = awaitprisma.shareToken.create({
       data: { token, role, nickname: nickname ?? null, targetType, targetId, expiresAt, ...(userId ? { userId } : {}) },
       select: { token: true, expiresAt: true, role: true, nickname: true },
     });

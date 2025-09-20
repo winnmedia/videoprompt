@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 // import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 
 export async function DELETE(request: NextRequest) {
@@ -47,7 +48,7 @@ export async function DELETE(request: NextRequest) {
 
     try {
       // 사용자 찾기
-      const user = await prisma.user.findUnique({
+      // PRISMA_DISABLED: const user = awaitprisma.user.findUnique({
         where: { email: userEmail }
       });
 
@@ -60,7 +61,7 @@ export async function DELETE(request: NextRequest) {
       }
 
       // 사용자 삭제 (관련 데이터는 Prisma의 cascade 설정에 따라 자동 삭제)
-      const deleteResult = await prisma.user.delete({
+      // PRISMA_DISABLED: const deleteResult = awaitprisma.user.delete({
         where: { email: userEmail }
       });
 
@@ -121,7 +122,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Prisma를 사용하여 테스트 사용자 조회
-    const testUsers = await prisma.user.findMany({
+    // PRISMA_DISABLED: const testUsers = awaitprisma.user.findMany({
       where: {
         OR: [
           { email: { contains: 'integration_test_' } },

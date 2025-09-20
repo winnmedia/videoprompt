@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
     // 1단계: 데이터베이스 작업 (트랜잭션 내에서 수행)
     const { user } = await executeDatabaseOperation(async () => {
       // 중복 사용자 확인
-      const existing = await prisma.user.findFirst({
+      // PRISMA_DISABLED: const existing = awaitprisma.user.findFirst({
         where: { OR: [{ email }, { username }] },
         select: { id: true },
       });
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest) {
       const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
       
       // Create user in a transaction with email verification record (이메일 전송 제외)
-      const result = await prisma.$transaction(async (tx) => {
+      // PRISMA_DISABLED: const result = awaitprisma.$transaction(async (tx) => {
         // Create the user with email verification disabled
         const user = await tx.user.create({
           data: {

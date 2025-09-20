@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import { logger } from '@/shared/lib/logger';
-
-// import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { getUser } from '@/shared/lib/auth';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { z } from 'zod';
@@ -75,35 +74,46 @@ export async function POST(req: NextRequest) {
 
     logger.info(`[Projects ${traceId}] ✅ 입력 데이터 검증 완료`);
 
-    // Create project in database
-    const project = await prisma.project.create({
-      data: {
-        title: validatedData.title,
-        description: validatedData.description,
-        userId: user.id,
-        metadata: {
-          scenario: validatedData.scenario ?? undefined,
-          prompt: validatedData.prompt ?? undefined,
-          video: validatedData.video ?? undefined,
-        },
-        status: 'draft',
-        tags: [],
+    // Create project in Supabase
+    const supabase = await getSupabaseClientSafe('service-role');
+
+    const projectData = {
+      title: validatedData.title,
+      description: validatedData.description || null,
+      user_id: user.id,
+      metadata: {
+        scenario: validatedData.scenario ?? null,
+        prompt: validatedData.prompt ?? null,
+        video: validatedData.video ?? null,
       },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        metadata: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+      status: 'draft',
+      tags: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data: project, error } = await supabase
+      .from('projects')
+      .insert(projectData)
+      .select('id, title, description, metadata, status, created_at, updated_at')
+      .single();
+
+    if (error || !project) {
+      throw new Error(error?.message || 'Project creation failed');
+    }
 
     logger.info(`[Projects ${traceId}] ✅ 프로젝트 생성 완료: ${project.id}`);
 
-    // Prisma automatically handles JSON fields
-    const response = project;
+    // Transform response to match Prisma format
+    const response = {
+      id: project.id,
+      title: project.title,
+      description: project.description,
+      metadata: project.metadata,
+      status: project.status,
+      createdAt: project.created_at,
+      updatedAt: project.updated_at,
+    };
 
     return success(response, 201, traceId);
 
@@ -136,40 +146,49 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(url.searchParams.get('limit') || '10');
     const offset = (page - 1) * limit;
 
-    // Fetch projects with pagination
-    const [projects, total] = await Promise.all([
-      prisma.project.findMany({
-        where: { userId: user.id },
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          metadata: true,
-          status: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-        orderBy: { updatedAt: 'desc' },
-        skip: offset,
-        take: limit,
-      }),
-      prisma.project.count({
-        where: { userId: user.id },
-      }),
-    ]);
+    // Fetch projects with pagination using Supabase
+    const supabase = await getSupabaseClientSafe('service-role');
 
-    logger.info(`[Projects ${traceId}] ✅ ${projects.length}개 프로젝트 조회 완료`);
+    // Get projects with pagination
+    const { data: projects, error: projectsError } = await supabase
+      .from('projects')
+      .select('id, title, description, metadata, status, created_at, updated_at')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
-    // Parse JSON fields
+    if (projectsError) {
+      throw new Error(projectsError.message);
+    }
+
+    // Get total count
+    const { count: total, error: countError } = await supabase
+      .from('projects')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+
+    if (countError) {
+      throw new Error(countError.message);
+    }
+
+    logger.info(`[Projects ${traceId}] ✅ ${projects?.length || 0}개 프로젝트 조회 완료`);
+
+    // Transform response to match Prisma format
     const response = {
-      projects: projects.map(project => ({
-        ...project,
+      projects: (projects || []).map(project => ({
+        id: project.id,
+        title: project.title,
+        description: project.description,
+        metadata: project.metadata,
+        status: project.status,
+        createdAt: project.created_at,
+        updatedAt: project.updated_at,
       })),
       pagination: {
         page,
         limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+        total: total || 0,
+        totalPages: Math.ceil((total || 0) / limit),
       },
     };
 

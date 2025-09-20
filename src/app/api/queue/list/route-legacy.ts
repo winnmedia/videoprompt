@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { getUserIdFromRequest } from '@/shared/lib/auth';
 // import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
@@ -78,7 +79,7 @@ export async function GET(req: NextRequest) {
     }
 
     // VideoAsset 테이블에서 큐 데이터 조회
-    const videoAssets = await prisma.videoAsset.findMany({
+    // PRISMA_DISABLED: const videoAssets = awaitprisma.videoAsset.findMany({
       where: {
         userId: userId,
       },

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 export const runtime = 'nodejs';
 // import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
     // 데이터베이스 연결 테스트
     let dbStatus = 'disconnected';
     try {
-      await prisma.$queryRaw`SELECT 1`;
+      // PRISMA_DISABLED: awaitprisma.$queryRaw`SELECT 1`;
       dbStatus = 'connected';
     } catch (dbError) {
       console.error('Database connection test failed:', dbError);

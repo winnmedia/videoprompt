@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import { PlanningRegistrationRequestSchema, createValidationErrorResponse, createErrorResponse } from '@/shared/schemas/api.schema';
 import { createSuccessResponse, createErrorResponse as createPlanningErrorResponse, DualStorageResult } from '@/shared/schemas/planning-response.schema';
 import { withAuth } from '@/shared/lib/auth-middleware-v2';
@@ -66,7 +67,7 @@ export const POST = withAuth(async (request: NextRequest, { user, authContext })
     const dualStorageResult: DualStorageResult = {
       id: saveResult.id,
       success: true,
-      prismaSuccess: healthStatus.prisma.status === 'healthy',
+      // PRISMA_DISABLED: prismaSuccess: healthStatus.prisma.status === 'healthy',
       supabaseSuccess: healthStatus.supabase.status === 'healthy'
     };
 

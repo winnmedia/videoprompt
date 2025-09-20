@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import { z } from 'zod';
 // import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
   try {
     const traceId = getTraceId(req);
     const { token, targetType, targetId, text, timecode } = postSchema.parse(await req.json());
-    const found = await prisma.shareToken.findUnique({ where: { token } });
+    // PRISMA_DISABLED: const found = awaitprisma.shareToken.findUnique({ where: { token } });
     if (!found) return json({ ok: false, code: 'FORBIDDEN', error: 'invalid token' }, 403);
     if (found.expiresAt < new Date())
       return json({ ok: false, code: 'EXPIRED', error: 'token expired' }, 410);
@@ -36,16 +37,16 @@ export async function POST(req: NextRequest) {
       return json({ ok: false, code: 'FORBIDDEN', error: 'no comment permission' }, 403);
 
     const reqUserId = getUserIdFromRequest(req);
-    const created = await prisma.comment.create({
-      data: {
-        targetType,
-        targetId,
-        author: found.nickname ?? null,
-        ...(reqUserId ? { userId: reqUserId } : {}),
-        text,
-        timecode: timecode ?? null,
-      },
-    });
+    // PRISMA_DISABLED: const created = awaitprisma.comment.create({
+      // PRISMA_CONTINUATION: data: {
+        // PRISMA_CONTINUATION: targetType,
+        // PRISMA_CONTINUATION: targetId,
+        // PRISMA_CONTINUATION: author: found.nickname ?? null,
+        // PRISMA_CONTINUATION: ...(reqUserId ? { userId: reqUserId } : {}),
+        // PRISMA_CONTINUATION: text,
+        // PRISMA_CONTINUATION: timecode: timecode ?? null,
+      // PRISMA_CONTINUATION: },
+    // PRISMA_CONTINUATION: });
     logger.info('comment created', { id: created.id, targetType, targetId, traceId });
     return success({ id: created.id, createdAt: created.createdAt }, 200, traceId);
   } catch (e: any) {
@@ -60,10 +61,10 @@ export async function GET(req: NextRequest) {
     const targetType = req.nextUrl.searchParams.get('targetType') || 'video';
     const targetId = req.nextUrl.searchParams.get('targetId');
     if (!targetId) return failure('INVALID_INPUT_FIELDS', 'targetId required', 400);
-    const rows = await prisma.comment.findMany({
-      where: { targetType, targetId },
-      orderBy: { createdAt: 'desc' },
-    });
+    // PRISMA_DISABLED: const rows = awaitprisma.comment.findMany({
+      // PRISMA_CONTINUATION: where: { targetType, targetId },
+      // PRISMA_CONTINUATION: orderBy: { createdAt: 'desc' },
+    // PRISMA_CONTINUATION: });
     logger.info('comment list', { count: rows.length, targetType, targetId, traceId });
     return success(rows, 200, traceId);
   } catch (e: any) {

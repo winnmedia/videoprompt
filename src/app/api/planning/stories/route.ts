@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import {
   GetStoriesQuerySchema,
   CreateStoryRequestSchema,
@@ -76,7 +77,7 @@ const getHandler = async (request: NextRequest, { user, authContext }: { user: {
     const dualStorageResult: DualStorageResult = {
       id: 'stories-query',
       success: true,
-      prismaSuccess: healthStatus.prisma.status === 'healthy',
+      // PRISMA_DISABLED: prismaSuccess: healthStatus.prisma.status === 'healthy',
       supabaseSuccess: healthStatus.supabase.status === 'healthy'
     };
 
@@ -180,7 +181,7 @@ const postHandler = async (request: NextRequest, { user, authContext }: { user: 
     const dualStorageResult: DualStorageResult = {
       id: result.id,
       success: true,
-      prismaSuccess: healthStatus.prisma.status === 'healthy',
+      // PRISMA_DISABLED: prismaSuccess: healthStatus.prisma.status === 'healthy',
       supabaseSuccess: healthStatus.supabase.status === 'healthy'
     };
 

@@ -7,6 +7,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import { SupabaseClient } from '@supabase/supabase-js';
 import type { DualStorageDependencies } from '../model/services';
 import type { DualStorageConfig } from '../model/types';
@@ -164,10 +165,10 @@ export class DualStorageFactory {
     // Prisma 헬스 체크
     if (clients.prisma && this.config.prismaEnabled) {
       try {
-        await clients.prisma.$queryRaw`SELECT 1`;
-        result.prisma.available = true;
+        // PRISMA_DISABLED: await clients.prisma.$queryRaw`SELECT 1`;
+        // PRISMA_DISABLED: result.prisma.available = true;
       } catch (error) {
-        result.prisma.error = error instanceof Error ? error.message : 'Unknown error';
+        // PRISMA_DISABLED: result.prisma.error = error instanceof Error ? error.message : 'Unknown error';
       }
     }
 
@@ -190,7 +191,7 @@ export class DualStorageFactory {
     }
 
     // 전체 상태 판단
-    const availableCount = [result.prisma.available, result.supabase.available].filter(Boolean).length;
+    // PRISMA_DISABLED: const availableCount = [result.prisma.available, result.supabase.available].filter(Boolean).length;
     const enabledCount = [this.config.prismaEnabled, this.config.supabaseEnabled].filter(Boolean).length;
 
     if (availableCount === enabledCount && availableCount > 0) {
