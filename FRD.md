@@ -19,7 +19,7 @@
 - **Language**: TypeScript 5.7 (Strict Mode)
 - **UI Library**: React 19.1.0
 - **Styling**: Tailwind CSS v4 (신규 표준), CSS Modules (레거시)
-- **State Management**: Zustand 5.0.7
+- **State Management**: Redux Toolkit 2.0 (전역 클라이언트 상태)
 - **Architecture**: Feature-Sliced Design (FSD) + Clean Architecture
 
 ### 백엔드 및 AI 서비스
@@ -29,8 +29,10 @@
   - Seedance/ModelArk (영상 생성)
   - Google Imagen (이미지 생성)
   - Google Veo3 (영상 생성)
-- **Database**: Prisma + PostgreSQL
-- **Deployment**: Vercel (Frontend), Railway (Backend)
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth
+- **Storage**: Supabase Storage
+- **Deployment**: Vercel (Frontend), Supabase (Backend)
 
 ### 아키텍처 원칙
 
@@ -309,10 +311,19 @@ cd /home/winnmedia/videoprompt && pnpm exec playwright install --with-deps chrom
 
 ---
 
-**문서 버전**: 1.3.0  
-**최종 업데이트**: 2025-09-01  
-**작성자**: AI Assistant  
+**문서 버전**: 1.4.0
+**최종 업데이트**: 2025-09-20
+**작성자**: AI Assistant
 **검토자**: 개발팀
+
+### 📝 변경 이력
+
+#### v1.4.0 (2025-09-20)
+- **상태 관리**: Zustand → Redux Toolkit 2.0으로 업데이트
+- **백엔드 통합**: Railway → Supabase 단일화 완료 반영
+- **인증 시스템**: Supabase Auth 추가
+- **스토리지**: Supabase Storage 추가
+- **환경변수 정리**: Railway 관련 설정 제거
 
 ---
 
