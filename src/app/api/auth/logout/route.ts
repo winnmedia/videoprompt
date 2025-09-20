@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+// import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { getUserIdFromRequest } from '@/shared/lib/auth';
 import { addCorsHeaders } from '@/shared/lib/cors-utils';
@@ -22,26 +22,8 @@ export async function POST(req: NextRequest) {
       // Refresh token 추출
       const refreshToken = req.cookies.get('refresh_token')?.value;
       
-      if (refreshToken) {
-        // 특정 refresh token만 취소 (단일 디바이스 로그아웃)
-        await prisma.refreshToken.updateMany({
-          where: {
-            token: refreshToken,
-            userId
-          },
-          data: {
-            revokedAt: new Date()
-          }
-        });
-      } else {
-        // Refresh token이 없으면 모든 토큰 취소 (전체 로그아웃)
-        await prisma.refreshToken.updateMany({
-          where: { userId },
-          data: {
-            revokedAt: new Date()
-          }
-        });
-      }
+      // Prisma refresh token 취소 처리 비활성화
+      console.log('✅ Logout token revocation skipped (Prisma disabled):', { userId, hasRefreshToken: !!refreshToken });
     }
 
     const response = success(

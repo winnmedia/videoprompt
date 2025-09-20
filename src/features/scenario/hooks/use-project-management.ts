@@ -1,361 +1,201 @@
 /**
- * React Query 기반 프로젝트 관리 서버 상태 관리
+ * RTK Query 기반 프로젝트 관리 서버 상태 관리
  * FSD features 레이어 - 프로젝트 저장/불러오기/관리
+ *
+ * v2.0 업데이트:
+ * - 파이프라인 매니저 통합
+ * - ProjectID 기반 상태 관리
+ * - 자동 파이프라인 초기화
  */
 
-import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
-import { useDispatch } from 'react-redux';
+import React from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { StoryInput, StoryStep, Shot, StoryboardShot } from '@/entities/scenario';
-import { apiClient } from '@/shared/lib/api-client';
-import { addToast } from '@/shared/store/ui-slice';
+import {
+  useCreateProjectMutation,
+  useUpdateProjectMutation,
+  useDeleteProjectMutation,
+  useGetProjectQuery,
+  useGetProjectsQuery,
+  useGetRecentProjectsQuery,
+  useGetProjectStatsQuery,
+  Project,
+  ProjectMetadata,
+  ProjectListFilters,
+  apiSlice
+} from '@/shared/api/api-slice';
+import { useToast } from '@/shared/lib/hooks/useToast';
+import { pipelineManager } from '@/shared/lib/pipeline-manager';
+import { selectProjectId } from '@/entities/pipeline/store/pipeline-slice';
+import type { RootState } from '@/shared/types/store';
 
-// 프로젝트 타입 정의
-export interface Project {
-  id: string;
-  title: string;
-  description?: string;
-  storyInput: StoryInput;
-  steps: StoryStep[];
-  shots: Shot[];
-  storyboardShots: StoryboardShot[];
-  status: 'draft' | 'story_complete' | 'shots_complete' | 'storyboard_complete' | 'final';
-  userId: string;
-  createdAt: string;
-  updatedAt: string;
-  lastAccessedAt?: string;
-  isPublic: boolean;
-  tags: string[];
-  collaborators?: Array<{ userId: string; role: 'viewer' | 'editor' | 'admin' }>;
-}
+// RTK Query에서 타입을 import하므로 중복 제거
+// 필요한 경우에만 re-export
+export type { Project, ProjectMetadata, ProjectListFilters } from '@/shared/api/api-slice';
 
-export interface ProjectMetadata {
-  id: string;
-  title: string;
-  description?: string;
-  status: Project['status'];
-  updatedAt: string;
-  thumbnail?: string;
-  tags: string[];
-}
-
-// Query Keys
-export const projectQueryKeys = {
-  all: ['projects'] as const,
-  lists: () => [...projectQueryKeys.all, 'list'] as const,
-  list: (filters: ProjectListFilters) => [...projectQueryKeys.lists(), filters] as const,
-  details: () => [...projectQueryKeys.all, 'detail'] as const,
-  detail: (id: string) => [...projectQueryKeys.details(), id] as const,
-  recent: () => [...projectQueryKeys.all, 'recent'] as const,
-  templates: () => [...projectQueryKeys.all, 'templates'] as const,
-} as const;
-
-// 필터 타입
-export interface ProjectListFilters {
-  status?: Project['status'];
-  search?: string;
-  tags?: string[];
-  sortBy?: 'updatedAt' | 'createdAt' | 'title';
-  sortOrder?: 'asc' | 'desc';
-  isPublic?: boolean;
-}
-
-// API 함수들
-async function createProject(data: {
-  title: string;
-  description?: string;
-  storyInput: StoryInput;
-}): Promise<Project> {
-  const response = await apiClient.post<{
-    success: boolean;
-    data: Project;
-    message: string;
-  }>('/api/projects', data);
-
-  if (!response.success || !response.data) {
-    throw new Error(response.message || '프로젝트 생성에 실패했습니다');
-  }
-
-  return response.data;
-}
-
-async function updateProject(
-  id: string,
-  updates: Partial<Omit<Project, 'id' | 'userId' | 'createdAt'>>
-): Promise<Project> {
-  const response = await apiClient.put<{
-    success: boolean;
-    data: Project;
-    message: string;
-  }>(`/api/projects/${id}`, updates);
-
-  if (!response.success || !response.data) {
-    throw new Error(response.message || '프로젝트 업데이트에 실패했습니다');
-  }
-
-  return response.data;
-}
-
-async function deleteProject(id: string): Promise<void> {
-  const response = await apiClient.delete<{
-    success: boolean;
-    message: string;
-  }>(`/api/projects/${id}`);
-
-  if (!response.success) {
-    throw new Error(response.message || '프로젝트 삭제에 실패했습니다');
-  }
-}
-
-async function getProject(id: string): Promise<Project> {
-  const response = await apiClient.get<{
-    success: boolean;
-    data: Project;
-    message: string;
-  }>(`/api/projects/${id}`);
-
-  if (!response.success || !response.data) {
-    throw new Error(response.message || '프로젝트를 불러오는데 실패했습니다');
-  }
-
-  return response.data;
-}
-
-async function getProjects(filters: ProjectListFilters & { page: number; limit: number }) {
-  const searchParams = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value !== undefined && value !== '') {
-      if (Array.isArray(value)) {
-        searchParams.append(key, value.join(','));
-      } else {
-        searchParams.append(key, value.toString());
-      }
-    }
-  });
-
-  const response = await apiClient.get<{
-    success: boolean;
-    data: {
-      projects: ProjectMetadata[];
-      pagination: {
-        currentPage: number;
-        totalPages: number;
-        totalCount: number;
-        hasNext: boolean;
-        hasPrevious: boolean;
-      };
-    };
-    message: string;
-  }>(`/api/projects?${searchParams}`);
-
-  if (!response.success || !response.data) {
-    throw new Error(response.message || '프로젝트 목록을 불러오는데 실패했습니다');
-  }
-
-  return response.data;
-}
-
-async function getRecentProjects(limit: number = 10): Promise<ProjectMetadata[]> {
-  const response = await apiClient.get<{
-    success: boolean;
-    data: { projects: ProjectMetadata[] };
-    message: string;
-  }>(`/api/projects/recent?limit=${limit}`);
-
-  if (!response.success || !response.data) {
-    throw new Error(response.message || '최근 프로젝트를 불러오는데 실패했습니다');
-  }
-
-  return response.data.projects;
-}
+// RTK Query hooks를 사용하므로 API 함수들은 제거
 
 /**
  * 프로젝트 생성 뮤테이션 훅
+ * 파이프라인 매니저 통합 버전
  */
 export function useCreateProject() {
   const dispatch = useDispatch();
-  const queryClient = useQueryClient();
+  const toast = useToast();
+  const [createProject, { isLoading, error }] = useCreateProjectMutation();
 
-  return useMutation({
-    mutationFn: createProject,
+  // 파이프라인 매니저 초기화
+  React.useEffect(() => {
+    pipelineManager.setDispatch(dispatch);
+  }, [dispatch]);
 
-    onSuccess: (project) => {
-      // 프로젝트 목록 캐시 무효화
-      queryClient.invalidateQueries({ queryKey: projectQueryKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: projectQueryKeys.recent() });
+  const createProjectWithPipeline = async (data: {
+    title: string;
+    description?: string;
+    storyInput: StoryInput;
+  }) => {
+    try {
+      console.log('🎆 새 프로젝트 생성 시작:', {
+        title: data.title,
+        hasDescription: !!data.description
+      });
 
-      // 새 프로젝트 상세 캐시 설정
-      queryClient.setQueryData(projectQueryKeys.detail(project.id), project);
+      // 새 파이프라인 시작
+      const newProjectId = pipelineManager.startNewProject();
 
-      dispatch(addToast({
-        type: 'success',
-        title: '프로젝트 생성 완료',
-        message: `"${project.title}" 프로젝트가 생성되었습니다`
-      }));
-    },
+      // ProjectID가 포함된 데이터로 프로젝트 생성
+      const projectData = pipelineManager.injectProjectId(data, newProjectId);
 
-    onError: (error: Error) => {
-      dispatch(addToast({
-        type: 'error',
-        title: '프로젝트 생성 실패',
-        message: error.message || '프로젝트 생성에 실패했습니다'
-      }));
+      const project = await createProject(projectData).unwrap();
+
+      toast.success(`"${project.title}" 프로젝트가 생성되었습니다`, '프로젝트 생성 완료');
+
+      console.log('✅ 프로젝트 생성 완료:', {
+        projectId: newProjectId,
+        resultId: project.id
+      });
+
+      return {
+        ...project,
+        projectId: newProjectId
+      };
+    } catch (error: any) {
+      toast.error(error.message || '프로젝트 생성에 실패했습니다', '프로젝트 생성 실패');
+      throw error;
     }
-  });
+  };
+
+  return {
+    mutateAsync: createProjectWithPipeline,
+    mutate: createProjectWithPipeline,
+    isLoading,
+    error,
+    isPending: isLoading
+  };
 }
 
 /**
  * 프로젝트 업데이트 뮤테이션 훅
+ * 파이프라인 매니저 통합 버전
  */
 export function useUpdateProject() {
-  const dispatch = useDispatch();
-  const queryClient = useQueryClient();
+  const toast = useToast();
+  const currentProjectId = useSelector((state: RootState) => selectProjectId(state));
+  const [updateProject, { isLoading, error }] = useUpdateProjectMutation();
 
-  return useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Parameters<typeof updateProject>[1] }) =>
-      updateProject(id, updates),
-
-    onMutate: async ({ id, updates }) => {
-      // 낙관적 업데이트
-      await queryClient.cancelQueries({ queryKey: projectQueryKeys.detail(id) });
-
-      const previousProject = queryClient.getQueryData<Project>(projectQueryKeys.detail(id));
-
-      if (previousProject) {
-        queryClient.setQueryData(projectQueryKeys.detail(id), {
-          ...previousProject,
-          ...updates,
-          updatedAt: new Date().toISOString()
+  const updateProjectWithValidation = async (data: {
+    id: string;
+    updates: Partial<Omit<Project, 'id' | 'userId' | 'createdAt'>>;
+  }) => {
+    try {
+      // 현재 파이프라인 ProjectID와 일치하는지 확인
+      if (currentProjectId && data.id !== currentProjectId) {
+        console.warn('⚠️ ProjectID 불일치:', {
+          requestId: data.id,
+          currentId: currentProjectId
         });
       }
 
-      return { previousProject, id };
-    },
+      console.log('🔄 프로젝트 업데이트:', {
+        projectId: data.id,
+        updateKeys: Object.keys(data.updates)
+      });
 
-    onSuccess: (project, { id }) => {
-      // 실제 데이터로 업데이트
-      queryClient.setQueryData(projectQueryKeys.detail(id), project);
+      const project = await updateProject(data).unwrap();
 
-      // 관련 목록 캐시 무효화
-      queryClient.invalidateQueries({ queryKey: projectQueryKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: projectQueryKeys.recent() });
+      toast.success('변경사항이 저장되었습니다', '프로젝트 저장 완료');
 
-      dispatch(addToast({
-        type: 'success',
-        title: '프로젝트 저장 완료',
-        message: '변경사항이 저장되었습니다'
-      }));
-    },
-
-    onError: (error: Error, { id }, context) => {
-      // 롤백
-      if (context?.previousProject) {
-        queryClient.setQueryData(projectQueryKeys.detail(id), context.previousProject);
-      }
-
-      dispatch(addToast({
-        type: 'error',
-        title: '저장 실패',
-        message: error.message || '프로젝트 저장에 실패했습니다'
-      }));
+      return project;
+    } catch (error: any) {
+      toast.error(error.message || '프로젝트 저장에 실패했습니다', '저장 실패');
+      throw error;
     }
-  });
+  };
+
+  return {
+    mutateAsync: updateProjectWithValidation,
+    mutate: updateProjectWithValidation,
+    isLoading,
+    error,
+    isPending: isLoading,
+    currentProjectId
+  };
 }
 
 /**
  * 프로젝트 삭제 뮤테이션 훅
  */
 export function useDeleteProject() {
-  const dispatch = useDispatch();
-  const queryClient = useQueryClient();
+  const toast = useToast();
+  const [deleteProject, { isLoading, error }] = useDeleteProjectMutation();
 
-  return useMutation({
-    mutationFn: deleteProject,
+  const deleteProjectWithToast = async (id: string) => {
+    try {
+      await deleteProject(id).unwrap();
 
-    onSuccess: (_, id) => {
-      // 캐시에서 제거
-      queryClient.removeQueries({ queryKey: projectQueryKeys.detail(id) });
-
-      // 목록 캐시 무효화
-      queryClient.invalidateQueries({ queryKey: projectQueryKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: projectQueryKeys.recent() });
-
-      dispatch(addToast({
-        type: 'success',
-        title: '프로젝트 삭제 완료',
-        message: '프로젝트가 삭제되었습니다'
-      }));
-    },
-
-    onError: (error: Error) => {
-      dispatch(addToast({
-        type: 'error',
-        title: '삭제 실패',
-        message: error.message || '프로젝트 삭제에 실패했습니다'
-      }));
+      toast.success('프로젝트가 삭제되었습니다', '프로젝트 삭제 완료');
+    } catch (error: any) {
+      toast.error(error.message || '프로젝트 삭제에 실패했습니다', '삭제 실패');
+      throw error;
     }
-  });
+  };
+
+  return {
+    mutateAsync: deleteProjectWithToast,
+    mutate: deleteProjectWithToast,
+    isLoading,
+    error,
+    isPending: isLoading
+  };
 }
 
 /**
  * 프로젝트 상세 쿼리 훅
  */
 export function useProject(id?: string) {
-  const dispatch = useDispatch();
-
-  return useQuery({
-    queryKey: projectQueryKeys.detail(id!),
-    queryFn: () => getProject(id!),
-    enabled: !!id,
-
-    staleTime: 2 * 60 * 1000, // 2분
-    gcTime: 30 * 60 * 1000, // 30분
-
-
-    // 백그라운드에서 리프레시 시 자동 토스트 비활성화
-    refetchOnWindowFocus: false
+  return useGetProjectQuery(id!, {
+    skip: !id,
   });
 }
 
 /**
- * 프로젝트 목록 무한 스크롤 쿼리 훅
+ * 프로젝트 목록 쿼리 훅
+ * RTK Query는 무한 스크롤을 내장 지원하지 않으므로 페이지네이션 기반으로 대체
  */
-export function useProjects(filters: ProjectListFilters = {}) {
-  return useInfiniteQuery({
-    queryKey: projectQueryKeys.list(filters),
-    queryFn: ({ pageParam = 1 }) =>
-      getProjects({ ...filters, page: pageParam, limit: 20 }),
-
-    initialPageParam: 1,
-    getNextPageParam: (lastPage: any) =>
-      lastPage?.pagination?.hasNext ? lastPage.pagination.currentPage + 1 : undefined,
-
-    getPreviousPageParam: (firstPage: any) =>
-      firstPage?.pagination?.hasPrevious ? firstPage.pagination.currentPage - 1 : undefined,
-
-    staleTime: 60 * 1000, // 1분
-    gcTime: 10 * 60 * 1000, // 10분
-  });
+export function useProjects(filters: ProjectListFilters & { page: number; limit: number }) {
+  return useGetProjectsQuery(filters);
 }
 
 /**
  * 최근 프로젝트 쿼리 훅
  */
 export function useRecentProjects(limit: number = 10) {
-  return useQuery({
-    queryKey: projectQueryKeys.recent(),
-    queryFn: () => getRecentProjects(limit),
-
-    staleTime: 30 * 1000, // 30초
-    gcTime: 5 * 60 * 1000, // 5분 (React Query v5에서 cacheTime이 gcTime으로 변경됨)
-
-    // 자주 갱신되는 데이터이므로 백그라운드 리프레시 활성화
-    refetchOnWindowFocus: true,
-    refetchInterval: 2 * 60 * 1000 // 2분마다 자동 리프레시
-  });
+  return useGetRecentProjectsQuery(limit);
 }
 
 /**
  * 프로젝트 자동 저장 훅
+ * RTK Query 기반으로 useEffect를 사용하여 자동 저장 구현
  */
 export function useAutoSaveProject(
   projectId: string | null,
@@ -365,34 +205,31 @@ export function useAutoSaveProject(
 ) {
   const updateMutation = useUpdateProject();
 
-  const autoSaveQuery = useQuery({
-    queryKey: ['autoSave', projectId, projectData, isDirty],
-    queryFn: async () => {
-      if (!projectId || !isDirty) {
-        return null;
+  React.useEffect(() => {
+    if (!enabled || !isDirty || !projectId) {
+      return;
+    }
+
+    const interval = setInterval(async () => {
+      try {
+        await updateMutation.mutateAsync({
+          id: projectId,
+          updates: {
+            ...projectData,
+            lastAccessedAt: new Date().toISOString()
+          }
+        });
+      } catch (error) {
+        console.error('Auto-save failed:', error);
       }
+    }, 30 * 1000);
 
-      await updateMutation.mutateAsync({
-        id: projectId,
-        updates: {
-          ...projectData,
-          lastAccessedAt: new Date().toISOString()
-        }
-      });
-
-      return 'saved';
-    },
-    enabled: enabled && isDirty && !!projectId,
-    refetchInterval: 30 * 1000, // 30초마다 자동저장
-    refetchIntervalInBackground: false,
-    retry: false,
-    staleTime: Infinity
-  });
+    return () => clearInterval(interval);
+  }, [enabled, isDirty, projectId, projectData, updateMutation]);
 
   return {
     isAutoSaving: updateMutation.isPending,
     autoSaveError: updateMutation.error,
-    lastAutoSave: autoSaveQuery.dataUpdatedAt
   };
 }
 
@@ -418,26 +255,24 @@ export function useDuplicateProject() {
 }
 
 /**
- * 프로젝트 캐시 관리 유틸리티
+ * RTK Query 캐시 관리 유틸리티
  */
 export function useProjectCacheManager() {
-  const queryClient = useQueryClient();
+  const dispatch = useDispatch();
 
   return {
-    invalidateAll: () => queryClient.invalidateQueries({ queryKey: projectQueryKeys.all }),
-    invalidateLists: () => queryClient.invalidateQueries({ queryKey: projectQueryKeys.lists() }),
-    invalidateRecent: () => queryClient.invalidateQueries({ queryKey: projectQueryKeys.recent() }),
-    invalidateProject: (id: string) =>
-      queryClient.invalidateQueries({ queryKey: projectQueryKeys.detail(id) }),
-    removeProject: (id: string) =>
-      queryClient.removeQueries({ queryKey: projectQueryKeys.detail(id) }),
-    prefetchProject: (id: string) =>
-      queryClient.prefetchQuery({
-        queryKey: projectQueryKeys.detail(id),
-        queryFn: () => getProject(id),
-        staleTime: 2 * 60 * 1000
-      }),
-    clearCache: () => queryClient.clear(),
+    invalidateAll: () => {
+      dispatch(apiSlice.util.invalidateTags(['Project']));
+    },
+    invalidateProject: (id: string) => {
+      dispatch(apiSlice.util.invalidateTags([{ type: 'Project', id }]));
+    },
+    resetCache: () => {
+      dispatch(apiSlice.util.resetApiState());
+    },
+    prefetchProject: (id: string) => {
+      dispatch(apiSlice.util.prefetch('getProject', id));
+    },
   };
 }
 
@@ -445,29 +280,5 @@ export function useProjectCacheManager() {
  * 프로젝트 통계 쿼리 훅
  */
 export function useProjectStats() {
-  return useQuery({
-    queryKey: [...projectQueryKeys.all, 'stats'],
-    queryFn: async () => {
-      const response = await apiClient.get<{
-        success: boolean;
-        data: {
-          totalProjects: number;
-          completedProjects: number;
-          recentActivity: number;
-          storageUsed: number; // bytes
-          collaborationCount: number;
-        };
-        message: string;
-      }>('/api/projects/stats');
-
-      if (!response.success || !response.data) {
-        throw new Error('통계를 불러오는데 실패했습니다');
-      }
-
-      return response.data;
-    },
-
-    staleTime: 5 * 60 * 1000, // 5분
-    gcTime: 30 * 60 * 1000, // 30분
-  });
+  return useGetProjectStatsQuery();
 }

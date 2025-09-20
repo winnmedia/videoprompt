@@ -345,10 +345,11 @@ export function withPermissionBoundary<P extends object>(
   const displayName = WrappedComponent.displayName || WrappedComponent.name || 'Component';
 
   const WithPermissionBoundaryComponent = (props: P) => {
+    const Fallback = fallbackComponent;
     return (
       <PermissionBoundary
         feature={feature}
-        fallback={fallbackComponent ? <fallbackComponent {...props} /> : undefined}
+        fallback={Fallback ? <Fallback {...props} /> : undefined}
       >
         <WrappedComponent {...props} />
       </PermissionBoundary>

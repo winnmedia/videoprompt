@@ -14,7 +14,7 @@ import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 import { useAuthStore } from '@/shared/store/useAuthStore';
 import { transformStoryInputToApiRequest } from '@/shared/api/dto-transformers';
-import { initializeAuth, cleanupAuth } from '@/shared/store/auth-setup';
+// import { initializeAuth, cleanupAuth } from '@/shared/store/auth-setup';
 
 // 버그 수정 검증 트래커
 class BugFixValidationTracker {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { prisma } from '@/lib/db';
+// import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { getUserIdFromRequest } from '@/shared/lib/auth';
 
 const UpdateTemplateSchema = z.object({

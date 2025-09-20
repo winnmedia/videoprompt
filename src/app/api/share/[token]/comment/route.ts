@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
-import { prisma } from '@/lib/db';
+// import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

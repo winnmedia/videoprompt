@@ -14,6 +14,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 // Force dynamic rendering to prevent static generation issues
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export const metadata: Metadata = {
   title: 'VLANET - AI 영상 플랫폼',

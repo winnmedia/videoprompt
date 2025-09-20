@@ -136,8 +136,8 @@ export class ApiClient {
       // 표준 JWT 토큰 검증 - Node.js 호환 버전
       const base64Payload = token.split('.')[1];
       const payload = JSON.parse(
-        typeof window !== 'undefined' && window.atob
-          ? atob(base64Payload) // 브라우저 환경
+        typeof window !== 'undefined' && typeof window.atob === 'function'
+          ? window.atob(base64Payload) // 브라우저 환경
           : Buffer.from(base64Payload, 'base64').toString('utf-8') // Node.js 환경
       );
       const currentTime = Date.now() / 1000;

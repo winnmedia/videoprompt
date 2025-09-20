@@ -14,7 +14,7 @@ import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 import { useAuthStore } from '@/shared/store/useAuthStore';
 import { apiClient } from '@/shared/lib/api-client';
-import { initializeAuth, cleanupAuth } from '@/shared/store/auth-setup';
+// import { initializeAuth, cleanupAuth } from '@/shared/store/auth-setup';
 
 // 에러 처리 추적 시스템
 class ErrorTracker {

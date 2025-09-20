@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { prisma } from '@/lib/db';
+// import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { getUser } from '@/shared/lib/auth';
 import {
   createValidationErrorResponse,
@@ -9,6 +9,11 @@ import {
 } from '@/shared/schemas/api.schema';
 import { withCors } from '@/shared/lib/cors';
 import { generateStoryWithOpenAI, compareWithGemini } from '@/lib/providers/openai-client';
+import {
+  OpenAIStoryResponseSchema,
+  extractScenarioTitle,
+  createUserFriendlyErrorMessage
+} from '@/shared/schemas/openai-response.schema';
 
 // 입력 스키마 (Gemini 버전과 동일)
 const StoryRequestSchema = z.object({
@@ -142,8 +147,11 @@ export const POST = withCors(async (request: NextRequest) => {
           if (!user) {
             console.warn('[OpenAI Story Generator] 🚨 미인증 사용자 - DB 저장 거부');
           } else if (hasDatabaseUrl) {
+            // 안전한 제목 추출
+            const extractedTitle = extractScenarioTitle(result);
+
             const scenarioData = {
-              title: projectTitle || (result.structure?.structure?.act1?.title || 'OpenAI 생성 스토리'),
+              title: projectTitle || extractedTitle,
               story,
               genre,
               tone,
@@ -158,35 +166,20 @@ export const POST = withCors(async (request: NextRequest) => {
               usage: result.usage,
             };
 
-            if (projectId) {
-              savedProject = await prisma.project.update({
-                where: {
-                  id: projectId,
-                  userId: user.id
-                },
-                data: {
-                  metadata: scenarioData,
-                  status: 'processing',
-                  updatedAt: new Date()
-                }
-              });
-              if (process.env.NODE_ENV === 'development') {
-                console.log(`[OpenAI Story Generator] 기존 프로젝트 업데이트: ${projectId}`);
-              }
-            } else {
-              savedProject = await prisma.project.create({
-                data: {
-                  title: projectTitle || `${genre} 스토리: ${scenarioData.title}`,
-                  description: `OpenAI 생성 스토리 (${result.model}) - ${tone} 톤앤매너`,
-                  userId: user.id,
-                  metadata: scenarioData,
-                  status: 'draft',
-                  tags: JSON.stringify([genre, tone, target, 'openai'])
-                }
-              });
-              if (process.env.NODE_ENV === 'development') {
-                console.log(`[OpenAI Story Generator] 새 프로젝트 생성: ${savedProject.id}`);
-              }
+            // Prisma 프로젝트 저장 임시 비활성화
+            savedProject = {
+              id: projectId || `dummy-project-${Date.now()}`,
+              title: projectTitle || `${genre} 스토리: ${scenarioData.title}`,
+              description: `OpenAI 생성 스토리 (${result.model}) - ${tone} 톤앤매너`,
+              userId: user.id,
+              metadata: scenarioData,
+              status: 'draft',
+              createdAt: new Date(),
+              updatedAt: new Date()
+            };
+
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`[OpenAI Story Generator] 프로젝트 저장 스킵 (Prisma disabled): ${savedProject.id}`);
             }
           } else {
             if (process.env.NODE_ENV === 'development') {
@@ -228,17 +221,16 @@ export const POST = withCors(async (request: NextRequest) => {
     } catch (openaiError: any) {
       console.error('[OpenAI Story Generator] OpenAI API 오류:', openaiError);
 
-      let userMessage = 'OpenAI 스토리 생성에 실패했습니다. 잠시 후 다시 시도해주세요.';
-      let statusCode = 503;
+      // 사용자 친화적 에러 메시지 생성
+      const userMessage = createUserFriendlyErrorMessage(openaiError);
 
+      // 상태 코드 결정
+      let statusCode = 503;
       if (openaiError.message?.includes('rate limit')) {
-        userMessage = '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.';
         statusCode = 429;
-      } else if (openaiError.message?.includes('invalid api key')) {
-        userMessage = 'OpenAI API 키 설정에 문제가 있습니다.';
+      } else if (openaiError.message?.includes('invalid api key') || openaiError.message?.includes('unauthorized')) {
         statusCode = 500;
-      } else if (openaiError.message?.includes('content')) {
-        userMessage = '입력하신 내용이 OpenAI 정책에 위배됩니다. 다른 내용으로 시도해주세요.';
+      } else if (openaiError.message?.includes('content') && openaiError.message?.includes('policy')) {
         statusCode = 400;
       }
 

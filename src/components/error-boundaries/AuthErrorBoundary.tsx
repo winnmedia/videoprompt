@@ -7,6 +7,7 @@
 
 import React, { Component, ReactNode } from 'react';
 import { Button } from '@/shared/ui';
+import { logger } from '@/shared/lib/logger';
 
 interface Props {
   children: ReactNode;
@@ -43,7 +44,13 @@ export class AuthErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: any) {
-    console.error('Auth Error Boundary caught an error:', error, errorInfo);
+    logger.error('Auth Error Boundary caught error', error, {
+      operation: 'auth-error-boundary',
+      errorInfo: {
+        componentStack: errorInfo?.componentStack,
+        errorBoundary: 'AuthErrorBoundary'
+      }
+    });
     
     // 토큰 정리 (오염된 토큰 제거)
     if (typeof window !== 'undefined') {

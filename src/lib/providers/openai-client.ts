@@ -127,15 +127,68 @@ export class OpenAIClient {
   }
 
   async generateStory(options: StoryGenerationOptions): Promise<StoryGenerationResult> {
-    try {
-      console.log('DEBUG: OpenAI 스토리 생성 시작:', {
-        story: options.story.slice(0, 100),
-        genre: options.genre,
-        tone: options.tone,
-      });
+    return this.generateStoryWithRetry(options, 3);
+  }
 
-      // 시스템 프롬프트 구성
-      const systemPrompt = `당신은 전문적인 영상 시나리오 작가입니다. 주어진 요구사항에 따라 체계적이고 창의적인 스토리 구조를 생성해주세요.
+  private async generateStoryWithRetry(options: StoryGenerationOptions, maxRetries: number): Promise<StoryGenerationResult> {
+    let lastError: any;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`DEBUG: OpenAI 스토리 생성 시작 (시도 ${attempt}/${maxRetries}):`, {
+          story: options.story.slice(0, 100),
+          genre: options.genre,
+          tone: options.tone,
+        });
+
+        const result = await this.generateStoryAttempt(options);
+
+        if (result.ok) {
+          return result;
+        }
+
+        lastError = new Error(result.error);
+
+        // 재시도 가능한 에러인지 확인
+        if (!this.isRetryableError(result.error)) {
+          break;
+        }
+
+        // 마지막 시도가 아니면 잠시 대기
+        if (attempt < maxRetries) {
+          const delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // 지수 백오프
+          console.log(`DEBUG: ${delayMs}ms 후 재시도...`);
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+
+      } catch (error) {
+        lastError = error;
+
+        // 재시도 가능한 에러인지 확인
+        if (!this.isRetryableError((error as Error).message)) {
+          break;
+        }
+
+        // 마지막 시도가 아니면 잠시 대기
+        if (attempt < maxRetries) {
+          const delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+          console.log(`DEBUG: 에러 발생, ${delayMs}ms 후 재시도...`);
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+      }
+    }
+
+    // 모든 시도 실패
+    console.error('DEBUG: OpenAI 스토리 생성 최종 실패:', lastError);
+    return {
+      ok: false,
+      error: this.createUserFriendlyError(lastError),
+    };
+  }
+
+  private async generateStoryAttempt(options: StoryGenerationOptions): Promise<StoryGenerationResult> {
+    // 시스템 프롬프트 구성
+    const systemPrompt = `당신은 전문적인 영상 시나리오 작가입니다. 주어진 요구사항에 따라 체계적이고 창의적인 스토리 구조를 생성해주세요.
 
 응답은 반드시 다음 JSON 형식으로 제공해주세요:
 
@@ -172,8 +225,8 @@ export class OpenAIClient {
   "target_audience_insights": ["타겟분석1", "타겟분석2"]
 }`;
 
-      // 사용자 프롬프트 구성
-      const userPrompt = `다음 조건에 맞는 영상 스토리를 생성해주세요:
+    // 사용자 프롬프트 구성
+    const userPrompt = `다음 조건에 맞는 영상 스토리를 생성해주세요:
 
 스토리: ${options.story}
 장르: ${options.genre}
@@ -187,70 +240,203 @@ export class OpenAIClient {
 
 위 조건들을 모두 고려하여 매력적이고 논리적인 4막 구조의 스토리를 만들어주세요.`;
 
-      // OpenAI API 호출
-      const response = await this.generateText({
-        model: 'gpt-4o-mini', // 가장 비용 효율적인 모델
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 4000,
-        top_p: 0.9,
-      });
+    // OpenAI API 호출
+    const response = await this.generateText({
+      model: 'gpt-4o-mini', // 가장 비용 효율적인 모델
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 4000,
+      top_p: 0.9,
+    });
 
-      const content = response.choices[0]?.message?.content;
-      if (!content) {
-        throw new Error('OpenAI에서 응답을 받지 못했습니다');
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('OpenAI에서 응답을 받지 못했습니다');
+    }
+
+    // 안전한 JSON 파싱 및 구조 검증
+    const parseResult = this.safeParseStoryStructure(content);
+
+    // 비용 계산
+    const usage = response.usage;
+    const estimatedCost = calculateCost(
+      'gpt-4o-mini',
+      usage.prompt_tokens,
+      usage.completion_tokens
+    );
+
+    console.log('DEBUG: OpenAI 스토리 생성 성공:', {
+      model: response.model,
+      tokensUsed: usage.total_tokens,
+      estimatedCost: `$${estimatedCost.toFixed(4)}`,
+      hasStructure: parseResult.success,
+      parseError: parseResult.error,
+    });
+
+    return {
+      ok: true,
+      content,
+      structure: parseResult.data,
+      usage: {
+        promptTokens: usage.prompt_tokens,
+        completionTokens: usage.completion_tokens,
+        totalTokens: usage.total_tokens,
+        estimatedCost,
+      },
+      model: response.model,
+    };
+  }
+
+  private safeParseStoryStructure(content: string): { success: boolean; data?: any; error?: string } {
+    try {
+      // JSON 블록 추출 시도
+      const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/\{[\s\S]*\}/);
+      const jsonString = jsonMatch ? jsonMatch[1] || jsonMatch[0] : content;
+
+      const parsed = JSON.parse(jsonString);
+
+      // 기본 구조 검증 및 기본값 적용
+      const hasValidStructure = parsed.structure &&
+        parsed.structure.act1 &&
+        parsed.structure.act2 &&
+        parsed.structure.act3 &&
+        parsed.structure.act4;
+
+      // structure 키가 없는 경우 직접 act 키를 확인
+      const hasDirectActStructure = !parsed.structure &&
+        parsed.act1 &&
+        parsed.act2 &&
+        parsed.act3 &&
+        parsed.act4;
+
+      if (!hasValidStructure && !hasDirectActStructure) {
+        console.warn('DEBUG: OpenAI 응답 구조 불완전, 기본값 적용');
+        return {
+          success: false,
+          error: '4막 구조가 불완전합니다',
+          data: this.createFallbackStructure(),
+        };
       }
 
-      // JSON 파싱 시도
-      let parsedStructure;
-      try {
-        // JSON 블록 추출 (```json으로 감싸져 있을 수 있음)
-        const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/\{[\s\S]*\}/);
-        const jsonString = jsonMatch ? jsonMatch[1] || jsonMatch[0] : content;
-        parsedStructure = JSON.parse(jsonString);
-      } catch (parseError) {
-        console.warn('DEBUG: OpenAI 응답 JSON 파싱 실패, 원문 반환:', parseError);
-        parsedStructure = null;
+      // 직접 act 구조인 경우 structure 래퍼 추가
+      if (hasDirectActStructure) {
+        console.log('DEBUG: 직접 act 구조 감지, structure 래퍼 추가');
+        return {
+          success: true,
+          data: {
+            structure: {
+              act1: parsed.act1,
+              act2: parsed.act2,
+              act3: parsed.act3,
+              act4: parsed.act4,
+            },
+            visual_style: parsed.visual_style || ['기본 스타일'],
+            mood_palette: parsed.mood_palette || ['기본 분위기'],
+            technical_approach: parsed.technical_approach || ['기본 접근'],
+            target_audience_insights: parsed.target_audience_insights || ['일반 시청자'],
+          },
+        };
       }
-
-      // 비용 계산
-      const usage = response.usage;
-      const estimatedCost = calculateCost(
-        'gpt-4o-mini',
-        usage.prompt_tokens,
-        usage.completion_tokens
-      );
-
-      console.log('DEBUG: OpenAI 스토리 생성 성공:', {
-        model: response.model,
-        tokensUsed: usage.total_tokens,
-        estimatedCost: `$${estimatedCost.toFixed(4)}`,
-        hasStructure: !!parsedStructure,
-      });
 
       return {
-        ok: true,
-        content,
-        structure: parsedStructure,
-        usage: {
-          promptTokens: usage.prompt_tokens,
-          completionTokens: usage.completion_tokens,
-          totalTokens: usage.total_tokens,
-          estimatedCost,
-        },
-        model: response.model,
+        success: true,
+        data: parsed,
       };
-
-    } catch (error) {
-      console.error('DEBUG: OpenAI 스토리 생성 실패:', error);
+    } catch (parseError) {
+      console.warn('DEBUG: OpenAI 응답 JSON 파싱 실패, 기본 구조 반환:', parseError);
       return {
-        ok: false,
-        error: `OpenAI API 호출 실패: ${(error as Error).message}`,
+        success: false,
+        error: `JSON 파싱 실패: ${(parseError as Error).message}`,
+        data: this.createFallbackStructure(),
       };
     }
+  }
+
+  private createFallbackStructure() {
+    return {
+      structure: {
+        act1: {
+          title: 'AI 생성 스토리 - 1막',
+          description: '스토리가 시작됩니다. 주인공과 상황을 소개합니다.',
+          key_elements: ['주인공 등장', '배경 설정', '갈등 암시'],
+          emotional_arc: '호기심과 기대감',
+        },
+        act2: {
+          title: 'AI 생성 스토리 - 2막',
+          description: '갈등이 심화되고 문제가 복잡해집니다.',
+          key_elements: ['갈등 발생', '장애물 등장', '선택의 기로'],
+          emotional_arc: '긴장감과 불안',
+        },
+        act3: {
+          title: 'AI 생성 스토리 - 3막',
+          description: '절정에 도달하며 모든 갈등이 폭발합니다.',
+          key_elements: ['최대 위기', '결단의 순간', '행동'],
+          emotional_arc: '극도의 긴장과 몰입',
+        },
+        act4: {
+          title: 'AI 생성 스토리 - 4막',
+          description: '갈등이 해결되고 이야기가 마무리됩니다.',
+          key_elements: ['갈등 해결', '교훈', '새로운 시작'],
+          emotional_arc: '카타르시스와 만족감',
+        },
+      },
+      visual_style: ['감정적', '따뜻함'],
+      mood_palette: ['희망적', '감동적'],
+      technical_approach: ['클래식한 연출'],
+      target_audience_insights: ['보편적 감정 어필'],
+    };
+  }
+
+  private isRetryableError(errorMessage?: string): boolean {
+    if (!errorMessage) return false;
+
+    const retryableErrors = [
+      'rate limit',
+      'timeout',
+      'network',
+      '500',
+      '502',
+      '503',
+      '504',
+      'Internal server error',
+      'Service unavailable',
+      'Gateway timeout',
+    ];
+
+    return retryableErrors.some(error =>
+      errorMessage.toLowerCase().includes(error.toLowerCase())
+    );
+  }
+
+  private createUserFriendlyError(error: any): string {
+    const errorMessage = error?.message || String(error);
+
+    // 기술적 세부사항 숨기고 사용자 친화적 메시지로 변환
+    if (errorMessage.includes('rate limit')) {
+      return 'AI 서비스 사용량이 많습니다. 잠시 후 다시 시도해주세요.';
+    }
+
+    if (errorMessage.includes('invalid api key') || errorMessage.includes('unauthorized')) {
+      return 'AI 서비스 연결에 문제가 있습니다. 관리자에게 문의해주세요.';
+    }
+
+    if (errorMessage.includes('content') && errorMessage.includes('policy')) {
+      return '입력하신 내용이 AI 정책에 위배됩니다. 다른 내용으로 시도해주세요.';
+    }
+
+    if (errorMessage.includes('network') || errorMessage.includes('timeout')) {
+      return '네트워크 연결에 문제가 있습니다. 인터넷 연결을 확인하고 다시 시도해주세요.';
+    }
+
+    if (errorMessage.includes('500') || errorMessage.includes('Internal server error')) {
+      return 'AI 서비스에 일시적인 문제가 있습니다. 잠시 후 다시 시도해주세요.';
+    }
+
+    // 기본 에러 메시지 (기술적 세부사항 제거)
+    return '스토리 생성 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
   }
 }
 

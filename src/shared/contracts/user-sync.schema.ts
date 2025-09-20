@@ -1,5 +1,5 @@
 /**
- * 🔄 사용자 동기화 데이터 계약 및 스키마
+ * 사용자 동기화 데이터 계약 및 스키마
  * VideoPlanet 프로젝트 - Prisma User ↔ Supabase Auth 동기화
  *
  * 목적:
@@ -9,17 +9,18 @@
  */
 
 import { z } from 'zod';
+import { toInputJsonValue } from '@/shared/lib/json-utils';
 
 /**
  * Supabase User DTO 스키마
  */
 const SupabaseUserDTOSchema = z.object({
-  id: z.string().uuid('유효한 UUID 형식이어야 합니다'),
-  email: z.string().email('유효한 이메일 형식이어야 합니다').optional(),
+  id: z.string().uuid(),
+  email: z.string().email().optional(),
   phone: z.string().optional(),
   email_confirmed_at: z.string().datetime().optional(),
   phone_confirmed_at: z.string().datetime().optional(),
-  created_at: z.string().datetime('유효한 ISO 날짜 형식이어야 합니다'),
+  created_at: z.string().datetime(),
   updated_at: z.string().datetime().optional(),
   last_sign_in_at: z.string().datetime().optional(),
   user_metadata: z.object({
@@ -27,7 +28,7 @@ const SupabaseUserDTOSchema = z.object({
     full_name: z.string().optional(),
     avatar_url: z.string().url().optional(),
     role: z.enum(['admin', 'user', 'guest']).optional(),
-    preferences: z.record(z.any()).optional()
+    preferences: z.record(z.string(), z.unknown()).optional()
   }).optional(),
   app_metadata: z.object({
     provider: z.string().optional(),
@@ -40,17 +41,29 @@ const SupabaseUserDTOSchema = z.object({
  * Prisma User DTO 스키마
  */
 const PrismaUserDTOSchema = z.object({
-  id: z.string().uuid('유효한 UUID 형식이어야 합니다'),
-  email: z.string().email('유효한 이메일 형식이어야 합니다').optional(),
-  username: z.string().min(1, '사용자명은 필수입니다').optional(),
+  id: z.string().uuid(),
+  email: z.string().email(), // Prisma에서 필수 필드
+  username: z.string().min(1, '사용자명은 필수입니다'), // Prisma에서 필수 필드
   fullName: z.string().optional(),
   avatarUrl: z.string().url().optional(),
   role: z.enum(['admin', 'user', 'guest']).default('user'),
   isEmailVerified: z.boolean().default(false),
-  preferences: z.record(z.any()).optional(),
+  passwordHash: z.string().default(''), // Supabase Auth는 password 관리, 빈 문자열 기본값
+  preferences: z.any().optional(), // Prisma InputJsonValue 호환 (JSON 타입)
   lastSignInAt: z.date().optional(),
   createdAt: z.date(),
   updatedAt: z.date()
+});
+
+/**
+ * 동기화 상태 스키마
+ */
+const SyncStatusSchema = z.object({
+  syncHealth: z.enum(['healthy', 'missing', 'conflict', 'outdated']),
+  healthScore: z.number().min(0).max(100),
+  lastSyncAt: z.date().optional(),
+  errors: z.array(z.string()).default([]),
+  recommendations: z.array(z.string()).default([])
 });
 
 /**
@@ -74,12 +87,25 @@ const SyncResultSchema = z.object({
   success: z.boolean(),
   operation: z.enum(['create', 'update', 'skip', 'error']),
   userId: z.string().uuid(),
-  changes: z.record(z.any()).optional(),
+  changes: z.record(z.string(), z.unknown()).optional(),
   errors: z.array(z.string()).default([]),
   qualityScore: z.number().min(0).max(100),
   recommendations: z.array(z.string()).default([]),
   executionTime: z.number().positive(),
   timestamp: z.date()
+});
+
+/**
+ * 사용자 동기화 요청 스키마
+ */
+const UserSyncRequestSchema = z.object({
+  userId: z.string().uuid(),
+  operation: z.enum(['sync', 'create', 'update', 'validate']),
+  options: z.object({
+    forceSync: z.boolean().default(false),
+    validateData: z.boolean().default(true),
+    createBackup: z.boolean().default(true)
+  }).optional()
 });
 
 /**
@@ -141,15 +167,16 @@ export function transformSupabaseUserToPrisma(supabaseUser: z.infer<typeof Supab
 
   const prismaUser = {
     id: validatedSupabaseUser.id,
-    email: validatedSupabaseUser.email,
+    email: validatedSupabaseUser.email || `${validatedSupabaseUser.id.slice(0, 8)}@temp.local`, // 이메일 필수이므로 임시 이메일 생성
     username: validatedSupabaseUser.user_metadata?.username ||
-              validatedSupabaseUser.email?.split('@')[0] ||
+              (validatedSupabaseUser.email || `${validatedSupabaseUser.id.slice(0, 8)}@temp.local`).split('@')[0] ||
               `user_${validatedSupabaseUser.id.slice(0, 8)}`,
     fullName: validatedSupabaseUser.user_metadata?.full_name,
     avatarUrl: validatedSupabaseUser.user_metadata?.avatar_url,
     role: (validatedSupabaseUser.user_metadata?.role || validatedSupabaseUser.app_metadata?.role || 'user') as 'admin' | 'user' | 'guest',
     isEmailVerified: !!validatedSupabaseUser.email_confirmed_at,
-    preferences: validatedSupabaseUser.user_metadata?.preferences,
+    passwordHash: '', // Supabase Auth에서 패스워드 관리, Prisma는 빈 문자열 저장
+    preferences: toInputJsonValue(validatedSupabaseUser.user_metadata?.preferences),
     lastSignInAt: validatedSupabaseUser.last_sign_in_at ? new Date(validatedSupabaseUser.last_sign_in_at) : undefined,
     createdAt: new Date(validatedSupabaseUser.created_at),
     updatedAt: validatedSupabaseUser.updated_at ? new Date(validatedSupabaseUser.updated_at) : new Date()
@@ -313,7 +340,9 @@ export function validateUserSyncContract(
 export type SupabaseUserDTO = z.infer<typeof SupabaseUserDTOSchema>;
 export type PrismaUserDTO = z.infer<typeof PrismaUserDTOSchema>;
 export type PrismaUserDomain = z.infer<typeof PrismaUserDTOSchema>; // 도메인 레이어 호환성
+export type SyncStatus = z.infer<typeof SyncStatusSchema>;
 export type UserSyncStatus = z.infer<typeof UserSyncStatusSchema>;
+export type UserSyncRequest = z.infer<typeof UserSyncRequestSchema>;
 export type SyncResult = z.infer<typeof SyncResultSchema>;
 export type MigrationOptions = z.infer<typeof MigrationOptionsSchema>;
 export type UserDataQuality = z.infer<typeof UserDataQualitySchema>;
@@ -323,7 +352,9 @@ export {
   SupabaseUserDTOSchema,
   PrismaUserDTOSchema,
   PrismaUserDTOSchema as PrismaUserDomainSchema, // 도메인 레이어 호환성 별명
+  SyncStatusSchema,
   UserSyncStatusSchema,
+  UserSyncRequestSchema,
   SyncResultSchema,
   MigrationOptionsSchema,
   UserDataQualitySchema

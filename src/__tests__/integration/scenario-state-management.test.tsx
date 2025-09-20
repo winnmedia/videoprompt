@@ -10,10 +10,8 @@ import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 
 // Store slices
-import scenarioReducer from '@/entities/scenario/store/scenario-slice';
-import storyReducer from '@/entities/scenario/store/story-slice';
-import storyboardReducer from '@/entities/scenario/store/storyboard-slice';
-import uiReducer from '@/shared/store/ui-slice';
+import { scenarioReducer, storyReducer, storyboardReducer } from '@/entities/scenario';
+import uiReducer from '@/app/store/ui-slice';
 
 // Hooks
 import { useStoryGeneration, useStorySave } from '@/features/scenario/hooks/use-story-generation';

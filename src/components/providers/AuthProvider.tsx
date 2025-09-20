@@ -7,9 +7,9 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { initializeAuth } from '@/shared/store/auth-setup';
-import { useAuthStore } from '@/shared/store/useAuthStore';
+import { useAuthStore } from '@/shared/store';
 import { useAuthApiGuard } from '@/shared/hooks/useApiCallGuard';
+import { logger } from '@/shared/lib/logger';
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -34,14 +34,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     // 이미 초기화된 경우 중복 실행 방지
     if (initializeRef.current) {
-      console.log('🚨 AuthProvider: Already initialized, skipping...');
+      logger.debug('AuthProvider already initialized', {
+        operation: 'auth-provider-skip'
+      });
       return;
     }
 
-    console.log('🔥 AuthProvider: Initializing auth system...');
+    logger.debug('AuthProvider initializing', {
+      operation: 'auth-provider-init'
+    });
 
-    // 🔥 401 오류 해결: 앱 시작 시 인증 시스템 초기화
-    initializeAuth();
+    // 🔥 Redux 기반 인증 시스템 - 별도 초기화 불필요
 
     // 🚨 게스트 사용자 보호: 토큰이 없으면 checkAuth 스킵
     const hasToken = typeof window !== 'undefined' && (
@@ -51,7 +54,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     );
 
     if (!hasToken) {
-      console.log('🚨 AuthProvider: No token detected - skipping checkAuth for guest user');
+      logger.debug('No token detected, skipping auth check', {
+        operation: 'auth-provider-guest-skip'
+      });
       initializeRef.current = true;
       return;
     }
@@ -59,14 +64,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // 🚨 안전한 초기 인증 상태 확인 (토큰이 있는 경우에만)
     const performInitialCheck = async () => {
       try {
-        console.log('🔐 AuthProvider: Performing initial auth check with token...');
+        logger.debug('Performing initial auth check', {
+          operation: 'auth-provider-token-check'
+        });
 
         // 🚨 가드 시스템을 통한 안전한 API 호출
         const guardStatus = getStatus();
-        console.log('🛡️ AuthProvider: Guard status:', guardStatus);
+        logger.debug('Auth guard status', {
+          operation: 'auth-provider-guard-status',
+          guardStatus
+        });
 
         if (!guardStatus.canCall) {
-          console.warn('🚨 AuthProvider: Guard blocked initial auth check');
+          logger.warn('Auth guard blocked initial check', {
+            operation: 'auth-provider-guard-blocked'
+          });
           initializeRef.current = true;
           return;
         }
@@ -75,11 +87,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const result = await guardedCall(() => checkAuthRef.current());
 
         if (result.success) {
-          console.log('✅ AuthProvider: Initial auth check completed successfully');
+          logger.debug('Initial auth check completed', {
+            operation: 'auth-provider-check-success'
+          });
         } else if (result.blocked) {
-          console.warn('🚨 AuthProvider: Auth check was blocked by guard:', result.reason);
+          logger.warn('Auth check blocked by guard', {
+            operation: 'auth-provider-check-blocked',
+            reason: result.reason
+          });
         } else {
-          console.warn('⚠️ AuthProvider: Initial auth check failed:', result.error);
+          logger.warn('Initial auth check failed', {
+            operation: 'auth-provider-check-failed',
+            error: result.error ? {
+              name: 'AuthError',
+              message: String(result.error),
+              code: 'AUTH_CHECK_FAILED'
+            } : undefined
+          });
           initialCheckFailedRef.current = true;
 
           // 인증 실패 시 토큰 정리 (ApiClient에서 자동 처리되지만 확실히)
@@ -89,7 +113,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           }
         }
       } catch (error) {
-        console.warn('⚠️ AuthProvider: Initial auth check error:', error);
+        logger.error('Auth check error', error as Error, {
+          operation: 'auth-provider-error'
+        });
         initialCheckFailedRef.current = true;
 
         // 인증 실패 시 토큰 정리

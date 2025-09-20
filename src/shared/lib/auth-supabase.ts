@@ -1,11 +1,75 @@
 /**
  * Supabase Auth 기반 인증 라이브러리
  * 기존 auth.ts의 Supabase Auth 버전
+ * Supabase 에러 메시지 한국어 매핑 강화
  */
 
 import type { NextRequest } from 'next/server';
 import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import type { User } from '@supabase/supabase-js';
+
+/**
+ * Supabase 에러 메시지를 사용자 친화적인 한국어로 변환
+ */
+function mapSupabaseErrorToKorean(error: any): string {
+  if (!error?.message) {
+    return '알 수 없는 오류가 발생했습니다.';
+  }
+
+  const message = error.message.toLowerCase();
+
+  // 인증 관련 에러들
+  if (message.includes('email not confirmed') || message.includes('email_not_confirmed')) {
+    return '이메일 인증이 필요합니다. 가입 시 받은 이메일을 확인하여 계정을 활성화해주세요.';
+  }
+
+  if (message.includes('invalid login credentials') || message.includes('invalid_credentials')) {
+    return '이메일 또는 비밀번호가 올바르지 않습니다.';
+  }
+
+  if (message.includes('user already registered') || message.includes('already registered')) {
+    return '이미 등록된 이메일입니다.';
+  }
+
+  if (message.includes('signup disabled') || message.includes('signups not allowed')) {
+    return '회원가입이 현재 비활성화되어 있습니다.';
+  }
+
+  if (message.includes('password')) {
+    if (message.includes('too short') || message.includes('minimum')) {
+      return '비밀번호가 너무 짧습니다. 최소 8자 이상 입력해주세요.';
+    }
+    if (message.includes('weak') || message.includes('strength')) {
+      return '비밀번호가 너무 약합니다. 더 강한 비밀번호를 사용해주세요.';
+    }
+    return '비밀번호 형식이 올바르지 않습니다.';
+  }
+
+  if (message.includes('email')) {
+    if (message.includes('invalid') || message.includes('format')) {
+      return '이메일 형식이 올바르지 않습니다.';
+    }
+    if (message.includes('not found')) {
+      return '등록되지 않은 이메일입니다.';
+    }
+    return '이메일 관련 오류가 발생했습니다.';
+  }
+
+  if (message.includes('rate limit') || message.includes('too many')) {
+    return '너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요.';
+  }
+
+  if (message.includes('network') || message.includes('fetch')) {
+    return '네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.';
+  }
+
+  if (message.includes('session') || message.includes('token') || message.includes('expired')) {
+    return '세션이 만료되었습니다. 다시 로그인해주세요.';
+  }
+
+  // 기본 오류 메시지
+  return '로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+}
 
 type AuthUser = {
   id: string;
@@ -133,7 +197,7 @@ export async function requireSupabaseAuthentication(req: NextRequest): Promise<s
 }
 
 /**
- * Supabase Auth로 사용자 로그인
+ * Supabase Auth로 사용자 로그인 (에러 메시지 한국어 매핑)
  */
 export async function signInWithSupabase(email: string, password: string) {
   try {
@@ -145,17 +209,27 @@ export async function signInWithSupabase(email: string, password: string) {
     });
 
     if (error) {
-      return { user: null, session: null, error };
+      // 한국어 에러 메시지로 변환
+      const koreanError = {
+        ...error,
+        message: mapSupabaseErrorToKorean(error),
+        originalMessage: error.message, // 원본 메시지 보존 (디버깅용)
+      };
+      return { user: null, session: null, error: koreanError };
     }
 
     return { user: data.user, session: data.session, error: null };
   } catch (error) {
-    return { user: null, session: null, error };
+    const koreanError = {
+      message: mapSupabaseErrorToKorean(error),
+      originalMessage: error,
+    };
+    return { user: null, session: null, error: koreanError };
   }
 }
 
 /**
- * Supabase Auth로 사용자 회원가입
+ * Supabase Auth로 사용자 회원가입 (에러 메시지 한국어 매핑)
  */
 export async function signUpWithSupabase(email: string, password: string, metadata?: { username?: string }) {
   try {
@@ -170,12 +244,22 @@ export async function signUpWithSupabase(email: string, password: string, metada
     });
 
     if (error) {
-      return { user: null, session: null, error };
+      // 한국어 에러 메시지로 변환
+      const koreanError = {
+        ...error,
+        message: mapSupabaseErrorToKorean(error),
+        originalMessage: error.message, // 원본 메시지 보존 (디버깅용)
+      };
+      return { user: null, session: null, error: koreanError };
     }
 
     return { user: data.user, session: data.session, error: null };
   } catch (error) {
-    return { user: null, session: null, error };
+    const koreanError = {
+      message: mapSupabaseErrorToKorean(error),
+      originalMessage: error,
+    };
+    return { user: null, session: null, error: koreanError };
   }
 }
 

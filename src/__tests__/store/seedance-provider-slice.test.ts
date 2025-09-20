@@ -4,7 +4,8 @@
  */
 
 import { configureStore } from '@reduxjs/toolkit';
-import seedanceProviderSlice, {
+import {
+  seedanceProviderReducer,
   setProviderConfig,
   setProviderStatus,
   updateApiKeyStatus,
@@ -13,10 +14,10 @@ import seedanceProviderSlice, {
   selectProviderStatus,
   selectApiKeyStatus,
   selectShouldUseMock,
-  SeedanceProviderState,
-  ProviderStatus,
-  ApiKeyStatus
-} from '@/entities/seedance/store/seedance-provider-slice';
+  type SeedanceProviderState,
+  type ProviderStatus,
+  type ApiKeyStatus
+} from '@/entities/seedance';
 
 describe('Seedance Provider Redux Slice', () => {
   let store: ReturnType<typeof configureStore>;
@@ -24,7 +25,7 @@ describe('Seedance Provider Redux Slice', () => {
   beforeEach(() => {
     store = configureStore({
       reducer: {
-        seedanceProvider: seedanceProviderSlice.reducer,
+        seedanceProvider: seedanceProviderReducer,
       },
     });
   });

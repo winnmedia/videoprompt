@@ -10,6 +10,8 @@ import { getUserIdFromRequest } from '@/shared/lib/auth';
 import { requireSupabaseAuthentication, isAuthenticated, isGuest } from '@/shared/lib/supabase-auth';
 import { StoryGenerationSchema, type NormalizedStoryGenerationRequest } from '@/shared/schemas/story-generation.schema';
 import { transformStoryInputToApiRequest } from '@/shared/api/dto-transformers';
+import { getAIApiKeys } from '@/shared/config/env';
+import { withAICache } from '@/shared/lib/ai-cache';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -34,7 +36,8 @@ async function generateStoryWithGemini(data: NormalizedStoryGenerationRequest): 
   model?: string;
   error?: string;
 }> {
-  const geminiApiKey = process.env.GOOGLE_GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  const apiKeys = getAIApiKeys();
+  const geminiApiKey = apiKeys.gemini;
 
   if (!geminiApiKey) {
     throw new Error('GOOGLE_GEMINI_API_KEY가 설정되지 않았습니다. Vercel 환경변수를 확인해주세요.');
@@ -102,11 +105,12 @@ async function generateStoryWithGemini(data: NormalizedStoryGenerationRequest): 
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiApiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-goog-api-key': geminiApiKey,
         },
         body: JSON.stringify({
           contents: [
@@ -241,7 +245,7 @@ export async function POST(request: NextRequest) {
 
     console.log('DEBUG: 스토리 생성 시작 - Gemini 우선 시도');
 
-    // 1단계: Gemini 2.0 Flash 시도 (주요)
+    // 1단계: Gemini 2.0 Flash 시도 (주요) + 캐싱
     try {
       // toneAndManner를 string으로 정규화
       const normalizedData = {
@@ -250,7 +254,13 @@ export async function POST(request: NextRequest) {
           ? data.toneAndManner.join(', ')
           : data.toneAndManner
       };
-      const geminiResult = await generateStoryWithGemini(normalizedData);
+
+      // AI 캐싱 적용: 동일한 입력에 대해 1시간 캐싱
+      const geminiResult = await withAICache(
+        normalizedData,
+        () => generateStoryWithGemini(normalizedData),
+        { ttl: 60 * 60 * 1000 } // 1시간 캐싱
+      );
 
       if (geminiResult.success && geminiResult.steps) {
         console.log('DEBUG: Gemini 스토리 생성 성공:', {
@@ -277,11 +287,11 @@ export async function POST(request: NextRequest) {
       console.warn('DEBUG: Gemini 실패, OpenAI로 폴백:', geminiError);
     }
 
-    // 2단계: OpenAI 폴백 시도
+    // 2단계: OpenAI 폴백 시도 + 캐싱
     console.log('DEBUG: OpenAI 폴백 시도');
 
     try {
-      const openaiResult = await generateStoryWithOpenAI({
+      const openaiRequestData = {
         story: data.oneLineStory,
         genre: data.genre,
         tone: Array.isArray(data.toneAndManner)
@@ -293,7 +303,14 @@ export async function POST(request: NextRequest) {
         tempo: data.tempo,
         developmentMethod: data.developmentMethod,
         developmentIntensity: data.developmentIntensity,
-      });
+      };
+
+      // AI 캐싱 적용: 동일한 입력에 대해 1시간 캐싱
+      const openaiResult = await withAICache(
+        openaiRequestData,
+        () => generateStoryWithOpenAI(openaiRequestData),
+        { ttl: 60 * 60 * 1000 } // 1시간 캐싱
+      );
 
       if (openaiResult.ok && openaiResult.structure) {
         // OpenAI 응답을 표준 형식으로 변환

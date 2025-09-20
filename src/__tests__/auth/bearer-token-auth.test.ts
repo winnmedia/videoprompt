@@ -8,7 +8,7 @@ import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 import { apiClient } from '@/shared/lib/api-client';
 import { useAuthStore } from '@/shared/store/useAuthStore';
-import { initializeAuth, cleanupAuth } from '@/shared/store/auth-setup';
+// import { initializeAuth, cleanupAuth } from '@/shared/store/auth-setup';
 
 // 테스트용 Mock API 클라이언트
  const mockApiClient = {

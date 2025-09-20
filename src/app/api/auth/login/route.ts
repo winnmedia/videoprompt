@@ -60,19 +60,13 @@ export async function POST(req: NextRequest) {
     const { user, session, error } = await signInWithSupabase(email, password);
 
     if (error || !user || !session) {
-      console.warn(`❌ Login failed for ${email}:`, (error as any)?.message);
+      console.warn(`❌ Login failed for ${email}:`, (error as any)?.originalMessage || (error as any)?.message);
 
-      // 이메일 미확인 에러 특별 처리
-      const errorMsg = (error as any)?.message || '';
-      let errorMessage = '로그인 중 오류가 발생했습니다.';
+      // 이미 한국어로 변환된 에러 메시지 사용
+      const errorMessage = (error as any)?.message || '로그인 중 오류가 발생했습니다.';
+      const debugMessage = (error as any)?.originalMessage || (error as any)?.message;
 
-      if (errorMsg.toLowerCase().includes('email not confirmed')) {
-        errorMessage = '이메일 인증이 필요합니다. 가입 시 받은 이메일을 확인하여 계정을 활성화해주세요.';
-      } else if (errorMsg.toLowerCase().includes('invalid')) {
-        errorMessage = '이메일 또는 비밀번호가 올바르지 않습니다.';
-      }
-
-      const response = failure('UNAUTHORIZED', errorMessage, 401, errorMsg, traceId);
+      const response = failure('UNAUTHORIZED', errorMessage, 401, debugMessage, traceId);
       return addCorsHeaders(response);
     }
 

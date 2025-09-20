@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '@/shared/store';
+import { useAppDispatch, useAppSelector } from '@/app/store';
 import {
   setProviderConfig,
   setApiKeyValid,

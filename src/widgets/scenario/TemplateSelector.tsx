@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { StoryTemplate, StoryInput } from '@/entities/scenario';
-import { DEFAULT_TEMPLATES } from '@/entities/scenario/templates';
+import { DEFAULT_TEMPLATES } from '@/entities/scenario';
 import { Button } from '@/shared/ui';
 import { safeFetch } from '@/shared/lib/api-retry';
 

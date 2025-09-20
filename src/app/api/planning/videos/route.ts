@@ -51,12 +51,12 @@ const getHandler = async (req: NextRequest, { user }: { user: { id: string | nul
         };
       });
 
-    const healthStatus = repository.getStorageHealth();
+    const healthStatus = await repository.getStorageHealth();
     const dualStorageResult: DualStorageResult = {
       id: 'videos-query',
       success: true,
-      prismaSuccess: healthStatus.prisma.isHealthy,
-      supabaseSuccess: healthStatus.supabase.isHealthy
+      prismaSuccess: healthStatus.prisma.status === 'healthy',
+      supabaseSuccess: healthStatus.supabase.status === 'healthy'
     };
 
     return NextResponse.json(
@@ -125,12 +125,12 @@ const postHandler = async (req: NextRequest, { user }: { user: { id: string | nu
       );
     }
 
-    const healthStatus = repository.getStorageHealth();
+    const healthStatus = await repository.getStorageHealth();
     const dualStorageResult: DualStorageResult = {
       id: result.id,
       success: true,
-      prismaSuccess: healthStatus.prisma.isHealthy,
-      supabaseSuccess: healthStatus.supabase.isHealthy
+      prismaSuccess: healthStatus.prisma.status === 'healthy',
+      supabaseSuccess: healthStatus.supabase.status === 'healthy'
     };
 
     const responseData = {

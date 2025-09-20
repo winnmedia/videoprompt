@@ -3,21 +3,29 @@
  * FSD Architecture - Entities Layer
  *
  * 핵심 원칙:
- * - 비즈니스 도메인의 순수한 타입 정의
- * - 외부 기술에 의존하지 않음
- * - 단일 책임 원칙 준수
+ * - Zod 스키마에서 자동 생성된 타입 사용 (Single Source of Truth)
+ * - 런타임 검증과 타입 안전성 동시 확보
+ * - 데이터 계약 일관성 보장
  */
 
-export type ContentType = 'scenario' | 'prompt' | 'video' | 'story' | 'image';
+import {
+  ContentTypeSchema,
+  ContentStatusSchema,
+  BaseContentSchema,
+  ScenarioContentSchema,
+  PromptContentSchema,
+  VideoContentSchema,
+  type PlanningContent as PlanningContentFromContract,
+  type ContentType as ContentTypeFromContract,
+  type ContentStatus as ContentStatusFromContract
+} from '@/shared/contracts/planning.contract';
+import { z } from 'zod';
 
-export type ContentStatus =
-  | 'draft'      // 초안
-  | 'active'     // 활성
-  | 'processing' // 처리 중
-  | 'completed'  // 완료
-  | 'failed'     // 실패
-  | 'archived';  // 보관됨
+// Zod 스키마에서 자동 생성된 타입들 (Single Source of Truth)
+export type ContentType = ContentTypeFromContract;
+export type ContentStatus = ContentStatusFromContract;
 
+// Storage status는 아직 contract에 없으므로 임시로 유지 (TODO: contract에 추가)
 export type StorageStatus =
   | 'pending'    // 저장 대기
   | 'saving'     // 저장 중
@@ -30,87 +38,52 @@ export type StorageStatus =
 // ============================================================================
 
 /**
- * 기본 컨텐츠 엔티티 (Prisma Planning 모델 호환)
+ * 기본 컨텐츠 엔티티 - Zod 스키마에서 자동 생성 (Single Source of Truth)
  */
-export interface BaseContent {
-  id: string;
-  type: ContentType;
-  title: string;
-  userId?: string;
-  projectId?: string;
-  status: ContentStatus;
-  source?: string;
+export type BaseContent = z.infer<typeof BaseContentSchema> & {
+  // Storage status 추가 (아직 contract에 없는 필드)
   storageStatus: StorageStatus;
-  createdAt: string; // ISO string format for consistency
-  updatedAt: string; // ISO string format for consistency
-
-  // 메타데이터 (JSON 필드)
-  metadata?: Record<string, any>;
-
-  // 저장소 상태 추적 (JSON 필드)
   storage?: {
     prisma: { saved: boolean; error?: string };
     supabase: { saved: boolean; error?: string };
   };
-}
+};
 
 /**
- * 시나리오 엔티티
+ * 시나리오 엔티티 - Zod 스키마에서 자동 생성 (Single Source of Truth)
  */
-export interface ScenarioContent extends BaseContent {
-  type: 'scenario';
-  story: string;
-  genre?: string;
-  tone?: string;
-  target?: string;
-  format?: string;
-  tempo?: string;
-  developmentMethod?: string;
-  developmentIntensity?: string;
-  durationSec?: number;
-
-  // 시나리오 특화 메타데이터
-  metadata?: Record<string, any> & {
-    hasFourStep?: boolean;
-    hasTwelveShot?: boolean;
-    wordCount?: number;
+export type ScenarioContent = z.infer<typeof ScenarioContentSchema> & {
+  // Storage status 추가 (아직 contract에 없는 필드)
+  storageStatus: StorageStatus;
+  storage?: {
+    prisma: { saved: boolean; error?: string };
+    supabase: { saved: boolean; error?: string };
   };
-}
+};
 
 /**
- * 프롬프트 엔티티
+ * 프롬프트 엔티티 - Zod 스키마에서 자동 생성 (Single Source of Truth)
  */
-export interface PromptContent extends BaseContent {
-  type: 'prompt';
-  scenarioTitle?: string;
-  finalPrompt: string;
-  keywords?: string[];
-
-  // 프롬프트 특화 메타데이터
-  metadata?: Record<string, any> & {
-    keywordCount?: number;
-    segmentCount?: number;
-    promptLength?: number;
+export type PromptContent = z.infer<typeof PromptContentSchema> & {
+  // Storage status 추가 (아직 contract에 없는 필드)
+  storageStatus: StorageStatus;
+  storage?: {
+    prisma: { saved: boolean; error?: string };
+    supabase: { saved: boolean; error?: string };
   };
-}
+};
 
 /**
- * 영상 엔티티
+ * 영상 엔티티 - Zod 스키마에서 자동 생성 (Single Source of Truth)
  */
-export interface VideoContent extends BaseContent {
-  type: 'video';
-  videoUrl?: string;
-  thumbnailUrl?: string;
-  processingJobId?: string;
-
-  // 영상 특화 메타데이터
-  metadata?: Record<string, any> & {
-    duration?: number;
-    resolution?: string;
-    fileSize?: number;
-    provider?: 'seedance' | 'mock';
+export type VideoContent = z.infer<typeof VideoContentSchema> & {
+  // Storage status 추가 (아직 contract에 없는 필드)
+  storageStatus: StorageStatus;
+  storage?: {
+    prisma: { saved: boolean; error?: string };
+    supabase: { saved: boolean; error?: string };
   };
-}
+};
 
 /**
  * 유니온 타입 - 모든 컨텐츠 타입
@@ -144,6 +117,12 @@ export interface ImageAsset {
   url: string;
   alt?: string;
   metadata?: Record<string, any>;
+  title?: string;
+  dimensions?: string;
+  format?: string;
+  fileSize?: number;
+  createdAt?: string;
+  tags?: string[];
 }
 
 /**

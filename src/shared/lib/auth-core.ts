@@ -170,7 +170,7 @@ async function checkRateLimit(req: NextRequest, options: AuthOptions): Promise<R
   const clientKey = `${clientIp}:${userAgent.slice(0, 50)}`;
 
   // 엔드포인트별 제한 설정
-  let limits = RATE_LIMITS.GENERAL_AUTH;
+  let limits: { maxPerMinute: number; costPerRequest: number } = RATE_LIMITS.GENERAL_AUTH;
   if (endpoint.includes('/auth/me')) {
     limits = RATE_LIMITS.AUTH_ME;
   } else if (endpoint.includes('/auth/refresh')) {
@@ -438,7 +438,7 @@ async function authenticateWithSupabase(
         {
           requestId,
           timestamp: Date.now(),
-          details: supabaseResult.error,
+          details: supabaseResult.error ?? undefined,
           recommendation: '관리자에게 문의하세요.'
         }
       );
@@ -741,11 +741,13 @@ function createGuestAuthResult(degradationMode: DegradationMode, requestId: stri
   return { success: true, context };
 }
 
+type AuthErrorMetadata = Partial<Omit<AuthError, 'code' | 'message' | 'statusCode'>>;
+
 function createAuthError(
   code: AuthErrorCode,
   message: string,
   statusCode: number,
-  metadata: Partial<AuthError> = {}
+  metadata: AuthErrorMetadata = {}
 ): AuthResult {
   const error: AuthError = {
     code,

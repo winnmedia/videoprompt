@@ -13,7 +13,7 @@ import { describe, test, expect, beforeEach, afterEach, afterAll, vi } from 'vit
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 import { useAuthStore } from '@/shared/store/useAuthStore';
-import { initializeAuth, cleanupAuth } from '@/shared/store/auth-setup';
+// import { initializeAuth, cleanupAuth } from '@/shared/store/auth-setup';
 
 // $300 사건 방지를 위한 고급 무한 루프 감지기
 class AuthLoopDetector {

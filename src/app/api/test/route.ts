@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'nodejs';
-import { prisma } from '@/lib/db';
+// import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 
 export async function GET(request: NextRequest) {
   // 🔒 프로덕션 환경에서 테스트 엔드포인트 차단

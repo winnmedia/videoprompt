@@ -8,7 +8,7 @@ import { StoryTemplate } from './types';
 export const DEFAULT_TEMPLATES: StoryTemplate[] = [
   {
     id: 'template-advertisement',
-    name: '💥 임팩트 광고 영상',
+    name: '임팩트 광고 영상',
     description: '15-30초 내에 브랜드 메시지를 강력하게 전달하는 광고 영상. 시청자의 주목을 즉시 끌고 행동을 유도합니다.',
     category: 'advertisement',
     thumbnailUrl: '/templates/ad-template.jpg',
@@ -30,7 +30,7 @@ export const DEFAULT_TEMPLATES: StoryTemplate[] = [
   },
   {
     id: 'template-vlog',
-    name: '📹 일상 브이로그',
+    name: '일상 브이로그',
     description: '개인의 하루나 특별한 경험을 자연스럽고 친근하게 공유하는 브이로그. 구독자와의 진정성 있는 소통을 중심으로 합니다.',
     category: 'vlog',
     thumbnailUrl: '/templates/vlog-template.jpg',
@@ -52,7 +52,7 @@ export const DEFAULT_TEMPLATES: StoryTemplate[] = [
   },
   {
     id: 'template-tutorial',
-    name: '🎓 실용 튜토리얼',
+    name: '실용 튜토리얼',
     description: '단계별로 명확하게 설명하는 교육 영상. 시청자가 따라 하며 실제로 배울 수 있도록 구성된 실용적인 가이드입니다.',
     category: 'tutorial',
     thumbnailUrl: '/templates/tutorial-template.jpg',

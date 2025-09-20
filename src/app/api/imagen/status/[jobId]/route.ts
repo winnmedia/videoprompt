@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getJobStatus } from '@/shared/lib/job-store';
+import { logger } from '@/shared/lib/logger';
 
 export async function GET(
   request: NextRequest,
@@ -33,7 +34,9 @@ export async function GET(
     });
     
   } catch (error) {
-    console.error('Status check error:', error);
+    logger.error('Job status check failed', error as Error, {
+      operation: 'imagen-status-check'
+    });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

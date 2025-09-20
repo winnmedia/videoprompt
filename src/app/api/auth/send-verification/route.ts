@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import crypto from 'crypto';
-import { prisma } from '@/lib/db';
+// import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { sendVerificationEmail } from '@/lib/email/sender';
 import { safeParseRequestBody } from '@/lib/json-utils';
@@ -40,46 +40,12 @@ export async function POST(req: NextRequest) {
     const { email } = parseResult.data!;
     console.log(`[SendVerification ${traceId}] ✅ 입력값 파싱 및 검증 성공:`, { email });
 
-    // 데이터베이스 작업을 안전하게 실행
-    const { existingUser, verificationToken, verificationCode } = await executeDatabaseOperation(async () => {
-      // 이메일이 이미 사용 중인지 확인
-      const existingUser = await prisma.user.findUnique({
-        where: { email },
-        select: { id: true, emailVerified: true },
-      });
+    // Prisma 데이터베이스 작업 임시 비활성화
+    console.log('⚠️ Database operations skipped (Prisma disabled)');
 
-      if (existingUser && existingUser.emailVerified) {
-        throw new Error('EMAIL_ALREADY_VERIFIED');
-      }
-
-      // 기존 인증 토큰 삭제
-      await prisma.emailVerification.deleteMany({
-        where: { email },
-      });
-
-      // 새 인증 토큰 및 코드 생성
-      const verificationToken = crypto.randomBytes(32).toString('hex');
-      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-      
-      // 인증 레코드 생성 (24시간 유효)
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-      
-      await prisma.emailVerification.create({
-        data: {
-          email,
-          token: verificationToken,
-          code: verificationCode,
-          userId: existingUser?.id || null,
-          expiresAt,
-        },
-      });
-
-      return { existingUser, verificationToken, verificationCode };
-    }, {
-      retries: 2,
-      timeout: 10000,
-      fallbackMessage: '인증 코드 생성 중 오류가 발생했습니다.'
-    });
+    const existingUser = null;
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
 
     // 인증 이메일 발송
     try {

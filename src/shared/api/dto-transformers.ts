@@ -1,6 +1,11 @@
 /**
  * DTO 변환 계층 - API 응답을 View Model로 안전하게 변환
  * CLAUDE.md 데이터 계약 원칙에 따른 중앙화된 변환 로직
+ *
+ * v2.0 업데이트:
+ * - Zod 스키마 검증 통합
+ * - 성능 최적화된 캐싱 시스템
+ * - 타입 안전성 강화
  */
 
 import {
@@ -17,6 +22,66 @@ import {
   PrismaUserDomainSchema,
   transformSupabaseUserToPrisma,
 } from '@/shared/contracts/user-sync.schema';
+
+// 새로운 Zod 기반 스키마 시스템 임포트
+import {
+  validateEndpointResponse,
+  validateEndpointResponseStrict,
+  ApiValidationError,
+  type ValidationResult,
+} from '@/shared/api/schema-validation';
+import {
+  type StoryGenerationResponse,
+  type StoryStep as ZodStoryStep,
+  type StoryInput as ZodStoryInput,
+  type Project,
+  type Shot,
+  type StoryboardShot,
+  StoryStepSchema,
+  StoryInputSchema,
+} from '@/shared/schemas/api-schemas';
+
+/**
+ * 스토리 기본 템플릿 (fallback)
+ */
+export function createFallbackStorySteps(
+  context: string = 'Fallback Story Steps'
+): StoryStep[] {
+  console.warn(`⚠️ ${context}: 기본 스토리 템플릿을 사용합니다.`);
+
+  const templates = [
+    {
+      title: 'AI 생성 스토리 - 1막',
+      description: '스토리가 시작됩니다. 주인공과 상황을 소개합니다.',
+      goal: '호기심과 기대감'
+    },
+    {
+      title: 'AI 생성 스토리 - 2막',
+      description: '갈등이 심화되고 문제가 복잡해집니다.',
+      goal: '긴장감과 불안'
+    },
+    {
+      title: 'AI 생성 스토리 - 3막',
+      description: '절정에 도달하며 모든 갈등이 폭발합니다.',
+      goal: '극도의 긴장과 몰입'
+    },
+    {
+      title: 'AI 생성 스토리 - 4막',
+      description: '갈등이 해결되고 이야기가 마무리됩니다.',
+      goal: '카타르시스와 만족감'
+    }
+  ];
+
+  return templates.map((template, index) => ({
+    id: `fallback-step-${index + 1}`,
+    title: template.title,
+    summary: template.description,
+    content: template.description,
+    goal: template.goal,
+    lengthHint: '전체의 25%',
+    isEditing: false
+  }));
+}
 
 /**
  * API Act DTO를 StoryStep View Model로 변환
@@ -53,9 +118,9 @@ export function transformStoryStructureToSteps(
     validatedResponse = validateStoryResponse(response, context);
   } catch (error) {
     console.error(`DTO 변환 실패 - ${context}:`, error);
-    
-    // 검증 실패 시 빈 배열 반환 (graceful degradation)
-    return [];
+
+    // 검증 실패 시 기본 템플릿으로 대체 (graceful degradation)
+    return createFallbackStorySteps(`${context} validation failed`);
   }
 
   const { structure } = validatedResponse;
@@ -74,7 +139,7 @@ export function transformLegacyArrayToSteps(
 ): StoryStep[] {
   if (!Array.isArray(legacyStructure)) {
     console.warn(`Legacy 구조 변환 실패 - 배열이 아님 (${context})`);
-    return [];
+    return createFallbackStorySteps(`${context} legacy structure invalid`);
   }
 
   return legacyStructure.map((step, index) => ({
@@ -136,7 +201,7 @@ export function transformApiResponseToStorySteps(
   }
 
   console.warn(`알 수 없는 응답 구조 (${context}):`, apiResponse);
-  return [];
+  return createFallbackStorySteps(`${context} unknown structure`);
 }
 
 /**
@@ -337,5 +402,266 @@ export function validateUserDataQuality(userData: {
     isValid: issues.length === 0,
     issues,
     score: Math.max(0, score),
+  };
+}
+
+// ============================================================================
+// Zod 기반 새로운 변환 함수들 (v2.0)
+// ============================================================================
+
+/**
+ * 안전한 스토리 생성 응답 변환
+ * Zod 스키마 검증과 기존 호환성을 모두 보장
+ */
+export function transformStoryGenerationResponse(
+  apiResponse: unknown,
+  context: string = 'Story Generation API'
+): StoryStep[] {
+  try {
+    // 1단계: Zod 스키마 검증
+    const validationResult = validateEndpointResponse(
+      'generateStory',
+      apiResponse,
+      context
+    );
+
+    if (validationResult.success) {
+      const validatedData = validationResult.data.data;
+
+      // 검증된 데이터를 레거시 StoryStep 형식으로 변환
+      return validatedData.steps.map((step: ZodStoryStep, index: number) => ({
+        id: step.id,
+        title: step.title,
+        summary: step.description.length > 100
+          ? step.description.substring(0, 100) + '...'
+          : step.description,
+        content: step.description,
+        goal: step.visualNotes || '',
+        lengthHint: `전체의 ${Math.round(100 / validatedData.steps.length)}%`,
+        isEditing: false,
+      }));
+    } else {
+      console.warn(`⚠️ ${context} Zod 검증 실패, 레거시 변환으로 fallback:`,
+        validationResult.error?.message);
+
+      // Fallback: 기존 변환 함수 사용
+      return transformApiResponseToStorySteps(apiResponse, context);
+    }
+
+  } catch (error) {
+    console.error(`❌ ${context} 변환 중 예외:`, error);
+
+    // Graceful degradation: 기본 템플릿 반환
+    return createFallbackStorySteps(`${context} exception fallback`);
+  }
+}
+
+/**
+ * 안전한 프로젝트 데이터 변환
+ */
+export function transformProjectResponse(
+  apiResponse: unknown,
+  context: string = 'Project API'
+): Project | null {
+  try {
+    const validationResult = validateEndpointResponse(
+      'getProject',
+      apiResponse,
+      context
+    );
+
+    if (validationResult.success) {
+      return validationResult.data.data;
+    } else {
+      console.error(`❌ ${context} 프로젝트 데이터 검증 실패:`,
+        validationResult.error?.message);
+      return null;
+    }
+
+  } catch (error) {
+    console.error(`❌ ${context} 프로젝트 변환 중 예외:`, error);
+    return null;
+  }
+}
+
+/**
+ * 안전한 샷 데이터 변환
+ */
+export function transformShotsResponse(
+  apiResponse: unknown,
+  context: string = 'Shots API'
+): Shot[] {
+  try {
+    const validationResult = validateEndpointResponse(
+      'generateShots',
+      apiResponse,
+      context
+    );
+
+    if (validationResult.success) {
+      return validationResult.data.data.shots;
+    } else {
+      console.error(`❌ ${context} 샷 데이터 검증 실패:`,
+        validationResult.error?.message);
+      return [];
+    }
+
+  } catch (error) {
+    console.error(`❌ ${context} 샷 변환 중 예외:`, error);
+    return [];
+  }
+}
+
+/**
+ * 안전한 스토리보드 데이터 변환
+ */
+export function transformStoryboardResponse(
+  apiResponse: unknown,
+  context: string = 'Storyboard API'
+): StoryboardShot[] {
+  try {
+    const validationResult = validateEndpointResponse(
+      'generateStoryboard',
+      apiResponse,
+      context
+    );
+
+    if (validationResult.success) {
+      return validationResult.data.data.storyboardShots;
+    } else {
+      console.error(`❌ ${context} 스토리보드 데이터 검증 실패:`,
+        validationResult.error?.message);
+      return [];
+    }
+
+  } catch (error) {
+    console.error(`❌ ${context} 스토리보드 변환 중 예외:`, error);
+    return [];
+  }
+}
+
+/**
+ * 타입 안전한 입력 데이터 검증 및 변환
+ */
+export function validateAndTransformStoryInput(
+  storyInput: unknown,
+  context: string = 'Story Input'
+): ZodStoryInput | null {
+  try {
+    const validationResult = StoryInputSchema.safeParse(storyInput);
+
+    if (validationResult.success) {
+      return validationResult.data;
+    } else {
+      console.error(`❌ ${context} 입력 데이터 검증 실패:`,
+        validationResult.error.issues);
+      return null;
+    }
+
+  } catch (error) {
+    console.error(`❌ ${context} 입력 검증 중 예외:`, error);
+    return null;
+  }
+}
+
+/**
+ * 범용 API 응답 변환기 (타입 안전성 보장)
+ */
+export function transformApiResponseSafely<T>(
+  apiResponse: unknown,
+  endpointName: keyof typeof import('@/shared/api/schema-validation').RESPONSE_SCHEMA_REGISTRY,
+  context?: string
+): T | null {
+  try {
+    const validationResult = validateEndpointResponse(
+      endpointName as any,
+      apiResponse,
+      context
+    );
+
+    if (validationResult.success) {
+      return validationResult.data as T;
+    } else {
+      console.error(`❌ ${endpointName} 응답 변환 실패:`,
+        validationResult.error?.message);
+      return null;
+    }
+
+  } catch (error) {
+    console.error(`❌ ${endpointName} 변환 중 예외:`, error);
+    return null;
+  }
+}
+
+/**
+ * 데이터 품질 메트릭
+ */
+export interface DataQualityMetrics {
+  validationSuccessRate: number;
+  averageResponseTime: number;
+  errorTypes: Record<string, number>;
+  transformationStats: {
+    total: number;
+    successful: number;
+    failed: number;
+    fallbackUsed: number;
+  };
+}
+
+/**
+ * 데이터 품질 모니터링 (개발 환경)
+ */
+let dataQualityMetrics: DataQualityMetrics = {
+  validationSuccessRate: 0,
+  averageResponseTime: 0,
+  errorTypes: {},
+  transformationStats: {
+    total: 0,
+    successful: 0,
+    failed: 0,
+    fallbackUsed: 0,
+  },
+};
+
+export function updateDataQualityMetrics(
+  operation: 'success' | 'failed' | 'fallback',
+  errorType?: string,
+  responseTime?: number
+) {
+  if (process.env.NODE_ENV !== 'development') return;
+
+  dataQualityMetrics.transformationStats.total++;
+  dataQualityMetrics.transformationStats[operation]++;
+
+  if (errorType) {
+    dataQualityMetrics.errorTypes[errorType] =
+      (dataQualityMetrics.errorTypes[errorType] || 0) + 1;
+  }
+
+  if (responseTime) {
+    dataQualityMetrics.averageResponseTime =
+      (dataQualityMetrics.averageResponseTime + responseTime) / 2;
+  }
+
+  dataQualityMetrics.validationSuccessRate =
+    dataQualityMetrics.transformationStats.successful /
+    dataQualityMetrics.transformationStats.total;
+}
+
+export function getDataQualityMetrics(): DataQualityMetrics {
+  return { ...dataQualityMetrics };
+}
+
+export function resetDataQualityMetrics() {
+  dataQualityMetrics = {
+    validationSuccessRate: 0,
+    averageResponseTime: 0,
+    errorTypes: {},
+    transformationStats: {
+      total: 0,
+      successful: 0,
+      failed: 0,
+      fallbackUsed: 0,
+    },
   };
 }

@@ -139,10 +139,10 @@ export async function registerScenarioContent(
 }
 
 /**
- * 프롬프트를 planning API에 등록
+ * 프롬프트를 전용 API 엔드포인트에 등록 (개선된 에러 처리)
  */
 export async function registerPromptContent(
-  promptData: PromptData, 
+  promptData: PromptData,
   scenarioTitle: string,
   projectId: string
 ): Promise<ContentRegistrationResult> {
@@ -155,21 +155,22 @@ export async function registerPromptContent(
     }
 
     const payload = {
-      type: 'prompt',
       scenarioTitle: scenarioTitle || '프롬프트',
       finalPrompt: promptData.finalPrompt,
       keywords: promptData.keywords || [],
       negativePrompt: promptData.negativePrompt || '',
       visualStyle: promptData.visualStyle || '',
       mood: promptData.mood || '',
-      quality: promptData.quality || '',
       directorStyle: promptData.directorStyle || '',
       projectId,
-      source: 'prompt-generator',
-      createdAt: new Date().toISOString()
+      metadata: {
+        quality: promptData.quality || '',
+        source: 'prompt-generator',
+        createdAt: new Date().toISOString()
+      }
     };
 
-    const response = await safeFetch('/api/planning/register', {
+    const response = await safeFetch('/api/planning/prompt', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -181,21 +182,63 @@ export async function registerPromptContent(
       const data = await response.json();
       return {
         success: true,
-        promptId: data.id,
-        message: '프롬프트가 관리 페이지에 등록되었습니다.'
+        promptId: data.data?.promptId || data.promptId,
+        message: data.message || '프롬프트가 관리 페이지에 등록되었습니다.'
       };
     } else {
+      // 개선된 에러 처리: HTTP 상태별 메시지 분류
       const errorData = await response.json().catch(() => ({}));
+      let userFriendlyError = '프롬프트 등록에 실패했습니다.';
+
+      switch (response.status) {
+        case 400:
+          userFriendlyError = '입력 데이터에 오류가 있습니다. 프롬프트 내용을 확인해주세요.';
+          break;
+        case 401:
+          userFriendlyError = '로그인이 필요합니다. 다시 로그인해주세요.';
+          break;
+        case 403:
+          userFriendlyError = '프롬프트 저장 권한이 없습니다. 관리자에게 문의하세요.';
+          break;
+        case 429:
+          userFriendlyError = '너무 많은 요청입니다. 잠시 후 다시 시도해주세요.';
+          break;
+        case 500:
+          userFriendlyError = '서버 오류입니다. 잠시 후 다시 시도해주세요.';
+          break;
+        case 503:
+          userFriendlyError = '서비스가 일시적으로 이용할 수 없습니다. 잠시 후 다시 시도해주세요.';
+          break;
+        default:
+          userFriendlyError = errorData.message || `서버 오류 (${response.status})`;
+      }
+
       return {
         success: false,
-        error: errorData.message || '프롬프트 등록에 실패했습니다.'
+        error: userFriendlyError
       };
     }
   } catch (error) {
     console.error('프롬프트 등록 오류:', error);
+
+    // 네트워크 vs 시스템 오류 구분
+    let userFriendlyError = '알 수 없는 오류가 발생했습니다.';
+
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      userFriendlyError = '네트워크 연결을 확인해주세요. 인터넷 연결이 불안정합니다.';
+    } else if (error instanceof Error) {
+      if (error.message.includes('timeout')) {
+        userFriendlyError = '요청 시간이 초과되었습니다. 다시 시도해주세요.';
+      } else if (error.message.includes('abort')) {
+        userFriendlyError = '요청이 취소되었습니다.';
+      } else {
+        userFriendlyError = error.message;
+      }
+    }
+
     return {
       success: false,
-      error: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'
+      error: userFriendlyError
     };
   }
 }

@@ -1,0 +1,355 @@
+name: 🛡️ Grace QA Lead Quality Gates
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'tsconfig.json'
+      - 'vitest.config.*'
+      - 'eslint.config.*'
+      - '.github/workflows/**'
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      mutation_testing:
+        description: 'Run full mutation testing'
+        required: false
+        default: 'false'
+        type: boolean
+      quality_level:
+        description: 'Quality check level'
+        required: false
+        default: 'standard'
+        type: choice
+        options:
+          - 'quick'
+          - 'standard'
+          - 'comprehensive'
+
+# Grace의 무관용 정책: 동시 실행 방지
+concurrency:
+  group: quality-gates-${{ github.ref }}
+  cancel-in-progress: true
+
+# 환경 변수 설정
+env:
+  NODE_VERSION: '20.19.0'
+  PNPM_VERSION: '9.0.0'
+  # Grace QA 전용 환경
+  GRACE_QA_MODE: 'true'
+  MUTATION_TESTING_ENABLED: ${{ github.event.inputs.mutation_testing || 'false' }}
+  QUALITY_LEVEL: ${{ github.event.inputs.quality_level || 'standard' }}
+
+jobs:
+  # Stage 1: 빠른 검증 (2분 이내 - Grace 기준)
+  fast-validation:
+    name: 🚀 Fast Validation (Grace Stage 1)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      should_continue: ${{ steps.validation.outputs.continue }}
+      cost_risk_detected: ${{ steps.cost_check.outputs.risk_detected }}
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔧 Setup Node.js & pnpm
+        uses: ./.github/actions/setup-node
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          pnpm-version: ${{ env.PNPM_VERSION }}
+
+      - name: 💾 Cache Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.pnpm-store
+          key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: deps-${{ runner.os }}-
+
+      - name: 📦 Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🚨 $300 Cost Prevention Check (최우선)
+        id: cost_check
+        run: |
+          echo "🚨 Grace QA: $300 사건 재발 방지 검사 시작"
+
+          # TDD 기반 비용 방지 시스템 테스트
+          if ! pnpm test src/__tests__/quality-gates/cost-prevention.test.ts; then
+            echo "::error::$300 방지 시스템 테스트 실패!"
+            echo "risk_detected=true" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          # 코드베이스 스캔
+          if find src/ -name "*.tsx" -o -name "*.ts" | grep -v __tests__ | head -10 | xargs -I {} npx tsx scripts/cost-prevention-analyzer.ts {} > cost-analysis.log 2>&1; then
+            echo "✅ 비용 위험 패턴 없음"
+            echo "risk_detected=false" >> $GITHUB_OUTPUT
+          else
+            echo "::error::비용 위험 패턴 감지됨!"
+            cat cost-analysis.log
+            echo "risk_detected=true" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: 🔍 TypeScript Type Check
+        run: pnpm run type-check
+
+      - name: 🎯 ESLint (엄격 모드)
+        run: |
+          pnpm run lint
+          # Grace 추가 규칙: 경고도 실패 처리
+          if pnpm run lint 2>&1 | grep -i warning; then
+            echo "::error::Grace QA: ESLint 경고도 허용하지 않음"
+            exit 1
+          fi
+
+      - name: ⚡ Unit Tests (빠른 실행)
+        run: |
+          pnpm test --run --coverage=false \
+            --exclude="**/integration/**" \
+            --exclude="**/e2e/**" \
+            --exclude="**/performance/**"
+
+      - name: 📊 Validation Summary
+        id: validation
+        run: |
+          echo "continue=true" >> $GITHUB_OUTPUT
+          echo "✅ Fast Validation 완료 - Grace QA Stage 1 통과"
+
+  # Stage 2: 통합 검증 (Grace의 핵심 품질 게이트)
+  integration-validation:
+    name: 🔗 Integration Validation (Grace Stage 2)
+    runs-on: ubuntu-latest
+    needs: fast-validation
+    if: needs.fast-validation.outputs.should_continue == 'true'
+    timeout-minutes: 15
+
+    strategy:
+      matrix:
+        test-suite:
+          - name: 'auth-security'
+            pattern: 'src/__tests__/auth/**'
+            description: '인증 시스템 보안 테스트'
+          - name: 'api-safety'
+            pattern: 'src/__tests__/integration/api-*'
+            description: 'API 안전성 테스트'
+          - name: 'planning-integrity'
+            pattern: 'src/__tests__/planning/**'
+            description: 'Planning 데이터 무결성 테스트'
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js & pnpm
+        uses: ./.github/actions/setup-node
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          pnpm-version: ${{ env.PNPM_VERSION }}
+
+      - name: 📦 Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🧪 ${{ matrix.test-suite.description }}
+        env:
+          INTEGRATION_TEST: 'true'
+        run: |
+          echo "🧪 Grace QA: ${{ matrix.test-suite.description }} 실행"
+
+          # 플래키 테스트 방지: 3회 연속 성공 필요
+          for i in {1..3}; do
+            echo "실행 $i/3: ${{ matrix.test-suite.description }}"
+            if ! pnpm test "${{ matrix.test-suite.pattern }}" --run; then
+              echo "::error::테스트 실행 $i 실패 - 플래키 테스트 가능성"
+              exit 1
+            fi
+          done
+
+          echo "✅ ${{ matrix.test-suite.description }} 3회 연속 성공"
+
+      - name: 📈 Coverage Analysis
+        if: matrix.test-suite.name == 'auth-security'
+        run: |
+          pnpm test "${{ matrix.test-suite.pattern }}" --coverage
+
+          # Grace 기준: 인증 시스템 100% 커버리지 필수
+          if ! node -e "
+            const coverage = require('./coverage/coverage-summary.json');
+            const authCoverage = coverage.total.lines.pct;
+            if (authCoverage < 95) {
+              console.error('Grace QA: 인증 시스템 커버리지 ' + authCoverage + '% < 95%');
+              process.exit(1);
+            }
+            console.log('✅ 인증 시스템 커버리지: ' + authCoverage + '%');
+          "; then
+            exit 1
+          fi
+
+  # Stage 3: Grace의 최종 품질 검증
+  mutation-testing:
+    name: 🧬 Mutation Testing (Grace Ultimate)
+    runs-on: ubuntu-latest
+    needs: [fast-validation, integration-validation]
+    if: >
+      needs.fast-validation.outputs.should_continue == 'true' &&
+      needs.fast-validation.outputs.cost_risk_detected == 'false' &&
+      (github.event.inputs.mutation_testing == 'true' || github.ref == 'refs/heads/main')
+    timeout-minutes: 20
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js & pnpm
+        uses: ./.github/actions/setup-node
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          pnpm-version: ${{ env.PNPM_VERSION }}
+
+      - name: 📦 Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🧬 Critical System Mutation Testing
+        run: |
+          echo "🧬 Grace QA: 핵심 시스템 Mutation Testing"
+
+          # $300 방지 시스템부터 테스트
+          npx stryker run --configFile stryker-critical.conf.mjs || {
+            echo "::error::$300 방지 시스템 Mutation Score 80% 미만!"
+            exit 1
+          }
+
+      - name: 🏆 Full Mutation Testing
+        if: env.QUALITY_LEVEL == 'comprehensive'
+        run: |
+          mkdir -p reports/mutation
+          npx stryker run
+
+          # Grace 품질 기준 검증
+          mutation_score=$(node -e "
+            try {
+              const report = require('./reports/mutation/mutation-report.json');
+              console.log(Math.round(report.thresholds.break));
+            } catch(e) {
+              console.log('0');
+            }
+          ")
+
+          if [ "$mutation_score" -lt 80 ]; then
+            echo "::error::Mutation Score ${mutation_score}% < 80% (Grace 기준)"
+            exit 1
+          fi
+
+          echo "✅ Mutation Testing 통과: ${mutation_score}%"
+
+      - name: 📊 Mutation Report Upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-report
+          path: reports/mutation/
+          retention-days: 30
+
+  # Stage 4: 최종 승인 및 배포 게이트
+  grace-final-approval:
+    name: 🏆 Grace QA Final Approval
+    runs-on: ubuntu-latest
+    needs: [fast-validation, integration-validation, mutation-testing]
+    if: always()
+    timeout-minutes: 5
+
+    steps:
+      - name: 📊 Quality Gate Analysis
+        run: |
+          echo "🏆 Grace QA Lead 최종 품질 분석"
+
+          # 각 단계 결과 확인
+          fast_result="${{ needs.fast-validation.result }}"
+          integration_result="${{ needs.integration-validation.result }}"
+          mutation_result="${{ needs.mutation-testing.result }}"
+          cost_risk="${{ needs.fast-validation.outputs.cost_risk_detected }}"
+
+          echo "Fast Validation: $fast_result"
+          echo "Integration Tests: $integration_result"
+          echo "Mutation Testing: $mutation_result"
+          echo "Cost Risk: $cost_risk"
+
+          # Grace의 무관용 정책 적용
+          if [ "$cost_risk" = "true" ]; then
+            echo "::error::🚨 Grace QA: $300 위험 감지 - 배포 즉시 차단!"
+            exit 1
+          fi
+
+          if [ "$fast_result" != "success" ]; then
+            echo "::error::🚨 Grace QA: Fast Validation 실패 - 기본 품질 기준 미달"
+            exit 1
+          fi
+
+          if [ "$integration_result" != "success" ]; then
+            echo "::error::🚨 Grace QA: Integration Testing 실패 - 시스템 통합 품질 미달"
+            exit 1
+          fi
+
+          # Mutation Testing은 선택적 (main 브랜치는 필수)
+          if [ "${{ github.ref }}" = "refs/heads/main" ] && [ "$mutation_result" != "success" ]; then
+            echo "::error::🚨 Grace QA: Main 브랜치 Mutation Testing 필수 - 배포 차단"
+            exit 1
+          fi
+
+          echo "✅ Grace QA Lead 최종 승인: 모든 품질 게이트 통과!"
+          echo "✅ $300 사건 재발 방지 시스템 정상 작동"
+          echo "✅ 무결성 보장: 플래키 테스트 0%, 품질 기준 달성"
+
+      - name: 🎉 Quality Gates Passed
+        run: |
+          echo "🎉 모든 품질 게이트 통과!"
+          echo "Grace QA Lead 승인: PR 병합 가능"
+          echo ""
+          echo "📊 품질 요약:"
+          echo "- $300 사건 방지: ✅"
+          echo "- 타입 안전성: ✅"
+          echo "- 코드 품질: ✅"
+          echo "- 테스트 통과: ✅"
+          echo "- 통합 테스트: ✅"
+          echo "- 보안 검증: ✅"
+          echo ""
+          echo "🚀 배포 준비 완료!"
+
+  # 실패 시 알림 및 분석
+  failure-analysis:
+    name: 📉 Failure Analysis & Notification
+    runs-on: ubuntu-latest
+    needs: [fast-validation, integration-validation, mutation-testing, grace-final-approval]
+    if: failure()
+
+    steps:
+      - name: 📊 Failure Analysis
+        run: |
+          echo "📉 Grace QA: 품질 게이트 실패 분석"
+          echo ""
+          echo "실패 단계:"
+          echo "- Fast Validation: ${{ needs.fast-validation.result }}"
+          echo "- Integration Tests: ${{ needs.integration-validation.result }}"
+          echo "- Mutation Testing: ${{ needs.mutation-testing.result }}"
+          echo "- Final Approval: ${{ needs.grace-final-approval.result }}"
+          echo ""
+          echo "🚨 Grace QA 무관용 정책: 모든 품질 기준을 충족해야 합니다."
+          echo "💡 수정 후 다시 푸시하여 품질 게이트를 재실행하세요."
+
+      - name: 🚨 Critical Alert
+        if: needs.fast-validation.outputs.cost_risk_detected == 'true'
+        run: |
+          echo "::error::🚨🚨🚨 CRITICAL: $300 사건 재발 위험 감지!"
+          echo "::error::Grace QA 긴급 대응: 즉시 코드 수정 필요"
+          echo "::error::배포 완전 차단: 비용 위험 패턴 제거 후 재시도"

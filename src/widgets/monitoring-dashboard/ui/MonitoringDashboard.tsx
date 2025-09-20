@@ -18,7 +18,7 @@ interface DashboardData {
   };
   recent_errors: Array<{
     error: string;
-    context: Record<string, any>;
+    context: Record<string, unknown>;
     timestamp: number;
     severity: 'low' | 'medium' | 'high' | 'critical';
   }>;
@@ -53,7 +53,7 @@ export default function MonitoringDashboard() {
     const interval = setInterval(updateData, 10000);
 
     return () => clearInterval(interval);
-  }, [generateDashboard, showInProduction]);
+  }, [showInProduction]); // generateDashboard 제거 - $300 사건 방지
 
   if (!showInProduction || !data) return null;
 

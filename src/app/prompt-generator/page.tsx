@@ -14,7 +14,7 @@ import { generateId } from '@/shared/lib/utils';
 import { useProjectStore } from '@/entities/project';
 import { createEmptyV31Instance, compilePromptSimple, type CineGeniusV31Simple } from '@/lib/schemas/cinegenius-v3.1-simple';
 import { type StoryTemplate } from '@/entities/scenario';
-import { DEFAULT_TEMPLATES } from '@/entities/scenario/templates';
+import { DEFAULT_TEMPLATES } from '@/entities/scenario';
 // sessionStorage 관련 함수들은 제거하고 Zustand 스토어만 사용
 import { registerPromptContent, type ContentRegistrationResult } from '@/shared/lib/upload-utils';
 import { Button } from '@/shared/ui/button';
@@ -261,49 +261,114 @@ const PromptGeneratorPage: React.FC = () => {
     setState((prev) => ({ ...prev, negative_prompts }));
   };
 
-  // 관리 페이지 등록 상태
+  // 관리 페이지 등록 상태 (개선된 에러 처리)
   const [registrationStatus, setRegistrationStatus] = useState<{
     isRegistering: boolean;
     result: ContentRegistrationResult | null;
-  }>({ isRegistering: false, result: null });
+    retryCount: number;
+  }>({ isRegistering: false, result: null, retryCount: 0 });
 
-  // 프롬프트를 관리 페이지에 등록하는 함수
-  const registerPromptToManagement = async () => {
+  // 프롬프트를 관리 페이지에 등록하는 함수 (개선된 에러 처리)
+  const registerPromptToManagement = async (isRetry = false) => {
     const promptData = project.prompt;
     const scenarioTitle = project.scenario?.title || selectedStory?.title || '프롬프트';
-    
+
     if (!promptData.finalPrompt) {
-      alert('생성된 프롬프트가 필요합니다.');
+      showUserFriendlyMessage('생성된 프롬프트가 필요합니다.', 'warning');
       return;
     }
 
-    setRegistrationStatus({ isRegistering: true, result: null });
+    const currentRetryCount = isRetry ? registrationStatus.retryCount + 1 : 0;
+    setRegistrationStatus({ isRegistering: true, result: null, retryCount: currentRetryCount });
 
     try {
       const result = await registerPromptContent(promptData, scenarioTitle, project.id);
-      
-      setRegistrationStatus({ isRegistering: false, result });
+
+      setRegistrationStatus({ isRegistering: false, result, retryCount: currentRetryCount });
 
       if (result.success) {
-        alert(result.message || '프롬프트가 관리 페이지에 등록되었습니다.');
-        
+        showUserFriendlyMessage(
+          result.message || '프롬프트가 관리 페이지에 등록되었습니다.',
+          'success'
+        );
+
         // 프로젝트 스토어에 ID 저장
         if (result.promptId) {
           project.setPromptId(result.promptId);
         }
       } else {
-        alert(result.error || '등록에 실패했습니다.');
+        handleRegistrationError(result.error || '등록에 실패했습니다.', currentRetryCount);
       }
     } catch (error) {
       console.error('Registration error:', error);
-      setRegistrationStatus({ 
-        isRegistering: false, 
+      const errorMessage = error instanceof Error ? error.message : '등록 중 오류가 발생했습니다.';
+
+      setRegistrationStatus({
+        isRegistering: false,
         result: {
           success: false,
-          error: '등록 중 오류가 발생했습니다.'
-        }
+          error: errorMessage
+        },
+        retryCount: currentRetryCount
       });
-      alert('등록 중 오류가 발생했습니다.');
+
+      handleRegistrationError(errorMessage, currentRetryCount);
+    }
+  };
+
+  // 등록 에러 처리 및 재시도 로직
+  const handleRegistrationError = (error: string, retryCount: number) => {
+    const maxRetries = 3;
+    const canRetry = retryCount < maxRetries;
+
+    let message = error;
+    let options: { label: string; action: () => void }[] = [];
+
+    if (canRetry) {
+      // 네트워크 오류나 서버 오류인 경우 자동 재시도 제안
+      if (error.includes('네트워크') || error.includes('서버') || error.includes('시간 초과')) {
+        message += `\n\n재시도 ${retryCount + 1}/${maxRetries}회 가능합니다.`;
+        options.push({
+          label: '다시 시도',
+          action: () => {
+            setTimeout(() => registerPromptToManagement(true), 1000 * (retryCount + 1)); // Exponential backoff
+          }
+        });
+      }
+    }
+
+    // 수동 재시도 옵션
+    options.push({
+      label: '수동 재시도',
+      action: () => registerPromptToManagement(false)
+    });
+
+    showUserFriendlyMessage(message, 'error', options);
+  };
+
+  // 사용자 친화적 메시지 표시 함수
+  const showUserFriendlyMessage = (
+    message: string,
+    type: 'success' | 'warning' | 'error' | 'info' = 'info',
+    options: { label: string; action: () => void }[] = []
+  ) => {
+    // 임시적으로 alert 사용, 추후 Toast 컴포넌트로 교체 가능
+    const typeEmoji = {
+      success: '✅',
+      warning: '⚠️',
+      error: '❌',
+      info: 'ℹ️'
+    };
+
+    let displayMessage = `${typeEmoji[type]} ${message}`;
+
+    if (options.length > 0) {
+      const userChoice = window.confirm(displayMessage + '\n\n다시 시도하시겠습니까?');
+      if (userChoice && options[0]) {
+        options[0].action();
+      }
+    } else {
+      alert(displayMessage);
     }
   };
 

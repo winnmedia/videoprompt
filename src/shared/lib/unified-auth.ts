@@ -58,6 +58,9 @@ export interface AuthError {
   message: string;
   statusCode: 401 | 403 | 503;
   recommendation?: string;
+  details?: string;
+  requestId?: string;
+  timestamp?: number;
 }
 
 /**
@@ -239,7 +242,7 @@ async function authenticateWithSupabase(
           try {
             const base64Payload = token.split('.')[1];
             const tokenPayload = JSON.parse(
-              typeof window !== 'undefined' && window.atob
+              typeof window !== 'undefined'
                 ? atob(base64Payload) // 브라우저 환경
                 : Buffer.from(base64Payload, 'base64').toString('utf-8') // Node.js 환경
             );
@@ -399,5 +402,4 @@ export async function requireAdmin(req: NextRequest): Promise<{ context: AuthCon
   return unifiedAuth(req, { requireAdmin: true, degradedMode: false });
 }
 
-// 타입 export (중복 제거)
-export type { AuthContext, AuthError, AuthOptions };
+// (타입은 상단에서 export됨)

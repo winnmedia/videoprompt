@@ -1,4 +1,4 @@
-import { ScenePrompt, Scene } from '@/types/api';
+import { ScenePrompt, Scene } from '@/shared/types/api';
 import { z } from 'zod';
 
 // Utility: fetch with timeout (ms)

@@ -338,5 +338,4 @@ export const authSuccess = {
   }
 };
 
-// 타입 export
-export type { AuthenticatedHandler, WithAuthOptions };
+// (타입은 상단에서 export됨)

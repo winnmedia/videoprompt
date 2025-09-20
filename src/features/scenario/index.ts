@@ -50,7 +50,7 @@ export {
   selectStoryboardStats,
 } from '@/entities/scenario';
 
-// React Query hooks
+// RTK Query hooks
 export {
   useStoryGeneration,
   useStorySave,
@@ -58,7 +58,6 @@ export {
   useSavedStories,
   useAutoSaveStory,
   useInvalidateStoryCache,
-  storyQueryKeys,
 } from './hooks/use-story-generation';
 
 export {
@@ -67,9 +66,9 @@ export {
   useStoryboardSave,
   useStoryboardLoad,
   useSavedStoryboards,
-  useFullStoryboardWorkflow,
+  useAutoSaveStoryboard,
   useInvalidateStoryboardCache,
-  storyboardQueryKeys,
+  useStoryboardWorkflow,
 } from './hooks/use-storyboard-generation';
 
 export {
@@ -83,7 +82,6 @@ export {
   useDuplicateProject,
   useProjectCacheManager,
   useProjectStats,
-  projectQueryKeys,
 } from './hooks/use-project-management';
 
 // Types (re-export from entities)

@@ -38,17 +38,21 @@ const getHandler = async (request: NextRequest, { user, authContext }: { user: {
           content: scenario,
           userId: scenario.metadata?.userId || null,
           status: scenario.metadata?.status || 'draft',
-          createdAt: scenario.metadata?.createdAt || Date.now(),
-          updatedAt: scenario.metadata?.updatedAt || Date.now()
+          createdAt: typeof scenario.metadata?.createdAt === 'number' ? scenario.metadata.createdAt : Date.now(),
+          updatedAt: typeof scenario.metadata?.updatedAt === 'number' ? scenario.metadata.updatedAt : Date.now()
         };
       })
       .sort((a, b) => b.updatedAt - a.updatedAt); // 최신순 정렬
 
     // 저장소 상태 확인 및 표준화된 응답 생성
-    const healthStatus = repository.getStorageHealth();
+    const healthStatus = await repository.getStorageHealth();
+    const adaptedHealthStatus = {
+      prisma: { isHealthy: healthStatus.prisma.status === 'healthy' },
+      supabase: { isHealthy: healthStatus.supabase.status === 'healthy' }
+    };
     const dualStorageResult = normalizeRepositoryResult(
       { id: 'scenarios-query', success: true },
-      healthStatus
+      adaptedHealthStatus
     );
 
     const responseData = {

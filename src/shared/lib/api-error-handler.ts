@@ -285,21 +285,23 @@ export function withErrorHandling<T extends any[]>(
           });
 
           // Supabase 연결 실패 시 적절한 에러 반환
+          const supabaseError = supabaseResult.error ?? undefined;
+
           if (supabaseResult.degradationMode === 'disabled') {
             return errorHandler.serviceUnavailable(
               'Backend 서비스에 연결할 수 없습니다.',
-              supabaseResult.error,
+              supabaseError,
               '관리자에게 문의하세요. 환경변수 설정이 필요합니다.'
             );
           } else if (supabaseResult.degradationMode === 'degraded') {
             return errorHandler.notImplemented(
               '제한된 기능으로 동작 중입니다.',
-              supabaseResult.error
+              supabaseError
             );
           } else {
             return errorHandler.serviceUnavailable(
               'Backend 서비스가 일시적으로 이용 불가능합니다.',
-              supabaseResult.error
+              supabaseError
             );
           }
         }

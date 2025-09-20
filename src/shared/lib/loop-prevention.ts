@@ -1,9 +1,13 @@
+'use client';
+
 /**
  * 🚨 무한 루프 방지 시스템 - $300 사건 재발 차단
  * VideoPlanet 프로젝트 전용 비용 안전 장치
  *
  * 목적: useEffect 의존성 배열, API 호출, 컴포넌트 리렌더링 무한 루프 감지 및 차단
  */
+
+import React, { useEffect, type DependencyList, type EffectCallback } from 'react';
 
 interface LoopDetectionConfig {
   maxCallsPerSecond: number;
@@ -339,25 +343,22 @@ export function withLoopPrevention<T extends (...args: any[]) => any>(
  * useEffect 안전성 체크 훅
  */
 export function useSafeEffect(
-  effect: React.EffectCallback,
-  deps: React.DependencyList,
+  effect: EffectCallback,
+  deps: DependencyList,
   functionName: string = 'unknown'
 ) {
-  // React가 로드된 환경에서만 실행
-  if (typeof window !== 'undefined' && typeof React !== 'undefined') {
-    const React = require('react');
-
-    // 의존성 배열 안전성 체크
-    const isValid = loopDetector.checkUseEffectPattern(deps, functionName);
-
-    if (!isValid) {
-      // 안전하지 않은 패턴이면 useEffect를 실행하지 않음
-      console.error(`🚨 useEffect 실행 차단: ${functionName}`);
-      return;
-    }
-
-    return React.useEffect(effect, deps);
+  if (typeof window === 'undefined') {
+    return;
   }
+
+  const isValid = loopDetector.checkUseEffectPattern(Array.from(deps), functionName);
+
+  if (!isValid) {
+    console.error(`🚨 useEffect 실행 차단: ${functionName}`);
+    return;
+  }
+
+  return useEffect(effect, deps);
 }
 
 // 타입 export

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { saveFileFromUrl, saveMultipleFiles } from '@/shared/lib/file-storage';
+import { logger } from '@/shared/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -97,7 +98,9 @@ export async function POST(req: NextRequest) {
       );
     }
   } catch (error) {
-    console.error('File save error:', error);
+    logger.error('File save API error', error as Error, {
+      operation: 'file-save-api'
+    });
     return NextResponse.json(
       {
         ok: false,
@@ -133,7 +136,9 @@ export async function GET(req: NextRequest) {
       },
     );
   } catch (error) {
-    console.error('File list error:', error);
+    logger.error('File list API error', error as Error, {
+      operation: 'file-list-api'
+    });
     return NextResponse.json(
       {
         ok: false,

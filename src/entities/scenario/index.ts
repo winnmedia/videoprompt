@@ -13,8 +13,10 @@ export * from './models';
 export {
   setStorySteps,
   setError as setStoryError,
+  setError,
   setLoading,
   resetStory as clearStory,
+  resetStory,
   updateStoryStep
 } from './store/story-slice';
 
@@ -48,6 +50,14 @@ export {
   selectGenerationProgress,
   selectStoryboardStats,
 } from './store/storyboard-slice';
+
+// Templates - Public API 노출
+export {
+  DEFAULT_TEMPLATES,
+  getTemplatesByCategory,
+  getTemplateById,
+  getAllDefaultTemplates
+} from './templates';
 
 // Redux reducers - Public API 노출
 export { default as scenarioReducer } from './store/scenario-slice';

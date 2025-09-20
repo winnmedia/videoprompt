@@ -5,11 +5,11 @@
 
 import { NextRequest } from 'next/server';
 import { POST } from '@/app/api/planning/register/route';
-import { getPlanningRepository } from '@/entities/planning/model/repository';
+import { getPlanningRepository } from '@/entities/planning';
 import { beforeEach, describe, expect, it, vi, afterEach } from 'vitest';
 
 // Mock dependencies
-vi.mock('@/entities/planning/model/repository');
+vi.mock('@/entities/planning');
 vi.mock('@/shared/lib/auth-middleware-v2', () => ({
   withAuth: (handler: any) => handler
 }));

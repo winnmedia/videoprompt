@@ -15,7 +15,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { AuthContext } from '@/shared/lib/unified-auth';
 import { checkPermission, type PermissionState } from '@/shared/lib/permission-guard';
-import { useAuth } from './useAuthContext';
+import { useAuthContext } from './useAuthContext';
 
 interface PermissionCacheEntry {
   result: PermissionState;
@@ -82,8 +82,10 @@ class PermissionCache {
     // 캐시 크기 제한
     if (this.cache.size >= this.MAX_SIZE) {
       // LRU: 가장 오래된 항목 제거
-      const oldestKey = this.cache.keys().next().value;
-      this.cache.delete(oldestKey);
+      const nextKey = this.cache.keys().next();
+      if (!nextKey.done && typeof nextKey.value === 'string') {
+        this.cache.delete(nextKey.value);
+      }
     }
 
     this.cache.set(key, {
@@ -237,7 +239,7 @@ export function usePermissionOptimized(
     enableWebWorker = false
   } = options;
 
-  const { authContext } = useAuth();
+  const { authContext } = useAuthContext();
   const [permission, setPermission] = useState<PermissionState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -332,7 +334,7 @@ export function usePermissionsBatch(
   options: UsePermissionOptimizedOptions = {}
 ) {
   const { enableCache = true, enableWebWorker = false } = options;
-  const { authContext } = useAuth();
+  const { authContext } = useAuthContext();
   const [permissions, setPermissions] = useState<BatchPermissionResult>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -451,7 +453,7 @@ export function useConditionalRender(feature: string) {
  * 권한 사전 로딩 훅
  */
 export function usePermissionPreloader(features: string[]) {
-  const { authContext } = useAuth();
+  const { authContext } = useAuthContext();
 
   useEffect(() => {
     if (!authContext || features.length === 0) return;

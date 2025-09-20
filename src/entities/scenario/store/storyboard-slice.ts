@@ -6,6 +6,43 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { Shot, StoryboardShot, InsertShot } from '../types';
 
+// useStoryboardGeneration을 위한 추가 타입 정의
+export interface GenerationProjectState {
+  projectId: string;
+  overallProgress: number;
+  totalShots: number;
+  completedShots: number;
+  failedShots: number;
+  startedAt: Date;
+  shotStates: Map<string, ShotGenerationStatus>;
+  activeGenerations: string[];
+}
+
+export interface ShotGenerationStatus {
+  shotId: string;
+  status: 'pending' | 'generating' | 'completed' | 'failed';
+  progress: number;
+  retryCount: number;
+  startedAt?: Date;
+  completedAt?: Date;
+  result?: any;
+  errorMessage?: string;
+}
+
+export interface GenerationResult {
+  shotId: string;
+  imageUrl?: string;
+  generatedAt: Date;
+  metadata?: any;
+}
+
+export interface GenerationStatistics {
+  totalGenerated: number;
+  totalFailed: number;
+  averageGenerationTime?: number;
+  successRate?: number;
+}
+
 export interface StoryboardGenerationState {
   isGenerating: boolean;
   generationProgress: number;
@@ -31,6 +68,7 @@ export interface StoryboardState {
   // UI 상태
   isLoading: boolean;
   error: string | null;
+  errors: string[]; // 다중 에러 지원
 
   // 생성 상태
   generation: StoryboardGenerationState;
@@ -53,6 +91,11 @@ export interface StoryboardState {
   // 검증 상태
   isValid: boolean;
   validationErrors: Record<string, string>;
+
+  // useStoryboardGeneration을 위한 확장 상태
+  projectStates: Record<string, GenerationProjectState>;
+  generationResults: GenerationResult[];
+  generationStatistics: GenerationStatistics;
 }
 
 const initialGenerationState: StoryboardGenerationState = {
@@ -76,6 +119,7 @@ const initialState: StoryboardState = {
   storyboardShots: [],
   isLoading: false,
   error: null,
+  errors: [],
   generation: initialGenerationState,
   selectedShotId: null,
   isEditing: false,
@@ -85,7 +129,15 @@ const initialState: StoryboardState = {
   generationHash: null,
   optimisticUpdates: {},
   isValid: true,
-  validationErrors: {}
+  validationErrors: {},
+  projectStates: {},
+  generationResults: [],
+  generationStatistics: {
+    totalGenerated: 0,
+    totalFailed: 0,
+    averageGenerationTime: 0,
+    successRate: 0
+  }
 };
 
 export const storyboardSlice = createSlice({
@@ -306,6 +358,122 @@ export const storyboardSlice = createSlice({
       // TODO: 원본 상태로 복원
     },
 
+    // useStoryboardGeneration 호환 액션들
+    initializeGenerationState: (state, action: PayloadAction<{ projectId: string; state: Partial<GenerationProjectState> }>) => {
+      const { projectId, state: projectState } = action.payload;
+      state.projectStates[projectId] = {
+        projectId,
+        overallProgress: 0,
+        totalShots: 0,
+        completedShots: 0,
+        failedShots: 0,
+        startedAt: new Date(),
+        shotStates: new Map(),
+        activeGenerations: [],
+        ...projectState
+      };
+      state.error = null;
+      state.errors = [];
+    },
+
+    addBatchResults: (state, action: PayloadAction<{ projectId: string; results: any[] }>) => {
+      const { projectId, results } = action.payload;
+
+      // 결과를 generationResults에 추가
+      results.forEach(result => {
+        state.generationResults.push({
+          shotId: result.shotId,
+          imageUrl: result.imageUrl,
+          generatedAt: new Date(),
+          metadata: result.metadata
+        });
+      });
+
+      // 프로젝트 상태 업데이트
+      if (state.projectStates[projectId]) {
+        state.projectStates[projectId].completedShots += results.length;
+        state.projectStates[projectId].overallProgress =
+          (state.projectStates[projectId].completedShots / state.projectStates[projectId].totalShots) * 100;
+      }
+
+      // 통계 업데이트
+      state.generationStatistics.totalGenerated += results.length;
+    },
+
+    addError: (state, action: PayloadAction<{ message: string; shotId?: string }>) => {
+      const { message, shotId } = action.payload;
+      state.errors.push(message);
+      state.error = message; // 마지막 에러를 error 필드에도 저장
+
+      if (shotId) {
+        // 특정 샷의 에러인 경우 통계 업데이트
+        state.generationStatistics.totalFailed += 1;
+      }
+    },
+
+    updateGenerationState: (state, action: PayloadAction<{ projectId: string; updates: Partial<GenerationProjectState> }>) => {
+      const { projectId, updates } = action.payload;
+
+      if (state.projectStates[projectId]) {
+        state.projectStates[projectId] = {
+          ...state.projectStates[projectId],
+          ...updates
+        };
+      }
+    },
+
+    updateShotState: (state, action: PayloadAction<{ projectId: string; shotId: string; updates: Partial<ShotGenerationStatus> }>) => {
+      const { projectId, shotId, updates } = action.payload;
+
+      if (state.projectStates[projectId]) {
+        const currentState = state.projectStates[projectId].shotStates.get(shotId) || {
+          shotId,
+          status: 'pending' as const,
+          progress: 0,
+          retryCount: 0
+        };
+
+        state.projectStates[projectId].shotStates.set(shotId, {
+          ...currentState,
+          ...updates
+        });
+      }
+    },
+
+    addGeneratedResult: (state, action: PayloadAction<{ projectId: string; result: GenerationResult }>) => {
+      const { projectId, result } = action.payload;
+
+      state.generationResults.push(result);
+
+      // 프로젝트 상태 업데이트
+      if (state.projectStates[projectId]) {
+        state.projectStates[projectId].completedShots += 1;
+        state.projectStates[projectId].overallProgress =
+          (state.projectStates[projectId].completedShots / state.projectStates[projectId].totalShots) * 100;
+      }
+
+      // 통계 업데이트
+      state.generationStatistics.totalGenerated += 1;
+    },
+
+    updateStatistics: (state, action: PayloadAction<Partial<GenerationStatistics>>) => {
+      state.generationStatistics = {
+        ...state.generationStatistics,
+        ...action.payload
+      };
+
+      // 성공률 자동 계산
+      const total = state.generationStatistics.totalGenerated + state.generationStatistics.totalFailed;
+      if (total > 0) {
+        state.generationStatistics.successRate = (state.generationStatistics.totalGenerated / total) * 100;
+      }
+    },
+
+    clearErrors: (state) => {
+      state.errors = [];
+      state.error = null;
+    },
+
     // 상태 초기화
     resetStoryboard: () => initialState
   },
@@ -389,7 +557,13 @@ export const storyboardSlice = createSlice({
           count: state.shots.filter(shot => shot.shotType === type).length
         }))
       };
-    }
+    },
+    // useStoryboardGeneration 호환 선택자들
+    selectProjectStates: (state) => state.projectStates,
+    selectProjectState: (state, projectId: string) => state.projectStates[projectId] || null,
+    selectGenerationResults: (state) => state.generationResults,
+    selectGenerationStatistics: (state) => state.generationStatistics,
+    selectErrors: (state) => state.errors
   }
 });
 
@@ -452,6 +626,15 @@ export const {
   applyOptimisticUpdate,
   confirmOptimisticUpdate,
   revertOptimisticUpdate,
+  // useStoryboardGeneration 호환 액션들
+  initializeGenerationState,
+  addBatchResults,
+  addError,
+  updateGenerationState,
+  updateShotState,
+  addGeneratedResult,
+  updateStatistics,
+  clearErrors,
   resetStoryboard
 } = storyboardSlice.actions;
 
@@ -476,7 +659,13 @@ export const {
   selectValidationErrors,
   selectLastGeneratedAt,
   selectGenerationHash,
-  selectStoryboardStats
+  selectStoryboardStats,
+  // useStoryboardGeneration 호환 선택자들
+  selectProjectStates,
+  selectProjectState,
+  selectGenerationResults,
+  selectGenerationStatistics,
+  selectErrors
 } = storyboardSlice.selectors;
 
 export default storyboardSlice.reducer;

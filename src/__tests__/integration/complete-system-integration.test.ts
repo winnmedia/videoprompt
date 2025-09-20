@@ -4,11 +4,12 @@
  */
 
 import { configureStore } from '@reduxjs/toolkit';
-import seedanceProviderSlice, {
-  selectProviderSummary,
-  selectIsProviderAvailable
-} from '@/entities/seedance/store/seedance-provider-slice';
-import { useSeedanceProvider } from '@/entities/seedance/hooks/use-seedance-provider';
+import {
+  seedanceProviderReducer,
+  selectProviderConfig,
+  selectShouldUseMock,
+  useSeedanceProvider
+} from '@/entities/seedance';
 import { seedanceService } from '@/lib/providers/seedance-service';
 import { diagnoseCurrentSetup, getSetupSummary } from '@/lib/providers/seedance-setup-guide';
 import { createUserFriendlyError, detectErrorContext } from '@/lib/providers/seedance-error-messages';

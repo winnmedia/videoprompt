@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAIApiKeys } from '@/shared/config/env';
 import { saveFileFromUrl } from '@/shared/lib/file-storage';
 import { createJob, updateJobStatus } from '@/shared/lib/job-store';
 import { logger } from '@/shared/lib/logger';
@@ -104,7 +105,10 @@ async function processImageGeneration(
     const timeoutId = setTimeout(() => controller.abort(), 8000);
 
     try {
-      console.log(`🔗 [${jobId}] 백엔드 연결 시도...`);
+      logger.debug('백엔드 연결 시도', {
+        operation: 'imagen-backend-connect',
+        jobId
+      });
 
       // 진행률 30% 업데이트
       updateJobStatus(jobId, 'processing', 30);
@@ -129,7 +133,12 @@ async function processImageGeneration(
       updateJobStatus(jobId, 'processing', 60);
 
       if (!response.ok) {
-        console.error(`❌ [${jobId}] 백엔드 오류: ${response.status} ${response.statusText}`);
+        logger.warn('백엔드 이미지 생성 실패', {
+          operation: 'imagen-backend-error',
+          jobId,
+          statusCode: response.status,
+          statusText: response.statusText
+        });
 
         // 백엔드 실패 시 Google Image API로 폴백 시도
         const fallback = await tryGoogleImageAPI(prompt, aspectRatio);
@@ -154,7 +163,10 @@ async function processImageGeneration(
 
       // 백엔드 응답 검증
       if (!data?.ok || !data?.imageUrl) {
-        console.warn(`WARN: [${jobId}] 백엔드 JSON 비정상. 폴백 시도.`);
+        logger.warn('백엔드 응답 JSON 파싱 실패', {
+          operation: 'imagen-json-parse-error',
+          jobId
+        });
         const fallback = await tryGoogleImageAPI(prompt, aspectRatio);
         if (fallback.ok) {
           const savedUrl = await saveImageIfPossible(fallback.imageUrl!, jobId);
@@ -188,7 +200,10 @@ async function processImageGeneration(
     }
 
   } catch (error) {
-    console.error(`ERROR: [${jobId}] 이미지 생성 처리 실패:`, error);
+    logger.error('이미지 생성 처리 실패', error as Error, {
+      operation: 'imagen-preview-error',
+      jobId
+    });
     const fallbackUrl = buildFallbackImageDataUrl(prompt);
     updateJobStatus(jobId, 'failed', 0, fallbackUrl, error instanceof Error ? error.message : String(error));
   }
@@ -213,12 +228,13 @@ async function saveImageIfPossible(imageUrl: string, jobId: string): Promise<str
 // Google Image Generation API 폴백
 async function tryGoogleImageAPI(prompt: string, aspectRatio: string): Promise<{ ok: boolean; imageUrl?: string; message?: string }> {
   try {
-    const apiKey = process.env.GOOGLE_GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    const apiKeys = getAIApiKeys();
+    const apiKey = apiKeys.gemini;
     if (!apiKey) return { ok: false, message: 'Google API Key 미설정' };
 
     // Image Generation (Imagen 4) – 모델 명시 필수
     const model = process.env.GOOGLE_IMAGE_MODEL || 'imagen-4.0-generate-preview-06-06';
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateImage?key=${apiKey}`;
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateImage`;
     const payload = {
       prompt: { text: prompt },
       // 16:9 -> horizontal
@@ -227,7 +243,10 @@ async function tryGoogleImageAPI(prompt: string, aspectRatio: string): Promise<{
 
     const res = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey
+      },
       body: JSON.stringify(payload),
     });
     if (!res.ok) {

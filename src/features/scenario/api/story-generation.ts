@@ -3,7 +3,8 @@ import { safeFetch, withDeduplication } from '@/shared/lib/api-retry';
 import { 
   transformApiResponseToStorySteps,
   transformStoryInputToApiRequest,
-  transformApiError
+  transformApiError,
+  createFallbackStorySteps
 } from '@/shared/api/dto-transformers';
 
 interface GenerateStoryStepsParams {
@@ -86,13 +87,13 @@ export async function generateStorySteps({
     const rawData = await response.json();
     
     // DTO 변환 계층을 통한 안전한 데이터 변환
-    const steps = transformApiResponseToStorySteps(rawData, 'Story Generation API');
-    
-    // 최소한의 단계가 생성되었는지 확인
+    let steps = transformApiResponseToStorySteps(rawData, 'Story Generation API');
+    let successMessage = '4단계 스토리가 성공적으로 생성되었습니다!';
+
+    // 최소한의 단계가 생성되지 않은 경우 기본 템플릿 사용
     if (steps.length === 0) {
-      const errorMsg = 'AI가 스토리 단계를 생성하지 못했습니다. 다시 시도해주세요.';
-      onError?.(errorMsg, 'server');
-      throw new Error(errorMsg);
+      steps = createFallbackStorySteps('Story Generation API fallback');
+      successMessage = 'AI 응답이 불완전하여 기본 스토리 템플릿을 제공합니다.';
     }
     
     // 캐시에 저장
@@ -100,8 +101,8 @@ export async function generateStorySteps({
       steps,
       timestamp: Date.now()
     });
-    
-    onSuccess?.(steps, '4단계 스토리가 성공적으로 생성되었습니다!');
+
+    onSuccess?.(steps, successMessage);
     return steps;
   } catch (error) {
     const errorMessage = transformApiError(error, 'Story Generation API');

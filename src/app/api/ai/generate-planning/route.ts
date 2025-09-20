@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { withAICache } from '@/shared/lib/ai-cache';
 
 interface PlanningRequest {
   title: string;
@@ -50,19 +51,23 @@ export async function POST(request: NextRequest) {
 
     if (geminiApiKey) {
       try {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
+        // AI 캐싱 적용: 동일한 입력에 대해 2시간 캐싱
+        const geminiResult = await withAICache(
+          body, // 전체 요청 데이터를 캐시 키로 사용
+          async () => {
+            const response = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  contents: [
                     {
-                      text: `다음 정보를 바탕으로 영상 제작을 위한 체계적인 기획안을 생성해주세요:
+                      parts: [
+                        {
+                          text: `다음 정보를 바탕으로 영상 제작을 위한 체계적인 기획안을 생성해주세요:
 
 제목: ${title}
 로그라인: ${logline}
@@ -90,43 +95,33 @@ export async function POST(request: NextRequest) {
 }
 
 각 요소는 입력된 정보를 바탕으로 구체적이고 실용적인 내용으로 작성해주세요.`,
+                        },
+                      ],
                     },
                   ],
-                },
-              ],
-            }),
+                }),
+              },
+            );
+
+            if (!response.ok) {
+              throw new Error(`Gemini API 오류: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const generatedText = data.candidates[0]?.content?.parts[0]?.text;
+
+            if (!generatedText) {
+              throw new Error('Gemini에서 응답을 받지 못했습니다');
+            }
+
+            return JSON.parse(generatedText);
           },
+          { ttl: 2 * 60 * 60 * 1000 } // 2시간 캐싱
         );
 
-        if (response.ok) {
-          const data = await response.json();
-          const generatedText = data.candidates[0]?.content?.parts[0]?.text;
-
-          if (generatedText) {
-            try {
-              // JSON 파싱 시도
-              const parsedResponse = JSON.parse(generatedText);
-              return NextResponse.json(parsedResponse);
-            } catch (parseError) {
-              // 파싱 실패 시 기본 기획안 반환
-              return NextResponse.json(
-                generateDefaultPlanning(
-                  title,
-                  logline,
-                  genre,
-                  tone,
-                  target,
-                  duration,
-                  format,
-                  tempo,
-                  developmentMethod,
-                  developmentIntensity,
-                ),
-              );
-            }
-          }
-        }
+        return NextResponse.json(geminiResult);
       } catch (apiError) {
+        console.warn('Gemini API 호출 실패, 기본 기획안으로 폴백:', apiError);
       }
     }
 

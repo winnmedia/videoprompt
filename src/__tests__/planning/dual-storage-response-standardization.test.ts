@@ -11,8 +11,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { DualPlanningRepository, getPlanningRepository } from '@/entities/planning/model/repository';
-import { BaseContent, ScenarioContent } from '@/entities/planning/model/types';
+import { DualPlanningRepository, getPlanningRepository } from '@/entities/planning';
+import { BaseContent, ScenarioContent } from '@/entities/planning';
 import {
   createSuccessResponse,
   createErrorResponse,

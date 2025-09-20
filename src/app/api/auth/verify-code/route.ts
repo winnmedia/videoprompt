@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { prisma } from '@/lib/db';
+// import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { safeParseRequestBody } from '@/lib/json-utils';
 import { executeDatabaseOperation, createDatabaseErrorResponse } from '@/lib/database-middleware';

@@ -15,7 +15,7 @@ export function AdminTablesClient({
   recentVideos: VideoRow[];
 }) {
   const projectCols: Column<ProjectRow>[] = [
-    { key: 'id', header: 'ID', accessor: (p) => <span className="font-mono text-xs">{p.id}</span>, className: 'w-56', sortable: true },
+    { key: 'id', header: 'ID', className: 'w-56', sortable: true },
     { key: 'title', header: '제목', sortable: true },
     { key: 'status', header: '상태', sortable: true },
     { key: 'userEmail', header: '소유자', sortable: true },
@@ -23,14 +23,14 @@ export function AdminTablesClient({
   ];
 
   const scenarioCols: Column<ScenarioRow>[] = [
-    { key: 'id', header: 'ID', accessor: (s) => <span className="font-mono text-xs">{s.id}</span>, className: 'w-56', sortable: true },
+    { key: 'id', header: 'ID', className: 'w-56', sortable: true },
     { key: 'title', header: '제목', sortable: true },
     { key: 'version', header: '버전', sortable: true },
     { key: 'createdAt', header: '생성일', accessor: (s) => new Date(s.createdAt).toLocaleString(), sortable: true },
   ];
 
   const videoCols: Column<VideoRow>[] = [
-    { key: 'id', header: 'ID', accessor: (v) => <span className="font-mono text-xs">{v.id}</span>, className: 'w-56', sortable: true },
+    { key: 'id', header: 'ID', className: 'w-56', sortable: true },
     { key: 'provider', header: '제공자', sortable: true },
     { key: 'status', header: '상태', sortable: true },
     { key: 'version', header: '버전', sortable: true },

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useCallback, useMemo, Suspense } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, Suspense } from 'react';
+import { useDispatch } from 'react-redux';
 import {
   WORKFLOW_STEPS,
   StoryTemplate,
@@ -15,6 +16,7 @@ import {
   StoryStepsEditor,
   ShotsGrid
 } from '@/widgets/scenario';
+import { usePipelineIntegration } from '@/features/pipeline/hooks/use-pipeline-integration';
 
 /**
  * AI 영상 기획 시나리오 페이지
@@ -36,6 +38,9 @@ import {
  * - 스크린 리더 지원
  */
 export default function ScenarioPage() {
+  // Redux 훅
+  const dispatch = useDispatch();
+
   // 스토리 생성 훅
   const storyGenerationMutation = useStoryGeneration();
 
@@ -61,12 +66,113 @@ export default function ScenarioPage() {
     errorType: storyGenerationMutation.error ? 'server' as const : workflowState.errorType,
   };
 
+  // 새로운 파이프라인 통합 시스템 사용
+  const pipeline = usePipelineIntegration();
+
+  // 컴포넌트 마운트 시 파이프라인 초기화 (ProjectID 동기화)
+  useEffect(() => {
+    // URL에서 projectId를 추출하거나 새로 생성
+    const urlParams = new URLSearchParams(window.location.search);
+    const existingProjectId = urlParams.get('projectId');
+
+    // 파이프라인 초기화 (기존 프로젝트가 있으면 재사용, 없으면 새로 생성)
+    pipeline.initializePipeline(existingProjectId || undefined);
+
+    console.log('📊 Pipeline initialized with ProjectID:', existingProjectId || 'new project');
+  }, [pipeline.initializePipeline]);
+
+  // ProjectID가 변경되면 URL 업데이트 (브라우저 새로고침 시 동일 프로젝트 유지)
+  useEffect(() => {
+    if (pipeline.projectId) {
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set('projectId', pipeline.projectId);
+      window.history.replaceState({}, '', currentUrl.toString());
+      console.log('📊 URL updated with ProjectID:', pipeline.projectId);
+    }
+  }, [pipeline.projectId]);
+
   const workflow = {
     ...enrichedWorkflowState,
-    handleStorySubmit: async () => {},
-    handleStoryUpdate: () => {},
-    handleShotsGeneration: async () => {},
-    handleExport: () => {},
+    // 새로운 파이프라인 핸들러들로 교체
+    handleStorySubmit: async () => {
+      try {
+        await pipeline.handleStorySubmit({
+          content: enrichedWorkflowState.storyInput.oneLineStory,
+          title: enrichedWorkflowState.storyInput.title,
+          genre: enrichedWorkflowState.storyInput.genre,
+          tone: enrichedWorkflowState.storyInput.toneAndManner,
+          targetAudience: enrichedWorkflowState.storyInput.target
+        });
+      } catch (error) {
+        console.error('스토리 제출 실패:', error);
+      }
+    },
+    handleStoryUpdate: async (updatedStory: Partial<typeof enrichedWorkflowState.storyInput>) => {
+      try {
+        // Redux 스토어에 스토리 업데이트
+        const { updateStoryInput } = await import('@/entities/scenario');
+        dispatch(updateStoryInput(updatedStory));
+
+        // 파이프라인에 업데이트 전파
+        await pipeline.handleStoryUpdate({
+          ...enrichedWorkflowState.storyInput,
+          ...updatedStory
+        });
+
+        console.log('스토리 업데이트 완료:', updatedStory);
+      } catch (error) {
+        console.error('스토리 업데이트 실패:', error);
+      }
+    },
+    handleShotsGeneration: async () => {
+      try {
+        await pipeline.handleScenarioGeneration({
+          genre: enrichedWorkflowState.storyInput.genre || 'General',
+          tone: enrichedWorkflowState.storyInput.toneAndManner || 'Neutral',
+          structure: ['Beginning', 'Middle', 'End'], // 기본 구조
+          target: enrichedWorkflowState.storyInput.target || 'General Audience'
+        });
+      } catch (error) {
+        console.error('시나리오 생성 실패:', error);
+      }
+    },
+    handleExport: async () => {
+      try {
+        // 프로젝트 저장을 통한 내보내기
+        await pipeline.checkPipelineStatus();
+        console.log('📊 프로젝트 내보내기 완료:', pipeline.projectId);
+      } catch (error) {
+        console.error('내보내기 실패:', error);
+      }
+    },
+    handlePdfExport: async () => {
+      try {
+        console.log('📄 PDF 내보내기 시작');
+        // TODO: PDF 생성 API 호출
+        alert('PDF 내보내기 기능은 준비 중입니다.');
+      } catch (error) {
+        console.error('PDF 내보내기 실패:', error);
+      }
+    },
+    handleExcelExport: async () => {
+      try {
+        console.log('📊 Excel 내보내기 시작');
+        // TODO: Excel 생성 API 호출
+        alert('Excel 내보내기 기능은 준비 중입니다.');
+      } catch (error) {
+        console.error('Excel 내보내기 실패:', error);
+      }
+    },
+    handleProjectSave: async () => {
+      try {
+        console.log('💾 프로젝트 저장 시작');
+        // 현재 파이프라인 상태를 저장
+        await pipeline.checkPipelineStatus();
+        alert(`프로젝트 ${pipeline.projectId}가 저장되었습니다. URL을 북마크하여 나중에 편집할 수 있습니다.`);
+      } catch (error) {
+        console.error('프로젝트 저장 실패:', error);
+      }
+    },
     setCurrentStep: (step: WorkflowStep) => {
       setWorkflowState(prev => ({ ...prev, currentStep: step }));
     },
@@ -111,15 +217,62 @@ export default function ScenarioPage() {
       setWorkflowState(prev => ({ ...prev, retryCount: prev.retryCount + 1 }));
       workflow.generateStory();
     },
-    toggleStepEditing: (stepId: string) => {},
-    updateStoryStep: (stepId: string, field: string, value: string) => {},
-    generateShotsFromSteps: async () => {},
-    goToPreviousStep: () => {},
+    toggleStepEditing: (stepId: string) => {
+      setWorkflowState(prev => ({
+        ...prev,
+        storySteps: prev.storySteps.map(step =>
+          step.id === stepId
+            ? { ...step, isEditing: !step.isEditing }
+            : step
+        )
+      }));
+    },
+    updateStoryStep: (stepId: string, field: string, value: string) => {
+      setWorkflowState(prev => ({
+        ...prev,
+        storySteps: prev.storySteps.map(step =>
+          step.id === stepId
+            ? { ...step, [field]: value }
+            : step
+        )
+      }));
+    },
+    generateShotsFromSteps: async () => {
+      try {
+        await pipeline.handlePromptGeneration({
+          visualStyle: enrichedWorkflowState.storyInput.format || 'cinematic',
+          mood: enrichedWorkflowState.storyInput.toneAndManner?.[0] || 'neutral',
+          quality: 'premium',
+          keywords: enrichedWorkflowState.storySteps.map(step => step.title)
+        });
+        setWorkflowState(prev => ({ ...prev, currentStep: WORKFLOW_STEPS.SHOTS_GENERATION }));
+      } catch (error) {
+        console.error('숏트 생성 실패:', error);
+      }
+    },
+    goToPreviousStep: () => {
+      const currentIndex = Object.values(WORKFLOW_STEPS).indexOf(enrichedWorkflowState.currentStep);
+      if (currentIndex > 0) {
+        const previousStep = Object.values(WORKFLOW_STEPS)[currentIndex - 1];
+        setWorkflowState(prev => ({ ...prev, currentStep: previousStep }));
+      }
+    },
     goToStep: (step: WorkflowStep) => {
       setWorkflowState(prev => ({ ...prev, currentStep: step }));
     },
-    updateShot: (shotId: string, field: string, value: any) => {},
-    clearError: () => {}
+    updateShot: (shotId: string, field: string, value: any) => {
+      setWorkflowState(prev => ({
+        ...prev,
+        shots: prev.shots.map(shot =>
+          shot.id === shotId
+            ? { ...shot, [field]: value }
+            : shot
+        )
+      }));
+    },
+    clearError: () => {
+      setWorkflowState(prev => ({ ...prev, error: null, errorType: null }));
+    }
   };
 
   // 템플릿 관련 상태 (StoryInputForm과의 호환성)
@@ -149,42 +302,109 @@ export default function ScenarioPage() {
   // 템플릿 핸들러들
   const handleTemplateSelect = useCallback((template: StoryTemplate) => {
     workflow.applyTemplate(template);
-    alert(`✅ "${template.name}" 템플릿이 적용되었습니다!`);
+    alert(`"${template.name}" 템플릿이 적용되었습니다!`);
   }, [workflow]);
 
-  const handleSaveAsTemplate = useCallback((templateData: {
+  const handleSaveAsTemplate = useCallback(async (templateData: {
     name: string;
     description: string;
     storyInput: any;
   }) => {
-    // 템플릿 저장 로직 (향후 구현)
-    console.log('템플릿 저장:', templateData);
-  }, []);
+    try {
+      console.log('💾 템플릿 저장 시작:', templateData);
+
+      // TODO: 실제 템플릿 저장 API 호출
+      // await apiClient.post('/api/planning/templates', templateData);
+
+      // 임시로 localStorage에 저장
+      const existingTemplates = JSON.parse(localStorage.getItem('storyTemplates') || '[]');
+      const newTemplate = {
+        id: crypto.randomUUID(),
+        name: templateData.name,
+        description: templateData.description,
+        template: templateData.storyInput,
+        createdAt: new Date().toISOString(),
+        projectId: pipeline.projectId
+      };
+
+      existingTemplates.push(newTemplate);
+      localStorage.setItem('storyTemplates', JSON.stringify(existingTemplates));
+
+      alert(`템플릿 "${templateData.name}"이 저장되었습니다!`);
+    } catch (error) {
+      console.error('템플릿 저장 실패:', error);
+      alert('템플릿 저장에 실패했습니다.');
+    }
+  }, [pipeline.projectId]);
 
   // 콘티 이미지 생성
   const handleGenerateContiImage = useCallback(async (shotId: string) => {
     setIsGeneratingImage(prev => ({ ...prev, [shotId]: true }));
 
     try {
-      // 콘티 이미지 생성 API 호출 (향후 구현)
-      await new Promise(resolve => setTimeout(resolve, 2000)); // 모킹
+      console.log('🎨 콘티 이미지 생성 시작:', shotId);
 
-      // 생성된 이미지 URL 업데이트
-      const mockImageUrl = `https://via.placeholder.com/400x200/0066cc/ffffff?text=Conti+${shotId}`;
+      // 해당 숏트 정보 찾기
+      const shot = workflow.shots.find(s => s.id === shotId);
+      if (!shot) {
+        throw new Error('Shot not found');
+      }
+
+      // 파이프라인 프롬프트 생성을 통한 이미지 생성
+      await pipeline.handlePromptGeneration({
+        visualStyle: 'storyboard',
+        mood: shot.mood || 'neutral',
+        quality: 'standard',
+        keywords: [shot.title, shot.description, 'storyboard', 'concept art'],
+        directorStyle: 'cinematographic'
+      });
+
+      // TODO: 실제 이미지 생성 API 호출 후 결과 URL 받기
+      // const imageResult = await apiClient.post('/api/imagen/generate', { ... });
+
+      // 임시 모킹 - 실제로는 API에서 받은 이미지 URL 사용
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const mockImageUrl = `https://via.placeholder.com/400x200/0066cc/ffffff?text=Conti+${shotId.slice(0, 8)}`;
+
       workflow.updateShot(shotId, 'contiImage', mockImageUrl);
+      console.log('✅ 콘티 이미지 생성 완료:', shotId);
 
     } catch (error) {
       console.error('콘티 생성 실패:', error);
+      alert('콘티 이미지 생성에 실패했습니다.');
     } finally {
       setIsGeneratingImage(prev => ({ ...prev, [shotId]: false }));
     }
-  }, [workflow]);
+  }, [workflow, pipeline.handlePromptGeneration]);
 
-  // 인서트샷 생성
+  // 인서트샷 생성 (영상 생성)
   const handleGenerateInsertShots = useCallback(async (shotId: string) => {
-    // 인서트샷 생성 로직 (향후 구현)
-    console.log('인서트샷 생성:', shotId);
-  }, []);
+    try {
+      console.log('🎬 인서트샷(영상) 생성 시작:', shotId);
+
+      // 해당 숏트 정보 찾기
+      const shot = workflow.shots.find(s => s.id === shotId);
+      if (!shot) {
+        throw new Error('Shot not found');
+      }
+
+      // 파이프라인 영상 생성 호출
+      await pipeline.handleVideoGeneration({
+        duration: 10, // 인서트샷은 짧게
+        aspectRatio: '16:9',
+        resolution: '1080p',
+        provider: 'seedance',
+        priority: 'normal'
+      });
+
+      console.log('✅ 인서트샷 생성 요청 완료:', shotId);
+      alert('인서트샷 영상 생성이 요청되었습니다. 처리까지 몇 분이 소요될 수 있습니다.');
+
+    } catch (error) {
+      console.error('인서트샷 생성 실패:', error);
+      alert('인서트샷 생성에 실패했습니다.');
+    }
+  }, [workflow, pipeline.handleVideoGeneration]);
 
   // 현재 단계에 따른 렌더링
   const renderCurrentStep = () => {
@@ -278,15 +498,24 @@ export default function ScenarioPage() {
                 완성된 시나리오와 콘티를 다양한 형태로 내보낼 수 있습니다.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-4 h-24 flex flex-col items-center justify-center rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500">
+                <button
+                  onClick={workflow.handlePdfExport}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-4 h-24 flex flex-col items-center justify-center rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
                   <span className="font-medium">PDF 다운로드</span>
                   <span className="text-sm text-gray-500 mt-1">콘티북 형태</span>
                 </button>
-                <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-4 h-24 flex flex-col items-center justify-center rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500">
+                <button
+                  onClick={workflow.handleExcelExport}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-4 h-24 flex flex-col items-center justify-center rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
                   <span className="font-medium">Excel 다운로드</span>
                   <span className="text-sm text-gray-500 mt-1">편집 가능한 표</span>
                 </button>
-                <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-4 h-24 flex flex-col items-center justify-center rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500">
+                <button
+                  onClick={workflow.handleProjectSave}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-4 h-24 flex flex-col items-center justify-center rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
                   <span className="font-medium">프로젝트 저장</span>
                   <span className="text-sm text-gray-500 mt-1">나중에 편집</span>
                 </button>

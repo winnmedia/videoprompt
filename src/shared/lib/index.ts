@@ -50,33 +50,35 @@ export {
 // } from './services/storyboard-generator';
 
 // =============================================================================
-// Redux Store 내보내기
+// Redux Store 내보내기 (app/store로 이동됨)
 // =============================================================================
 
-export { store, useAppDispatch, useAppSelector } from './store';
-export type { RootState, AppDispatch } from './store';
+// 🚨 Redux 스토어 통합: app/store에서 직접 import하도록 변경
+// export { store, useAppDispatch, useAppSelector } from './store';
+// export type { RootState, AppDispatch } from './store';
 
-export {
-  setActiveProject,
-  initializeGenerationState,
-  updateGenerationState,
-  updateShotState,
-  addGeneratedResult,
-  addBatchResults,
-  removeGenerationState,
-  updateUIState,
-  selectShot,
-  setViewMode,
-  setFilter,
-  setSort,
-  addError,
-  removeError,
-  clearErrors,
-  updateStatistics,
-  clearProjectResults,
-  resetState,
-  storyboardSelectors,
-} from './store/slices/storyboard';
+// 🚨 스토리보드 관련 액션들: entities/scenario로 이동됨
+// export {
+//   setActiveProject,
+//   initializeGenerationState,
+//   updateGenerationState,
+//   updateShotState,
+//   addGeneratedResult,
+//   addBatchResults,
+//   removeGenerationState,
+//   updateUIState,
+//   selectShot,
+//   setViewMode,
+//   setFilter,
+//   setSort,
+//   addError,
+//   removeError,
+//   clearErrors,
+//   updateStatistics,
+//   clearProjectResults,
+//   resetState,
+//   storyboardSelectors,
+// } from './store/slices/storyboard';
 
 // =============================================================================
 // React Query 내보내기
