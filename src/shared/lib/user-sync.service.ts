@@ -64,7 +64,7 @@ export class UserSyncService {
       }
 
       // 2. Prisma에서 기존 사용자 확인
-      const { prisma } = await import('@/lib/prisma');
+//       const { prisma } = await import('@/lib/prisma');
       const existingPrismaUser = await prisma.user.findUnique({
         where: { id: userId }
       });
@@ -168,7 +168,7 @@ export class UserSyncService {
       const supabaseExists = !!supabaseUser;
 
       // Prisma 확인
-      const { prisma } = await import('@/lib/prisma');
+//       const { prisma } = await import('@/lib/prisma');
       const prismaUser = await prisma.user.findUnique({
         where: { id: userId }
       });

@@ -18,7 +18,7 @@ type Overview = {
 async function getOverview(): Promise<Overview> {
   try {
     // TODO: Supabase 통계 구현 필요
-    console.log('📊 Admin overview - Supabase 통계 구현 대기 중');
+    console.warn('📊 Admin overview - Supabase 통계 구현 대기 중');
 
     return {
       usersCount: 0,
@@ -51,7 +51,7 @@ type Recent = {
 async function getRecent(): Promise<Recent> {
   try {
     // TODO: Supabase 최근 데이터 조회 구현 필요
-    console.log('📊 Admin recent data - Supabase 구현 대기 중');
+    console.warn('📊 Admin recent data - Supabase 구현 대기 중');
 
     return {
       recentProjects: [],

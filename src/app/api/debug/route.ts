@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const { prisma, checkDatabaseConnection } = await import('@/lib/prisma');
+//     const { prisma, checkDatabaseConnection } = await import('@/lib/prisma');
 
     // 1. 환경 변수 확인
     const env = {
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST() {
   try {
-    const { prisma, checkDatabaseConnection } = await import('@/lib/prisma');
+//     const { prisma, checkDatabaseConnection } = await import('@/lib/prisma');
 
     // 연결 검증
     const connectionStatus = await checkDatabaseConnection(2);

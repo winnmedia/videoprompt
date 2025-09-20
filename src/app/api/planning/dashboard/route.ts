@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     logger.info('Planning Dashboard 데이터 조회 시작', { userId });
 
     // Prisma 클라이언트 임포트 및 연결 검증
-    const { prisma, checkDatabaseConnection } = await import('@/lib/prisma');
+//     const { prisma, checkDatabaseConnection } = await import('@/lib/prisma');
 
     // 데이터베이스 연결 상태 검증
     const connectionStatus = await checkDatabaseConnection(2);

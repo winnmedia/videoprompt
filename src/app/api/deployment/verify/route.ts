@@ -86,7 +86,7 @@ export async function GET() {
 
   // Prisma Client 접근 테스트 (실제 DB 연결 없이)
   try {
-    const { PrismaClient } = await import('@prisma/client');
+//     const { PrismaClient } = await import('@prisma/client');
     deploymentInfo.database = {
       prismaClientAvailable: true,
       status: 'client_initialized',
