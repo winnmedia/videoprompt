@@ -3,7 +3,7 @@
   "version": 2,
   "regions": ["icn1"],
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "prisma generate && pnpm run vercel-build",
+  "buildCommand": "pnpm run vercel-build",
   "git": {
     "deploymentEnabled": {
       "main": true
