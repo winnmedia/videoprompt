@@ -42,6 +42,7 @@ function LoginForm() {
     if (message) {
       setSuccessMessage(message);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // $300 방지: 마운트 시 1회만 실행
 
   // $300 방지: 컴포넌트 언마운트 시 정리
