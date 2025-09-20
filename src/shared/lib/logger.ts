@@ -111,7 +111,6 @@ class Logger {
 
   info(message: string, metadata: Partial<LogMetadata> = {}): void {
     if (this.shouldLog(LogLevel.INFO)) {
-      console.info(this.formatMessage(LogLevel.INFO, message, metadata));
     }
   }
 

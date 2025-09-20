@@ -13,6 +13,8 @@ interface RetryOptions {
   maxDelay?: number;
   backoffFactor?: number;
   retryCondition?: (error: Error) => boolean;
+  bypassCache?: boolean;  // 개발 모드 캐시 바이패스
+  bypassRateLimit?: boolean;  // 개발 모드 레이트 리미터 바이패스
 }
 
 const DEFAULT_OPTIONS: Required<RetryOptions> = {
@@ -20,6 +22,8 @@ const DEFAULT_OPTIONS: Required<RetryOptions> = {
   initialDelay: 1000, // 1초
   maxDelay: 10000,    // 10초
   backoffFactor: 2,
+  bypassCache: false,
+  bypassRateLimit: false,
   retryCondition: (error) => {
     // 🚨 $300 사건 방지: 인증 에러는 재시도하지 않음
     if (error.message.includes('401') ||
@@ -68,24 +72,50 @@ export async function withRetry<T>(
   throw lastError!;
 }
 
+// 개발 모드 감지 유틸리티
+function isDevelopmentMode(): boolean {
+  return process.env.NODE_ENV === 'development';
+}
+
+// URL에서 디버그 플래그 확인
+function hasDebugFlags(url: string): boolean {
+  if (typeof window !== 'undefined') {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.has('dev') || urlParams.has('debug') || urlParams.has('bypass-cache');
+  }
+
+  // 서버 사이드에서는 URL 파라미터 확인
+  return url.includes('?dev=1') || url.includes('&dev=1') ||
+         url.includes('?debug=1') || url.includes('&debug=1') ||
+         url.includes('?bypass-cache=1') || url.includes('&bypass-cache=1');
+}
+
 // Rate limiting을 위한 API 호출 제한기
 class ApiLimiter {
   private requests: number[] = [];
   private readonly maxRequestsPerMinute = 60; // 분당 최대 60회
   private readonly windowMs = 60 * 1000; // 1분
 
-  canMakeRequest(): boolean {
+  canMakeRequest(bypassRateLimit = false): boolean {
+    // 개발 모드 또는 명시적 바이패스 시 제한 해제
+    if (bypassRateLimit || isDevelopmentMode()) {
+      if (isDevelopmentMode()) {
+        logger.info('🚧 [DEV] Rate limiting bypassed in development mode');
+      }
+      return true;
+    }
+
     const now = Date.now();
-    
+
     // 1분 이전 요청들 제거
     this.requests = this.requests.filter(time => now - time < this.windowMs);
-    
+
     // 제한 확인
     if (this.requests.length >= this.maxRequestsPerMinute) {
       console.warn('🚨 API 호출 제한 도달 - $300 사건 방지');
       return false;
     }
-    
+
     return true;
   }
 
@@ -183,18 +213,32 @@ export async function safeFetch(
       'high'
     );
   }
-  
-  // Rate limiting 체크
-  if (!apiLimiter.canMakeRequest()) {
+
+  // 개발 모드 및 디버그 플래그 감지
+  const opts = { ...DEFAULT_OPTIONS, ...retryOptions };
+  const shouldBypassRateLimit = opts.bypassRateLimit || hasDebugFlags(fullUrl);
+  const shouldBypassCache = opts.bypassCache || hasDebugFlags(fullUrl);
+
+  // 바이패스 모드 로깅 (개발 환경에서만)
+  if (isDevelopmentMode() && (shouldBypassRateLimit || shouldBypassCache)) {
+    logger.info(`🚧 [DEV] API 바이패스 모드 활성화 - URL: ${url}`, {
+      bypassRateLimit: shouldBypassRateLimit,
+      bypassCache: shouldBypassCache,
+      debugFlags: hasDebugFlags(fullUrl)
+    });
+  }
+
+  // Rate limiting 체크 (바이패스 가능)
+  if (!apiLimiter.canMakeRequest(shouldBypassRateLimit)) {
     const resetTime = apiLimiter.getResetTime();
     const waitTime = Math.max(0, resetTime - Date.now());
-    
+
     monitoring.trackError(
-      `API 호출 제한 초과: ${url}`, 
+      `API 호출 제한 초과: ${url}`,
       { url, remainingRequests: apiLimiter.getRemainingRequests(), waitTime },
       'high'
     );
-    
+
     throw new Error(
       `API 호출 제한 초과. ${Math.ceil(waitTime / 1000)}초 후 다시 시도해주세요. ` +
       `(남은 요청: ${apiLimiter.getRemainingRequests()})`
@@ -211,7 +255,13 @@ export async function safeFetch(
       ...options,
       headers: {
         ...options?.headers,
-        ...authHeader
+        ...authHeader,
+        // 캐시 바이패스 헤더 추가 (개발 모드에서만)
+        ...(shouldBypassCache ? {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        } : {})
       },
       signal: AbortSignal.timeout(30000) // 30초 타임아웃
     });

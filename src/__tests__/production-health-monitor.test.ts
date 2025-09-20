@@ -18,13 +18,10 @@ describe('프로덕션 헬스 체크 및 모니터링', () => {
   ];
 
   beforeAll(() => {
-    console.log('🏥 Starting Production Health Monitoring Tests');
-    console.log('📊 Monitoring Configuration:', config);
     performanceMonitor = new PerformanceMonitor();
   });
 
   afterAll(() => {
-    console.log('✅ Production Health Monitoring Tests Completed');
   });
 
   environments.forEach(({ name, client, url, critical }) => {
@@ -52,14 +49,12 @@ describe('프로덕션 헬스 체크 및 모니터링', () => {
             }
           }
 
-          console.log(`📈 ${name} Health Check: ${responseTime}ms (healthy: ${healthCheck.healthy})`);
 
           // 성능 지표 로깅
           const performanceGrade = responseTime < 1000 ? '🟢 Excellent' :
                                  responseTime < 3000 ? '🟡 Good' :
                                  responseTime < 5000 ? '🟠 Fair' : '🔴 Poor';
           
-          console.log(`📊 ${name} Performance: ${performanceGrade} (${responseTime}ms)`);
         });
 
         test('API 엔드포인트 접근성 및 응답 검증', async () => {
@@ -98,7 +93,6 @@ describe('프로덕션 헬스 체크 및 모니터링', () => {
                 }
               }
 
-              console.log(`🔗 ${endpoint.name}: ${responseTime}ms (${result.status})`);
             } catch (error) {
               const result = {
                 name: endpoint.name,
@@ -121,7 +115,6 @@ describe('프로덕션 헬스 체크 및 모니터링', () => {
           const totalCount = results.length;
           const availabilityRate = (accessibleCount / totalCount) * 100;
 
-          console.log(`📊 ${name} API Availability: ${availabilityRate.toFixed(1)}% (${accessibleCount}/${totalCount})`);
 
           // 프로덕션은 최소 80% 가용성 요구
           if (critical) {
@@ -151,11 +144,6 @@ describe('프로덕션 헬스 체크 및 모니터링', () => {
             const minResponseTime = Math.min(...responseTimes);
             const maxResponseTime = Math.max(...responseTimes);
 
-            console.log(`📊 ${name} Performance Stats:`);
-            console.log(`   Average: ${avgResponseTime.toFixed(2)}ms`);
-            console.log(`   Min: ${minResponseTime}ms`);
-            console.log(`   Max: ${maxResponseTime}ms`);
-            console.log(`   Samples: ${responseTimes.length}`);
 
             // 성능 임계값 검증 (프로덕션만)
             if (critical) {
@@ -192,12 +180,6 @@ describe('프로덕션 헬스 체크 및 모니터링', () => {
           const successRate = (successCount / concurrency) * 100;
           const avgTimePerRequest = totalTime / concurrency;
 
-          console.log(`📊 ${name} Load Test Results:`);
-          console.log(`   Concurrent Requests: ${concurrency}`);
-          console.log(`   Success Rate: ${successRate.toFixed(1)}% (${successCount}/${concurrency})`);
-          console.log(`   Total Time: ${totalTime}ms`);
-          console.log(`   Avg Time/Request: ${avgTimePerRequest.toFixed(2)}ms`);
-          console.log(`   Failures: ${failureCount}`);
 
           // 프로덕션은 최소 80% 성공률 요구
           if (critical) {
@@ -219,7 +201,6 @@ describe('프로덕션 헬스 체크 및 모니터링', () => {
               const response = await client.get(endpoint.path);
               const responseTime = performanceMonitor.stop();
 
-              console.log(`🗄️  ${endpoint.name}: ${responseTime}ms`);
 
               // 데이터베이스 연결 문제가 아닌 일반적인 응답이면 OK
               const isDbError = response.message?.includes('database') ||
@@ -250,10 +231,6 @@ describe('프로덕션 헬스 체크 및 모니터링', () => {
             const response = await fetch(`${url}/api/health`);
             const headers = Object.fromEntries(response.headers.entries());
 
-            console.log(`🔒 ${name} Security Headers:`);
-            console.log(`   X-Frame-Options: ${headers['x-frame-options'] || 'Missing'}`);
-            console.log(`   X-Content-Type-Options: ${headers['x-content-type-options'] || 'Missing'}`);
-            console.log(`   Referrer-Policy: ${headers['referrer-policy'] || 'Missing'}`);
 
             // 프로덕션은 기본 보안 헤더가 있어야 함
             if (critical) {
@@ -279,7 +256,6 @@ describe('프로덕션 헬스 체크 및 모니터링', () => {
               'Access-Control-Allow-Headers': response.headers.get('access-control-allow-headers'),
             };
 
-            console.log(`🌐 ${name} CORS Headers:`, corsHeaders);
 
             if (critical) {
               // CORS 정책이 너무 관대하지 않은지 확인
@@ -289,7 +265,6 @@ describe('프로덕션 헬스 체크 및 모니터링', () => {
               }
             }
           } catch (error) {
-            console.log(`🌐 ${name} CORS check:`, error instanceof Error ? error.message : 'Failed');
           }
         });
       });
@@ -324,9 +299,6 @@ describe('프로덕션 헬스 체크 및 모니터링', () => {
           const availabilityRate = (successCount / checkCount) * 100;
           const avgResponseTime = successCount > 0 ? totalResponseTime / successCount : 0;
 
-          console.log(`📈 ${name} Availability Test:`);
-          console.log(`   Success Rate: ${availabilityRate.toFixed(1)}% (${successCount}/${checkCount})`);
-          console.log(`   Average Response Time: ${avgResponseTime.toFixed(2)}ms`);
 
           if (critical) {
             expect(availabilityRate).toBeGreaterThanOrEqual(80);

@@ -20,8 +20,6 @@ describe('인증 API 통합 테스트 - 실제 프로덕션 검증', () => {
   ];
 
   beforeAll(async () => {
-    console.log('🚀 Starting Auth API Integration Tests');
-    console.log('📊 Test Configuration:', config);
     
     // 로컬 서버가 실행 중인지 확인
     try {
@@ -45,7 +43,6 @@ describe('인증 API 통합 테스트 - 실제 프로덕션 검증', () => {
   });
 
   afterAll(() => {
-    console.log('✅ Auth API Integration Tests Completed');
   });
 
   // 각 환경에 대해 테스트 실행
@@ -71,7 +68,6 @@ describe('인증 API 통합 테스트 - 실제 프로덕션 검증', () => {
           expect(healthCheck.healthy).toBe(true);
           expect(responseTime).toBeLessThan(config.maxResponseTime);
           
-          console.log(`📈 ${name} Health Check: ${responseTime}ms`);
         });
 
         test('API 엔드포인트 접근성 확인', async () => {
@@ -114,7 +110,6 @@ describe('인증 API 통합 테스트 - 실제 프로덕션 검증', () => {
             expect(response.data.id).toBeDefined();
           }
           
-          console.log(`✅ User registered in ${responseTime}ms`);
         });
 
         test('중복 이메일로 회원가입 실패 검증', async () => {
@@ -177,7 +172,6 @@ describe('인증 API 통합 테스트 - 실제 프로덕션 검증', () => {
             expect(response.data.token).toBeDefined();
           }
           
-          console.log(`✅ Login successful in ${responseTime}ms`);
         });
 
         test('잘못된 비밀번호로 로그인 실패', async () => {
@@ -249,7 +243,6 @@ describe('인증 API 통합 테스트 - 실제 프로덕션 검증', () => {
             expect(response.data.verifiedAt).toBeDefined();
           }
           
-          console.log(`✅ Email verified in ${responseTime}ms`);
         });
 
         test('잘못된 인증 코드로 인증 실패', async () => {
@@ -312,7 +305,6 @@ describe('인증 API 통합 테스트 - 실제 프로덕션 검증', () => {
               expect(response.data.id).toBeDefined();
             }
             
-            console.log(`✅ User info retrieved in ${responseTime}ms`);
           }
         });
 
@@ -352,7 +344,6 @@ describe('인증 API 통합 테스트 - 실제 프로덕션 검증', () => {
             expect(response.ok).toBe(true);
             expect(responseTime).toBeLessThan(config.maxResponseTime);
             
-            console.log(`✅ Logout successful in ${responseTime}ms`);
           }
         });
       });
@@ -413,7 +404,6 @@ describe('인증 API 통합 테스트 - 실제 프로덕션 검증', () => {
           expect(successCount).toBeGreaterThan(0);
           expect(responseTime).toBeLessThan(config.performanceTimeout);
           
-          console.log(`📊 Concurrent requests: ${successCount}/5 successful in ${responseTime}ms`);
         });
 
         test('네트워크 오류 복구 능력 검증', async () => {

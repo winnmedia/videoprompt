@@ -8,24 +8,18 @@ import { localApiClient } from '@/test/api-client';
 
 describe('API 클라이언트 디버깅', () => {
   test('직접 fetch로 헬스 체크 API 호출', async () => {
-    console.log('🌐 직접 fetch 테스트');
     
     const response = await fetch('http://localhost:3001/api/health');
-    console.log('📊 응답 상태:', response.status, response.statusText);
-    console.log('📋 응답 헤더:', Object.fromEntries(response.headers.entries()));
     
     const text = await response.text();
-    console.log('📄 응답 텍스트:', text);
     
     const data = JSON.parse(text);
-    console.log('📦 파싱된 데이터:', data);
     
     expect(response.ok).toBe(true);
     expect(data.ok).toBe(true);
   });
 
   test('API 클라이언트로 헬스 체크 API 호출', async () => {
-    console.log('🔧 API 클라이언트 테스트');
     
     try {
       const response = await localApiClient.get('/api/health');
@@ -46,7 +40,6 @@ describe('API 클라이언트 디버깅', () => {
   });
 
   test('헬스 체크 함수 직접 호출', async () => {
-    console.log('💊 헬스 체크 함수 테스트');
     
     try {
       const healthResult = await localApiClient.healthCheck();

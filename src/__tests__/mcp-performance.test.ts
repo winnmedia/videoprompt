@@ -53,7 +53,6 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
       // 성능 기준: 3개 페이지 테스트가 5초 이내 완료
       expect(totalTime).toBeLessThan(5000);
 
-      console.log(`⏱️  병렬 페이지 테스트 총 소요 시간: ${totalTime}ms`);
     });
 
     it('대용량 폼 데이터를 효율적으로 처리할 수 있다', async () => {
@@ -96,7 +95,6 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
       // 성능 기준: 대용량 폼 처리가 3초 이내 완료
       expect(processingTime).toBeLessThan(3000);
 
-      console.log(`⏱️  대용량 폼 처리 시간: ${processingTime}ms`);
     });
   });
 
@@ -141,8 +139,6 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
       // 메모리 증가가 50MB 이하여야 함
       expect(memoryIncrease).toBeLessThan(50);
 
-      console.log(`💾 메모리 사용량 변화: ${memoryIncrease.toFixed(2)} MB`);
-      console.log(`📊 총 반복 테스트: ${iterations}회`);
     });
 
     it('대량의 컨텍스트를 효율적으로 관리할 수 있다', async () => {
@@ -170,9 +166,6 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
       expect(creationTime).toBeLessThan(1000);
       expect(searchTime).toBeLessThan(100);
 
-      console.log(`⏱️  컨텍스트 생성 시간: ${creationTime}ms`);
-      console.log(`⏱️  컨텍스트 검색 시간: ${searchTime}ms`);
-      console.log(`📊 총 컨텍스트 수: ${contextCount}개`);
 
       // 메모리 정리
       testManager.clearAllContexts();
@@ -214,8 +207,6 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
       // 성능 기준: 50단계 의존성 처리가 10초 이내 완료
       expect(processingTime).toBeLessThan(10000);
 
-      console.log(`⏱️  복잡한 의존성 처리 시간: ${processingTime}ms`);
-      console.log(`📊 의존성 단계 수: ${dependencyLevels}단계`);
     });
 
     it('병렬 테스트 실행을 효율적으로 관리할 수 있다', async () => {
@@ -252,12 +243,9 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
       // 성능 기준: 10개 병렬 테스트가 5초 이내 완료
       expect(totalTime).toBeLessThan(5000);
 
-      console.log(`⏱️  병렬 테스트 총 소요 시간: ${totalTime}ms`);
-      console.log(`📊 병렬 테스트 수: ${parallelTests}개`);
 
       // 성공한 테스트 수 확인
       const successCount = results.filter((r) => r.success).length;
-      console.log(`✅ 성공한 테스트: ${successCount}개`);
     });
   });
 
@@ -332,13 +320,10 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
       // 성능 기준: 통합 테스트가 8초 이내 완료
       expect(totalTime).toBeLessThan(8000);
 
-      console.log(`⏱️  통합 MCP 테스트 총 소요 시간: ${totalTime}ms`);
-      console.log(`📊 실행된 테스트 수: ${results.length}개`);
 
       // 각 MCP 서버별 성능 요약
       results.forEach((result, index) => {
         const mcpNames = ['Playwright', 'Context7', 'Sequential Thinking'];
-        console.log(`✅ ${mcpNames[index]} MCP 테스트 성공`);
       });
     });
 
@@ -392,10 +377,6 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
           successRate: (successCount / userCount) * 100,
         });
 
-        console.log(`📊 ${userCount}명 동시 사용자 테스트:`);
-        console.log(`   - 응답 시간: ${responseTime}ms`);
-        console.log(`   - 성공률: ${((successCount / userCount) * 100).toFixed(1)}%`);
-        console.log(`   - 성공: ${successCount}명, 실패: ${failureCount}명`);
 
         // 시스템 한계 도달 시 중단
         if (successRate < 80) {
@@ -409,7 +390,6 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
       expect(loadResults.length).toBeGreaterThan(0);
       expect(loadResults[0].successRate).toBeGreaterThan(90); // 첫 번째 레벨은 높은 성공률
 
-      console.log(`📈 부하 테스트 결과 요약:`);
       loadResults.forEach((result) => {
         console.log(
           `   ${result.userCount}명: ${result.successRate.toFixed(1)}% 성공, ${result.responseTime}ms 응답`,
@@ -433,9 +413,6 @@ describe('MCP Performance - MCP 서버 성능 테스트', () => {
       expect(summary.passedTests).toBe(0);
       expect(summary.failedTests).toBe(0);
 
-      console.log(`🧹 MCP 테스트 정리 중...`);
-      console.log(`📊 테스트 성능 요약:`, summary);
-      console.log(`💾 최종 메모리 사용량: ${(finalMemory / 1024 / 1024).toFixed(2)} MB`);
     });
   });
 });
