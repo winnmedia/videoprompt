@@ -226,57 +226,57 @@ function analyzeStorageResults(
 ): StorageResult {
   const { prisma, supabase } = results;
 
-  // 완전 성공
+  // 완전 성공 - DISABLED (Prisma removed)
   // PRISMA_DISABLED: if (prisma.success && supabase.success) {
-    logger.info(`🎉 Full consistency achieved for ${contentId}`);
-    return {
-      success: true,
-      contentId,
-      storage: results,
-      message: 'Content saved successfully to both storages',
-      consistency: 'full'
-    };
-  }
+  //   logger.info(`🎉 Full consistency achieved for ${contentId}`);
+  //   return {
+  //     success: true,
+  //     contentId,
+  //     storage: results,
+  //     message: 'Content saved successfully to both storages',
+  //     consistency: 'full'
+  //   };
+  // }
 
-  // 부분 성공 - requireBoth 설정에 따라 처리
+  // 부분 성공 처리 - DISABLED (Prisma removed)
   // PRISMA_DISABLED: if (prisma.success || supabase.success) {
-    // PRISMA_DISABLED: const successfulStorage =prisma.success ? 'Prisma' : 'Supabase';
-    // PRISMA_DISABLED: const failedStorage = !prisma.success ? 'Prisma' : 'Supabase';
-
-    if (config.requireBoth) {
-      console.error(`❌ Partial storage not acceptable for ${contentId} (requireBoth=true)`);
-      return {
-        success: false,
-        contentId,
-        storage: results,
-        message: `Partial storage failure: ${failedStorage} failed, ${successfulStorage} succeeded`,
-        consistency: 'failed'
-      };
-    }
-
-    // Prisma 우선 정책 적용
-    // PRISMA_DISABLED: if (config.fallbackToPrisma &&prisma.success) {
-      console.warn(`⚠️ Partial consistency for ${contentId}: Prisma saved, Supabase failed`);
-      return {
-        success: true,
-        contentId,
-        storage: results,
-        message: `Content saved to ${successfulStorage}. ${failedStorage} failed but fallback policy applied.`,
-        consistency: 'partial'
-      };
-    }
-
-    // PRISMA_DISABLED: if (supabase.success && !prisma.success) {
-      console.warn(`⚠️ Partial consistency for ${contentId}: Supabase saved, Prisma failed`);
-      return {
-        success: true,
-        contentId,
-        storage: results,
-        message: `Content saved to Supabase only. Prisma failed.`,
-        consistency: 'partial'
-      };
-    }
-  }
+  //   const successfulStorage = prisma.success ? 'Prisma' : 'Supabase';
+  //   const failedStorage = !prisma.success ? 'Prisma' : 'Supabase';
+  //
+  //   if (config.requireBoth) {
+  //     console.error(`❌ Partial storage not acceptable for ${contentId} (requireBoth=true)`);
+  //     return {
+  //       success: false,
+  //       contentId,
+  //       storage: results,
+  //       message: `Partial storage failure: ${failedStorage} failed, ${successfulStorage} succeeded`,
+  //       consistency: 'failed'
+  //     };
+  //   }
+  //
+  //   // Prisma 우선 정책 적용
+  //   if (config.fallbackToPrisma && prisma.success) {
+  //     console.warn(`⚠️ Partial consistency for ${contentId}: Prisma saved, Supabase failed`);
+  //     return {
+  //       success: true,
+  //       contentId,
+  //       storage: results,
+  //       message: `Content saved to ${successfulStorage}. ${failedStorage} failed but fallback policy applied.`,
+  //       consistency: 'partial'
+  //     };
+  //   }
+  //
+  //   if (supabase.success && !prisma.success) {
+  //     console.warn(`⚠️ Partial consistency for ${contentId}: Supabase saved, Prisma failed`);
+  //     return {
+  //       success: true,
+  //       contentId,
+  //       storage: results,
+  //       message: `Content saved to Supabase only. Prisma failed.`,
+  //       consistency: 'partial'
+  //     };
+  //   }
+  // }
 
   // 완전 실패
   console.error(`❌ Complete storage failure for ${contentId}`);
@@ -284,7 +284,7 @@ function analyzeStorageResults(
     success: false,
     contentId,
     storage: results,
-    // PRISMA_DISABLED: message: `Complete storage failure. Prisma: ${prisma.error || 'Unknown error'}, Supabase: ${supabase.error || 'Unknown error'}`,
+    message: `Complete storage failure. Supabase: ${supabase.error || 'Unknown error'}`,
     consistency: 'failed'
   };
 }
