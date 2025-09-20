@@ -5,7 +5,6 @@ import crypto from 'crypto';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { sendVerificationEmail } from '@/lib/email/sender';
 import { safeParseRequestBody } from '@/lib/json-utils';
-import { executeDatabaseOperation, createDatabaseErrorResponse } from '@/lib/database-middleware';
 
 
 // CORS preflight 처리

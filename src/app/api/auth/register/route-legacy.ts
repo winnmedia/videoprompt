@@ -6,7 +6,6 @@ import crypto from 'crypto';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { sendVerificationEmail } from '@/lib/email/sender';
 import { safeParseRequestBody } from '@/lib/json-utils';
-import { executeDatabaseOperation, createDatabaseErrorResponse } from '@/lib/database-middleware';
 import { checkRateLimit, RATE_LIMITS } from '@/shared/lib/rate-limiter';
 
 export const runtime = 'nodejs';
