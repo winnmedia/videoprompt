@@ -1,54 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
-import { success, failure, getTraceId } from '@/shared/lib/api-response';
-import { getUserIdFromRequest } from '@/shared/lib/auth';
-// import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 
 export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
 
+/**
+ * Queue retry API (Legacy) - DISABLED (Prisma removed)
+ * 큐 재시도 API (레거시) - 비활성화됨 (Prisma 제거됨)
+ */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const traceId = getTraceId(req);
-    const userId = getUserIdFromRequest(req);
+  const { id } = await params;
 
-    if (!userId) {
-      return failure('UNAUTHORIZED', '인증이 필요합니다.', 401, undefined, traceId);
-    }
-
-    const { id } = await params;
-
-    // VideoAsset 확인
-    // PRISMA_DISABLED: const videoAsset = awaitprisma.videoAsset.findFirst({
-      where: {
-        id,
-        userId,
-      },
-    });
-
-    if (!videoAsset) {
-      return failure('NOT_FOUND', '작업을 찾을 수 없습니다.', 404, undefined, traceId);
-    }
-
-    if (videoAsset.status !== 'failed') {
-      return failure('INVALID_STATUS', '실패한 작업만 재시도할 수 있습니다.', 400, undefined, traceId);
-    }
-
-    // 상태를 'queued'로 변경
-    // PRISMA_DISABLED: awaitprisma.videoAsset.update({
-      where: { id },
-      data: {
-        status: 'queued',
-        updatedAt: new Date(),
-      },
-    });
-
-    return success({ 
-      message: '작업이 큐에 다시 추가되었습니다.',
-      id,
-    }, 200, traceId);
-
-  } catch (error: any) {
-    return failure('UNKNOWN', error?.message || 'Server error', 500);
-  }
+  return NextResponse.json({
+    ok: false,
+    code: 'FEATURE_DISABLED',
+    message: 'Queue retry functionality is disabled (Prisma removed)',
+    data: { id, status: 'disabled' }
+  }, { status: 501 });
 }
