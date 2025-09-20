@@ -41,52 +41,8 @@ export async function POST(req: NextRequest) {
     const { email, code } = parseResult.data!;
     logger.info(`[VerifyCode ${traceId}] ✅ 입력값 파싱 및 검증 성공:`, { email, code });
 
-    // 데이터베이스 작업을 안전하게 실행
-    const result = await executeDatabaseOperation(async () => {
-      // 인증 레코드 조회
-      // PRISMA_DISABLED: const verification = awaitprisma.emailVerification.findFirst({
-        // PRISMA_CONTINUATION: where: {
-          // PRISMA_CONTINUATION: email,
-          // PRISMA_CONTINUATION: code,
-          // PRISMA_CONTINUATION: expiresAt: {
-            gt: new Date(), // 만료되지 않은 것만
-          // PRISMA_CONTINUATION: },
-        // PRISMA_CONTINUATION: },
-      // PRISMA_CONTINUATION: });
-
-      if (!verification) {
-        logger.info(`[VerifyCode ${traceId}] ❌ 인증 코드가 유효하지 않음`);
-        throw new Error('INVALID_CODE');
-      }
-
-      logger.info(`[VerifyCode ${traceId}] ✅ 인증 코드 확인 성공`);
-
-      // 사용된 인증 레코드 삭제
-      // PRISMA_DISABLED: awaitprisma.emailVerification.delete({
-        // PRISMA_CONTINUATION: where: {
-          // PRISMA_CONTINUATION: id: verification.id,
-        // PRISMA_CONTINUATION: },
-      // PRISMA_CONTINUATION: });
-
-      // 사용자가 존재하면 이메일 인증 상태 업데이트
-      if (verification.userId) {
-        // PRISMA_DISABLED: awaitprisma.user.update({
-          // PRISMA_CONTINUATION: where: {
-            // PRISMA_CONTINUATION: id: verification.userId,
-          // PRISMA_CONTINUATION: },
-          // PRISMA_CONTINUATION: data: {
-            // PRISMA_CONTINUATION: emailVerified: true,
-            // PRISMA_CONTINUATION: verifiedAt: new Date(),
-          // PRISMA_CONTINUATION: },
-        // PRISMA_CONTINUATION: });
-      // PRISMA_CONTINUATION: }
-
-      return { verified: true };
-    }, {
-      retries: 2,
-      timeout: 10000,
-      fallbackMessage: '인증 코드 확인 중 오류가 발생했습니다.'
-    });
+    // 데이터베이스 비활성화로 인한 기능 비활성화
+    throw new Error('VERIFY_CODE_DISABLED');
 
     return success({
       ok: true,
@@ -97,11 +53,14 @@ export async function POST(req: NextRequest) {
     console.error(`[VerifyCode ${traceId}] Error:`, e);
     
     // 커스텀 오류 처리
+    if (e.message === 'VERIFY_CODE_DISABLED') {
+      return failure('SERVICE_UNAVAILABLE', '이메일 인증 기능이 비활성화되었습니다.', 503, undefined, traceId);
+    }
+
     if (e.message === 'INVALID_CODE') {
       return failure('INVALID_CODE', '인증 코드가 올바르지 않거나 만료되었습니다.', 400, undefined, traceId);
     }
-    
-    // 데이터베이스 오류는 middleware에서 처리
-    return createDatabaseErrorResponse(e, traceId);
+
+    return failure('INTERNAL_ERROR', '서버 오류가 발생했습니다.', 500, e.message, traceId);
   }
 }

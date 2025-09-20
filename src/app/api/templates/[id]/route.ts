@@ -30,18 +30,12 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    // PRISMA_DISABLED: const template = awaitprisma.storyTemplate.findUnique({
-      where: { id },
-    });
 
-    if (!template) {
-      return NextResponse.json(
-        { error: '템플릿을 찾을 수 없습니다' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({ template }, { status: 200 });
+    // 데이터베이스 비활성화로 인한 서비스 비활성화
+    return NextResponse.json(
+      { error: '템플릿 서비스가 일시적으로 비활성화되었습니다' },
+      { status: 503 }
+    );
   } catch (error) {
     console.error('[Template API] GET error:', error);
     return NextResponse.json(
@@ -70,27 +64,11 @@ export async function PUT(
     
     const validatedData = UpdateTemplateSchema.parse(body);
 
-    // 권한 확인: 사용자가 소유한 템플릿만 수정 가능
-    // PRISMA_DISABLED: const existingTemplate = awaitprisma.storyTemplate.findFirst({
-      where: {
-        id,
-        userId: userId,
-      },
-    });
-
-    if (!existingTemplate) {
-      return NextResponse.json(
-        { error: '권한이 없거나 템플릿을 찾을 수 없습니다' },
-        { status: 404 }
-      );
-    }
-
-    // PRISMA_DISABLED: const template = awaitprisma.storyTemplate.update({
-      where: { id },
-      data: validatedData,
-    });
-
-    return NextResponse.json({ template }, { status: 200 });
+    // 데이터베이스 비활성화로 인한 서비스 비활성화
+    return NextResponse.json(
+      { error: '템플릿 수정 서비스가 일시적으로 비활성화되었습니다' },
+      { status: 503 }
+    );
   } catch (error) {
     console.error('[Template API] PUT error:', error);
     
@@ -127,26 +105,11 @@ export async function DELETE(
       );
     }
 
-    // 권한 확인: 사용자가 소유한 템플릿만 삭제 가능
-    // PRISMA_DISABLED: const existingTemplate = awaitprisma.storyTemplate.findFirst({
-      where: {
-        id,
-        userId: userId,
-      },
-    });
-
-    if (!existingTemplate) {
-      return NextResponse.json(
-        { error: '권한이 없거나 템플릿을 찾을 수 없습니다' },
-        { status: 404 }
-      );
-    }
-
-    // PRISMA_DISABLED: awaitprisma.storyTemplate.delete({
-      where: { id },
-    });
-
-    return NextResponse.json({ message: '템플릿이 삭제되었습니다' }, { status: 200 });
+    // 데이터베이스 비활성화로 인한 서비스 비활성화
+    return NextResponse.json(
+      { error: '템플릿 삭제 서비스가 일시적으로 비활성화되었습니다' },
+      { status: 503 }
+    );
   } catch (error) {
     console.error('[Template API] DELETE error:', error);
     return NextResponse.json(

@@ -22,25 +22,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { token, code, email } = VerifyEmailSchema.parse(body);
 
-    // Find verification record
-    let verification;
-    
-    if (token) {
-      // Verify by token
-      // PRISMA_DISABLED: verification = awaitprisma.emailVerification.findUnique({
-        // PRISMA_CONTINUATION: where: { token },
-        // PRISMA_CONTINUATION: include: { user: true },
-      // PRISMA_CONTINUATION: });
-    // PRISMA_CONTINUATION: } else if (code && email) {
-      // Verify by code and email
-      // PRISMA_DISABLED: verification = awaitprisma.emailVerification.findFirst({
-        // PRISMA_CONTINUATION: where: {
-          // PRISMA_CONTINUATION: email,
-          // PRISMA_CONTINUATION: code,
-        // PRISMA_CONTINUATION: },
-        // PRISMA_CONTINUATION: include: { user: true },
-      // PRISMA_CONTINUATION: });
-    // PRISMA_CONTINUATION: }
+    // 데이터베이스 비활성화로 인한 기능 비활성화
+    throw new Error('EMAIL_VERIFICATION_DISABLED');
 
     if (!verification) {
       return failure('INVALID_VERIFICATION', '유효하지 않은 인증 정보입니다.', 400, undefined, traceId);
@@ -91,6 +74,9 @@ export async function POST(req: NextRequest) {
       message: '이메일 인증이 완료되었습니다.',
     }, 200, traceId);
   } catch (e: any) {
+    if (e.message === 'EMAIL_VERIFICATION_DISABLED') {
+      return failure('SERVICE_UNAVAILABLE', '이메일 인증 기능이 비활성화되었습니다.', 503, undefined, getTraceId(req));
+    }
     if (e instanceof z.ZodError) {
       return failure('INVALID_INPUT_FIELDS', e.message, 400);
     }
