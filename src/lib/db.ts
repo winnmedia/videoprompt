@@ -62,5 +62,4 @@ export const checkDatabaseConnection = async (prisma?: any, retries = 3): Promis
 };
 
 // For compatibility with different import patterns
-export const prisma = mockPrisma;
 export default mockPrisma;
