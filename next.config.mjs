@@ -3,8 +3,8 @@ import path from 'path';
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Next.js 15.4.6 Vercel 호환성을 위한 최소 설정
-  // Next.js 15: serverExternalPackages supersedes experimental.serverComponentsExternalPackages
-  serverExternalPackages: ['@prisma/client'],
+  // Prisma 제거 완료 - serverExternalPackages 정리
+  // serverExternalPackages: ['@prisma/client'], // 제거됨
 
   // 품질 게이트 일시 비활성화 - 배포 우선
   eslint: {
@@ -12,9 +12,9 @@ const nextConfig = {
     dirs: ['src'], // 소스 디렉토리만 검사
   },
 
-  // TypeScript 컴파일 최적화 - 일시 우회
+  // TypeScript 컴파일 최적화 - 일시 비활성화 (테스트 파일 정리 필요)
   typescript: {
-    ignoreBuildErrors: true, // TypeScript 검증 일시 비활성화 - 빠른 배포
+    ignoreBuildErrors: true, // TypeScript 검증 일시 비활성화 - 테스트 파일 정리 후 활성화
     tsconfigPath: './tsconfig.json',
   },
 

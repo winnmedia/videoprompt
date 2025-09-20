@@ -2,6 +2,7 @@ import { useEffect, useCallback, useRef } from 'react'
 import { usePerformanceStore } from '@/entities/performance'
 import { performanceApi } from '@/shared/api/performance-api'
 import type { APIPerformanceMetric } from '@/entities/performance'
+import { logger } from '@/shared/lib/logger'
 
 export interface ApiMonitoringConfig {
   /**
@@ -131,7 +132,7 @@ export const useApiMonitoring = (config: ApiMonitoringConfig = {}): ApiMonitorin
       })
       
       if (mergedConfig.debug) {
-        console.log(`[API Monitor] Sent ${metrics.length} API metrics`)
+        logger.info(`[API Monitor] Sent ${metrics.length} API metrics`)
       }
     } catch (error) {
       if (mergedConfig.debug) {
@@ -223,7 +224,7 @@ export const useApiMonitoring = (config: ApiMonitoringConfig = {}): ApiMonitorin
         }
 
         if (mergedConfig.debug) {
-          console.log(`[API Monitor] ${method} ${url} - ${response.status} (${responseTime}ms)`)
+          logger.info(`[API Monitor] ${method} ${url} - ${response.status} (${responseTime}ms)`)
         }
 
         return response
@@ -274,7 +275,7 @@ export const useApiMonitoring = (config: ApiMonitoringConfig = {}): ApiMonitorin
     monitoringRef.current = true
 
     if (mergedConfig.debug) {
-      console.log('[API Monitor] Started monitoring')
+      logger.info('[API Monitor] Started monitoring')
     }
   }, [createFetchInterceptor, mergedConfig.debug])
 
@@ -303,7 +304,7 @@ export const useApiMonitoring = (config: ApiMonitoringConfig = {}): ApiMonitorin
     monitoringRef.current = false
 
     if (mergedConfig.debug) {
-      console.log('[API Monitor] Stopped monitoring')
+      logger.info('[API Monitor] Stopped monitoring')
     }
   }, [sendBatch, mergedConfig.debug])
 
@@ -315,7 +316,7 @@ export const useApiMonitoring = (config: ApiMonitoringConfig = {}): ApiMonitorin
       await performanceApi.sendMetrics(sessionMetrics)
       
       if (mergedConfig.debug) {
-        console.log('[API Monitor] Metrics sent successfully')
+        logger.info('[API Monitor] Metrics sent successfully')
       }
     } catch (error) {
       if (mergedConfig.debug) {
