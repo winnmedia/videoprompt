@@ -11,19 +11,19 @@ import type { PlanningRepository } from './repository-interfaces';
  * API 라우트에서 사용하는 메인 함수
  */
 export function getPlanningRepository(): PlanningRepository {
-  // 현재는 Prisma를 기본으로 사용
-  // 향후 환경변수로 Provider 선택 가능하도록 확장 예정
-  return planningRepositoryFactory.createPrismaRepository();
+  // Supabase로 완전 전환 완료 (2025-09-21)
+  // Prisma 제거됨 - createSupabaseRepository만 사용
+  return planningRepositoryFactory.createSupabaseRepository();
 }
 
 /**
  * Dual Storage Repository 생성 (향후 확장용)
  */
 export function getDualPlanningRepository(): PlanningRepository {
-  const prisma = planningRepositoryFactory.createPrismaRepository();
+  // Prisma 완전 제거 - Supabase만 사용
   const supabase = planningRepositoryFactory.createSupabaseRepository();
 
-  // 현재는 Prisma를 primary로 사용
-  // 향후 dual storage 로직 구현 시 확장
-  return prisma;
+  // Supabase를 primary로 사용
+  // 추후 필요시 다른 storage 추가 가능
+  return supabase;
 }

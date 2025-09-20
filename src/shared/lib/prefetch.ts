@@ -69,16 +69,24 @@ export function useSoftPrefetch(href: string) {
 export function useInstantFeedback() {
   const handleClick = useCallback((callback?: () => void) => {
     return (event: React.MouseEvent) => {
+      // 비동기 경계 전에 요소 캡처 (React Synthetic Event 재사용 문제 해결)
+      const target = event.currentTarget as HTMLElement;
+
+      // null 체크로 안전성 확보
+      if (!target) return;
+
       // requestAnimationFrame으로 즉시 시각적 피드백
       requestAnimationFrame(() => {
-        // 클릭된 요소에 즉시 시각적 피드백 적용
-        const target = event.currentTarget as HTMLElement;
+        // 캡처된 요소 사용 (event.currentTarget 대신)
         target.style.transform = 'scale(0.98)';
         target.style.transition = 'transform 100ms ease-out';
 
         // 100ms 후 원상복구
         setTimeout(() => {
-          target.style.transform = '';
+          // 요소가 여전히 DOM에 존재하는지 확인
+          if (target.isConnected) {
+            target.style.transform = '';
+          }
         }, 100);
       });
 
