@@ -207,7 +207,12 @@ export async function getSupabaseClient(
       const { error: healthError } = await client.auth.getUser();
 
       // auth 관련 에러는 정상 (인증되지 않은 상태는 연결이 정상임을 의미)
-      if (healthError && !healthError.message.includes('JWT') && !healthError.message.includes('invalid') && !healthError.message.includes('expired')) {
+      if (healthError &&
+          !healthError.message.includes('JWT') &&
+          !healthError.message.includes('invalid') &&
+          !healthError.message.includes('expired') &&
+          !healthError.message.includes('Auth session missing') &&
+          !healthError.message.includes('session')) {
         throw new Error(`Supabase health check failed: ${healthError.message}`);
       }
 
