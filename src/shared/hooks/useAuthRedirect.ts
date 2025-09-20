@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/shared/store/useAuthStore';
+import { useAuthStore } from '@/shared/store';
 
 interface UseAuthRedirectOptions {
   /** 인증된 사용자가 리다이렉트될 경로 */

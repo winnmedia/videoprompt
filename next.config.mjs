@@ -6,15 +6,15 @@ const nextConfig = {
   // Next.js 15: serverExternalPackages supersedes experimental.serverComponentsExternalPackages
   serverExternalPackages: ['@prisma/client'],
 
-  // 품질 게이트 활성화 - 점진적 엄격화
+  // 품질 게이트 활성화 - FSD 위반 방지
   eslint: {
-    ignoreDuringBuilds: true, // ESLint 검증 임시 비활성화 - 빌드 차단 해제
+    ignoreDuringBuilds: false, // ESLint 검증 활성화 - FSD 위반 차단
     dirs: ['src'], // 소스 디렉토리만 검사
   },
 
   // TypeScript 컴파일 최적화
   typescript: {
-    ignoreBuildErrors: true, // TypeScript 검증 임시 비활성화 - 빌드 차단 해제
+    ignoreBuildErrors: false, // TypeScript 검증 활성화 - 타입 안전성 보장
     tsconfigPath: './tsconfig.json',
   },
 

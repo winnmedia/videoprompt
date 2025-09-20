@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useAuthStore } from '@/shared/store/useAuthStore';
+import { useAuthStore } from '@/shared/store';
 import { useEffect, useState } from 'react';
 
 interface AuthStatusProps {

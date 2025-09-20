@@ -1,17 +1,32 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Logo, Button, FormError, Input } from '@/shared/ui';
 import { safeFetch } from '@/shared/lib/api-retry';
 import { useAuthRedirect } from '@/shared/hooks';
+import {
+  useRealtimeValidation,
+  checkEmailExists,
+  emailSchema,
+  passwordSchema,
+  usernameSchema
+} from '@/shared/hooks';
 
 export default function RegisterPage() {
   const router = useRouter();
 
   // 인증된 사용자는 홈으로 리다이렉트
   const { isLoading: authLoading } = useAuthRedirect({ redirectPath: '/' });
+
+  // 실시간 검증 훅
+  const {
+    validateSync,
+    validateAsync,
+    getValidationResult,
+    cleanup
+  } = useRealtimeValidation({ debounceMs: 500, cacheExpireMs: 60000 });
 
   const [formData, setFormData] = useState({
     email: '',
@@ -21,21 +36,87 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  // Email verification disabled - simplified registration flow
+
+  // $300 방지: 컴포넌트 언마운트 시 정리
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  }, [cleanup]); // cleanup 의존성 추가
+
+  // 실시간 검증 핸들러들
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData({ ...formData, email: value });
+
+    // 동기 검증 (형식 체크)
+    const syncResult = validateSync('email', value, emailSchema);
+
+    // 비동기 검증 (중복 체크) - 형식이 올바를 때만
+    if (syncResult.isValid && value.trim()) {
+      validateAsync('email-exists', value, checkEmailExists);
+    }
+  };
+
+  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData({ ...formData, username: value });
+    validateSync('username', value, usernameSchema);
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData({ ...formData, password: value });
+    validateSync('password', value, passwordSchema);
+
+    // 비밀번호 확인과의 일치도 체크
+    if (formData.confirmPassword) {
+      validatePasswordConfirm(formData.confirmPassword, value);
+    }
+  };
+
+  const handleConfirmPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData({ ...formData, confirmPassword: value });
+    validatePasswordConfirm(value, formData.password);
+  };
+
+  const validatePasswordConfirm = (confirmPassword: string, password: string) => {
+    if (confirmPassword && password !== confirmPassword) {
+      validateSync('confirmPassword', confirmPassword,
+        passwordSchema.refine(() => false, { message: '비밀번호가 일치하지 않습니다' })
+      );
+    } else if (confirmPassword) {
+      validateSync('confirmPassword', confirmPassword, passwordSchema);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    // 비밀번호 확인
-    if (formData.password !== formData.confirmPassword) {
-      setError('비밀번호가 일치하지 않습니다.');
+    // 🚨 $300 방지: 이미 로딩 중이면 중복 제출 방지
+    if (loading) {
       return;
     }
 
-    // 비밀번호 길이 검증
-    if (formData.password.length < 8) {
-      setError('비밀번호는 최소 8자 이상이어야 합니다.');
+    // 모든 검증 결과 확인
+    const emailResult = getValidationResult('email');
+    const emailExistsResult = getValidationResult('email-exists');
+    const usernameResult = getValidationResult('username');
+    const passwordResult = getValidationResult('password');
+    const confirmPasswordResult = getValidationResult('confirmPassword');
+
+    // 검증 실패 시 제출 차단
+    if (!emailResult.isValid || !emailExistsResult.isValid || !usernameResult.isValid ||
+        !passwordResult.isValid || !confirmPasswordResult.isValid) {
+      setError('입력한 정보를 다시 확인해주세요.');
+      return;
+    }
+
+    // 비밀번호 확인 (추가 안전장치)
+    if (formData.password !== formData.confirmPassword) {
+      setError('비밀번호가 일치하지 않습니다.');
       return;
     }
 
@@ -102,61 +183,121 @@ export default function RegisterPage() {
         <div className="bg-white rounded-xl p-8 shadow-2xl border border-gray-200">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* 이메일 입력 */}
-            <Input
-              id="email"
-              type="email"
-              required
-              size="lg"
-              label="이메일"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="your@email.com"
-              testId="email-input"
-            />
+            <div>
+              <Input
+                id="email"
+                type="email"
+                required
+                size="lg"
+                label="이메일"
+                value={formData.email}
+                onChange={handleEmailChange}
+                placeholder="your@email.com"
+                testId="email-input"
+              />
+              {/* 실시간 검증 결과 표시 */}
+              {(() => {
+                const emailResult = getValidationResult('email');
+                const emailExistsResult = getValidationResult('email-exists');
+
+                if (!emailResult.isValid) {
+                  return <div className="mt-1 text-sm text-red-600">{emailResult.error}</div>;
+                }
+                if (emailExistsResult.isValidating) {
+                  return <div className="mt-1 text-sm text-blue-600">이메일 중복 확인 중...</div>;
+                }
+                if (!emailExistsResult.isValid) {
+                  return <div className="mt-1 text-sm text-red-600">{emailExistsResult.error}</div>;
+                }
+                if (formData.email && emailResult.isValid && emailExistsResult.isValid) {
+                  return <div className="mt-1 text-sm text-green-600">사용 가능한 이메일입니다</div>;
+                }
+                return null;
+              })()}
+            </div>
 
             {/* 사용자명 입력 */}
-            <Input
-              id="username"
-              type="text"
-              required
-              minLength={3}
-              maxLength={32}
-              size="lg"
-              label="사용자명"
-              value={formData.username}
-              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-              placeholder="username"
-              helperText="3-32자 사이로 입력해주세요"
-              testId="username-input"
-            />
+            <div>
+              <Input
+                id="username"
+                type="text"
+                required
+                minLength={3}
+                maxLength={32}
+                size="lg"
+                label="사용자명"
+                value={formData.username}
+                onChange={handleUsernameChange}
+                placeholder="username"
+                helperText="3-32자 사이로 입력해주세요"
+                testId="username-input"
+              />
+              {/* 실시간 검증 결과 표시 */}
+              {(() => {
+                const usernameResult = getValidationResult('username');
+                if (!usernameResult.isValid && formData.username) {
+                  return <div className="mt-1 text-sm text-red-600">{usernameResult.error}</div>;
+                }
+                if (formData.username && usernameResult.isValid) {
+                  return <div className="mt-1 text-sm text-green-600">사용 가능한 사용자명입니다</div>;
+                }
+                return null;
+              })()}
+            </div>
 
             {/* 비밀번호 입력 */}
-            <Input
-              id="password"
-              type="password"
-              required
-              minLength={8}
-              size="lg"
-              label="비밀번호"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              placeholder="••••••••"
-              helperText="최소 8자 이상 입력해주세요"
-              testId="password-input"
-            />
+            <div>
+              <Input
+                id="password"
+                type="password"
+                required
+                minLength={8}
+                size="lg"
+                label="비밀번호"
+                value={formData.password}
+                onChange={handlePasswordChange}
+                placeholder="••••••••"
+                helperText="최소 8자 이상 입력해주세요"
+                testId="password-input"
+              />
+              {/* 실시간 검증 결과 표시 */}
+              {(() => {
+                const passwordResult = getValidationResult('password');
+                if (!passwordResult.isValid && formData.password) {
+                  return <div className="mt-1 text-sm text-red-600">{passwordResult.error}</div>;
+                }
+                if (formData.password && passwordResult.isValid) {
+                  return <div className="mt-1 text-sm text-green-600">사용 가능한 비밀번호입니다</div>;
+                }
+                return null;
+              })()}
+            </div>
 
             {/* 비밀번호 확인 */}
-            <Input
-              id="confirmPassword"
-              type="password"
-              required
-              size="lg"
-              label="비밀번호 확인"
-              value={formData.confirmPassword}
-              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-              placeholder="••••••••"
-              testId="confirm-password-input"
-            />
+            <div>
+              <Input
+                id="confirmPassword"
+                type="password"
+                required
+                size="lg"
+                label="비밀번호 확인"
+                value={formData.confirmPassword}
+                onChange={handleConfirmPasswordChange}
+                placeholder="••••••••"
+                testId="confirm-password-input"
+              />
+              {/* 실시간 검증 결과 표시 */}
+              {(() => {
+                const confirmPasswordResult = getValidationResult('confirmPassword');
+                if (!confirmPasswordResult.isValid && formData.confirmPassword) {
+                  return <div className="mt-1 text-sm text-red-600">{confirmPasswordResult.error}</div>;
+                }
+                if (formData.confirmPassword && confirmPasswordResult.isValid && formData.password === formData.confirmPassword) {
+                  return <div className="mt-1 text-sm text-green-600">비밀번호가 일치합니다</div>;
+                }
+                return null;
+              })()}
+            </div>
 
             {/* 에러 메시지 */}
             <FormError data-testid="error-message">{error}</FormError>

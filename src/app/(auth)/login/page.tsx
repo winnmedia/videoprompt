@@ -4,8 +4,14 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Logo, Button, FormError, Input } from '@/shared/ui';
-import { useAuthStore } from '@/shared/store/useAuthStore';
+import { useAuthStore } from '@/shared/store';
 import { useAuthRedirect } from '@/shared/hooks';
+import { logger } from '@/shared/lib/logger';
+import {
+  useRealtimeValidation,
+  emailSchema,
+  passwordSchema
+} from '@/shared/hooks';
 
 function LoginForm() {
   const router = useRouter();
@@ -14,6 +20,14 @@ function LoginForm() {
 
   // 인증된 사용자는 홈으로 리다이렉트
   const { isLoading: authLoading } = useAuthRedirect({ redirectPath: '/' });
+
+  // 실시간 검증 훅
+  const {
+    validateSync,
+    getValidationResult,
+    cleanup
+  } = useRealtimeValidation({ debounceMs: 300 });
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -28,12 +42,44 @@ function LoginForm() {
     if (message) {
       setSuccessMessage(message);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // searchParams는 안전하지만 $300 방지를 위해 빈 배열 사용
+  }, []); // $300 방지: 마운트 시 1회만 실행
+
+  // $300 방지: 컴포넌트 언마운트 시 정리
+  useEffect(() => {
+    return cleanup; // cleanup 함수를 직접 반환
+  }, [cleanup]); // cleanup 의존성 추가 (안정성 확보)
+
+  // 실시간 검증 핸들러들
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData({ ...formData, email: value });
+    validateSync('email', value, emailSchema);
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData({ ...formData, password: value });
+    validateSync('password', value, passwordSchema);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // 🚨 $300 방지: 이미 로딩 중이면 중복 제출 방지
+    if (loading) {
+      return;
+    }
+
+    // 검증 결과 확인
+    const emailResult = getValidationResult('email');
+    const passwordResult = getValidationResult('password');
+
+    if (!emailResult.isValid || !passwordResult.isValid) {
+      setError('입력한 정보를 다시 확인해주세요.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -60,7 +106,9 @@ function LoginForm() {
         setError(data.message || '로그인에 실패했습니다.');
       }
     } catch (error) {
-      console.error('Login error:', error);
+      logger.error('Login form error', error as Error, {
+        operation: 'login-form-submit'
+      });
       setError('서버 오류가 발생했습니다.');
     } finally {
       setLoading(false);
@@ -83,17 +131,27 @@ function LoginForm() {
     <div className="bg-white rounded-xl p-8 shadow-2xl border border-gray-200">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* 이메일 입력 */}
-        <Input
-          id="email"
-          type="email"
-          required
-          size="lg"
-          label="이메일"
-          value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          placeholder="your@email.com"
-          testId="email-input"
-        />
+        <div>
+          <Input
+            id="email"
+            type="email"
+            required
+            size="lg"
+            label="이메일"
+            value={formData.email}
+            onChange={handleEmailChange}
+            placeholder="your@email.com"
+            testId="email-input"
+          />
+          {/* 실시간 검증 결과 표시 */}
+          {(() => {
+            const emailResult = getValidationResult('email');
+            if (!emailResult.isValid && formData.email) {
+              return <div className="mt-1 text-sm text-red-600">{emailResult.error}</div>;
+            }
+            return null;
+          })()}
+        </div>
 
         {/* 비밀번호 입력 */}
         <div>
@@ -114,10 +172,18 @@ function LoginForm() {
             required
             size="lg"
             value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            onChange={handlePasswordChange}
             placeholder="••••••••"
             testId="password-input"
           />
+          {/* 실시간 검증 결과 표시 */}
+          {(() => {
+            const passwordResult = getValidationResult('password');
+            if (!passwordResult.isValid && formData.password) {
+              return <div className="mt-1 text-sm text-red-600">{passwordResult.error}</div>;
+            }
+            return null;
+          })()}
         </div>
 
         {/* 성공 메시지 */}
