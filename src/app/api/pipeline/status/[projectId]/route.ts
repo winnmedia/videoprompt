@@ -10,9 +10,12 @@ import { NextRequest, NextResponse } from 'next/server';
 /**
  * 파이프라인 상태 조회 - Planning Dashboard API로 프록시
  */
-export async function GET(request: NextRequest, { params }: { params: { projectId: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ projectId: string }> }
+) {
   try {
-    const projectId = params.projectId;
+    const { projectId } = await params;
 
     // 내부적으로 Planning Dashboard API 호출
     const dashboardUrl = new URL('/api/planning/dashboard', request.url);
