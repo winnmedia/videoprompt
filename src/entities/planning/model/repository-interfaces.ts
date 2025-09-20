@@ -48,13 +48,6 @@ export interface PlanningRepository {
 }
 
 /**
- * Prisma Repository 전용 인터페이스
- */
-export interface PrismaRepository extends PlanningRepository {
-  readonly name: 'prisma';
-}
-
-/**
  * Supabase Repository 전용 인터페이스
  */
 export interface SupabaseRepository extends PlanningRepository {
@@ -95,7 +88,6 @@ export interface DualStorageRepository {
  * Repository 생성 팩토리 인터페이스
  */
 export interface RepositoryFactory {
-  createPrismaRepository(): PrismaRepository;
   createSupabaseRepository(): SupabaseRepository;
   createDualStorageRepository(
     primary: PlanningRepository,
