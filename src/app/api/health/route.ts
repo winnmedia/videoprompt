@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
+import { getSupabaseClient } from '@/shared/lib/supabase-client';
 // import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { logger } from '@/shared/lib/logger';
 
@@ -22,16 +22,24 @@ export async function GET() {
       environment: envCheck
     };
 
-    // DB 연결 체크 (싱글톤 prisma 사용)
+    // DB 연결 체크 (Supabase)
     let dbStatus = 'healthy';
     let dbError = null;
 
     try {
-      // PRISMA_DISABLED: awaitprisma.$queryRaw`SELECT 1`;
+      const { client, error, canProceed } = await getSupabaseClient({
+        throwOnError: false,
+        serviceName: 'health-check'
+      });
+
+      if (!canProceed || error) {
+        dbStatus = 'degraded';
+        dbError = error || 'Supabase connection unavailable';
+      }
     } catch (error) {
       dbStatus = 'unhealthy';
       dbError = error instanceof Error ? error.message : String(error);
-      logger.error('DB health check failed', error instanceof Error ? error : new Error(String(error)));
+      logger.error('Supabase health check failed', error instanceof Error ? error : new Error(String(error)));
     }
 
     const healthData = {
@@ -39,15 +47,17 @@ export async function GET() {
       services: {
         database: {
           status: dbStatus,
+          type: 'supabase',
           ...(dbError && { error: dbError })
         },
         app: 'healthy'
       }
     };
 
-    // DB 문제나 환경변수 문제가 있으면 503, 없으면 200
+    // DB 문제나 환경변수 문제가 있으면 503, degraded면 207, 정상이면 200
     const hasIssues = dbStatus === 'unhealthy' || !envCheck.DATABASE_URL;
-    const statusCode = hasIssues ? 503 : 200;
+    const isDegraded = dbStatus === 'degraded';
+    const statusCode = hasIssues ? 503 : isDegraded ? 207 : 200;
 
     return NextResponse.json(healthData, { status: statusCode });
 
