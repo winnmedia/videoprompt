@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { logger } from '@/shared/lib/logger';
 
 interface ErrorFallbackProps {
   error: Error;
@@ -69,8 +70,13 @@ export class GlobalErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // 간단한 콘솔 로깅 (나중에 외부 서비스로 확장 가능)
-    console.error('Global Error Boundary caught an error:', error);
-    console.error('Error Info:', errorInfo);
+    logger.error('Global Error Boundary caught error', error, {
+      operation: 'global-error-boundary',
+      errorInfo: {
+        componentStack: errorInfo?.componentStack,
+        errorBoundary: 'GlobalErrorBoundary'
+      }
+    });
   }
 
   render() {

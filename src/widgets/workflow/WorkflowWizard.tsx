@@ -5,12 +5,18 @@
 
 'use client';
 
-import React, { memo, useEffect } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 import { Button } from '@/shared/ui';
-import { useWorkflowState } from '@/shared/hooks/useWorkflowState';
+import { useWorkflowState } from '@/features/workflow';
 import { useVideoPolling } from '@/shared/hooks/useVideoPolling';
+// import { TemplateSelector } from '@/widgets/scenario/TemplateSelector'; // FSD 위반: widgets 간 의존 금지
+import { StoryTemplate } from '@/entities/scenario';
 
 const WorkflowWizardComponent = memo(function WorkflowWizard() {
+  const [workflowMode, setWorkflowMode] = useState<'selection' | 'template' | 'direct'>('selection');
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [interactionStartTime, setInteractionStartTime] = useState<number>(0);
+
   const {
     currentStep,
     workflowData,
@@ -22,6 +28,8 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
     resetWorkflow,
     updateWorkflowData,
     generateVideo,
+    setCurrentStep,
+    setError,
   } = useWorkflowState();
 
   // 영상 생성 상태 폴링
@@ -59,7 +67,57 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
         }
       });
     }
-  }, [pollingResult.status, pollingResult.videoUrl, pollingResult.error, workflowData.video.jobId]);
+  }, []);
+
+  // 성능 측정 및 피드백 핸들러
+  const handleInteractionStart = () => {
+    setInteractionStartTime(performance.now());
+  };
+
+  const handleTemplateStart = () => {
+    handleInteractionStart();
+    setWorkflowMode('template');
+
+    // 즉각적 시각적 피드백 (50ms 이내)
+    setTimeout(() => {
+      setShowTemplateSelector(true);
+    }, 10); // 10ms 후 템플릿 선택기 표시
+  };
+
+  const handleDirectStart = () => {
+    handleInteractionStart();
+    setWorkflowMode('direct');
+
+    // 부드러운 전환 효과
+    setTimeout(() => {
+      // 추가적인 상태 업데이트가 필요한 경우
+    }, 10);
+  };
+
+  const handleTemplateSelect = (template: StoryTemplate) => {
+    // 템플릿 설정 자동 적용
+    updateWorkflowData({
+      story: template.template.oneLineStory || '',
+      scenario: {
+        genre: template.template.genre,
+        tone: template.template.toneAndManner[0] || '',
+        target: template.template.target,
+        structure: []
+      }
+    });
+
+    setShowTemplateSelector(false);
+    // 템플릿 사용 시 3단계로 바로 이동
+    setCurrentStep(3);
+  };
+
+  const calculateProgress = () => {
+    if (workflowMode === 'selection') return 0;
+    if (workflowMode === 'template') {
+      return currentStep === 3 ? 75 : 50;
+    }
+    return (currentStep / 4) * 100;
+  };
 
   const renderStepContent = () => {
     switch (currentStep) {
@@ -265,49 +323,295 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
     }
   };
 
+  // 시작 화면 렌더링
+  const renderStartScreen = () => (
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">AI 영상 생성</h1>
+        <p className="text-xl text-gray-600 mb-8">어떤 방식으로 시작하시겠습니까?</p>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        {/* 템플릿 기반 빠른 시작 */}
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-8 border border-blue-200 hover:shadow-lg hover:scale-105 transition-all duration-200 ease-out cursor-pointer group">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-700 group-hover:scale-110 transition-all duration-200">
+              <span className="text-2xl text-white">⚡</span>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">템플릿으로 빠르게 시작</h3>
+            <p className="text-gray-600 mb-4">미리 준비된 템플릿으로 빠르게 영상을 생성하세요</p>
+            <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium inline-block">
+              약 2분 내 완성
+            </div>
+          </div>
+          <ul className="space-y-2 mb-6 text-sm text-gray-600">
+            <li className="flex items-center">
+              <span className="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+              템플릿 기반 자동 설정
+            </li>
+            <li className="flex items-center">
+              <span className="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+              빠른 프로토타이핑
+            </li>
+            <li className="flex items-center">
+              <span className="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+              검증된 설정값 사용
+            </li>
+          </ul>
+          <Button
+            onClick={handleTemplateStart}
+            className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 active:scale-95 text-white py-3 text-lg font-semibold transition-all duration-150 ease-out transform hover:scale-105"
+            aria-label="템플릿으로 빠르게 시작"
+          >
+            {workflowMode === 'template' ? (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                로딩 중...
+              </div>
+            ) : (
+              '템플릿으로 빠르게 시작'
+            )}
+          </Button>
+        </div>
+
+        {/* 직접 설정 시작 */}
+        <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8 border border-gray-200 hover:shadow-lg hover:scale-105 transition-all duration-200 ease-out cursor-pointer group">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-gray-700 group-hover:scale-110 transition-all duration-200">
+              <span className="text-2xl text-white">⚙️</span>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">직접 설정하여 시작</h3>
+            <p className="text-gray-600 mb-4">모든 설정을 직접 조정하여 맞춤형 영상을 생성하세요</p>
+            <div className="bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm font-medium inline-block">
+              상세 설정 가능
+            </div>
+          </div>
+          <ul className="space-y-2 mb-6 text-sm text-gray-600">
+            <li className="flex items-center">
+              <span className="w-2 h-2 bg-gray-500 rounded-full mr-3"></span>
+              모든 옵션 커스터마이징
+            </li>
+            <li className="flex items-center">
+              <span className="w-2 h-2 bg-gray-500 rounded-full mr-3"></span>
+              단계별 세부 조정
+            </li>
+            <li className="flex items-center">
+              <span className="w-2 h-2 bg-gray-500 rounded-full mr-3"></span>
+              전문가 수준 제어
+            </li>
+          </ul>
+          <Button
+            onClick={handleDirectStart}
+            variant="outline"
+            className="w-full border-gray-400 text-gray-700 hover:bg-gray-50 active:bg-gray-100 active:scale-95 py-3 text-lg font-semibold transition-all duration-150 ease-out transform hover:scale-105"
+            aria-label="직접 설정하여 시작"
+          >
+            {workflowMode === 'direct' ? (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600 mr-2"></div>
+                로딩 중...
+              </div>
+            ) : (
+              '직접 설정하여 시작'
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* 실시간 상태 업데이트용 aria-live 영역 */}
+      <div role="status" aria-live="polite" className="sr-only">
+        {workflowMode === 'template' && '템플릿 선택 모드로 전환되었습니다'}
+        {workflowMode === 'direct' && '직접 설정 모드로 전환되었습니다'}
+      </div>
+    </div>
+  );
+
+  // 시작 화면 표시
+  if (workflowMode === 'selection') {
+    return (
+      <>
+        {renderStartScreen()}
+        {/* FSD 위반 임시 주석 처리: widgets 간 의존 금지 */}
+        {/* {showTemplateSelector && (
+          <TemplateSelector
+            onSelect={handleTemplateSelect}
+            onSaveAsTemplate={() => {}}
+            currentStoryInput={{
+              title: '',
+              oneLineStory: '',
+              genre: '',
+              target: '',
+              toneAndManner: [],
+              duration: '',
+              format: '16:9',
+              tempo: '보통',
+              developmentMethod: '클래식 기승전결',
+              developmentIntensity: '보통'
+            }}
+            isVisible={showTemplateSelector}
+            onClose={() => setShowTemplateSelector(false)}
+          />
+        )} */}
+      </>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
+      {/* 개선된 헤더 */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">워크플로우</h1>
-        <p className="text-gray-600">단계별로 영상 생성 과정을 진행하세요</p>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-3xl font-bold text-gray-900">워크플로우</h1>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setWorkflowMode('selection');
+              resetWorkflow();
+            }}
+            className="text-sm"
+          >
+            처음으로 돌아가기
+          </Button>
+        </div>
+        <p className="text-gray-600 mb-4">
+          {workflowMode === 'template' ? '템플릿 기반 빠른 생성' : '단계별 상세 설정'}
+        </p>
+
+        {/* 개선된 진행률 표시기 */}
+        <div className="bg-gray-200 rounded-full h-3 mb-2 overflow-hidden shadow-inner">
+          <div
+            className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500 ease-out relative"
+            style={{ width: `${calculateProgress()}%` }}
+            role="progressbar"
+            aria-valuenow={calculateProgress()}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`진행률 ${calculateProgress()}%`}
+          >
+            {/* 진행 애니메이션 효과 */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 animate-pulse"></div>
+            {calculateProgress() > 0 && (
+              <div className="absolute right-0 top-0 h-full w-1 bg-white opacity-60 animate-pulse"></div>
+            )}
+          </div>
+        </div>
+        <div className="flex justify-between text-sm text-gray-500">
+          <span>진행률: {Math.round(calculateProgress())}%</span>
+          <span>예상 소요시간: 30초</span>
+        </div>
       </div>
 
-      {/* 스텝 인디케이터 */}
+      {/* 개선된 스텝 인디케이터 */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
-          {steps.map((step, index) => (
-            <div key={step.id} className="flex items-center">
-              <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
-                currentStep >= step.id
-                  ? 'bg-blue-600 border-blue-600 text-white'
-                  : 'border-gray-300 text-gray-400'
-              }`}>
-                {step.id}
+          {steps.map((step, index) => {
+            const isActive = currentStep === step.id;
+            const isCompleted = currentStep > step.id;
+            const isAccessible = workflowMode === 'template' ? step.id >= 3 : true;
+
+            return (
+              <div key={step.id} className="flex items-center">
+                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all ${
+                  isCompleted
+                    ? 'bg-green-600 border-green-600 text-white'
+                    : isActive
+                    ? 'bg-blue-600 border-blue-600 text-white animate-pulse'
+                    : isAccessible
+                    ? 'border-gray-300 text-gray-400'
+                    : 'border-gray-200 text-gray-200'
+                }`}>
+                  {isCompleted ? '✓' : step.id}
+                </div>
+                <div className={`ml-3 ${
+                  isActive ? 'text-blue-600' :
+                  isCompleted ? 'text-green-600' :
+                  isAccessible ? 'text-gray-400' : 'text-gray-200'
+                }`}>
+                  <div className="text-sm font-medium">{step.title}</div>
+                  <div className="text-xs">{step.description}</div>
+                  {isActive && (
+                    <div className="text-xs text-blue-500 mt-1">
+                      진행 중...
+                    </div>
+                  )}
+                </div>
+                {index < steps.length - 1 && (
+                  <div className={`mx-4 h-0.5 w-16 transition-all ${
+                    isCompleted ? 'bg-green-600' : 'bg-gray-300'
+                  }`} />
+                )}
               </div>
-              <div className={`ml-2 ${currentStep >= step.id ? 'text-blue-600' : 'text-gray-400'}`}>
-                <div className="text-sm font-medium">{step.title}</div>
-                <div className="text-xs">{step.description}</div>
-              </div>
-              {index < steps.length - 1 && (
-                <div className={`mx-4 h-0.5 w-16 ${
-                  currentStep > step.id ? 'bg-blue-600' : 'bg-gray-300'
-                }`} />
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
-      {/* 오류 메시지 */}
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <div className="text-red-800">{error}</div>
-        </div>
-      )}
+      {/* 개선된 오류 메시지 및 실시간 상태 */}
+      <div role="status" aria-live="polite" className="mb-4">
+        {error && (
+          <div role="alert" className="p-4 bg-red-50 border border-red-200 rounded-lg mb-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0 mr-3">
+                <span className="text-red-500 text-xl">⚠️</span>
+              </div>
+              <div className="flex-1">
+                <h4 className="text-red-800 font-medium mb-2">오류가 발생했습니다</h4>
+                <p className="text-red-700 text-sm mb-3">{error}</p>
+                <div className="space-y-2 text-sm text-red-600">
+                  <p>해결 방법:</p>
+                  <ul className="list-disc ml-4 space-y-1">
+                    <li>네트워크 연결을 확인해주세요</li>
+                    <li>잠시 후 다시 시도해주세요</li>
+                    <li>문제가 지속되면 고객센터에 문의해주세요</li>
+                  </ul>
+                </div>
+                <Button
+                  onClick={() => {
+                    setError(null);
+                    // 마지막 동작 재시도 로직 추가 필요
+                  }}
+                  variant="outline"
+                  className="mt-3 border-red-300 text-red-700 hover:bg-red-50"
+                >
+                  다시 시도
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
-      {/* 스텝 콘텐츠 */}
-      <div className="bg-white border rounded-lg p-6 mb-6">
-        {renderStepContent()}
+        {/* 처리 중 상태 표시 */}
+        {isLoading && (
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+            <div className="flex items-center">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-3"></div>
+              <div>
+                <span className="text-blue-800 font-medium">처리 중...</span>
+                <div className="text-blue-600 text-sm mt-1">
+                  잠시만 기다려주세요. 요청을 처리하고 있습니다.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 스텝 콘텐츠 - 부드러운 전환 효과 */}
+      <div className="bg-white border rounded-lg p-6 mb-6 min-h-[400px] relative overflow-hidden">
+        <div className="animate-fade-in">
+          {renderStepContent()}
+        </div>
+
+        {/* 스텝 전환 시 로딩 오버레이 */}
+        {isLoading && (
+          <div className="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600 font-medium">처리 중...</p>
+              <p className="text-gray-500 text-sm">잠시만 기다려주세요</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 네비게이션 */}

@@ -15,5 +15,5 @@ export * from './schemas';
 // Reusable hooks
 export * from './hooks';
 
-// UI store actions - Public API 노출
-export { addToast, removeToast, clearAllToasts as clearToasts } from './store/ui-slice';
+// UI store actions - Public API 노출 (moved to app layer)
+// export { addToast, removeToast, clearAllToasts as clearToasts } from '../app/store/ui-slice';

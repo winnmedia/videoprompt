@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { getUserIdFromRequest } from '@/shared/lib/auth';
-import { prisma } from '@/lib/db';
+// import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { randomBytes } from 'crypto';
 
 export const runtime = 'nodejs';

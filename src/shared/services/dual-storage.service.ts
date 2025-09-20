@@ -309,16 +309,18 @@ export class DualStorageTransformer implements IDualStorageTransformer {
         });
       }
 
-      // 상태 일관성 (매핑 고려)
-      const mappedStatus = this.mapPrismaStatusToSupabase(prismaData.status);
-      if (data.status !== mappedStatus) {
-        violations.push({
-          field: `${key}.status`,
-          issue: 'Prisma와 Supabase 상태가 다름',
-          severity: 'warning',
-          prismaValue: prismaData.status,
-          supabaseValue: data.status,
-        });
+      // 상태 일관성 (매핑 고려) - status 속성이 있는 경우만 검증
+      if ('status' in data && 'status' in prismaData) {
+        const mappedStatus = this.mapPrismaStatusToSupabase(prismaData.status);
+        if (data.status !== mappedStatus) {
+          violations.push({
+            field: `${key}.status`,
+            issue: 'Prisma와 Supabase 상태가 다름',
+            severity: 'warning',
+            prismaValue: prismaData.status,
+            supabaseValue: data.status,
+          });
+        }
       }
     });
 

@@ -12,10 +12,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateRequest } from './auth-core';
+
+// Re-export authenticateRequest for compatibility
+export { authenticateRequest };
 import {
   AuthResult,
   AuthOptions,
   AuthContext,
+  AuthError,
   User,
   GuestUser,
   isAuthError,
@@ -318,7 +322,7 @@ export function withGuestOnly(
 // Response Creation Helpers
 // ============================================================================
 
-function createErrorResponse(error: AuthResult['error'], requestId: string): NextResponse {
+function createErrorResponse(error: AuthError, requestId: string): NextResponse {
   const response = NextResponse.json({
     error: error.code,
     message: error.message,
@@ -485,8 +489,4 @@ export const authSuccess = {
   }
 };
 
-// ============================================================================
-// Type Exports
-// ============================================================================
-
-export type { AuthenticatedHandler, MiddlewareOptions };
+// (기존 타입은 상단에서 export됨)

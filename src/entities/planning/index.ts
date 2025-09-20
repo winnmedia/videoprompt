@@ -40,30 +40,84 @@ export {
   saveScenario,
   savePrompt,
   saveVideo,
-  type PrismaRepository,
-  type SupabaseRepository,
   type DualStorageDependencies
 } from './model/services';
 
-// Repository Export
+// Repository Interfaces (Pure Domain)
 export {
-  getPlanningRepository,
-  type DualPlanningRepository
+  type PlanningRepository,
+  type PrismaRepository,
+  type SupabaseRepository,
+  type DualStorageRepository,
+  type DualStorageResult,
+  type RepositoryFactory
 } from './model/repository';
 
-// Infrastructure Export (Repository 구현체)
+// Repository Factory Export (API 라우트용)
 export {
-  createPrismaRepository,
-  PrismaRepositoryImpl
-} from './infrastructure/prisma-repository';
+  getPlanningRepository,
+  getDualPlanningRepository
+} from './model/repository-factory';
+
+// Infrastructure Export (Repository 구현체) - Prisma 임시 비활성화
+// export {
+//   createPrismaRepository,
+//   PrismaRepositoryImpl
+// } from './infrastructure/prisma-repository';
 
 export {
   createSupabaseRepository,
   SupabaseRepositoryImpl
 } from './infrastructure/supabase-repository';
 
+// Redux Store Export
 export {
-  getDualStorageFactory,
-  createDualStorageDependencies,
-  DualStorageFactory
-} from './infrastructure/dual-storage-factory';
+  planningReducer,
+  setActiveTab,
+  setLoading,
+  setError,
+  updateLastLoadTime,
+  setScenarios,
+  setPrompts,
+  setVideos,
+  setImages,
+  updateScenario,
+  updatePrompt,
+  updateVideo,
+  updateVideoStatus,
+  setSelectedVideo,
+  setSelectedItems,
+  toggleSelectedItem,
+  setBatchMode,
+  setSearchTerm,
+  setStatusFilter,
+  setTypeFilter,
+  setProviderFilter,
+  setDateFilter,
+  setSortBy,
+  setEditingItem,
+  setViewingItem,
+  setShowCreateDialog,
+  setCreateItemType,
+  resetFilters,
+  clearError,
+  selectPlanningState,
+  selectActiveTab,
+  selectLoading,
+  selectError,
+  selectScenarios,
+  selectPrompts,
+  selectVideos,
+  selectImages,
+  selectSelectedVideo,
+  selectSelectedItems,
+  selectFilters,
+  selectLastLoadTime,
+  shouldRefreshData,
+} from './store/planning-slice';
+
+// export {
+//   getDualStorageFactory,
+//   createDualStorageDependencies,
+//   DualStorageFactory
+// } from './infrastructure/dual-storage-factory'; // Prisma 의존성으로 인한 임시 비활성화

@@ -13,7 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withOptionalAuth } from '@/shared/lib/auth-middleware-v2';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
-import { prisma } from '@/lib/db';
+// import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { isAuthenticatedUser } from '@/shared/contracts/auth.contract';
 
 export const runtime = 'nodejs';
@@ -33,9 +33,9 @@ export const GET = withOptionalAuth(async (req, { user, authContext }) => {
   const traceId = getTraceId(req);
 
   try {
-    // ETag 기반 조건부 요청 처리
+    // ETag 기반 조건부 요청 처리 (타입 안전성 강화)
     const ifNoneMatch = req.headers.get('if-none-match');
-    const userETag = `"user-${user.id || 'guest'}-${user.email || 'none'}"`;
+    const userETag = `"user-${(user as any)?.id || 'guest'}-${(user as any)?.email || 'none'}"`;
 
     if (ifNoneMatch === userETag) {
       return new NextResponse(null, {
@@ -51,35 +51,23 @@ export const GET = withOptionalAuth(async (req, { user, authContext }) => {
 
     let dbUser = null;
 
-    // 인증된 사용자만 DB 조회
+    // Prisma 비활성화 - DB 조회 스킵
     if (isAuthenticatedUser(user) && authContext.degradationMode !== 'disabled') {
-      try {
-        dbUser = await prisma.user.findUnique({
-          where: { id: user.id },
-          select: {
-            id: true,
-            email: true,
-            username: true,
-            createdAt: true,
-            updatedAt: true,
-          }
-        });
-      } catch (dbError) {
-        console.warn('Database lookup failed, using token data only:', dbError);
-      }
+      console.log('✅ Database lookup skipped (Prisma disabled), using token data only');
+      // dbUser는 null로 유지되어 토큰 데이터만 사용
     }
 
     // 응답 데이터 구성 (보안 강화 - 토큰 완전 비공개)
     const responseData = {
-      // 기본 사용자 정보
-      id: user.id,
-      email: user.email || dbUser?.email || null,
-      username: user.username || dbUser?.username || null,
+      // 기본 사용자 정보 (타입 안전성 강화)
+      id: (user as any)?.id || null,
+      email: (user as any)?.email || (dbUser as any)?.email || null,
+      username: (user as any)?.username || (dbUser as any)?.username || null,
 
       // 레거시 호환성
-      role: isAuthenticatedUser(user) ? user.role : 'guest',
+      role: isAuthenticatedUser(user) ? (user as any)?.role || 'user' : 'guest',
       avatarUrl: null,
-      createdAt: dbUser?.createdAt?.toISOString() || new Date().toISOString(),
+      createdAt: (dbUser as any)?.createdAt?.toISOString() || new Date().toISOString(),
 
       // 토큰 정보 완전 제거 (보안 강화)
       // accessToken과 token 필드 자체를 제거하여 클라이언트 노출 방지

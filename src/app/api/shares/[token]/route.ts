@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+// import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { logger } from '@/shared/lib/logger';
 
 export const runtime = 'nodejs';

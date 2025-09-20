@@ -6,7 +6,7 @@
 import { beforeEach, describe, expect, it, vi, afterEach } from 'vitest';
 
 // Mock the complete repository module
-vi.mock('@/entities/planning/model/repository', () => {
+vi.mock('@/entities/planning', () => {
   const mockRepository = {
     save: vi.fn(),
     findByUserId: vi.fn(),
@@ -23,12 +23,12 @@ vi.mock('@/entities/planning/model/repository', () => {
 });
 
 // Import after mocking
-import { getPlanningRepository } from '@/entities/planning/model/repository';
-import { BaseContent, ScenarioContent, VideoContent } from '@/entities/planning/model/types';
+import { getPlanningRepository } from '@/entities/planning';
+import { BaseContent, ScenarioContent, VideoContent } from '@/entities/planning';
 import { ServiceConfigError } from '@/shared/lib/supabase-safe';
 
 // Get the mock repository instance
-const { mockRepository } = await import('@/entities/planning/model/repository') as any;
+const { mockRepository } = await import('@/entities/planning') as any;
 
 describe('Database Storage Integration', () => {
   beforeEach(() => {

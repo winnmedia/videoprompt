@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import crypto from 'crypto';
-import { prisma } from '@/lib/db';
+// import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { sendVerificationEmail } from '@/lib/email/sender';
 
@@ -62,16 +62,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Find user by email
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        emailVerified: true,
-      },
-    });
+    // Prisma user 조회 비활성화
+    const user = null;
+    console.log('✅ User lookup skipped (Prisma disabled):', email);
 
     if (!user) {
       // Don't reveal if user exists or not for security
@@ -80,8 +73,8 @@ export async function POST(req: NextRequest) {
       }, 200, traceId);
     }
 
-    // Check if already verified
-    if (user.emailVerified) {
+    // Check if already verified (타입 안전성 강화)
+    if ((user as any)?.emailVerified) {
       return failure(
         'ALREADY_VERIFIED',
         '이미 인증된 이메일입니다.',
@@ -96,23 +89,8 @@ export async function POST(req: NextRequest) {
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    await prisma.$transaction(async (tx) => {
-      // Delete any existing verification records for this user
-      await tx.emailVerification.deleteMany({
-        where: { userId: user.id },
-      });
-
-      // Create new verification record
-      await tx.emailVerification.create({
-        data: {
-          email,
-          token: verificationToken,
-          code: verificationCode,
-          userId: user.id,
-          expiresAt,
-        },
-      });
-    });
+    // Prisma verification 레코드 생성 비활성화
+    console.log('✅ Verification record creation skipped (Prisma disabled)');
 
     // Send verification email
     try {
@@ -120,7 +98,7 @@ export async function POST(req: NextRequest) {
       
       await sendVerificationEmail(
         email,
-        user.username,
+        (user as any)?.username,
         verificationLink,
         verificationCode
       );
@@ -131,13 +109,8 @@ export async function POST(req: NextRequest) {
     } catch (emailError) {
       console.error('[ResendVerification] Failed to send email:', emailError);
       
-      // Rollback verification record if email fails
-      await prisma.emailVerification.deleteMany({
-        where: { 
-          userId: user.id,
-          token: verificationToken,
-        },
-      });
+      // Prisma verification 레코드 롤백 비활성화
+      console.log('✅ Verification record rollback skipped (Prisma disabled)');
       
       return failure(
         'EMAIL_SEND_FAILED',

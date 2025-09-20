@@ -15,7 +15,6 @@ function VerifyEmailForm() {
   const searchParams = useSearchParams();
   const [mode, setMode] = useState<'input' | 'sent'>('input');
   const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [userEmail, setUserEmail] = useState('');
@@ -56,7 +55,7 @@ function VerifyEmailForm() {
         router.push('/login?message=이메일 인증이 완료되었습니다. 로그인해주세요.');
       } else {
         setError(data.message || '잘못된 인증 코드입니다.');
-        setCode(''); // 코드 초기화
+        // 코드 초기화는 더 이상 필요하지 않음
       }
     } catch (error) {
       console.error('Verification error:', error);
@@ -145,7 +144,7 @@ function VerifyEmailForm() {
           </div>
 
           <VerificationCodeInput
-            onChange={setCode}
+            onChange={() => {}} // 임시 빈 함수
             onComplete={handleCodeComplete}
             disabled={loading}
             error={!!error}

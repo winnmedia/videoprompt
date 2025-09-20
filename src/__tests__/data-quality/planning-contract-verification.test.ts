@@ -10,8 +10,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
-import { getPlanningRepository, DualPlanningRepository } from '@/entities/planning/model/repository';
-import { BaseContent, ScenarioContent, ContentType } from '@/entities/planning/model/types';
+import { getPlanningRepository, DualPlanningRepository } from '@/entities/planning';
+import { BaseContent, ScenarioContent, ContentType } from '@/entities/planning';
 import { getDegradationMode } from '@/shared/config/env';
 
 // 결정론적 테스트를 위한 고정 데이터

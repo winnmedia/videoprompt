@@ -1,733 +1,1127 @@
-# VideoPrompt 외부 LLM API 아키텍처 기술 문서
+다음은 VLANET Prompt v1.0 최종 JSON 스키마입니다. 요청하신 명칭 변경과 함께 제안드렸던 보강 항목을 선택 필드로 통합하였습니다. 기존 스키마와의 하위 호환을 유지하며, 새로 추가된 필드는 모두 선택 항목입니다.
 
-## 📋 개요
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vlanet.app/schemas/vlanet-prompt.v1.0.json",
+  "title": "VLANET Prompt v1.0 Canonical Model (Veo 3 Optimized + Compact Prompt)",
+  "description": "VLANET Prompt 데이터 모델 v1.0. Veo 3 최적화 규칙을 유지하면서, 간결 포맷(finalOutputCompact) 출력도 지원. CineGenius v3.1 기반 확장.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "projectId",
+    "createdAt",
+    "userInput",
+    "projectConfig",
+    "promptBlueprint",
+    "generationControl"
+  ],
+  "properties": {
+    "version": { "type": "string", "const": "1.0" },
 
-VideoPrompt 서비스는 여러 외부 LLM API를 통합하여 AI 기반 영상 콘텐츠 생성 플랫폼을 구현합니다. 이 문서는 외부 LLM API가 개입되는 핵심 기술 부분을 상세히 설명합니다.
-
-## 🏗️ 전체 아키텍처
-
-### 1. API 통합 구조
-
-```mermaid
-graph TB
-    A[프론트엔드] --> B[Next.js API Routes]
-    B --> C[AI 서비스 매니저]
-    C --> D[OpenAI API]
-    C --> E[Google Gemini API]
-    C --> F[Google Imagen API]
-    C --> G[Google Veo3 API]
-    C --> H[Seedance/ModelArk API]
-    
-    B --> I[프롬프트 변환기]
-    I --> J[이미지 프롬프트 최적화]
-    I --> K[영상 프롬프트 최적화]
-    I --> L[스토리 구조화]
-```
-
-### 2. 핵심 컴포넌트
-
-- **AI 서비스 매니저** (`src/lib/ai-client.ts`): 다중 LLM API 통합 관리
-- **프롬프트 변환기**: 용도별 프롬프트 최적화
-- **API 라우트**: Next.js API 엔드포인트
-- **프로바이더**: 각 AI 서비스별 구현체
-
-## 🔧 핵심 기술 구현
-
-### 1. AI 서비스 매니저 (AIServiceManager)
-
-#### 1.1 다중 LLM API 통합
-
-```typescript
-export class AIServiceManager {
-  private openaiClient: OpenAIClient | null = null;
-  private geminiClient: GeminiClient | null = null;
-
-  async generateScenePrompt(
-    request: AIGenerationRequest,
-    preferredService: 'openai' | 'gemini' = 'openai',
-  ): Promise<AIGenerationResponse> {
-    // 1. 선호 서비스 시도
-    if (preferredService === 'openai' && this.openaiClient) {
-      const result = await this.openaiClient.generateScenePrompt(request);
-      if (result.success) return result;
-    }
-
-    // 2. 대체 서비스 시도
-    if (preferredService === 'openai' && this.geminiClient) {
-      return await this.geminiClient.generateScenePrompt(request);
-    }
-
-    // 3. 실패 처리
-    return { success: false, error: 'No AI service available' };
-  }
-}
-```
-
-#### 1.2 핵심 특징
-
-- **폴백 메커니즘**: 주요 서비스 실패 시 대체 서비스 자동 전환
-- **서비스 가용성 검사**: API 키 존재 여부 및 서비스 상태 확인
-- **Mock 모드**: 개발/테스트 환경에서 실제 API 없이 동작
-
-### 2. 프롬프트 변환 및 최적화
-
-#### 2.1 용도별 프롬프트 변환
-
-```typescript
-// 이미지 생성용 프롬프트 최적화
-export async function rewritePromptForImage(imagePrompt: string): Promise<string> {
-  const systemPrompt = `You are an award-winning still photographer and image prompt architect. 
-  Rewrite the user prompt into a single-image prompt optimized for Imagen/SDXL style: 
-  static composition, clear subject, framing (shot/lens implied), lighting, color grading, 
-  background, and 6-12 concise tags. English only. No extra commentary.`;
-
-  // OpenAI 또는 Gemini API 호출
-  const response = await fetch(apiEndpoint, {
-    method: 'POST',
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: imagePrompt }
-      ],
-      temperature: 0.4
-    })
-  });
-}
-
-// 영상 생성용 프롬프트 최적화
-export async function rewritePromptForSeedance(
-  videoPrompt: string,
-  options: { aspectRatio?: string; duration?: number; style?: string }
-): Promise<string> {
-  const systemPrompt = `You are an expert video prompt architect for Seedance/ModelArk video generation. 
-  Optimize the user prompt for video creation with these requirements:
-  - Aspect ratio: ${aspectRatio}
-  - Duration: ${duration} seconds
-  - Style: ${style}
-  - Focus on: dynamic movement, camera motion, temporal flow, visual continuity
-  - Include: scene transitions, motion cues, timing beats
-  - Avoid: static composition terms, single-frame descriptions`;
-}
-```
-
-#### 2.2 스토리 구조화
-
-```typescript
-// 4단계 스토리 구조 생성
-export async function generateStorySteps(storyData: StoryRequest): Promise<StoryResponse> {
-  const prompt = `다음 스토리를 바탕으로 4단계 시나리오 구조를 생성해주세요:
-  
-  스토리: ${storyData.story}
-  장르: ${storyData.genre}
-  톤앤매너: ${storyData.tone}
-  전개 방식: ${storyData.developmentMethod}
-  
-  다음 JSON 형식으로 응답해주세요:
-  {
-    "structure": {
-      "act1": { "title": "...", "description": "...", "key_elements": [...], "emotional_arc": "..." },
-      "act2": { "title": "...", "description": "...", "key_elements": [...], "emotional_arc": "..." },
-      "act3": { "title": "...", "description": "...", "key_elements": [...], "emotional_arc": "..." },
-      "act4": { "title": "...", "description": "...", "key_elements": [...], "emotional_arc": "..." }
+    "projectId": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89ABab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
+      "description": "UUID v4 형식 문자열"
     },
-    "visual_style": [...],
-    "mood_palette": [...],
-    "technical_approach": [...],
-    "target_audience_insights": [...]
-  }`;
 
-  const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.7 }
-    })
-  });
-}
-```
+    "createdAt": { "type": "string", "format": "date-time" },
 
-### 3. API 라우트 구현
+    "userInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["oneLineScenario"],
+      "properties": {
+        "oneLineScenario": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "targetAudience": { "type": "string", "minLength": 0, "maxLength": 200 },
+        "referenceUrls": {
+          "type": "array",
+          "items": { "type": "string", "format": "uri" },
+          "maxItems": 20,
+          "uniqueItems": true
+        },
+        "referenceAudioUrl": { "type": "string", "format": "uri" },
 
-#### 3.1 스토리 생성 API
-
-```typescript
-// /api/ai/generate-story/route.ts
-export async function POST(request: NextRequest) {
-  const body: StoryRequest = await request.json();
-  const { story, genre, tone, target, duration, format, tempo, developmentMethod } = body;
-
-  // Google Gemini API 호출
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `다음 스토리를 바탕으로 4단계 시나리오 구조를 생성해주세요:
-            
-            스토리: ${story}
-            장르: ${genre}
-            톤앤매너: ${tone}
-            전개 방식: ${developmentMethod}
-            
-            ${getDevelopmentMethodPrompt(developmentMethod)}
-            
-            다음 JSON 형식으로 응답해주세요: ...`
-          }]
-        }]
-      })
-    }
-  );
-
-  if (response.ok) {
-    const data = await response.json();
-    const generatedText = data.candidates[0]?.content?.parts[0]?.text;
-    
-    try {
-      const parsedResponse = JSON.parse(generatedText);
-      return NextResponse.json(parsedResponse);
-    } catch (parseError) {
-      // JSON 파싱 실패 시 기본 구조 반환
-      return NextResponse.json(generateDefaultStructure(story, genre, tone, target, developmentMethod));
-    }
-  }
-}
-```
-
-#### 3.2 프롬프트 생성 API
-
-```typescript
-// /api/ai/generate-prompt/route.ts
-export async function POST(request: NextRequest) {
-  const body: PromptRequest = await request.json();
-  const { story, scenario, visual_preferences, target_audience } = body;
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `다음 정보를 바탕으로 영상 제작을 위한 체계적인 프롬프트를 생성해주세요:
-            
-            스토리: ${story}
-            장르: ${scenario.genre}
-            톤앤매너: ${scenario.tone}
-            타겟 오디언스: ${target_audience}
-            시각적 선호도: ${visual_preferences.style.join(', ')}
-            
-            다음 JSON 형식으로 응답해주세요:
-            {
-              "base_style": { "visual_style": [...], "genre": [...], "mood": [...], "quality": [...] },
-              "spatial_context": { "weather": [...], "lighting": [...] },
-              "camera_setting": { "primary_lens": [...], "dominant_movement": [...] },
-              "core_object": { "material": [...] },
-              "timeline": { "angle": [...], "move": [...], "pacing": [...], "audio_quality": [...] },
-              "final_prompt": "최종 프롬프트 텍스트",
-              "negative_prompt": "제외할 요소들",
-              "keywords": ["키워드1", "키워드2", "키워드3"]
-            }`
-          }]
-        }]
-      })
-    }
-  );
-}
-```
-
-### 4. 이미지 생성 API 통합
-
-#### 4.1 Google Imagen API
-
-```typescript
-// src/lib/providers/imagen.ts
-export async function generateImagenPreview(options: ImagenPreviewOptions): Promise<{ images: string[] }> {
-  const { prompt, size = '768x768', n = 1 } = options;
-  
-  // 다중 API 시도 (우선순위: OpenAI → Vertex AI → Google AI Studio)
-  const attempts = [
-    {
-      description: 'Imagen 4.0 Fast (최신)',
-      url: `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-fast-generate-preview-06-06:generateContent?key=${apiKey}`,
-      body: {
-        contents: [{ role: 'user', parts: [{ text: prompt.slice(0, 1500) }] }],
-        generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 1024 },
-        imageGenerationConfig: {
-          numberOfImages: Math.max(1, Math.min(4, n)),
-          aspectRatio: width > height ? 'LANDSCAPE' : width < height ? 'PORTRAIT' : 'SQUARE',
-          imageSize: `${width}x${height}`
+        "referenceSnapshots": {
+          "type": "array",
+          "description": "외부 참조 자산의 스냅샷 메타데이터",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["url", "sha256", "fetchedAt"],
+            "properties": {
+              "url": { "type": "string", "format": "uri" },
+              "sha256": { "type": "string", "minLength": 64, "maxLength": 128 },
+              "fetchedAt": { "type": "string", "format": "date-time" },
+              "mimeType": { "type": "string", "minLength": 0, "maxLength": 100 }
+            }
+          },
+          "maxItems": 200
         }
       }
     },
-    // 추가 시도들...
-  ];
 
-  for (const attempt of attempts) {
-    const response = await fetch(attempt.url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(attempt.body)
-    });
+    "projectConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["creationMode", "frameworkType", "aiAssistantPersona"],
+      "properties": {
+        "creationMode": { "type": "string", "enum": ["VISUAL_FIRST", "SOUND_FIRST"] },
+        "frameworkType": { "type": "string", "enum": ["EVENT_DRIVEN", "DIRECTION_DRIVEN", "HYBRID"] },
+        "aiAssistantPersona": { "type": "string", "enum": ["ASSISTANT_DIRECTOR", "CINEMATOGRAPHER", "SCREENWRITER"] },
+        "profileId": { "type": "string", "minLength": 0, "maxLength": 60 }
+      }
+    },
 
-    if (response.ok) {
-      const json = await response.json();
-      const images = extractImagesFromResponse(json);
-      if (images.length > 0) return { images: images.slice(0, n) };
-    }
-  }
+    "profiles": {
+      "type": "array",
+      "description": "선택. 조직용 프리셋 프로파일 레지스트리",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "lockedFields": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1, "maxLength": 200 },
+            "maxItems": 200,
+            "uniqueItems": true
+          },
+          "overrides": { "type": "object", "description": "스키마 경로 기반 덮어쓰기", "additionalProperties": true }
+        }
+      },
+      "maxItems": 100
+    },
 
-  // 모든 시도 실패 시 플레이스홀더 반환
-  return { images: generatePlaceholderImages(prompt, size, n) };
-}
-```
+    "brandPolicies": {
+      "type": "array",
+      "description": "선택. 브랜드 컴플라이언스 정책 레지스트리",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "maxLength": 60 },
+          "logoRules": { "type": "string", "minLength": 0, "maxLength": 300 },
+          "colorUsage": { "type": "string", "minLength": 0, "maxLength": 200 },
+          "negativeOverlays": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1, "maxLength": 120 },
+            "maxItems": 50
+          },
+          "legalNotes": { "type": "string", "minLength": 0, "maxLength": 300 }
+        }
+      },
+      "maxItems": 50
+    },
 
-#### 4.2 이미지 응답 처리
+    "promptBlueprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metadata", "elements", "timeline"],
+      "properties": {
+        "metadata": {
+          "type": "object",
+          "description": "전역 설정. timeline의 개별 설정에 의해 오버라이드될 수 있음.",
+          "additionalProperties": false,
+          "required": ["promptName", "baseStyle", "spatialContext", "cameraSetting", "deliverySpec"],
+          "properties": {
+            "promptName": { "type": "string", "minLength": 1, "maxLength": 120 },
 
-```typescript
-function extractImagesFromResponse(json: any): string[] {
-  const images: string[] = [];
+            "baseStyle": {
+              "type": "object",
+              "description": "시각적 미학 정의.",
+              "additionalProperties": false,
+              "required": ["visualStyle", "genre", "mood", "quality", "styleFusion"],
+              "properties": {
+                "visualStyle": { "type": "string", "minLength": 1, "maxLength": 80 },
+                "genre": { "type": "string", "minLength": 1, "maxLength": 80 },
+                "mood": { "type": "string", "minLength": 1, "maxLength": 80 },
+                "quality": { "type": "string", "enum": ["4K", "8K", "IMAX Quality", "HD"] },
+                "styleFusion": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["styleA", "styleB", "ratio"],
+                  "properties": {
+                    "styleA": {
+                      "type": "string",
+                      "enum": [
+                        "Christopher Nolan",
+                        "David Fincher",
+                        "Wes Anderson",
+                        "Tim Burton",
+                        "Sofia Coppola",
+                        "Bong Joon-ho",
+                        "Denis Villeneuve"
+                      ]
+                    },
+                    "styleB": {
+                      "type": "string",
+                      "enum": [
+                        "Christopher Nolan",
+                        "David Fincher",
+                        "Wes Anderson",
+                        "Tim Burton",
+                        "Sofia Coppola",
+                        "Bong Joon-ho",
+                        "Denis Villeneuve"
+                      ]
+                    },
+                    "ratio": { "type": "number", "minimum": 0, "maximum": 1 }
+                  }
+                }
+              }
+            },
 
-  // 다양한 응답 구조 대응
-  if (json.candidates && Array.isArray(json.candidates)) {
-    for (const candidate of json.candidates) {
-      if (candidate.content && candidate.content.parts) {
-        for (const part of candidate.content.parts) {
-          if (part.inlineData && part.inlineData.mimeType && part.inlineData.data) {
-            images.push(`data:${part.inlineData.mimeType};base64,${part.inlineData.data}`);
+            "spatialContext": {
+              "type": "object",
+              "description": "장면 및 환경 정의.",
+              "additionalProperties": false,
+              "required": ["placeDescription", "weather", "lighting"],
+              "properties": {
+                "placeDescription": { "type": "string", "minLength": 1, "maxLength": 300 },
+                "weather": { "type": "string", "enum": ["Clear", "Rain", "Heavy Rain", "Snow", "Fog", "Overcast"] },
+                "lighting": {
+                  "type": "string",
+                  "enum": [
+                    "Daylight (Midday)",
+                    "Golden Hour",
+                    "Night",
+                    "Studio Lighting",
+                    "Harsh Midday Sun",
+                    "Single Key Light (Rembrandt)",
+                    "Backlit Silhouette",
+                    "Neon Glow"
+                  ]
+                },
+                "regionTag": { "type": "string", "minLength": 0, "maxLength": 80 }
+              }
+            },
+
+            "cameraSetting": {
+              "type": "object",
+              "description": "기본 카메라 설정.",
+              "additionalProperties": false,
+              "required": ["primaryLens", "dominantMovement", "colorGrade"],
+              "properties": {
+                "primaryLens": {
+                  "type": "string",
+                  "enum": [
+                    "14mm Ultra-Wide",
+                    "24mm Wide-angle",
+                    "35mm (Natural)",
+                    "50mm Standard",
+                    "85mm Portrait",
+                    "90mm Macro"
+                  ]
+                },
+                "dominantMovement": {
+                  "type": "string",
+                  "enum": [
+                    "Static Shot",
+                    "Shaky Handheld",
+                    "Smooth Tracking (Dolly)",
+                    "Whip Pan",
+                    "Jib/Crane Shot",
+                    "Drone Fly-over",
+                    "Vertigo Effect (Dolly Zoom)"
+                  ]
+                },
+                "colorGrade": { "type": "string", "minLength": 0, "maxLength": 120 },
+                "physical": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "description": "물리적 카메라 설정값.",
+                  "properties": {
+                    "aperture": { "type": "string", "pattern": "^f\\/?(\\d+(\\.\\d+)?)$" },
+                    "shutter": { "type": "string", "pattern": "^(\\d+(\\.\\d+)?s)|(1\\/\\d+)$" },
+                    "iso": { "type": "integer", "minimum": 25, "maximum": 204800 },
+                    "ndFilter": { "type": "string", "pattern": "^ND(\\d+|\\d*\\.\\d+)$" }
+                  }
+                }
+              }
+            },
+
+            "deliverySpec": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["durationMs", "aspectRatio"],
+              "properties": {
+                "durationMs": { "type": "integer", "minimum": 1 },
+                "aspectRatio": { "type": "string", "enum": ["9:16", "1:1", "4:5", "16:9", "2.39:1"] },
+                "fps": { "type": "number", "enum": [24, 25, 30, 50, 60] },
+                "resolution": { "type": "string", "enum": ["HD", "FHD", "4K", "8K"] },
+                "shotType": { "type": "string", "minLength": 0, "maxLength": 60 },
+                "bitrateHint": { "type": "string", "minLength": 0, "maxLength": 40 }
+              }
+            },
+
+            "continuity": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "singleTake": { "type": "boolean" },
+                "noCuts": { "type": "boolean" },
+                "motionVectorContinuity": { "type": "string", "minLength": 0, "maxLength": 200 },
+                "textureContinuityNote": { "type": "string", "minLength": 0, "maxLength": 200 },
+                "transitionPolicy": {
+                  "type": "string",
+                  "enum": ["None", "Only-internal time ramp", "No editorial transitions"]
+                }
+              }
+            },
+
+            "lookDev": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "grade": { "type": "string", "minLength": 0, "maxLength": 120 },
+                "grain": { "type": "string", "enum": ["None", "Fine cinematic", "Medium 35mm", "Coarse 16mm"] },
+                "textureTreatment": { "type": "string", "minLength": 0, "maxLength": 120 },
+                "lutName": { "type": "string", "minLength": 0, "maxLength": 60 },
+                "colorTemperature": { "type": "number", "minimum": 1000, "maximum": 20000 },
+                "contrastCurve": { "type": "string", "minLength": 0, "maxLength": 60 }
+              }
+            },
+
+            "cameraPlan": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "lensRoster": {
+                  "type": "array",
+                  "items": { "type": "string", "minLength": 1, "maxLength": 60 },
+                  "uniqueItems": true,
+                  "maxItems": 20
+                },
+                "movementSummary": { "type": "string", "minLength": 0, "maxLength": 300 },
+                "preferredRig": { "type": "string", "enum": ["Handheld", "Dolly", "Gimbal", "Crane", "Drone"] }
+              }
+            }
+          }
+        },
+
+        "elements": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["characters", "coreObjects"],
+          "properties": {
+            "characters": {
+              "type": "array",
+              "maxItems": 50,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "description"],
+                "properties": {
+                  "id": { "type": "string", "minLength": 1, "maxLength": 60 },
+                  "description": { "type": "string", "minLength": 1, "maxLength": 300 },
+                  "reference_image_url": { "type": "string", "format": "uri" }
+                }
+              }
+            },
+            "coreObjects": {
+              "type": "array",
+              "maxItems": 100,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "description"],
+                "properties": {
+                  "id": { "type": "string", "minLength": 1, "maxLength": 60 },
+                  "description": { "type": "string", "minLength": 1, "maxLength": 300 },
+                  "material": { "type": "string", "minLength": 0, "maxLength": 60 },
+                  "reference_image_url": { "type": "string", "format": "uri" }
+                }
+              }
+            },
+            "assemblyDirectives": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "sourceContainer": { "type": "string", "minLength": 0, "maxLength": 120 },
+                "assembledElements": {
+                  "type": "array",
+                  "items": { "type": "string", "minLength": 1, "maxLength": 120 },
+                  "maxItems": 100
+                },
+                "animationModel": { "type": "string", "minLength": 0, "maxLength": 120 },
+                "physicalityNote": { "type": "string", "minLength": 0, "maxLength": 200 }
+              }
+            }
+          }
+        },
+
+        "audioDesign": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "musicIntent": { "type": "string", "minLength": 0, "maxLength": 120 },
+            "sfxPalette": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1, "maxLength": 80 },
+              "maxItems": 50,
+              "uniqueItems": true
+            },
+            "mixNotes": { "type": "string", "minLength": 0, "maxLength": 300 },
+            "duckingRules": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1, "maxLength": 120 },
+              "maxItems": 20
+            },
+            "grammarPolicy": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "autoWrapDiegetic": { "type": "boolean", "default": true },
+                "autoWrapNonDiegetic": { "type": "boolean", "default": true },
+                "musicKeywords": {
+                  "type": "array",
+                  "items": { "type": "string", "minLength": 1, "maxLength": 40 },
+                  "maxItems": 50,
+                  "uniqueItems": true
+                }
+              }
+            }
+          }
+        },
+
+        "timeline": {
+          "type": "array",
+          "description": "샷 리스트.",
+          "minItems": 1,
+          "maxItems": 500,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["sequence", "visualDirecting", "cameraWork", "pacingFX", "audioLayers"],
+            "properties": {
+              "sequence": { "type": "integer", "minimum": 0 },
+
+              "timestamp": {
+                "type": "string",
+                "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,3})?$"
+              },
+
+              "timecode": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "startMs": { "type": "integer", "minimum": 0 },
+                  "endMs": { "type": "integer", "minimum": 0 },
+                  "smpteStart": { "type": "string", "pattern": "^\\d{2}:\\d{2}:\\d{2}:\\d{2}$" },
+                  "smpteEnd": { "type": "string", "pattern": "^\\d{2}:\\d{2}:\\d{2}:\\d{2}$" }
+                }
+              },
+
+              "visualDirecting": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600
+              },
+
+              "cameraWork": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["angle", "move", "focus"],
+                "properties": {
+                  "angle": {
+                    "type": "string",
+                    "enum": [
+                      "Wide Shot (WS)",
+                      "Medium Shot (MS)",
+                      "Close Up (CU)",
+                      "Extreme Close Up (ECU)",
+                      "Point of View (POV)"
+                    ]
+                  },
+                  "move": {
+                    "type": "string",
+                    "enum": [
+                      "Pan (Left/Right)",
+                      "Tilt (Up/Down)",
+                      "Dolly (In/Out)",
+                      "Tracking (Follow)",
+                      "Whip Pan",
+                      "Static Shot"
+                    ]
+                  },
+                  "focus": { "type": "string", "minLength": 0, "maxLength": 80 }
+                }
+              },
+
+              "pacingFX": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["pacing", "editingStyle", "visualEffect"],
+                "properties": {
+                  "pacing": {
+                    "type": "string",
+                    "enum": ["Real-time", "Slow-motion (0.5x)", "Fast-motion (2x)", "Time-lapse", "Freeze-frame"]
+                  },
+                  "editingStyle": {
+                    "type": "string",
+                    "enum": [
+                      "None",
+                      "Only-internal time ramp",
+                      "Standard Cut",
+                      "Match Cut",
+                      "Jump Cut",
+                      "Cross-dissolve",
+                      "Wipe",
+                      "Split Screen"
+                    ]
+                  },
+                  "visualEffect": {
+                    "type": "string",
+                    "enum": [
+                      "None",
+                      "Lens Flare",
+                      "Light Leaks",
+                      "Film Grain",
+                      "Chromatic Aberration",
+                      "Slow Shutter (Motion Blur)"
+                    ]
+                  }
+                }
+              },
+
+              "audioLayers": {
+                "type": "object",
+                "description": "Veo 3 문법.",
+                "additionalProperties": false,
+                "required": ["diegetic", "non_diegetic", "voice", "concept"],
+                "properties": {
+                  "diegetic": {
+                    "type": "string",
+                    "anyOf": [
+                      { "maxLength": 0 },
+                      { "pattern": "^\\[SFX:\\s?.+\\]$" }
+                    ]
+                  },
+                  "non_diegetic": {
+                    "type": "string",
+                    "anyOf": [
+                      { "maxLength": 0 },
+                      { "pattern": "^\\[(Music|Score):\\s?.+\\]$" }
+                    ]
+                  },
+                  "voice": {
+                    "type": "string",
+                    "anyOf": [
+                      { "maxLength": 0 },
+                      { "pattern": "^[^:\"]{1,40}:\\s[^\\\"]+$" }
+                    ]
+                  },
+                  "concept": {
+                    "type": "string",
+                    "anyOf": [
+                      { "maxLength": 0 },
+                      {
+                        "enum": [
+                          "Muffled Underwater Audio",
+                          "Heartbeat Rhythm",
+                          "High-frequency Ringing",
+                          "Glitchy Digital Noise",
+                          "Warm Vinyl Crackle"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              },
+
+              "actionNote": { "type": "string", "minLength": 0, "maxLength": 600 },
+              "audioNote": { "type": "string", "minLength": 0, "maxLength": 300 },
+              "visualNote": { "type": "string", "minLength": 0, "maxLength": 300 }
+            }
+          }
+        }
+      }
+    },
+
+    "generationControl": {
+      "type": "object",
+      "description": "생성 제어 및 컴파일 방식 설정.",
+      "additionalProperties": false,
+      "required": ["directorEmphasis", "shotByShot", "seed"],
+      "properties": {
+        "directorEmphasis": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["term", "weight"],
+            "properties": {
+              "term": { "type": "string", "minLength": 1, "maxLength": 80 },
+              "weight": { "type": "number", "minimum": -3, "maximum": 3 }
+            }
+          }
+        },
+
+        "initializationImage": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "imageUrl": { "type": "string", "format": "uri" },
+            "strength": { "type": "number", "minimum": 0.1, "maximum": 1.0 }
+          }
+        },
+
+        "shotByShot": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["enabled"],
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "lockedSegments": {
+              "type": "array",
+              "items": { "type": "integer", "minimum": 0 },
+              "uniqueItems": true,
+              "maxItems": 500
+            },
+            "lastFrameData": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["imageUrl", "description"],
+              "properties": {
+                "imageUrl": { "type": "string", "format": "uri" },
+                "description": { "type": "string", "minLength": 0, "maxLength": 300 }
+              }
+            }
+          }
+        },
+
+        "compliance": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "disableTextOverlays": {
+              "type": "boolean",
+              "default": true,
+              "description": "true이면 '(no subtitles), (no text overlay), (no captions)' 자동 부가."
+            },
+            "brandName": { "type": "string", "minLength": 0, "maxLength": 80 },
+            "logoVisibility": { "type": "string", "minLength": 0, "maxLength": 80 },
+            "legalRestrictions": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1, "maxLength": 120 },
+              "maxItems": 50
+            },
+            "negativeOverlays": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1, "maxLength": 120 },
+              "maxItems": 50
+            },
+            "brandPolicyId": { "type": "string", "minLength": 0, "maxLength": 60 },
+            "culturalConstraints": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "allowedMotifs": {
+                  "type": "array",
+                  "items": { "type": "string", "minLength": 1, "maxLength": 80 },
+                  "maxItems": 50
+                },
+                "disallowedMotifs": {
+                  "type": "array",
+                  "items": { "type": "string", "minLength": 1, "maxLength": 80 },
+                  "maxItems": 50
+                },
+                "regionLocale": { "type": "string", "minLength": 0, "maxLength": 40 }
+              }
+            }
+          }
+        },
+
+        "seed": { "type": "integer", "minimum": 0, "maximum": 2147483647 }
+      }
+    },
+
+    "reproducibility": {
+      "type": "object",
+      "description": "선택. 재현성 메타데이터",
+      "additionalProperties": false,
+      "properties": {
+        "promptHash": { "type": "string", "minLength": 64, "maxLength": 128 },
+        "schemaVersion": { "type": "string", "minLength": 1, "maxLength": 20 },
+        "toolchain": { "type": "string", "minLength": 0, "maxLength": 120 },
+        "randomSeedPolicy": { "type": "string", "enum": ["FIXED", "SEMI_FIXED", "UNFIXED"] }
+      }
+    },
+
+    "aiAnalysis": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "내부 생성 로그",
+      "readOnly": true
+    },
+
+    "finalOutput": {
+      "type": "object",
+      "description": "기존 상세형 Veo 출력.",
+      "additionalProperties": false,
+      "required": ["finalPromptText", "keywords", "negativePrompts"],
+      "properties": {
+        "finalPromptText": { "type": "string", "minLength": 1, "maxLength": 5000 },
+        "keywords": {
+          "type": "array",
+          "maxItems": 200,
+          "items": { "type": "string", "minLength": 1, "maxLength": 60 },
+          "uniqueItems": true
+        },
+        "negativePrompts": {
+          "type": "array",
+          "maxItems": 200,
+          "items": { "type": "string", "minLength": 1, "maxLength": 60 },
+          "uniqueItems": true
+        }
+      }
+    },
+
+    "finalOutputCompact": {
+      "type": "object",
+      "description": "간결 포맷 출력. 사용자 제시 구조와 호환.",
+      "additionalProperties": false,
+      "required": [
+        "metadata",
+        "key_elements",
+        "assembled_elements",
+        "negative_prompts",
+        "timeline",
+        "text",
+        "keywords"
+      ],
+      "properties": {
+        "metadata": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["prompt_name", "base_style", "aspect_ratio", "room_description", "camera_setup"],
+          "properties": {
+            "prompt_name": { "type": "string", "minLength": 1, "maxLength": 120 },
+            "base_style": { "type": "string", "minLength": 1, "maxLength": 200 },
+            "aspect_ratio": {
+              "type": "string",
+              "pattern": "^(?:\\d+(?:\\.\\d+)?):(\\d+)$",
+              "description": "예: 9:16, 16:9, 21:9, 2.39:1"
+            },
+            "room_description": { "type": "string", "minLength": 1, "maxLength": 800 },
+            "camera_setup": { "type": "string", "minLength": 1, "maxLength": 800 }
+          }
+        },
+        "key_elements": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "maxItems": 50
+        },
+        "assembled_elements": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "maxItems": 30
+        },
+        "negative_prompts": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "maxItems": 50
+        },
+        "timeline": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["sequence", "timestamp", "action", "audio"],
+            "properties": {
+              "sequence": { "type": "integer", "minimum": 1 },
+              "timestamp": {
+                "type": "string",
+                "pattern": "^[0-5]\\d:[0-5]\\d-[0-5]\\d:[0-5]\\d",
+                "description": "mm:ss-mm:ss 범위. 예: 00:00-00:02"
+              },
+              "action": { "type": "string", "minLength": 1, "maxLength": 800 },
+              "audio": { "type": "string", "minLength": 1, "maxLength": 600 }
+            }
+          }
+        },
+        "text": { "type": "string", "enum": ["none"] },
+        "keywords": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "maxItems": 50,
+          "uniqueItems": true
+        }
+      }
+    },
+
+    "uiHints": {
+      "type": "object",
+      "description": "에디터 권고값 및 매핑 힌트. 저장은 선택 사항",
+      "writeOnly": true,
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "number" }
+          ]
+        }
+      },
+      "properties": {
+        "/projectConfig/creationMode": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["VISUAL_FIRST", "SOUND_FIRST"]
+        },
+        "/projectConfig/frameworkType": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["EVENT_DRIVEN", "DIRECTION_DRIVEN", "HYBRID"]
+        },
+        "/projectConfig/aiAssistantPersona": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["ASSISTANT_DIRECTOR", "CINEMATOGRAPHER", "SCREENWRITER"]
+        },
+
+        "/promptBlueprint/metadata/baseStyle/visualStyle": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [
+            "Photorealistic",
+            "Cinematic",
+            "Documentary Style",
+            "Glossy Commercial",
+            "Lo-Fi VHS",
+            "Hand-drawn Animation",
+            "Unreal Engine 5 Render"
+          ]
+        },
+        "/promptBlueprint/metadata/baseStyle/genre": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [
+            "Action-Thriller",
+            "Sci-Fi Noir",
+            "Fantasy Epic",
+            "Slice of Life",
+            "Psychological Thriller",
+            "Mockumentary",
+            "Cyberpunk"
+          ]
+        },
+        "/promptBlueprint/metadata/baseStyle/mood": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [
+            "Tense",
+            "Moody",
+            "Serene",
+            "Whimsical",
+            "Melancholic",
+            "Suspenseful",
+            "Awe-inspiring",
+            "Meditative"
+          ]
+        },
+        "/promptBlueprint/metadata/baseStyle/quality": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["4K", "8K", "IMAX Quality", "HD"]
+        },
+        "/promptBlueprint/metadata/baseStyle/styleFusion/styleA": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [
+            "Christopher Nolan",
+            "David Fincher",
+            "Wes Anderson",
+            "Tim Burton",
+            "Sofia Coppola",
+            "Bong Joon-ho",
+            "Denis Villeneuve"
+          ]
+        },
+        "/promptBlueprint/metadata/baseStyle/styleFusion/styleB": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [
+            "Christopher Nolan",
+            "David Fincher",
+            "Wes Anderson",
+            "Tim Burton",
+            "Sofia Coppola",
+            "Bong Joon-ho",
+            "Denis Villeneuve"
+          ]
+        },
+
+        "/promptBlueprint/metadata/spatialContext/weather": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["Clear", "Rain", "Heavy Rain", "Snow", "Fog", "Overcast"]
+        },
+        "/promptBlueprint/metadata/spatialContext/lighting": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [
+            "Daylight (Midday)",
+            "Golden Hour",
+            "Night",
+            "Studio Lighting",
+            "Harsh Midday Sun",
+            "Single Key Light (Rembrandt)",
+            "Backlit Silhouette",
+            "Neon Glow"
+          ]
+        },
+
+        "/promptBlueprint/metadata/cameraSetting/primaryLens": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [
+            "14mm Ultra-Wide",
+            "24mm Wide-angle",
+            "35mm (Natural)",
+            "50mm Standard",
+            "85mm Portrait",
+            "90mm Macro"
+          ]
+        },
+        "/promptBlueprint/metadata/cameraSetting/dominantMovement": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [
+            "Static Shot",
+            "Shaky Handheld",
+            "Smooth Tracking (Dolly)",
+            "Whip Pan",
+            "Jib/Crane Shot",
+            "Drone Fly-over",
+            "Vertigo Effect (Dolly Zoom)"
+          ]
+        },
+
+        "/promptBlueprint/metadata/deliverySpec/aspectRatio": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["9:16", "1:1", "4:5", "16:9", "2.39:1"]
+        },
+        "/promptBlueprint/metadata/deliverySpec/fps": {
+          "type": "array",
+          "items": { "type": "number" },
+          "default": [24, 25, 30, 50, 60]
+        },
+        "/promptBlueprint/metadata/deliverySpec/resolution": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["HD", "FHD", "4K", "8K"]
+        },
+
+        "/promptBlueprint/metadata/continuity/transitionPolicy": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["None", "Only-internal time ramp", "No editorial transitions"]
+        },
+
+        "/promptBlueprint/metadata/lookDev/grain": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["None", "Fine cinematic", "Medium 35mm", "Coarse 16mm"]
+        },
+
+        "/promptBlueprint/metadata/cameraPlan/preferredRig": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["Handheld", "Dolly", "Gimbal", "Crane", "Drone"]
+        },
+
+        "/promptBlueprint/audioDesign/sfxPalette": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["ASMR clicks", "Rustle", "Snap", "Whoosh", "Drone pad"]
+        },
+
+        "/promptBlueprint/timeline/*/cameraWork/angle": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [
+            "Wide Shot (WS)",
+            "Medium Shot (MS)",
+            "Close Up (CU)",
+            "Extreme Close Up (ECU)",
+            "Point of View (POV)"
+          ]
+        },
+        "/promptBlueprint/timeline/*/cameraWork/move": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [
+            "Pan (Left/Right)",
+            "Tilt (Up/Down)",
+            "Dolly (In/Out)",
+            "Tracking (Follow)",
+            "Whip Pan",
+            "Static Shot"
+          ]
+        },
+        "/promptBlueprint/timeline/*/pacingFX/pacing": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [
+            "Real-time",
+            "Slow-motion (0.5x)",
+            "Fast-motion (2x)",
+            "Time-lapse",
+            "Freeze-frame"
+          ]
+        },
+        "/promptBlueprint/timeline/*/pacingFX/editingStyle": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [
+            "None",
+            "Only-internal time ramp",
+            "Standard Cut",
+            "Match Cut",
+            "Jump Cut",
+            "Cross-dissolve",
+            "Wipe",
+            "Split Screen"
+          ]
+        },
+        "/promptBlueprint/timeline/*/pacingFX/visualEffect": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [
+            "None",
+            "Lens Flare",
+            "Light Leaks",
+            "Film Grain",
+            "Chromatic Aberration",
+            "Slow Shutter (Motion Blur)"
+          ]
+        },
+        "/promptBlueprint/timeline/*/audioLayers/concept": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [
+            "Muffled Underwater Audio",
+            "Heartbeat Rhythm",
+            "High-frequency Ringing",
+            "Glitchy Digital Noise",
+            "Warm Vinyl Crackle"
+          ]
+        },
+
+        "_mappings": {
+          "type": "object",
+          "description": "정규화 매핑 힌트",
+          "additionalProperties": false,
+          "properties": {
+            "aspectRatio": {
+              "type": "array",
+              "description": "compact → blueprint 매핑 테이블",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["compact", "blueprint"],
+                "properties": {
+                  "compact": { "type": "string", "pattern": "^(?:\\d+(?:\\.\\d+)?):(\\d+)$" },
+                  "blueprint": { "type": "string", "enum": ["9:16", "1:1", "4:5", "16:9", "2.39:1"] }
+                }
+              },
+              "default": [
+                { "compact": "21:9", "blueprint": "2.39:1" },
+                { "compact": "16:9", "blueprint": "16:9" },
+                { "compact": "9:16", "blueprint": "9:16" },
+                { "compact": "1:1", "blueprint": "1:1" },
+                { "compact": "4:5", "blueprint": "4:5" }
+              ]
+            }
           }
         }
       }
     }
-  } else if (json.predictions && Array.isArray(json.predictions)) {
-    for (const prediction of json.predictions) {
-      if (prediction.bytesBase64Encoded) {
-        images.push(`data:image/png;base64,${prediction.bytesBase64Encoded}`);
-      }
-    }
-  }
-
-  return images;
-}
-```
-
-### 5. 영상 생성 API 통합
-
-#### 5.1 Seedance/ModelArk API
-
-```typescript
-// src/lib/providers/seedance.ts
-export async function createSeedanceVideo(payload: SeedanceCreatePayload): Promise<SeedanceCreateResult> {
-  const apiKey = process.env.SEEDANCE_API_KEY || process.env.MODELARK_API_KEY || '';
-  
-  if (!apiKey) {
-    return { ok: false, error: 'Seedance API 키가 설정되지 않았습니다.' };
-  }
-
-  // Ark v3 API 스펙에 맞춘 요청 구성
-  const body = {
-    model: modelId,
-    content: [{ type: 'text', text: payload.prompt }],
-    parameters: {
-      aspect_ratio: payload.aspect_ratio || '16:9',
-      duration: payload.duration_seconds || 8,
-      seed: payload.seed || Math.floor(Math.random() * 1000000),
-      quality: payload.quality || 'standard'
-    }
-  };
-
-  // 이미지 URL이 있는 경우 추가 (image-to-video)
-  if (payload.image_url) {
-    body.content.push({
-      type: 'image_url',
-      image_url: { url: payload.image_url }
-    });
-  }
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      'User-Agent': 'VideoPlanet/1.0'
-    },
-    body: JSON.stringify(body),
-    signal: controller.signal
-  });
-
-  const responseText = await response.text();
-  const jsonResponse = JSON.parse(responseText);
-  
-  const jobId = extractJobId(jsonResponse);
-  return {
-    ok: true,
-    jobId,
-    status: 'queued',
-    dashboardUrl: jsonResponse.dashboardUrl
-  };
-}
-```
-
-#### 5.2 Google Veo3 API
-
-```typescript
-// src/lib/providers/veo.ts
-export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVideoResponse> {
-  const { prompt, aspectRatio = '16:9', duration = 8, model = 'veo-3.0-generate-preview' } = options;
-  
-  const apiKey = process.env.GOOGLE_AI_STUDIO_API_KEY || process.env.GOOGLE_API_KEY;
-  
-  if (!apiKey) {
-    return { ok: false, error: 'Google AI Studio API key is not configured.' };
-  }
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-  
-  const requestBody = {
-    contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: {
-      temperature: 0.7,
-      topK: 40,
-      topP: 0.95,
-      maxOutputTokens: 2048
-    },
-    videoGenerationConfig: {
-      aspectRatio: aspectRatio,
-      duration: `${duration}s`,
-      personGeneration: 'dont_allow'
-    }
-  };
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestBody)
-  });
-
-  const responseText = await response.text();
-  const jsonResponse = JSON.parse(responseText);
-  
-  const operationId = jsonResponse?.operationId || jsonResponse?.operation?.name;
-  return {
-    ok: true,
-    operationId,
-    status: 'pending',
-    progress: 0
-  };
-}
-```
-
-### 6. 에러 처리 및 폴백 메커니즘
-
-#### 6.1 다단계 폴백 시스템
-
-```typescript
-// 영상 생성 API의 폴백 시스템
-export async function POST(req: NextRequest) {
-  const { prompt, duration, aspectRatio, provider = 'auto' } = await req.json();
-
-  // 1단계: Seedance API 시도
-  if (provider === 'auto' || provider === 'seedance') {
-    try {
-      const seedanceRes = await fetch('/api/seedance/create', {
-        method: 'POST',
-        body: JSON.stringify({ prompt, duration_seconds: duration, aspect_ratio: aspectRatio })
-      });
-      
-      if (seedanceRes.ok) {
-        const data = await seedanceRes.json();
-        if (data.ok) return NextResponse.json({ ok: true, provider: 'seedance', ...data });
-      }
-    } catch (error) {
-      console.error('Seedance API 호출 실패:', error);
-    }
-  }
-
-  // 2단계: Veo3 API 시도
-  if (provider === 'auto' || provider === 'veo') {
-    try {
-      const veoRes = await fetch('/api/veo/create', {
-        method: 'POST',
-        body: JSON.stringify({ prompt, duration, aspectRatio, model: 'veo-3.0-generate-preview' })
-      });
-      
-      if (veoRes.ok) {
-        const data = await veoRes.json();
-        if (data.ok) return NextResponse.json({ ok: true, provider: 'veo3', ...data });
-      }
-    } catch (error) {
-      console.error('Veo3 API 호출 실패:', error);
-    }
-  }
-
-  // 3단계: Mock 영상 생성 (최종 폴백)
-  const mockVideo = generateMockVideo(prompt, duration, aspectRatio);
-  return NextResponse.json({
-    ok: true,
-    provider: 'mock',
-    videoUrl: mockVideo,
-    message: '실제 영상 생성 API가 실패하여 Mock 영상이 생성되었습니다.'
-  });
-}
-```
-
-#### 6.2 타임아웃 및 재시도 로직
-
-```typescript
-// 타임아웃이 있는 fetch 래퍼
-async function fetchWithTimeout(
-  input: RequestInfo | URL, 
-  init: RequestInit & { timeoutMs?: number } = {}
-) {
-  const { timeoutMs = 20000, ...rest } = init as any;
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeoutMs);
-  
-  try {
-    return await fetch(input, { ...rest, signal: controller.signal });
-  } finally {
-    clearTimeout(id);
-  }
-}
-
-// 재시도 로직이 있는 API 호출
-async function apiRequestWithRetry(
-  url: string,
-  options: RequestInit,
-  retryAttempts: number = 3,
-  retryDelay: number = 2000
-): Promise<Response> {
-  for (let attempt = 1; attempt <= retryAttempts; attempt++) {
-    try {
-      const response = await fetchWithTimeout(url, { ...options, timeoutMs: 60000 });
-      
-      if (response.ok) return response;
-      
-      if (attempt === retryAttempts) {
-        throw new Error(`API request failed after ${retryAttempts} attempts: ${response.status}`);
-      }
-      
-      await new Promise(resolve => setTimeout(resolve, retryDelay * attempt));
-    } catch (error) {
-      if (attempt === retryAttempts) throw error;
-      await new Promise(resolve => setTimeout(resolve, retryDelay * attempt));
-    }
-  }
-  
-  throw new Error('Max retry attempts exceeded');
-}
-```
-
-### 7. 환경 변수 및 설정 관리
-
-#### 7.1 필수 환경 변수
-
-```bash
-# Google AI Services
-GOOGLE_GEMINI_API_KEY=your_gemini_api_key
-GOOGLE_AI_STUDIO_API_KEY=your_ai_studio_key
-
-# OpenAI
-OPENAI_API_KEY=your_openai_api_key
-
-# Seedance/ModelArk
-SEEDANCE_API_KEY=your_seedance_api_key
-SEEDANCE_API_BASE=https://ark.ap-southeast.bytepluses.com
-SEEDANCE_MODEL=ep-your-model-id
-
-# Image Generation
-IMAGEN_PROVIDER=google
-IMAGEN_LLM_MODEL=imagen-4.0-fast-generate-preview-06-06
-
-# Video Generation
-VEO_PROVIDER=google
-VEO_MODEL=veo-3.0-generate-preview
-```
-
-#### 7.2 설정 검증
-
-```typescript
-// 환경 변수 검증 및 서비스 가용성 확인
-export const createAIServiceManager = (): AIServiceManager => {
-  const config: AIServiceConfig = {
-    openai: {
-      apiKey: process.env.OPENAI_API_KEY || '',
-      model: 'gpt-4o-mini',
-      maxTokens: 800,
-      temperature: 0.6
-    },
-    gemini: {
-      apiKey: process.env.GOOGLE_GEMINI_API_KEY || '',
-      model: 'gemini-1.5-flash',
-      temperature: 0.6,
-      maxOutputTokens: 1024
-    }
-  };
-
-  // Mock 모드: 키가 없거나 NEXT_PUBLIC_ENABLE_MOCK_API=true 인 경우
-  const isMock = process.env.NEXT_PUBLIC_ENABLE_MOCK_API === 'true' || 
-                 (!config.openai.apiKey && !config.gemini.apiKey);
-  
-  if (isMock) {
-    return new MockManager();
-  }
-
-  return new AIServiceManager(config);
-};
-```
-
-## 🔄 데이터 흐름
-
-### 1. 스토리 생성 플로우
-
-```
-사용자 입력 → 프론트엔드 → /api/ai/generate-story → Google Gemini API → JSON 파싱 → 4단계 구조 반환
-```
-
-### 2. 프롬프트 생성 플로우
-
-```
-스토리 데이터 → /api/ai/generate-prompt → Google Gemini API → 구조화된 프롬프트 → 프론트엔드
-```
-
-### 3. 이미지 생성 플로우
-
-```
-프롬프트 → 프롬프트 최적화 → Google Imagen API → Base64 이미지 → 프론트엔드 표시
-```
-
-### 4. 영상 생성 플로우
-
-```
-프롬프트 → 프롬프트 최적화 → Seedance/Veo3 API → Job ID → 상태 폴링 → 영상 URL
-```
-
-## 🛡️ 보안 및 성능 고려사항
-
-### 1. API 키 보안
-
-- 모든 API 키는 서버 사이드 환경 변수에서만 사용
-- 클라이언트에 API 키 노출 금지
-- Railway/Vercel 환경 변수로 안전하게 관리
-
-### 2. 요청 제한 및 레이트 리미팅
-
-```typescript
-// 사용자별 요청 제한
-const rateLimit = {
-  storyGeneration: { perMinute: 3, perHour: 10 },
-  imageGeneration: { perMinute: 5, perHour: 20 },
-  videoGeneration: { perMinute: 2, perHour: 5 }
-};
-```
-
-### 3. 에러 처리 및 로깅
-
-```typescript
-// 구조화된 에러 로깅
-console.log('DEBUG: API 호출 시작:', {
-  endpoint: url,
-  hasApiKey: !!apiKey,
-  prompt: prompt.slice(0, 100),
-  timestamp: new Date().toISOString()
-});
-
-console.error('DEBUG: API 호출 실패:', {
-  error: error.message,
-  status: response?.status,
-  attempt: attemptNumber,
-  timestamp: new Date().toISOString()
-});
-```
-
-### 4. 성능 최적화
-
-- **병렬 처리**: 여러 API 동시 호출
-- **캐싱**: 동일한 요청에 대한 응답 캐싱
-- **타임아웃**: 장시간 대기 방지
-- **폴백**: 주요 서비스 실패 시 대체 서비스 사용
-
-## 📊 모니터링 및 디버깅
-
-### 1. API 상태 모니터링
-
-```typescript
-// API 상태 확인 엔드포인트
-export async function GET() {
-  const services = {
-    openai: !!process.env.OPENAI_API_KEY,
-    gemini: !!process.env.GOOGLE_GEMINI_API_KEY,
-    seedance: !!process.env.SEEDANCE_API_KEY,
-    veo: !!process.env.GOOGLE_AI_STUDIO_API_KEY
-  };
-
-  return NextResponse.json({
-    status: 'ok',
-    services,
-    timestamp: new Date().toISOString()
-  });
-}
-```
-
-### 2. 디버깅 로그
-
-- 모든 API 호출에 대한 상세 로그
-- 요청/응답 데이터 추적
-- 에러 발생 시 스택 트레이스
-- 성능 메트릭 수집
-
-## 🚀 확장성 고려사항
-
-### 1. 새로운 AI 서비스 추가
-
-```typescript
-// 새로운 AI 서비스 추가 시 확장 가능한 구조
-interface AIService {
-  generateScenePrompt(request: AIGenerationRequest): Promise<AIGenerationResponse>;
-  enhancePrompt(existingPrompt: string, feedback: string): Promise<AIGenerationResponse>;
-  isAvailable(): boolean;
-}
-
-class NewAIService implements AIService {
-  // 구현...
-}
-```
-
-### 2. 프롬프트 템플릿 시스템
-
-```typescript
-// 프롬프트 템플릿 관리
-const promptTemplates = {
-  story: {
-    drama: '드라마 스토리 생성 템플릿...',
-    comedy: '코미디 스토리 생성 템플릿...',
-    action: '액션 스토리 생성 템플릿...'
   },
-  image: {
-    cinematic: '시네마틱 이미지 프롬프트 템플릿...',
-    realistic: '리얼리스틱 이미지 프롬프트 템플릿...'
-  },
-  video: {
-    seedance: 'Seedance 영상 프롬프트 템플릿...',
-    veo: 'Veo 영상 프롬프트 템플릿...'
-  }
-};
+
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "promptBlueprint": {
+            "properties": {
+              "metadata": {
+                "properties": {
+                  "continuity": {
+                    "properties": { "noCuts": { "const": true } },
+                    "required": ["noCuts"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "required": ["promptBlueprint"]
+      },
+      "then": {
+        "properties": {
+          "promptBlueprint": {
+            "properties": {
+              "timeline": {
+                "items": {
+                  "properties": {
+                    "pacingFX": {
+                      "properties": {
+                        "editingStyle": { "enum": ["None", "Only-internal time ramp"] }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "generationControl": {
+            "properties": {
+              "shotByShot": {
+                "properties": { "enabled": { "const": true } },
+                "required": ["enabled"]
+              }
+            },
+            "required": ["shotByShot"]
+          }
+        },
+        "required": ["generationControl"]
+      },
+      "then": {
+        "properties": {
+          "generationControl": {
+            "properties": {
+              "shotByShot": {
+                "anyOf": [
+                  { "required": ["lockedSegments"] },
+                  { "required": ["lastFrameData"] }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+
+  "oneOf": [
+    { "required": ["finalOutput"] },
+    { "required": ["finalOutputCompact"] }
+  ]
+}
 ```
-
-## 📝 결론
-
-VideoPrompt의 외부 LLM API 아키텍처는 다음과 같은 핵심 특징을 가집니다:
-
-1. **다중 API 통합**: OpenAI, Google Gemini, Imagen, Veo3, Seedance 등 다양한 AI 서비스 통합
-2. **폴백 메커니즘**: 주요 서비스 실패 시 자동으로 대체 서비스 사용
-3. **프롬프트 최적화**: 용도별(이미지/영상) 프롬프트 자동 최적화
-4. **에러 처리**: 포괄적인 에러 처리 및 사용자 친화적 메시지
-5. **확장성**: 새로운 AI 서비스 추가가 용이한 구조
-6. **성능**: 타임아웃, 재시도, 캐싱 등을 통한 성능 최적화
-
-이러한 아키텍처를 통해 안정적이고 확장 가능한 AI 기반 영상 콘텐츠 생성 플랫폼을 구현할 수 있습니다.

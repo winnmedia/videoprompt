@@ -16,6 +16,7 @@ import {
   type StoryboardRequest as StoryboardPromptRequest,
   type StoryboardShot
 } from '@/shared/lib/prompts/storyboard-prompt-templates';
+import { withAICache } from '@/shared/lib/ai-cache';
 
 // Zod 스키마 정의
 const StoryboardRequestSchema = z.object({
@@ -121,24 +122,31 @@ export async function POST(request: NextRequest) {
         console.log(`[Storyboard Generator] 프롬프트 길이: ${prompt.length} 문자`);
       }
 
-      // Gemini 2.0으로 스토리보드 JSON 생성
-      const storyboardResponse = await geminiClient.generateJSON({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 8192
-        }
-      }, {
-        rateLimitKey: 'storyboard-generation',
-        maxRetries: 3,
-        enableLogging: process.env.NODE_ENV === 'development'
-      });
+      // AI 캐싱 적용: 동일한 입력에 대해 2시간 캐싱 (스토리보드는 큰 데이터이므로 적절한 캐싱 시간)
+      const cacheKey = { structure, visualStyle, duration, aspectRatio, shotCount, genre, tone };
+      const storyboardResponse = await withAICache(
+        cacheKey,
+        async () => {
+          return await geminiClient.generateJSON({
+            contents: [{
+              parts: [{
+                text: prompt
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.7,
+              topK: 40,
+              topP: 0.95,
+              maxOutputTokens: 8192
+            }
+          }, {
+            rateLimitKey: 'storyboard-generation',
+            maxRetries: 3,
+            enableLogging: process.env.NODE_ENV === 'development'
+          });
+        },
+        { ttl: 2 * 60 * 60 * 1000 } // 2시간 캐싱
+      );
 
       // 응답 구조 검증
       if (!storyboardResponse.shots || !Array.isArray(storyboardResponse.shots)) {

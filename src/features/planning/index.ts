@@ -3,6 +3,17 @@
  * FSD Architecture - Features Layer
  */
 
+// Hooks
+export {
+  usePlanningState,
+  type PlanningState,
+  type PlanningItem,
+  type VideoItem,
+  type ScenarioItem,
+  type PromptItem,
+  type ImageAsset
+} from './hooks';
+
 // 유틸리티 함수들 공개
 export {
   getStatusColor,
@@ -12,6 +23,3 @@ export {
   handleDownloadVideo,
   calculateProgress
 } from './lib/utils';
-
-// 타입 정의 re-export (필요시)
-// export type { PlanningItem } from './types';

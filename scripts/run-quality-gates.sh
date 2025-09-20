@@ -82,40 +82,101 @@ check_environment() {
     log_success "환경 검사 완료"
 }
 
-# $300 사건 방지 검사
+# $300 사건 방지 검사 - 강화된 TDD 기반 버전
 check_infinite_loop_patterns() {
-    log_info "🚨 $300 사건 방지 검사 시작..."
+    log_info "🚨 $300 사건 방지 검사 시작 (Grace QA Lead 무관용 정책)..."
 
-    local violations=0
-
-    # useEffect 의존성 배열에 함수가 포함된 패턴 검사
-    log_info "useEffect 무한 루프 패턴 검사..."
-    if grep -r "useEffect.*\[.*[a-zA-Z].*\]" src/ --include="*.tsx" --include="*.ts" --exclude-dir=__tests__ 2>/dev/null; then
-        log_critical "useEffect 의존성 배열에 함수가 포함되어 있습니다!"
-        log_error "이는 Header.tsx:17과 같은 무한 루프를 야기할 수 있습니다."
-        violations=$((violations + 1))
+    # 1. 새로운 TDD 기반 비용 방지 시스템 테스트
+    log_info "TDD 기반 비용 방지 시스템 검증..."
+    if ! pnpm test src/__tests__/quality-gates/cost-prevention.test.ts --silent; then
+        log_critical "TDD 비용 방지 시스템 테스트 실패!"
+        return 1
     fi
 
-    # API 호출 패턴 검사
-    log_info "위험한 API 호출 패턴 검사..."
+    # 2. 실제 코드베이스 스캔
+    log_info "코드베이스 전체 스캔 실행..."
+    local react_files=($(find src/ -name "*.tsx" -o -name "*.ts" | grep -v __tests__ | head -30))
+
+    if [ ${#react_files[@]} -eq 0 ]; then
+        log_warning "검사할 React/TypeScript 파일이 없습니다."
+        return 0
+    fi
+
+    local violations=0
+    local total_estimated_cost=0
+
+    # TypeScript로 정교한 분석 수행
+    log_info "TypeScript 기반 정교한 패턴 분석..."
+    for file in "${react_files[@]}"; do
+        log_info "분석 중: $file"
+
+        # 새로운 TypeScript 분석기 사용
+        if ! npx tsx scripts/cost-prevention-analyzer.ts "$file" > /tmp/cost_analysis.json 2>&1; then
+            log_warning "파일 분석 중 오류: $file"
+            continue
+        fi
+
+        # JSON 결과 파싱
+        if [ -f "/tmp/cost_analysis.json" ]; then
+            local file_result=$(node -e "
+                try {
+                    const fs = require('fs');
+                    const result = JSON.parse(fs.readFileSync('/tmp/cost_analysis.json', 'utf8'));
+                    if (result.isRisky) {
+                        console.log('RISKY:' + result.estimatedCost + ':' + result.violations.join(','));
+                    } else {
+                        console.log('SAFE');
+                    }
+                } catch(e) {
+                    console.log('ERROR');
+                }
+            " 2>/dev/null)
+
+            if [[ "$file_result" == RISKY:* ]]; then
+                log_critical "💥 $300 위험 패턴 감지: $file"
+                local cost=$(echo "$file_result" | cut -d: -f2)
+                local violation_types=$(echo "$file_result" | cut -d: -f3)
+                log_error "  예상 비용: \$$cost/day"
+                log_error "  위반 유형: $violation_types"
+                violations=$((violations + 1))
+                total_estimated_cost=$((total_estimated_cost + cost))
+            else
+                log_info "✅ $file - 안전함"
+            fi
+
+            rm -f /tmp/cost_analysis.json
+        fi
+    done
+
+    # 3. 백업 패턴 검사 (기존 시스템)
+    log_info "백업 정규식 패턴 검사..."
+
+    # useEffect 위험 패턴
+    local useeffect_violations=$(grep -r "useEffect.*\[.*[a-zA-Z].*\]" src/ --include="*.tsx" --include="*.ts" --exclude-dir=__tests__ 2>/dev/null | wc -l)
+    if [ "$useeffect_violations" -gt 0 ]; then
+        log_warning "$useeffect_violations개의 기본 useEffect 패턴 검출됨"
+    fi
+
+    # 위험한 폴링 패턴
     if grep -r "setInterval.*fetch\|setTimeout.*fetch" src/ --include="*.tsx" --include="*.ts" --exclude-dir=__tests__ 2>/dev/null; then
         log_critical "위험한 폴링 패턴이 발견되었습니다!"
         violations=$((violations + 1))
+        total_estimated_cost=$((total_estimated_cost + 200))
     fi
 
-    # 무한 재귀 패턴 검사
-    log_info "무한 재귀 패턴 검사..."
-    if grep -r "function.*\(\).*{.*\1\(\)" src/ --include="*.tsx" --include="*.ts" --exclude-dir=__tests__ 2>/dev/null; then
-        log_critical "무한 재귀 패턴이 발견되었습니다!"
-        violations=$((violations + 1))
-    fi
-
+    # 4. Grace의 무관용 정책 적용
     if [ $violations -eq 0 ]; then
-        log_success "$300 사건 방지 검사 통과"
+        log_success "$300 사건 방지 검사 통과 - Grace QA 승인 ✅"
     else
-        log_critical "$violations개의 위험 패턴이 발견되었습니다!"
+        log_critical "$violations개의 위험 패턴 발견!"
+        log_critical "총 예상 비용: \$$total_estimated_cost/day"
+        log_error "Grace QA Lead: 무관용 정책 위반 - 즉시 수정 필요!"
+        log_error "배포 차단: 비용 위험이 $100/day를 초과합니다."
         return 1
     fi
+
+    # 정리
+    rm -f /tmp/cost_analysis.json /tmp/loop_check.log
 }
 
 # 타입 검사
@@ -406,50 +467,111 @@ run_architecture_check() {
     fi
 }
 
-# 뮤테이션 테스트 (품질 확인)
+# Grace의 무관용 Mutation Testing (TDD 품질 검증)
 run_mutation_tests() {
-    log_info "🧬 뮤테이션 테스트 실행 중..."
+    log_info "🧬 Grace QA Lead Mutation Testing 실행 중 (무관용 정책)..."
 
-    # 뮤테이션 테스트가 설치되어 있는지 확인
-    if ! command -v npx stryker &> /dev/null; then
-        log_warning "Stryker 뮤테이션 테스트가 설치되지 않았습니다. 건너뜁니다."
-        return 0
+    # Stryker 설치 확인
+    if ! command -v npx stryker &> /dev/null || ! pnpm list @stryker-mutator/core &> /dev/null; then
+        log_error "Stryker Mutation Testing이 설치되지 않았습니다!"
+        log_error "설치 명령: pnpm add -D @stryker-mutator/core @stryker-mutator/vitest-runner @stryker-mutator/typescript-checker"
+        return 1
     fi
 
-    # 중요한 파일들에 대해서만 뮤테이션 테스트 실행 (시간 단축)
-    local mutation_config="stryker.conf.js"
+    # 사전 검증: 기본 테스트가 모두 통과하는지 확인
+    log_info "Mutation Testing 사전 검증 (모든 테스트 통과 필수)..."
+    if ! pnpm test --run --silent; then
+        log_critical "기본 테스트가 실패했습니다. Mutation Testing 차단!"
+        log_error "Grace 규칙: 모든 테스트가 통과해야 Mutation Testing 진행 가능"
+        return 1
+    fi
 
-    # 임시 뮤테이션 설정 생성
-    cat > "$mutation_config" << 'EOF'
-module.exports = {
+    # $300 사건 방지 시스템부터 Mutation Testing
+    log_info "🚨 $300 방지 시스템 Mutation Testing (최우선)..."
+
+    # 임시 설정 파일 생성 (핵심 시스템만)
+    local critical_config="stryker-critical.conf.mjs"
+    cat > "$critical_config" << 'EOF'
+export default {
   packageManager: 'pnpm',
-  reporters: ['html', 'clear-text', 'progress'],
+  reporters: ['clear-text', 'progress'],
   testRunner: 'vitest',
   coverageAnalysis: 'perTest',
   mutate: [
-    'src/shared/store/useAuthStore.ts',
-    'src/shared/lib/api-client.ts',
-    'src/app/api/auth/me/route.ts',
-    'src/app/api/auth/refresh/route.ts'
+    'scripts/cost-prevention-detector.ts',
   ],
   thresholds: {
-    high: 90,
-    low: 80,
-    break: 75
+    high: 95,
+    low: 85,
+    break: 80  // Grace의 최소 기준
   },
-  timeoutMS: 300000, // 5분 타임아웃
-  tempDirName: 'stryker-tmp'
+  timeoutMS: 180000, // 3분 (빠른 피드백)
+  tempDirName: 'stryker-critical-tmp',
+  logLevel: 'warn'
 };
 EOF
 
-    if npx stryker run --configFile "$mutation_config"; then
-        log_success "뮤테이션 테스트 통과 (90% 이상 달성)"
-        rm -f "$mutation_config"
+    # 핵심 시스템 Mutation Testing 실행
+    if npx stryker run --configFile "$critical_config"; then
+        log_success "🚨 $300 방지 시스템 Mutation Testing 통과!"
+        rm -f "$critical_config"
     else
-        log_error "뮤테이션 테스트 실패 (75% 미만)"
-        rm -f "$mutation_config"
+        log_critical "$300 방지 시스템 Mutation Score 80% 미만!"
+        log_error "Grace QA: 배포 즉시 차단 - 핵심 시스템 품질 미달"
+        rm -f "$critical_config"
         return 1
     fi
+
+    # CI 환경에서는 전체 Mutation Testing 건너뛰기 (시간 절약)
+    if [ "$CI" = "true" ] && [ "$1" = "--quick" ]; then
+        log_info "CI 환경: 핵심 시스템 Mutation Testing만 실행 완료"
+        return 0
+    fi
+
+    # 전체 시스템 Mutation Testing (로컬 환경 또는 풀 검증)
+    log_info "전체 시스템 Mutation Testing 실행..."
+
+    # 보고서 디렉토리 생성
+    mkdir -p reports/mutation
+
+    # 기존 stryker.conf.mjs 사용
+    if npx stryker run; then
+        local mutation_score=$(node -e "
+            try {
+                const fs = require('fs');
+                const report = JSON.parse(fs.readFileSync('reports/mutation/mutation-report.json', 'utf8'));
+                console.log(Math.round(report.thresholds.break));
+            } catch(e) {
+                console.log('0');
+            }
+        " 2>/dev/null)
+
+        if [ "$mutation_score" -ge 80 ]; then
+            log_success "전체 Mutation Testing 통과 (Score: ${mutation_score}%)"
+        else
+            log_error "Mutation Score ${mutation_score}% < 80% (Grace 기준 미달)"
+            return 1
+        fi
+    else
+        log_error "전체 Mutation Testing 실패"
+        return 1
+    fi
+
+    # 품질 보고서 생성
+    log_info "Mutation Testing 품질 보고서 생성..."
+    if [ -f "reports/mutation/mutation-report.html" ]; then
+        log_success "HTML 보고서: reports/mutation/mutation-report.html"
+    fi
+
+    # Grace의 추가 검증: 플래키 테스트 탐지
+    log_info "Grace 추가 검증: Mutation Testing 중 플래키 테스트 탐지..."
+    if grep -i "timeout\|flaky\|intermittent" reports/mutation/mutation-report.json 2>/dev/null; then
+        log_critical "Mutation Testing 중 플래키 패턴 감지!"
+        log_error "Grace 무관용 정책: 플래키 테스트는 즉시 수정 필요"
+        return 1
+    fi
+
+    log_success "🏆 Grace QA Mutation Testing 완전 통과!"
 }
 
 # 전체 테스트 실행

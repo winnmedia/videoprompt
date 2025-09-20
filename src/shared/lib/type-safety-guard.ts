@@ -15,23 +15,17 @@ import type { BaseContent, PlanningContent, ContentType, ContentStatus, StorageS
 /**
  * ContentType 스키마 - 새 Zod 버전 호환
  */
-export const ContentTypeSchema = z.enum(['scenario', 'prompt', 'video', 'story', 'image'], {
-  message: 'Invalid content type. Must be one of: scenario, prompt, video, story, image'
-});
+export const ContentTypeSchema = z.enum(['scenario', 'prompt', 'video', 'story', 'image']);
 
 /**
  * ContentStatus 스키마 - 새 Zod 버전 호환
  */
-export const ContentStatusSchema = z.enum(['draft', 'active', 'processing', 'completed', 'failed', 'archived'], {
-  message: 'Invalid content status'
-});
+export const ContentStatusSchema = z.enum(['draft', 'active', 'processing', 'completed', 'failed', 'archived']);
 
 /**
  * StorageStatus 스키마 - 새 Zod 버전 호환
  */
-export const StorageStatusSchema = z.enum(['pending', 'saving', 'saved', 'failed', 'partial'], {
-  message: 'Invalid storage status'
-});
+export const StorageStatusSchema = z.enum(['pending', 'saving', 'saved', 'failed', 'partial']);
 
 /**
  * BaseContent 런타임 스키마
@@ -47,7 +41,7 @@ export const BaseContentSchema = z.object({
   storageStatus: StorageStatusSchema,
   createdAt: z.string().datetime('Invalid createdAt format'),
   updatedAt: z.string().datetime('Invalid updatedAt format'),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   storage: z.object({
     prisma: z.object({
       saved: z.boolean(),
@@ -74,7 +68,7 @@ export const ScenarioContentSchema = BaseContentSchema.extend({
   developmentMethod: z.string().optional(),
   developmentIntensity: z.string().optional(),
   durationSec: z.number().optional(),
-  metadata: z.record(z.any()).optional()
+  metadata: z.record(z.string(), z.unknown()).optional()
 });
 
 /**
@@ -85,7 +79,11 @@ export const PromptContentSchema = BaseContentSchema.extend({
   scenarioTitle: z.string().optional(),
   finalPrompt: z.string().min(1, 'Final prompt is required'),
   keywords: z.array(z.string()).optional(),
-  metadata: z.record(z.any()).optional()
+  version: z.number().int().min(1).default(1),
+  keywordCount: z.number().int().min(0).default(0),
+  shotCount: z.number().int().min(0).default(0),
+  quality: z.enum(['standard', 'premium']).default('standard'),
+  metadata: z.record(z.string(), z.unknown()).optional()
 });
 
 /**
@@ -96,7 +94,7 @@ export const VideoContentSchema = BaseContentSchema.extend({
   videoUrl: z.string().url().optional(),
   thumbnailUrl: z.string().url().optional(),
   processingJobId: z.string().optional(),
-  metadata: z.record(z.any()).optional()
+  metadata: z.record(z.string(), z.unknown()).optional()
 });
 
 /**
@@ -148,7 +146,7 @@ export function validateBaseContent(data: unknown): TypeValidationResult<BaseCon
     if (error instanceof z.ZodError) {
       return {
         success: false,
-        error: error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', '),
+        error: error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', '),
         details: error
       };
     }
@@ -185,7 +183,7 @@ export function validatePlanningContent(data: unknown): TypeValidationResult<Pla
     if (error instanceof z.ZodError) {
       return {
         success: false,
-        error: error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', '),
+        error: error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', '),
         details: error
       };
     }
@@ -280,7 +278,7 @@ export function debugTypeValidation(data: unknown, schemaName: string): void {
   console.log('BaseContent validation:', baseResult);
 
   if (!baseResult.success && baseResult.details) {
-    console.log('Validation errors:', baseResult.details.errors);
+    console.log('Validation errors:', baseResult.details.issues);
   }
 
   console.groupEnd();

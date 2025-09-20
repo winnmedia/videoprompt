@@ -24,6 +24,13 @@ const eslintConfig = [
         }
       ],
       '@next/next/no-img-element': 'warn',
+      // 프로덕션 품질 개선: console.log 사용 금지
+      'no-console': [
+        'error',
+        {
+          allow: ['warn', 'error'] // warn과 error는 허용 (개발 중 디버깅용)
+        }
+      ],
     },
   },
   // 테스트와 타입 파일에 대해 엄격 규칙을 완화하여 배포 차단 방지
@@ -61,6 +68,32 @@ const eslintConfig = [
             {
               group: ['**/*/src/**'],
               message: '외부에서 내부 파일로 직접 import 하지 말고 Public API(배럴)를 사용하세요.',
+            },
+            // FSD Public API 위반 방지 - 내부 모듈 직접 접근 금지
+            {
+              group: ['@/entities/*/model/*', '@/entities/*/infrastructure/*', '@/entities/*/api/*'],
+              message: 'FSD 위반: entities 내부 모듈에 직접 접근하지 말고 Public API(@/entities/*)를 사용하세요.',
+            },
+            {
+              group: ['@/entities/*/store/*', '@/entities/*/hooks/*', '@/entities/*/services/*'],
+              message: 'FSD 위반: entities 내부 모듈에 직접 접근하지 말고 Public API(@/entities/*)를 사용하세요.',
+            },
+            {
+              group: ['@/features/*/lib/*', '@/features/*/components/*', '@/features/*/hooks/*'],
+              message: 'FSD 위반: features 내부 모듈에 직접 접근하지 말고 Public API(@/features/*)를 사용하세요.',
+            },
+            {
+              group: ['@/widgets/*/ui/*', '@/widgets/*/lib/*', '@/widgets/*/components/*'],
+              message: 'FSD 위반: widgets 내부 모듈에 직접 접근하지 말고 Public API(@/widgets/*)를 사용하세요.',
+            },
+            // 레이어 간 상향 의존 금지
+            {
+              group: ['@/app/**'],
+              message: 'FSD 위반: app 레이어로의 상향 의존은 금지됩니다.',
+            },
+            {
+              group: ['@/pages/**', '@/widgets/**', '@/features/**'],
+              message: 'FSD 위반: 상위 레이어로의 의존은 금지됩니다. shared나 entities 레이어를 사용하세요.',
             },
           ],
         },

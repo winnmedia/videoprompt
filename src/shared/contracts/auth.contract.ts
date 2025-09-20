@@ -177,7 +177,8 @@ export const AuthErrorContract = z.object({
   timestamp: z.number(),
   requestId: z.string().optional(),
   cost: z.number().optional(),
-  retryAfter: z.number().optional()
+  retryAfter: z.number().optional(),
+  details: z.string().optional()
 });
 
 // ============================================================================
@@ -448,8 +449,8 @@ export function safeParseTokenPayload(
     }
 
     const payload = JSON.parse(
-      typeof window !== 'undefined' && window.atob
-        ? atob(base64Payload)
+      typeof window !== 'undefined' && typeof window.atob === 'function'
+        ? window.atob(base64Payload)
         : Buffer.from(base64Payload, 'base64').toString('utf-8')
     );
 

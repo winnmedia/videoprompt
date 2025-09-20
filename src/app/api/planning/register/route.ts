@@ -62,12 +62,12 @@ export const POST = withAuth(async (request: NextRequest, { user, authContext })
     }
 
     // 성공 응답
-    const healthStatus = repository.getStorageHealth();
+    const healthStatus = await repository.getStorageHealth();
     const dualStorageResult: DualStorageResult = {
       id: saveResult.id,
       success: true,
-      prismaSuccess: healthStatus.prisma.isHealthy,
-      supabaseSuccess: healthStatus.supabase.isHealthy
+      prismaSuccess: healthStatus.prisma.status === 'healthy',
+      supabaseSuccess: healthStatus.supabase.status === 'healthy'
     };
 
     const responseData = {

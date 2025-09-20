@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getGeminiClient } from '@/shared/lib/gemini-client';
 import { buildImagePromptOptimizationPrompt } from '@/shared/lib/prompts/storyboard-prompt-templates';
+import { withAICache } from '@/shared/lib/ai-cache';
 
 // Zod 스키마 정의
 const PromptOptimizationRequestSchema = z.object({
@@ -90,24 +91,31 @@ export async function POST(request: NextRequest) {
         console.log(`[Prompt Optimizer] 프롬프트 길이: ${optimizationPrompt.length} 문자`);
       }
 
-      // Gemini 2.0으로 프롬프트 최적화
-      const optimizedText = await geminiClient.generateContent({
-        contents: [{
-          parts: [{
-            text: optimizationPrompt
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 1024
-        }
-      }, {
-        rateLimitKey: 'prompt-optimization',
-        maxRetries: 3,
-        enableLogging: process.env.NODE_ENV === 'development'
-      });
+      // AI 캐싱 적용: 동일한 입력에 대해 3시간 캐싱 (프롬프트 최적화는 자주 변경되지 않음)
+      const cacheKey = { description, style, targetService };
+      const optimizedText = await withAICache(
+        cacheKey,
+        async () => {
+          return await geminiClient.generateContent({
+            contents: [{
+              parts: [{
+                text: optimizationPrompt
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.7,
+              topK: 40,
+              topP: 0.95,
+              maxOutputTokens: 1024
+            }
+          }, {
+            rateLimitKey: 'prompt-optimization',
+            maxRetries: 3,
+            enableLogging: process.env.NODE_ENV === 'development'
+          });
+        },
+        { ttl: 3 * 60 * 60 * 1000 } // 3시간 캐싱
+      );
 
       // 응답 파싱
       const parsed = parseOptimizedPrompt(optimizedText);

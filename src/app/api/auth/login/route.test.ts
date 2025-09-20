@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { POST } from './route';
-import { prisma } from '@/lib/db';
+// import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 

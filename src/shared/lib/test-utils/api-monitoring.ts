@@ -9,8 +9,6 @@
  * 5. 결정론적 테스트 환경 보장
  */
 
-import { vi } from 'vitest';
-
 // API 호출 추적 데이터
 interface APICall {
   method: string;
@@ -122,7 +120,7 @@ class APIMonitor {
 
     // fetch 함수 모킹하여 호출 추적
     const originalFetch = global.fetch;
-    global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const monitorFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       if (!this.isEnabled) return originalFetch(input, init);
 
       const startTime = Date.now();
@@ -157,7 +155,9 @@ class APIMonitor {
         });
         throw error;
       }
-    });
+    };
+
+    global.fetch = monitorFetch as typeof global.fetch;
   }
 
   // API 호출 추적 중지

@@ -17,33 +17,17 @@ type Overview = {
 
 async function getOverview(): Promise<Overview> {
   try {
-    const { prisma } = await import('@/lib/db');
-    const [
-      usersCount,
-      adminsCount,
-      projectsCount,
-      scenariosCount,
-      promptsCount,
-      videosCount,
-      failedVideosCount,
-    ] = await Promise.all([
-      prisma.user.count(),
-      prisma.user.count({ where: { role: 'admin' } }),
-      prisma.project.count(),
-      prisma.scenario.count(),
-      prisma.prompt.count(),
-      prisma.videoAsset.count(),
-      prisma.videoAsset.count({ where: { status: 'failed' } }),
-    ]);
+    // TODO: Supabase 통계 구현 필요
+    console.log('📊 Admin overview - Supabase 통계 구현 대기 중');
 
     return {
-      usersCount,
-      adminsCount,
-      projectsCount,
-      scenariosCount,
-      promptsCount,
-      videosCount,
-      failedVideosCount,
+      usersCount: 0,
+      adminsCount: 0,
+      projectsCount: 0,
+      scenariosCount: 0,
+      promptsCount: 0,
+      videosCount: 0,
+      failedVideosCount: 0,
     };
   } catch {
     return {
@@ -66,33 +50,13 @@ type Recent = {
 
 async function getRecent(): Promise<Recent> {
   try {
-    const { prisma } = await import('@/lib/db');
-    const [recentProjects, recentScenarios, recentVideos] = await Promise.all([
-      prisma.project.findMany({ orderBy: { createdAt: 'desc' }, take: 5, include: { user: true } }),
-      prisma.scenario.findMany({ orderBy: { createdAt: 'desc' }, take: 5 }),
-      prisma.videoAsset.findMany({ orderBy: { createdAt: 'desc' }, take: 5 }),
-    ]);
+    // TODO: Supabase 최근 데이터 조회 구현 필요
+    console.log('📊 Admin recent data - Supabase 구현 대기 중');
+
     return {
-      recentProjects: recentProjects.map((p) => ({
-        id: p.id,
-        title: p.title,
-        status: p.status,
-        createdAt: p.createdAt.toISOString(),
-        userEmail: (p as unknown as { user?: { email?: string } }).user?.email,
-      })),
-      recentScenarios: recentScenarios.map((s) => ({
-        id: s.id,
-        title: s.title,
-        version: s.version,
-        createdAt: s.createdAt.toISOString(),
-      })),
-      recentVideos: recentVideos.map((v) => ({
-        id: v.id,
-        provider: v.provider,
-        status: v.status,
-        version: v.version,
-        createdAt: v.createdAt.toISOString(),
-      })),
+      recentProjects: [],
+      recentScenarios: [],
+      recentVideos: [],
     };
   } catch {
     return { recentProjects: [], recentScenarios: [], recentVideos: [] };

@@ -65,22 +65,13 @@ export async function POST(req: NextRequest) {
     });
 
     if (error) {
-      console.warn(`❌ Registration failed for ${email}:`, (error as any)?.message);
+      console.warn(`❌ Registration failed for ${email}:`, (error as any)?.originalMessage || (error as any)?.message);
 
-      // Supabase 에러 메시지 한국어 변환
-      let errorMessage = '회원가입 중 오류가 발생했습니다.';
+      // 이미 한국어로 변환된 에러 메시지 사용
+      const errorMessage = (error as any)?.message || '회원가입 중 오류가 발생했습니다.';
+      const debugMessage = (error as any)?.originalMessage || (error as any)?.message;
 
-      if ((error as any)?.message?.includes('already registered')) {
-        errorMessage = '이미 등록된 이메일입니다.';
-      } else if ((error as any)?.message?.includes('Password')) {
-        errorMessage = '비밀번호 형식이 올바르지 않습니다.';
-      } else if ((error as any)?.message?.includes('Email')) {
-        errorMessage = '이메일 형식이 올바르지 않습니다.';
-      } else if ((error as any)?.message?.includes('signup')) {
-        errorMessage = '회원가입이 비활성화되어 있습니다.';
-      }
-
-      return failure('REGISTRATION_FAILED', errorMessage, 400, (error as any)?.message, traceId);
+      return failure('REGISTRATION_FAILED', errorMessage, 400, debugMessage, traceId);
     }
 
     if (!user) {
@@ -129,18 +120,53 @@ export async function POST(req: NextRequest) {
       if (insertError) {
         console.error('❌ users 테이블 저장 실패:', insertError);
 
+        // 🔄 롤백: Supabase Auth에서 생성된 사용자 삭제
+        try {
+          console.log(`🔄 사용자 데이터 롤백 시작: ${user.id}`);
+          const adminClient = await getSupabaseClientSafe('admin');
+
+          const { error: deleteError } = await adminClient.auth.admin.deleteUser(user.id);
+
+          if (deleteError) {
+            console.error('❌ 사용자 롤백 실패:', deleteError);
+          } else {
+            console.log(`✅ 사용자 롤백 완료: ${user.id}`);
+          }
+        } catch (rollbackError) {
+          console.error('❌ 롤백 중 예외 발생:', rollbackError);
+          // 롤백 실패는 로그만 남기고 원래 에러를 반환
+        }
+
         // 중복 데이터 에러 처리
         if (insertError.code === '23505') { // Unique constraint violation
           return failure('DUPLICATE_USER', '이미 등록된 사용자입니다.', 409, insertError.message, traceId);
         }
 
-        return failure('DATABASE_ERROR', '사용자 정보 저장에 실패했습니다.', 500, insertError.message, traceId);
+        return failure('DATABASE_ERROR', '사용자 정보 저장에 실패했습니다. 다시 시도해주세요.', 500, insertError.message, traceId);
       }
 
       console.log(`✅ User data saved to users table:`, insertedUser);
     } catch (tableError) {
       console.error('❌ 테이블 저장 중 예외 발생:', tableError);
-      return failure('DATABASE_ERROR', '데이터베이스 오류가 발생했습니다.', 500, String(tableError), traceId);
+
+      // 🔄 롤백: Supabase Auth에서 생성된 사용자 삭제
+      try {
+        console.log(`🔄 예외 발생으로 인한 사용자 롤백 시작: ${user.id}`);
+        const adminClient = await getSupabaseClientSafe('admin');
+
+        const { error: deleteError } = await adminClient.auth.admin.deleteUser(user.id);
+
+        if (deleteError) {
+          console.error('❌ 예외 시 사용자 롤백 실패:', deleteError);
+        } else {
+          console.log(`✅ 예외 시 사용자 롤백 완료: ${user.id}`);
+        }
+      } catch (rollbackError) {
+        console.error('❌ 예외 시 롤백 중 에러:', rollbackError);
+        // 롤백 실패는 로그만 남기고 원래 에러를 반환
+      }
+
+      return failure('DATABASE_ERROR', '데이터베이스 오류가 발생했습니다. 다시 시도해주세요.', 500, String(tableError), traceId);
     }
 
     console.log(`✅ Registration successful for ${email}, user ID: ${user.id}`);

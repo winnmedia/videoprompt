@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prismaCircuitBreaker, supabaseCircuitBreaker } from '@/shared/lib/circuit-breaker';
 import { checkAllRequiredTables } from '@/shared/lib/supabase-schema-sync';
-import { prisma } from '@/lib/db';
+// import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import { createSuccessResponse, createErrorResponse } from '@/shared/schemas/api.schema';
 
@@ -32,21 +32,12 @@ export async function GET(req: NextRequest) {
       error: null as string | null
     };
 
-    try {
-      const startTime = Date.now();
-      await prisma.$queryRaw`SELECT 1`;
-      prismaStatus = {
-        connected: true,
-        responseTime: Date.now() - startTime,
-        error: null
-      };
-    } catch (error) {
-      prismaStatus = {
-        connected: false,
-        responseTime: 0,
-        error: error instanceof Error ? error.message : String(error)
-      };
-    }
+    // Prisma 연결 상태 확인 임시 비활성화
+    prismaStatus = {
+      connected: false,
+      responseTime: 0,
+      error: 'Prisma temporarily disabled'
+    };
 
     // 4. Supabase 연결 상태 확인
     let supabaseStatus = {

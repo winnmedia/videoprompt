@@ -332,11 +332,4 @@ export function getEnvironmentConfig() {
   };
 }
 
-// ============================================================================
-// Export Types
-// ============================================================================
-
-export type {
-  Environment,
-  EnvironmentValidationResult
-};
+// (타입은 상단에서 이미 export됨)

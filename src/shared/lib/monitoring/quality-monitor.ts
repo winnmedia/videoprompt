@@ -8,6 +8,8 @@
  * - $300 사건 재발 방지
  */
 
+import { useCallback } from 'react';
+
 interface QualityMetric {
   name: string;
   value: number;
@@ -181,10 +183,11 @@ export class QualityMonitor {
    */
   private trackPerformanceMetric(entry: PerformanceEntry): void {
     switch (entry.entryType) {
-      case 'navigation':
+      case 'navigation': {
         const navEntry = entry as PerformanceNavigationTiming;
-        this.recordMetric('page_load_time', navEntry.loadEventEnd - navEntry.navigationStart, 5000, 'high');
+        this.recordMetric('page_load_time', navEntry.duration, 5000, 'high');
         break;
+      }
 
       case 'paint':
         if (entry.name === 'first-contentful-paint') {
@@ -490,15 +493,15 @@ export class QualityMonitor {
 export function useQualityMonitor() {
   const monitor = QualityMonitor.getInstance();
 
-  const trackRender = React.useCallback((componentName: string, props?: Record<string, any>) => {
+  const trackRender = useCallback((componentName: string, props?: Record<string, any>) => {
     monitor.trackComponentRender(componentName, props);
   }, [monitor]);
 
-  const trackMetric = React.useCallback((name: string, value: number, threshold?: number) => {
+  const trackMetric = useCallback((name: string, value: number, threshold?: number) => {
     monitor.trackCustomMetric(name, value, threshold);
   }, [monitor]);
 
-  const getStatus = React.useCallback(() => {
+  const getStatus = useCallback(() => {
     return monitor.getStatus();
   }, [monitor]);
 

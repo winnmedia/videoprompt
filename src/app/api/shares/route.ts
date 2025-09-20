@@ -4,7 +4,7 @@ import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { getUserIdFromRequest } from '@/shared/lib/auth';
 import { logger } from '@/shared/lib/logger';
 import { randomBytes } from 'crypto';
-import { prisma } from '@/lib/db';
+// import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

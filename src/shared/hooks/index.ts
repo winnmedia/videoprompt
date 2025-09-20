@@ -6,9 +6,14 @@
 export { useSceneWizard } from './useSceneWizard';
 export { useWizardOptions } from './useWizardOptions';
 export { useScenarioGenerator } from './useScenarioGenerator';
-export { usePlanningState } from './usePlanningState';
-export { useWorkflowState } from './useWorkflowState';
 export { useAuthRedirect } from './useAuthRedirect';
+export {
+  useRealtimeValidation,
+  checkEmailExists,
+  emailSchema,
+  passwordSchema,
+  usernameSchema
+} from './useRealtimeValidation';
 
 export type {
   WizardState,

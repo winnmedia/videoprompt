@@ -7,9 +7,12 @@ export default {
   testRunner: 'vitest',
   coverageAnalysis: 'perTest',
 
-  // 중요한 파일들에 대해서만 뮤테이션 테스트 (실행 시간 최적화)
+  // Grace QA Lead의 핵심 파일 선별 ($300 사건 방지 우선순위)
   mutate: [
-    // 인증 시스템 (최우선)
+    // 1. $300 사건 방지 시스템 (최우선)
+    'scripts/cost-prevention-detector.ts',
+
+    // 2. 인증 시스템 (무한 루프 위험 최고)
     'src/shared/lib/auth-supabase.ts',
     'src/shared/lib/supabase-auth.ts',
     'src/shared/lib/api-client.ts',
@@ -18,15 +21,29 @@ export default {
     'src/app/api/auth/refresh/route.ts',
     'src/app/api/auth/login/route.ts',
 
-    // 핵심 비즈니스 로직
+    // 3. Planning 이중 저장소 (데이터 일관성 핵심)
+    'src/entities/planning/model/*.ts',
+    'src/entities/planning/infrastructure/*.ts',
+    'src/app/api/planning/*/route.ts',
+
+    // 4. Seedance 연동 (API 키 검증 핵심)
+    'src/lib/seedance-service.ts',
+    'src/lib/providers/seedance-service.ts',
+
+    // 5. 핵심 비즈니스 로직
     'src/app/api/ai/generate-story/route.ts',
     'src/shared/api/dto-transformers.ts',
     'src/features/auth/hooks/useAuthRedirect.ts',
     'src/entities/auth/store/authStore.ts',
 
-    // 데이터 일관성 관련
+    // 6. 유틸리티 및 공통 라이브러리
+    'src/shared/lib/utils.ts',
     'src/shared/lib/dual-storage.ts',
     'src/shared/lib/data-sync.ts',
+
+    // 7. 품질 게이트 핵심 구성요소
+    'src/features/*/lib/*.ts',
+    'src/features/*/model/*.ts'
   ],
 
   // 뮤테이션에서 제외할 패턴들
@@ -46,11 +63,11 @@ export default {
     '**/test-utils/**',
   ],
 
-  // 품질 임계값 (Grace의 엄격한 기준)
+  // Grace QA Lead의 무관용 품질 임계값 ($300 사건 재발 방지)
   thresholds: {
-    high: 90,    // 90% 이상 우수
-    low: 80,     // 80% 이상 양호
-    break: 75    // 75% 미만 시 실패
+    high: 95,    // 95% 이상 - Grace 승인
+    low: 85,     // 85% 이상 - 조건부 승인
+    break: 80    // 80% 미만 - 즉시 배포 차단
   },
 
   // 성능 최적화

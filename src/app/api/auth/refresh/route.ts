@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
 import { success, failure, getTraceId, supabaseErrors } from '@/shared/lib/api-response';
 import { addCorsHeaders } from '@/shared/lib/cors-utils';
-import { withLoopPrevention } from '@/shared/lib/loop-prevention';
+// loop-prevention은 클라이언트 컴포넌트 전용 - API 라우트에서는 사용하지 않음
 import { createMissingRefreshTokenError, createUnauthorizedError } from '@/shared/lib/http-error-handler';
 import {
   getAccessTokenCookieOptions,
@@ -32,7 +32,7 @@ export async function OPTIONS(req: NextRequest) {
  * 4. 레거시 토큰 마이그레이션 처리
  * 5. Graceful degradation 지원
  */
-export const POST = withLoopPrevention(async (req: NextRequest) => {
+export async function POST(req: NextRequest) {
   const traceId = getTraceId(req);
 
   try {
@@ -216,7 +216,7 @@ export const POST = withLoopPrevention(async (req: NextRequest) => {
     );
     return addCorsHeaders(response);
   }
-});
+}
 
 /**
  * 무한 루프 방지 가이드 - 리프레시 토큰 전용

@@ -11,6 +11,50 @@ import type { AggregatedStats } from '@/shared/api/performance-api'
 // Chart.js 플러그인 등록
 ChartJS.register(...registerables)
 
+// 메트릭 카드 컴포넌트 외부 정의
+const MetricCard = ({
+  title,
+  value,
+  unit,
+  threshold,
+  trend,
+  getStatusColor
+}: {
+  title: string
+  value: number
+  unit: string
+  threshold: number
+  trend?: 'up' | 'down' | 'stable'
+  getStatusColor: (value: number, threshold: number) => string
+}) => (
+  <div className="bg-white p-6 rounded-lg shadow-lg">
+    <div className="flex items-center justify-between">
+      <h3 className="text-sm font-medium text-gray-600">{title}</h3>
+      {trend && (
+        <div className={clsx(
+          'text-xs px-2 py-1 rounded',
+          trend === 'up' && 'bg-red-100 text-red-600',
+          trend === 'down' && 'bg-green-100 text-green-600',
+          trend === 'stable' && 'bg-gray-100 text-gray-600'
+        )}>
+          {trend === 'up' ? '↗' : trend === 'down' ? '↘' : '→'}
+        </div>
+      )}
+    </div>
+    <div className="mt-2">
+      <div className={clsx(
+        'text-2xl font-bold',
+        getStatusColor(value, threshold)
+      )}>
+        {value.toFixed(value < 1 ? 3 : 0)}{unit}
+      </div>
+      <div className="text-xs text-gray-500 mt-1">
+        Threshold: {threshold}{unit}
+      </div>
+    </div>
+  </div>
+)
+
 export interface PerformanceDashboardProps {
   /**
    * 대시보드 클래스명
@@ -77,13 +121,12 @@ export const PerformanceDashboard = ({
   // 주기적 데이터 새로고침
   useEffect(() => {
     loadAggregatedStats()
-    
+
     if (!realtime) return
 
     const interval = setInterval(loadAggregatedStats, refreshInterval)
     return () => clearInterval(interval)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeRange, refreshInterval, realtime])
+  }, [timeRange, refreshInterval, realtime]) // loadAggregatedStats 제거 - $300 사건 방지
 
   // Core Web Vitals 차트 데이터
   const coreWebVitalsData = {
@@ -149,47 +192,6 @@ export const PerformanceDashboard = ({
     return 'text-red-600'
   }
 
-  // 메트릭 카드 컴포넌트
-  const MetricCard = ({ 
-    title, 
-    value, 
-    unit, 
-    threshold, 
-    trend 
-  }: {
-    title: string
-    value: number
-    unit: string
-    threshold: number
-    trend?: 'up' | 'down' | 'stable'
-  }) => (
-    <div className="bg-white p-6 rounded-lg shadow-lg">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-gray-600">{title}</h3>
-        {trend && (
-          <div className={clsx(
-            'text-xs px-2 py-1 rounded',
-            trend === 'up' && 'bg-red-100 text-red-600',
-            trend === 'down' && 'bg-green-100 text-green-600',
-            trend === 'stable' && 'bg-gray-100 text-gray-600'
-          )}>
-            {trend === 'up' ? '↗' : trend === 'down' ? '↘' : '→'}
-          </div>
-        )}
-      </div>
-      <div className="mt-2">
-        <div className={clsx(
-          'text-2xl font-bold',
-          getStatusColor(value, threshold)
-        )}>
-          {value.toFixed(value < 1 ? 3 : 0)}{unit}
-        </div>
-        <div className="text-xs text-gray-500 mt-1">
-          Threshold: {threshold}{unit}
-        </div>
-      </div>
-    </div>
-  )
 
   if (loading) {
     return (
@@ -274,24 +276,28 @@ export const PerformanceDashboard = ({
           value={stats.averageLCP || 0}
           unit="ms"
           threshold={budget.lcp}
+          getStatusColor={getStatusColor}
         />
         <MetricCard
           title="INP (Interaction to Next Paint)"
           value={stats.averageINP || 0}
           unit="ms"
           threshold={budget.inp}
+          getStatusColor={getStatusColor}
         />
         <MetricCard
           title="CLS (Cumulative Layout Shift)"
           value={stats.averageCLS || 0}
           unit=""
           threshold={budget.cls}
+          getStatusColor={getStatusColor}
         />
         <MetricCard
           title="API Response Time"
           value={stats.averageApiResponseTime || 0}
           unit="ms"
           threshold={budget.apiResponseTime}
+          getStatusColor={getStatusColor}
         />
       </div>
 

@@ -1,5 +1,5 @@
 /**
- * 🔒 Planning 데이터 계약 스키마 (Zod)
+ * Planning 데이터 계약 스키마 (Zod)
  * 런타임 검증과 타입 안전성을 제공하는 Planning 도메인 계약
  *
  * 핵심 원칙:
@@ -18,16 +18,12 @@ import { z } from 'zod';
 /**
  * 콘텐츠 타입 열거
  */
-export const ContentTypeSchema = z.enum(['scenario', 'prompt', 'video', 'story', 'image'], {
-  errorMap: () => ({ message: '지원하지 않는 콘텐츠 타입입니다. scenario, prompt, video, story, image 중 하나여야 합니다.' })
-});
+export const ContentTypeSchema = z.enum(['scenario', 'prompt', 'video', 'story', 'image']);
 
 /**
  * 콘텐츠 상태 열거
  */
-export const ContentStatusSchema = z.enum(['draft', 'processing', 'completed', 'failed', 'archived'], {
-  errorMap: () => ({ message: '유효하지 않은 상태입니다. draft, processing, completed, failed, archived 중 하나여야 합니다.' })
-});
+export const ContentStatusSchema = z.enum(['draft', 'active', 'processing', 'completed', 'failed', 'archived']);
 
 /**
  * UUID 형태 검증 (유연한 ID 형식 허용)
@@ -77,7 +73,13 @@ export const BaseContentSchema = z.object({
   id: IdSchema,
   type: ContentTypeSchema,
   title: TitleSchema.optional(),
-  metadata: PlanningMetadataSchema.optional()
+  userId: UserIdSchema.optional(),
+  projectId: IdSchema.optional(),
+  status: ContentStatusSchema,
+  source: z.string().optional(),
+  createdAt: z.string().datetime('Invalid createdAt format'),
+  updatedAt: z.string().datetime('Invalid updatedAt format'),
+  metadata: z.record(z.string(), z.unknown()).optional()
 }).strict();
 
 // ============================================================================
@@ -108,7 +110,11 @@ export const PromptContentSchema = BaseContentSchema.extend({
   type: z.literal('prompt'),
   scenarioTitle: z.string().optional(),
   finalPrompt: z.string().min(1, '프롬프트는 비어있을 수 없습니다.'),
-  keywords: z.array(z.string()).optional()
+  keywords: z.array(z.string()).optional(),
+  version: z.number().int().min(1).optional().default(1),
+  keywordCount: z.number().int().min(0).optional().default(0),
+  shotCount: z.number().int().min(0).optional().default(0),
+  quality: z.enum(['standard', 'premium']).optional().default('standard')
 }).strict();
 
 /**
@@ -118,7 +124,11 @@ export const VideoContentSchema = BaseContentSchema.extend({
   type: z.literal('video'),
   videoUrl: z.string().url().optional(),
   thumbnailUrl: z.string().url().optional(),
-  processingJobId: z.string().optional()
+  processingJobId: z.string().optional(),
+  provider: z.string().optional(),
+  duration: z.number().positive().optional(),
+  aspectRatio: z.string().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional()
 }).strict();
 
 /**
@@ -247,8 +257,8 @@ export const UpdatePlanningRequestSchema = z.object({
  * Planning 조회 쿼리 스키마
  */
 export const GetPlanningQuerySchema = z.object({
-  page: z.string().regex(/^\\d+$/).transform(Number).pipe(z.number().int().min(1)).optional().default('1'),
-  limit: z.string().regex(/^\\d+$/).transform(Number).pipe(z.number().int().min(1).max(100)).optional().default('20'),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(20),
   type: ContentTypeSchema.optional(),
   status: ContentStatusSchema.optional(),
   search: z.string().max(100).optional(),
@@ -296,7 +306,7 @@ export function validatePlanningContent(data: unknown): {
     };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errorMessage = error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+      const errorMessage = error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
       return {
         success: false,
         error: errorMessage
@@ -339,7 +349,7 @@ export function validateDualStorageResult(data: unknown): {
     };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errorMessage = error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+      const errorMessage = error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
       return {
         success: false,
         error: errorMessage
@@ -394,6 +404,9 @@ export function createMockBaseContent(overrides: Partial<BaseContent> = {}): Bas
     id: 'test-id-' + Date.now(),
     type: 'scenario',
     title: 'Test Content',
+    status: 'draft',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     metadata: createDefaultMetadata('test-user'),
     ...overrides
   };
@@ -406,6 +419,9 @@ export function createMockScenarioContent(overrides: Partial<ScenarioContent> = 
   return {
     id: 'test-scenario-' + Date.now(),
     type: 'scenario',
+    status: 'draft',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     title: 'Test Scenario',
     story: 'A test story for validation',
     genre: 'Drama',

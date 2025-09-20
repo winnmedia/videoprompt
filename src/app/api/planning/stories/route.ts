@@ -72,12 +72,12 @@ const getHandler = async (request: NextRequest, { user, authContext }: { user: {
     const startIndex = (page - 1) * limit;
     const paginatedStories = stories.slice(startIndex, startIndex + limit);
 
-    const healthStatus = repository.getStorageHealth();
+    const healthStatus = await repository.getStorageHealth();
     const dualStorageResult: DualStorageResult = {
       id: 'stories-query',
       success: true,
-      prismaSuccess: healthStatus.prisma.isHealthy,
-      supabaseSuccess: healthStatus.supabase.isHealthy
+      prismaSuccess: healthStatus.prisma.status === 'healthy',
+      supabaseSuccess: healthStatus.supabase.status === 'healthy'
     };
 
     return NextResponse.json(
@@ -176,12 +176,12 @@ const postHandler = async (request: NextRequest, { user, authContext }: { user: 
       updatedAt: (scenarioContent as any).updatedAt
     };
 
-    const healthStatus = repository.getStorageHealth();
+    const healthStatus = await repository.getStorageHealth();
     const dualStorageResult: DualStorageResult = {
       id: result.id,
       success: true,
-      prismaSuccess: healthStatus.prisma.isHealthy,
-      supabaseSuccess: healthStatus.supabase.isHealthy
+      prismaSuccess: healthStatus.prisma.status === 'healthy',
+      supabaseSuccess: healthStatus.supabase.status === 'healthy'
     };
 
     return NextResponse.json(

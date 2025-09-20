@@ -92,12 +92,12 @@ export function getEnv(): Readonly<Env> {
 
       // 테스트용 기본값으로 최소한의 환경 구성
       cachedEnv = Object.freeze({
+        ...process.env,
         NODE_ENV: 'test',
         SUPABASE_URL: 'https://test.supabase.co',
         SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test.test',
         DATABASE_URL: 'sqlite://test.db',
-        SEEDANCE_API_KEY: 'mock_development_key_40_characters_long_for_testing',
-        ...process.env
+        SEEDANCE_API_KEY: 'mock_development_key_40_characters_long_for_testing'
       } as Env);
       return cachedEnv;
     }

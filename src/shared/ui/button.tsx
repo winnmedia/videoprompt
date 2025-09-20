@@ -5,7 +5,8 @@ import { cn } from '@/shared/lib/utils';
 import type { ButtonHTMLAttributes } from 'react';
 
 export const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none',
+  // ✨ A11y 강화: 터치 타겟, 포커스, 디스에이블 상태
+  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 hover:scale-105',
   {
     variants: {
       variant: {
@@ -48,6 +49,7 @@ export interface ButtonProps
   errorMessage?: string;
   loadingText?: string;
   description?: string;
+  asChild?: boolean;
 }
 
 export function Button({
@@ -65,6 +67,7 @@ export function Button({
   errorMessage,
   loadingText,
   description,
+  asChild = false,
   ...props
 }: ButtonProps) {
   const isDisabled = disabled || loading;
@@ -74,41 +77,64 @@ export function Button({
   const descriptionId = description ? `${buttonId}-description` : undefined;
   const errorId = errorMessage ? `${buttonId}-error` : undefined;
 
+  const buttonClasses = cn(
+    buttonVariants({ variant: finalVariant, size }),
+    {
+      'ring-2 ring-danger-400 ring-offset-2': error && !disabled,
+    },
+    className
+  );
+
+  const buttonProps: ButtonHTMLAttributes<HTMLButtonElement> & {
+    'data-active'?: boolean;
+    'data-testid'?: string;
+  } = {
+    id: buttonId,
+    className: buttonClasses,
+    disabled: isDisabled,
+    'data-active': active,
+    'data-testid': testId,
+    'aria-describedby': cn(descriptionId, errorId) || undefined,
+    'aria-invalid': error ? ('true' as const) : undefined,
+    'aria-busy': loading ? ('true' as const) : undefined,
+    'aria-pressed': active ? ('true' as const) : undefined,
+    role: variant === 'toggle' ? ('button' as const) : undefined,
+    ...props,
+  };
+
+  const buttonContent = (
+    <>
+      {loading && (
+        <svg
+          className="mr-2 h-4 w-4 animate-spin"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          aria-label="로딩 스피너"
+        >
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        </svg>
+      )}
+      {!loading && leftIcon && <span className="mr-2">{leftIcon}</span>}
+      {loading && loadingText ? loadingText : children}
+      {!loading && rightIcon && <span className="ml-2">{rightIcon}</span>}
+    </>
+  );
+
   return (
     <div className="space-y-1">
-      <button
-        id={buttonId}
-        type="button"
-        className={cn(
-          buttonVariants({ variant: finalVariant, size }),
-          {
-            'ring-2 ring-danger-400 ring-offset-2': error && !disabled,
-          },
-          className
-        )}
-        disabled={isDisabled}
-        data-active={active}
-        data-testid={testId}
-        aria-describedby={cn(descriptionId, errorId)}
-        aria-invalid={error ? 'true' : undefined}
-        {...props}
-      >
-        {loading && (
-          <svg
-            className="mr-2 h-4 w-4 animate-spin"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            aria-label="로딩 스피너"
-          >
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-          </svg>
-        )}
-        {!loading && leftIcon && <span className="mr-2">{leftIcon}</span>}
-        {loading && loadingText ? loadingText : children}
-        {!loading && rightIcon && <span className="ml-2">{rightIcon}</span>}
-      </button>
+      {asChild && React.isValidElement(children) ? (
+        React.cloneElement(children as React.ReactElement<{ className?: string; children?: React.ReactNode }>, {
+          ...buttonProps,
+          className: cn((children as React.ReactElement<{ className?: string }>).props.className, buttonClasses),
+          children: buttonContent,
+        })
+      ) : (
+        <button type="button" {...buttonProps}>
+          {buttonContent}
+        </button>
+      )}
 
       {/* 설명 텍스트 */}
       {description && (

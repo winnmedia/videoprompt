@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pipeline Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .step { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .pending { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        .project-id { font-weight: bold; color: #007bff; }
+    </style>
+</head>
+<body>
+    <h1>VideoPlanet Pipeline Test</h1>
+    <p>Story → Scenario → Prompt → Video 파이프라인 테스트</p>
+
+    <div id="projectId" style="margin-bottom: 20px;">
+        <strong>프로젝트 ID:</strong> <span class="project-id" id="currentProjectId">없음</span>
+    </div>
+
+    <div class="step" id="step1">
+        <h2>1단계: Story 생성</h2>
+        <button onclick="testStorySubmission()">Story 제출 테스트</button>
+        <div id="step1-result"></div>
+    </div>
+
+    <div class="step" id="step2">
+        <h2>2단계: Scenario 생성</h2>
+        <button onclick="testScenarioGeneration()">Scenario 생성 테스트</button>
+        <div id="step2-result"></div>
+    </div>
+
+    <div class="step" id="step3">
+        <h2>3단계: Prompt 생성</h2>
+        <button onclick="testPromptGeneration()">Prompt 생성 테스트</button>
+        <div id="step3-result"></div>
+    </div>
+
+    <div class="step" id="step4">
+        <h2>4단계: Video 생성</h2>
+        <button onclick="testVideoGeneration()">Video 생성 테스트</button>
+        <div id="step4-result"></div>
+    </div>
+
+    <div class="step" id="step5">
+        <h2>5단계: Pipeline 상태 확인</h2>
+        <button onclick="testPipelineStatus()">상태 확인</button>
+        <div id="step5-result"></div>
+    </div>
+
+    <script>
+        let projectId = generateProjectId();
+        document.getElementById('currentProjectId').textContent = projectId;
+
+        function generateProjectId() {
+            return 'test-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function updateStepStatus(stepId, status, content) {
+            const step = document.getElementById(stepId);
+            step.className = `step ${status}`;
+            document.getElementById(`${stepId}-result`).innerHTML = content;
+        }
+
+        async function testStorySubmission() {
+            updateStepStatus('step1', 'pending', '스토리 제출 중...');
+
+            const storyData = {
+                title: "테스트 스토리",
+                genre: "drama",
+                duration: 60,
+                tone: "serious",
+                targetAudience: "adults",
+                keyElements: ["family", "conflict", "resolution"],
+                projectId: projectId
+            };
+
+            try {
+                const response = await fetch('/api/pipeline/story', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(storyData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    projectId = result.data.projectId || projectId;
+                    document.getElementById('currentProjectId').textContent = projectId;
+                    updateStepStatus('step1', 'success',
+                        `<strong>성공!</strong><br>` +
+                        `프로젝트 ID: ${projectId}<br>` +
+                        `<pre>${JSON.stringify(result, null, 2)}</pre>`
+                    );
+                } else {
+                    updateStepStatus('step1', 'error',
+                        `<strong>실패:</strong> ${result.error}<br>` +
+                        `<pre>${JSON.stringify(result, null, 2)}</pre>`
+                    );
+                }
+            } catch (error) {
+                updateStepStatus('step1', 'error',
+                    `<strong>네트워크 오류:</strong> ${error.message}`
+                );
+            }
+        }
+
+        async function testScenarioGeneration() {
+            updateStepStatus('step2', 'pending', '시나리오 생성 중...');
+
+            const scenarioData = {
+                projectId: projectId,
+                storySteps: [
+                    { title: "시작", summary: "가족이 모인다" },
+                    { title: "갈등", summary: "문제가 발생한다" },
+                    { title: "전개", summary: "해결책을 찾는다" },
+                    { title: "결말", summary: "해결된다" }
+                ],
+                genre: "drama",
+                tone: "serious"
+            };
+
+            try {
+                const response = await fetch('/api/pipeline/scenario', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(scenarioData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    updateStepStatus('step2', 'success',
+                        `<strong>성공!</strong><br>` +
+                        `시나리오 ID: ${result.data.id}<br>` +
+                        `<pre>${JSON.stringify(result, null, 2)}</pre>`
+                    );
+                } else {
+                    updateStepStatus('step2', 'error',
+                        `<strong>실패:</strong> ${result.error}<br>` +
+                        `<pre>${JSON.stringify(result, null, 2)}</pre>`
+                    );
+                }
+            } catch (error) {
+                updateStepStatus('step2', 'error',
+                    `<strong>네트워크 오류:</strong> ${error.message}`
+                );
+            }
+        }
+
+        async function testPromptGeneration() {
+            updateStepStatus('step3', 'pending', '프롬프트 생성 중...');
+
+            const promptData = {
+                projectId: projectId,
+                visualStyle: "cinematic",
+                mood: "dramatic",
+                keywords: ["family", "drama", "emotional"],
+                aspectRatio: "16:9"
+            };
+
+            try {
+                const response = await fetch('/api/pipeline/prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(promptData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    updateStepStatus('step3', 'success',
+                        `<strong>성공!</strong><br>` +
+                        `프롬프트 ID: ${result.data.promptId}<br>` +
+                        `<pre>${JSON.stringify(result, null, 2)}</pre>`
+                    );
+                } else {
+                    updateStepStatus('step3', 'error',
+                        `<strong>실패:</strong> ${result.error}<br>` +
+                        `<pre>${JSON.stringify(result, null, 2)}</pre>`
+                    );
+                }
+            } catch (error) {
+                updateStepStatus('step3', 'error',
+                    `<strong>네트워크 오류:</strong> ${error.message}`
+                );
+            }
+        }
+
+        async function testVideoGeneration() {
+            updateStepStatus('step4', 'pending', '비디오 생성 중...');
+
+            const videoData = {
+                projectId: projectId,
+                video: {
+                    provider: "seedance",
+                    duration: 30,
+                    aspectRatio: "16:9",
+                    resolution: "1080p",
+                    priority: "normal"
+                }
+            };
+
+            try {
+                const response = await fetch('/api/pipeline/video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(videoData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    updateStepStatus('step4', 'success',
+                        `<strong>성공!</strong><br>` +
+                        `비디오 ID: ${result.data.videoId}<br>` +
+                        `Job ID: ${result.data.jobId}<br>` +
+                        `<pre>${JSON.stringify(result, null, 2)}</pre>`
+                    );
+                } else {
+                    updateStepStatus('step4', 'error',
+                        `<strong>실패:</strong> ${result.error}<br>` +
+                        `<pre>${JSON.stringify(result, null, 2)}</pre>`
+                    );
+                }
+            } catch (error) {
+                updateStepStatus('step4', 'error',
+                    `<strong>네트워크 오류:</strong> ${error.message}`
+                );
+            }
+        }
+
+        async function testPipelineStatus() {
+            updateStepStatus('step5', 'pending', '파이프라인 상태 확인 중...');
+
+            try {
+                const response = await fetch(`/api/pipeline/status/${projectId}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const progress = result.data.overallProgress;
+                    updateStepStatus('step5', 'success',
+                        `<strong>파이프라인 상태</strong><br>` +
+                        `진행률: ${progress.percentage}% (${progress.completedSteps}/${progress.totalSteps})<br>` +
+                        `<br><strong>각 단계 상태:</strong><br>` +
+                        `• Story: ${result.data.story.completed ? '✅ 완료' : '❌ 미완료'}<br>` +
+                        `• Scenario: ${result.data.scenario.completed ? '✅ 완료' : '❌ 미완료'}<br>` +
+                        `• Prompt: ${result.data.prompt.completed ? '✅ 완료' : '❌ 미완료'}<br>` +
+                        `• Video: ${result.data.video.completed ? '✅ 완료' : '❌ 미완료'}<br>` +
+                        `<pre>${JSON.stringify(result, null, 2)}</pre>`
+                    );
+                } else {
+                    updateStepStatus('step5', 'error',
+                        `<strong>실패:</strong> ${result.error}<br>` +
+                        `<pre>${JSON.stringify(result, null, 2)}</pre>`
+                    );
+                }
+            } catch (error) {
+                updateStepStatus('step5', 'error',
+                    `<strong>네트워크 오류:</strong> ${error.message}`
+                );
+            }
+        }
+
+        // 자동 테스트 실행 함수
+        async function runFullPipelineTest() {
+            console.log('전체 파이프라인 테스트 시작...');
+
+            await testStorySubmission();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            await testScenarioGeneration();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            await testPromptGeneration();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            await testVideoGeneration();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            await testPipelineStatus();
+
+            console.log('전체 파이프라인 테스트 완료');
+        }
+
+        // 페이지 로드 시 안내
+        console.log('Pipeline Test 페이지가 로드되었습니다.');
+        console.log('runFullPipelineTest() 함수를 실행하여 전체 테스트를 시작할 수 있습니다.');
+    </script>
+</body>
+</html>

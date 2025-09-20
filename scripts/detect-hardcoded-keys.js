@@ -52,7 +52,8 @@ const ALLOWED_PATTERNS = [
   /\/\*[\s\S]*?\*\//,
   /환경변수|example|예시|설명|comment|placeholder|development/i,
   /CLAUDE\.md|README/i,
-  /createV3Example|Example|Schema|Mock/i  // 예시 데이터 함수
+  /createV3Example|Example|Schema|Mock/i,  // 예시 데이터 함수
+  /contract|\.contract\.|openapi\.json|validator/i  // 계약 및 API 스펙 파일
 ];
 
 // 테스트 파일에서는 더 관대한 허용 정책

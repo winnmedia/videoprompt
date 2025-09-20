@@ -1,5 +1,5 @@
 /**
- * 🔄 사용자 동기화 서비스
+ * 사용자 동기화 서비스
  * VideoPlanet 프로젝트 - Prisma User ↔ Supabase Auth 동기화
  *
  * 목적:
@@ -48,7 +48,7 @@ export class UserSyncService {
     const { createIfNotExists = true, forceUpdate = false } = options;
 
     try {
-      console.log(`🔄 Starting user sync for ${userId}`);
+      console.log(`Starting user sync for ${userId}`);
 
       // 1. Supabase에서 사용자 정보 조회
       const supabaseUser = await this.getSupabaseUser(userId);
@@ -72,7 +72,7 @@ export class UserSyncService {
       // 3. 데이터 품질 검증
       const qualityResult = validateUserDataQuality(supabaseUser);
       if (qualityResult.score < 70) {
-        console.warn(`⚠️ 사용자 데이터 품질 낮음 (${qualityResult.score}점):`, qualityResult.issues);
+        console.warn(`사용자 데이터 품질 낮음 (${qualityResult.score}점):`, qualityResult.issues);
       }
 
       // 4. DTO 변환
@@ -101,7 +101,7 @@ export class UserSyncService {
           if (needsUpdate) {
             operation = 'update';
             changes = this.getChanges(existingPrismaUser, prismaUserData);
-            console.log(`🔄 Updating existing user in Prisma: ${userId}`, changes);
+            console.log(`Updating existing user in Prisma: ${userId}`, changes);
             return await tx.user.update({
               where: { id: userId },
               data: {
@@ -125,7 +125,7 @@ export class UserSyncService {
       );
 
       if (!contractValidation.isValid) {
-        console.error('❌ 동기화 계약 위반:', contractValidation.violations);
+        console.error('동기화 계약 위반:', contractValidation.violations);
         throw new Error(`동기화 검증 실패: ${contractValidation.violations.join(', ')}`);
       }
 
@@ -141,11 +141,11 @@ export class UserSyncService {
         executionTime: Date.now() - startTime
       });
 
-      console.log(`✅ User sync completed: ${userId} (${operation}, ${result.qualityScore}점)`);
+      console.log(`User sync completed: ${userId} (${operation}, ${result.qualityScore}점)`);
       return result;
 
     } catch (error) {
-      console.error(`❌ User sync failed for ${userId}:`, error);
+      console.error(`User sync failed for ${userId}:`, error);
 
       return this.createSyncResult({
         success: false,
@@ -226,7 +226,7 @@ export class UserSyncService {
       return UserSyncStatusSchema.parse(status);
 
     } catch (error) {
-      console.error(`❌ Failed to get sync status for ${userId}:`, error);
+      console.error(`Failed to get sync status for ${userId}:`, error);
 
       return UserSyncStatusSchema.parse({
         userId,
@@ -241,6 +241,51 @@ export class UserSyncService {
   }
 
   /**
+   * 동기화 상태 확인 (SyncStatus 타입 반환)
+   */
+  async checkSyncStatus(userId: string): Promise<import('@/shared/contracts/user-sync.schema').SyncStatus> {
+    try {
+      const status = await this.getUserSyncStatus(userId);
+
+      let syncHealth: 'healthy' | 'missing' | 'conflict' | 'outdated' = 'healthy';
+
+      if (!status.supabaseExists && !status.prismaExists) {
+        syncHealth = 'missing';
+      } else if (!status.isInSync) {
+        if (!status.supabaseExists || !status.prismaExists) {
+          syncHealth = 'missing';
+        } else {
+          syncHealth = 'conflict';
+        }
+      } else if (status.dataQualityScore < 80) {
+        syncHealth = 'outdated';
+      }
+
+      return {
+        syncHealth,
+        healthScore: status.dataQualityScore,
+        lastSyncAt: status.lastSyncAt,
+        errors: status.syncErrors,
+        recommendations: status.recommendations
+      };
+    } catch (error) {
+      return {
+        syncHealth: 'missing',
+        healthScore: 0,
+        errors: [error instanceof Error ? error.message : 'Unknown error'],
+        recommendations: ['동기화 상태 확인 중 오류가 발생했습니다']
+      };
+    }
+  }
+
+  /**
+   * 사용자 동기화 (별칭 메서드)
+   */
+  async syncUser(userId: string, options?: { createIfNotExists?: boolean; forceUpdate?: boolean }) {
+    return this.syncUserFromSupabase(userId, options);
+  }
+
+  /**
    * 배치 동기화
    */
   async batchSyncUsers(options: MigrationOptions): Promise<{
@@ -252,13 +297,13 @@ export class UserSyncService {
   }> {
     const { batchSize, skipErrors, qualityThreshold } = options;
 
-    console.log(`🚀 Starting batch sync with options:`, options);
+    console.log(`Starting batch sync with options:`, options);
 
     // Supabase에서 모든 사용자 조회
     const supabaseUsers = await this.getAllSupabaseUsers();
     const total = supabaseUsers.length;
 
-    console.log(`📊 Found ${total} users in Supabase`);
+    console.log(`Found ${total} users in Supabase`);
 
     const results: SyncResult[] = [];
     let successful = 0;
@@ -267,7 +312,7 @@ export class UserSyncService {
     // 배치 단위로 처리
     for (let i = 0; i < total; i += batchSize) {
       const batch = supabaseUsers.slice(i, i + batchSize);
-      console.log(`🔄 Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(total/batchSize)} (${batch.length} users)`);
+      console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(total/batchSize)} (${batch.length} users)`);
 
       // 배치 내 병렬 처리
       const batchPromises = batch.map(async (user) => {
@@ -279,7 +324,7 @@ export class UserSyncService {
 
           // 품질 임계값 확인
           if (result.qualityScore < qualityThreshold) {
-            console.warn(`⚠️ Quality threshold not met for ${user.id}: ${result.qualityScore} < ${qualityThreshold}`);
+            console.warn(`Quality threshold not met for ${user.id}: ${result.qualityScore} < ${qualityThreshold}`);
 
             if (!skipErrors) {
               result.success = false;
@@ -289,7 +334,7 @@ export class UserSyncService {
 
           return result;
         } catch (error) {
-          console.error(`❌ Batch sync error for ${user.id}:`, error);
+          console.error(`Batch sync error for ${user.id}:`, error);
 
           return this.createSyncResult({
             success: false,
@@ -321,7 +366,7 @@ export class UserSyncService {
     }
 
     const summary = `배치 동기화 완료: 전체 ${total}명 중 성공 ${successful}명, 실패 ${failed}명 (성공률 ${Math.round(successful/total*100)}%)`;
-    console.log(`✅ ${summary}`);
+    console.log(`${summary}`);
 
     return {
       totalProcessed: total,
@@ -338,7 +383,7 @@ export class UserSyncService {
   private async getSupabaseUser(userId: string): Promise<SupabaseUserDTO | null> {
     try {
       if (!supabaseAdmin) {
-        console.warn('⚠️ Supabase Admin not available, using regular client');
+        console.warn('Supabase Admin not available, using regular client');
 
         if (!supabase) {
           throw new Error('Supabase client not available');
@@ -352,14 +397,14 @@ export class UserSyncService {
       const { data: { user }, error } = await supabaseAdmin.auth.admin.getUserById(userId);
 
       if (error) {
-        console.warn(`⚠️ Failed to get user from Supabase: ${error.message}`);
+        console.warn(`Failed to get user from Supabase: ${error.message}`);
         return null;
       }
 
       return user as SupabaseUserDTO;
 
     } catch (error) {
-      console.error(`❌ Error getting Supabase user ${userId}:`, error);
+      console.error(`Error getting Supabase user ${userId}:`, error);
       return null;
     }
   }
@@ -382,7 +427,7 @@ export class UserSyncService {
       return data.users as SupabaseUserDTO[];
 
     } catch (error) {
-      console.error('❌ Error getting all Supabase users:', error);
+      console.error('Error getting all Supabase users:', error);
       throw error;
     }
   }

@@ -1,0 +1,528 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Planning Prompt API",
+    "description": "프롬프트 생성기 API - 안전한 프롬프트 저장 및 조회",
+    "version": "1.0.0",
+    "contact": {
+      "name": "VideoPlanet Backend Team",
+      "email": "backend@videoplanet.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "/api/planning/prompt",
+      "description": "Planning Prompt Endpoint"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    },
+    {
+      "cookieAuth": []
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "프롬프트 목록 조회",
+        "description": "현재 사용자의 저장된 프롬프트 목록을 조회합니다.",
+        "operationId": "getPrompts",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "프롬프트 목록 조회 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromptsListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        },
+        "tags": ["Prompts"]
+      },
+      "post": {
+        "summary": "프롬프트 저장",
+        "description": "새로운 프롬프트를 이중 저장소(Prisma + Supabase)에 안전하게 저장합니다.",
+        "operationId": "savePrompt",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromptSaveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "프롬프트 저장 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromptSaveResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "tags": ["Prompts"]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Supabase 또는 레거시 JWT 토큰"
+      },
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "sb-access-token",
+        "description": "Supabase 쿠키 인증"
+      }
+    },
+    "schemas": {
+      "PromptSaveRequest": {
+        "type": "object",
+        "required": ["scenarioTitle", "finalPrompt"],
+        "properties": {
+          "scenarioTitle": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "시나리오 제목",
+            "example": "카페에서의 따뜻한 만남"
+          },
+          "finalPrompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000,
+            "description": "최종 생성된 프롬프트",
+            "example": "햇살이 비치는 카페에서 커피를 마시는 여성, 따뜻한 분위기, 시네마틱 조명"
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "description": "프롬프트 키워드",
+            "example": ["카페", "커피", "여성", "따뜻함"]
+          },
+          "negativePrompt": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "네거티브 프롬프트",
+            "example": "blurry, low quality, distorted"
+          },
+          "visualStyle": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "시각적 스타일",
+            "example": "시네마틱"
+          },
+          "mood": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "분위기/무드",
+            "example": "따뜻한"
+          },
+          "directorStyle": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "감독 스타일",
+            "example": "웨스 앤더슨"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "연관된 프로젝트 ID"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "추가 메타데이터"
+          }
+        }
+      },
+      "PromptSaveResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "promptId": {
+                "type": "string",
+                "format": "uuid",
+                "description": "저장된 프롬프트 ID"
+              },
+              "storageResults": {
+                "type": "object",
+                "properties": {
+                  "prisma": {
+                    "type": "object",
+                    "properties": {
+                      "success": {
+                        "type": "boolean"
+                      }
+                    }
+                  },
+                  "supabase": {
+                    "type": "object",
+                    "properties": {
+                      "success": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                },
+                "description": "이중 저장소 결과"
+              },
+              "metadata": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "version": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "message": {
+            "type": "string",
+            "example": "프롬프트가 성공적으로 저장되었습니다."
+          }
+        }
+      },
+      "PromptsListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "prompts": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PromptItem"
+                }
+              },
+              "total": {
+                "type": "integer",
+                "description": "총 프롬프트 개수"
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          },
+          "message": {
+            "type": "string",
+            "example": "프롬프트 목록을 성공적으로 조회했습니다."
+          }
+        }
+      },
+      "PromptItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "scenarioTitle": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "keywordCount": {
+            "type": "integer"
+          },
+          "segmentCount": {
+            "type": "integer"
+          },
+          "quality": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finalPrompt": {
+            "type": "string"
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "negativePrompt": {
+            "type": "string"
+          },
+          "visualStyle": {
+            "type": "string"
+          },
+          "mood": {
+            "type": "string"
+          },
+          "directorStyle": {
+            "type": "string"
+          },
+          "jsonUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "에러 코드"
+          },
+          "message": {
+            "type": "string",
+            "description": "사용자 친화적 에러 메시지"
+          },
+          "recommendation": {
+            "type": "string",
+            "description": "권장 해결 방법"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "requestId": {
+            "type": "string",
+            "description": "요청 추적 ID"
+          }
+        }
+      },
+      "ValidationErrorResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ErrorResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "errors": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "field": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "RateLimitErrorResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ErrorResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "retryAfter": {
+                "type": "integer",
+                "description": "재시도 가능까지 남은 초"
+              },
+              "currentCost": {
+                "type": "number",
+                "description": "현재 예상 비용"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "responses": {
+      "UnauthorizedError": {
+        "description": "인증 필요",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": "UNAUTHORIZED",
+              "message": "인증이 필요합니다.",
+              "recommendation": "로그인 후 다시 시도하세요.",
+              "timestamp": "2024-01-15T12:00:00Z"
+            }
+          }
+        }
+      },
+      "ValidationError": {
+        "description": "요청 데이터 검증 오류",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ValidationErrorResponse"
+            },
+            "example": {
+              "error": "VALIDATION_ERROR",
+              "message": "요청 데이터가 올바르지 않습니다.",
+              "recommendation": "입력 데이터를 확인하고 다시 시도하세요.",
+              "timestamp": "2024-01-15T12:00:00Z",
+              "errors": [
+                {
+                  "field": "finalPrompt",
+                  "message": "프롬프트 내용이 필요합니다",
+                  "code": "required"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "RateLimitError": {
+        "description": "요청 한도 초과",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/RateLimitErrorResponse"
+            },
+            "example": {
+              "error": "RATE_LIMIT_EXCEEDED",
+              "message": "요청 한도를 초과했습니다. 60초 후 다시 시도하세요.",
+              "recommendation": "잠시 후 다시 시도하세요. $300 사건 방지를 위해 차단되었습니다.",
+              "timestamp": "2024-01-15T12:00:00Z",
+              "retryAfter": 60,
+              "currentCost": 0.05
+            }
+          }
+        },
+        "headers": {
+          "Retry-After": {
+            "description": "재시도 가능까지 남은 초",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          "X-RateLimit-Remaining": {
+            "description": "남은 요청 횟수",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          "X-Cost-Current": {
+            "description": "현재 예상 비용",
+            "schema": {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "InternalServerError": {
+        "description": "서버 내부 오류",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": "INTERNAL_ERROR",
+              "message": "서버 내부 오류가 발생했습니다.",
+              "recommendation": "잠시 후 다시 시도하세요.",
+              "timestamp": "2024-01-15T12:00:00Z"
+            }
+          }
+        }
+      },
+      "ServiceUnavailable": {
+        "description": "서비스 이용 불가",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": "DATABASE_CONNECTION_ERROR",
+              "message": "데이터베이스 연결에 실패했습니다.",
+              "recommendation": "잠시 후 다시 시도하세요.",
+              "timestamp": "2024-01-15T12:00:00Z"
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Prompts",
+      "description": "프롬프트 관리 API"
+    }
+  ]
+}

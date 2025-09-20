@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { prisma } from '@/lib/db';
+// import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { signSessionToken } from '@/shared/lib/auth';
 import { addCorsHeaders } from '@/shared/lib/cors-utils';

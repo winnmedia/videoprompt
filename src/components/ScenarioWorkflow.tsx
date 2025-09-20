@@ -150,7 +150,7 @@ export function ScenarioWorkflow({ onVideoCreated }: ScenarioWorkflowProps) {
 
   return (
     <div className="space-y-6">
-      <h1 className="mb-6 text-2xl font-bold text-gray-900">🎬 연출가, 작가, PD의 협업 공간</h1>
+      <h1 className="mb-6 text-2xl font-bold text-gray-900">연출가, 작가, PD의 협업 공간</h1>
       {/* 연출가의 연출 단계 */}
       <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
         <h2 className="mb-4 text-xl font-semibold text-gray-900">1단계: 연출가의 연출</h2>

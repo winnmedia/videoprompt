@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react'
 import { usePerformanceStore } from '@/entities/performance'
 import { clsx } from 'clsx'
-import type { PerformanceAlert } from '@/entities/performance/performance-store'
+import type { PerformanceAlert } from '@/entities/performance'
 
 export interface PerformanceAlertsProps {
   /**
