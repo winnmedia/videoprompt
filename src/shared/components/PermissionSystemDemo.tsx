@@ -16,6 +16,8 @@ import { PermissionBoundary } from './PermissionBoundary';
 import { FeatureGate, FeatureSwitch } from './FeatureGate';
 import { KeyboardNavigationProvider, KeyboardShortcutsGuide } from './KeyboardNavigationProvider';
 import { usePermissionOptimized, usePermissionsBatch, useConditionalRender } from '@/shared/hooks/usePermissionOptimized';
+import { logger } from '@/shared/lib/logger';
+
 
 /**
  * 스토리 생성 기능 데모
@@ -116,7 +118,7 @@ function ProjectManagementDemo() {
         {/* 프로젝트 저장 */}
         <PermissionBoundary
           feature="project-save"
-          onAccessDenied={(permission) => console.log('Access denied:', permission)}
+          onAccessDenied={(permission) => logger.info('Access denied:', permission)}
         >
           <div className="p-4 border border-gray-200 rounded-lg">
             <h3 className="font-semibold mb-2">프로젝트 저장</h3>

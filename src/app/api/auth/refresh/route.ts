@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
 import { success, failure, getTraceId, supabaseErrors } from '@/shared/lib/api-response';
 import { addCorsHeaders } from '@/shared/lib/cors-utils';
+import { logger } from '@/shared/lib/logger';
+
 // loop-prevention은 클라이언트 컴포넌트 전용 - API 라우트에서는 사용하지 않음
 import { createMissingRefreshTokenError, createUnauthorizedError } from '@/shared/lib/http-error-handler';
 import {
@@ -74,7 +76,7 @@ export async function POST(req: NextRequest) {
 
     // 레거시 토큰만 있는 경우 재로그인 필요
     if (!supabaseRefreshToken && (legacyRefreshToken || legacyAccessToken)) {
-      console.log('Legacy token detected, requiring re-login');
+      logger.info('Legacy token detected, requiring re-login');
 
       const response = failure(
         'LEGACY_TOKEN_MIGRATION',
@@ -106,7 +108,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Supabase 세션 갱신
-    console.log('🔄 Attempting Supabase session refresh...');
+    logger.info('🔄 Attempting Supabase session refresh...');
     const { data, error } = await supabase.auth.setSession({
       access_token: supabaseAccessToken || '',
       refresh_token: supabaseRefreshToken
@@ -144,14 +146,14 @@ export async function POST(req: NextRequest) {
       return addCorsHeaders(errorResponse);
     }
 
-    console.log(`✅ Token refresh successful for user: ${user.id}`);
+    logger.info(`✅ Token refresh successful for user: ${user.id}`);
 
     // TokenManager 갱신 - 클라이언트 상태 동기화
     try {
       // Supabase 토큰을 TokenManager에 저장 (백업용)
       const expiresAt = session.expires_at ? session.expires_at * 1000 : undefined;
       setToken(session.access_token, 'supabase', expiresAt);
-      console.log('✅ TokenManager updated with new Supabase session');
+      logger.info('✅ TokenManager updated with new Supabase session');
     } catch (tokenError) {
       console.warn('⚠️ TokenManager update failed, continuing without backup:', tokenError);
       // TokenManager 실패는 치명적이지 않음 - 쿠키만으로도 동작 가능
@@ -175,7 +177,7 @@ export async function POST(req: NextRequest) {
 
     // 개발 환경에서 디버그 정보 로그
     if (process.env.NODE_ENV !== 'production') {
-      console.log(getCookieDebugInfo(req, accessTokenOptions));
+      logger.info(getCookieDebugInfo(req, accessTokenOptions));
     }
 
     // 새 Supabase 토큰을 최적화된 설정으로 쿠키에 저장

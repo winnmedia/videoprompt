@@ -14,6 +14,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDegradationMode } from '@/shared/config/env';
 import { getHttpStatusForEnvError } from '@/shared/lib/http-status-guide';
 import { getSupabaseClient, createSupabaseErrorResponse } from './supabase-client';
+import { logger } from './logger';
+
 
 // ============================================================================
 // Error Response Types
@@ -391,7 +393,7 @@ export function logApiError(
   } else if (error.statusCode >= 400) {
     console.warn(`⚠️ API Warning (${error.statusCode})`, logData);
   } else {
-    console.log(`ℹ️ API Info (${error.statusCode})`, logData);
+    logger.info(`ℹ️ API Info (${error.statusCode})`, logData);
   }
 }
 

@@ -1,3 +1,5 @@
+import { logger } from './logger';
+
 /**
  * Circuit Breaker 패턴 구현
  * 데이터베이스 연결 실패 시 자동으로 회로를 차단하여 시스템 보호
@@ -44,7 +46,7 @@ export class CircuitBreaker {
     if (this.state === CircuitState.OPEN) {
       if (this.shouldAttemptReset()) {
         this.state = CircuitState.HALF_OPEN;
-        console.log('🔄 Circuit Breaker: HALF_OPEN 상태로 전환 (재시도 테스트)');
+        logger.info('🔄 Circuit Breaker: HALF_OPEN 상태로 전환 (재시도 테스트)');
       } else {
         throw new Error('Circuit breaker is OPEN. Service temporarily unavailable.');
       }
@@ -72,7 +74,7 @@ export class CircuitBreaker {
 
     if (this.state === CircuitState.HALF_OPEN) {
       this.state = CircuitState.CLOSED;
-      console.log('✅ Circuit Breaker: CLOSED 상태로 복구됨');
+      logger.info('✅ Circuit Breaker: CLOSED 상태로 복구됨');
     }
   }
 
@@ -126,7 +128,7 @@ export class CircuitBreaker {
     this.state = CircuitState.CLOSED;
     this.failureCount = 0;
     this.lastFailureTime = null;
-    console.log('🔧 Circuit Breaker: 수동으로 리셋됨');
+    logger.info('🔧 Circuit Breaker: 수동으로 리셋됨');
   }
 }
 

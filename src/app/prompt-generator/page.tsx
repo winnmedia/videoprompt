@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/shared/lib/logger';
 import {
+
+
   MetadataForm,
   ElementBuilder,
   DynamicTimeline,
-  LLMAssistant,
-} from '@/features/prompt-generator';
+  LLMAssistant,} from '@/features/prompt-generator';
 import { ErrorBoundary } from '@/shared/ui';
 import { type PromptGenerationState, type VideoPrompt } from '@/shared/types/video-prompt';
 import { type PromptGenerationStateV31 } from '@/shared/types/video-prompt-v3.1';
@@ -397,7 +399,7 @@ const PromptGeneratorPage: React.FC = () => {
           target_audience: 'adults'
         };
 
-        console.log('🚀 Railway API 요청:', apiRequest);
+        logger.info('🚀 Railway API 요청:', apiRequest);
 
         const response = await fetch('/api/ai/generate-prompt', {
           method: 'POST',
@@ -412,7 +414,7 @@ const PromptGeneratorPage: React.FC = () => {
         }
 
         const result = await response.json();
-        console.log('✅ Railway API 응답:', result);
+        logger.info('✅ Railway API 응답:', result);
 
         // API 응답을 가상의 compilationResult 형태로 변환
         const compilationResult = {

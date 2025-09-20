@@ -7,6 +7,8 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { apiClient, initializeApiClient } from '@/shared/lib/api-client';
 import { parseAuthResponse } from '@/shared/contracts/auth.contract';
+import { logger } from '@/shared/lib/logger';
+
 
 /**
  * JWT 토큰 형식 검증 (무한 루프 방지)
@@ -77,13 +79,13 @@ export const checkAuth = createAsyncThunk(
     );
 
     if (!hasToken) {
-      console.log('🚨 checkAuth: No token found - setting guest state');
+      logger.info('🚨 checkAuth: No token found - setting guest state');
       return { user: null, isAuthenticated: false };
     }
 
     // 🚀 캐싱: 5분 이내에 이미 확인했으면 스킵
     if (state.auth.lastCheckTime && currentTime - state.auth.lastCheckTime < CACHE_DURATION) {
-      console.log('🔄 Using cached auth state (within 5 minutes)');
+      logger.info('🔄 Using cached auth state (within 5 minutes)');
       return { user: state.auth.user, isAuthenticated: state.auth.isAuthenticated };
     }
 
@@ -94,12 +96,12 @@ export const checkAuth = createAsyncThunk(
     }
 
     try {
-      console.log('🔐 checkAuth: Making API call to /api/auth/me');
+      logger.info('🔐 checkAuth: Making API call to /api/auth/me');
       const rawResponse = await apiClient.json('/api/auth/me');
       const validatedData = parseAuthResponse(rawResponse);
 
       if (validatedData.ok && validatedData.data) {
-        console.log('✅ checkAuth: Authentication successful');
+        logger.info('✅ checkAuth: Authentication successful');
 
         // 🚨 CRITICAL FIX: guest-token 저장 방지로 무한 루프 차단
         if (validatedData.data.token && typeof window !== 'undefined') {
@@ -127,7 +129,7 @@ export const checkAuth = createAsyncThunk(
           isAuthenticated: isUserAuthenticated
         };
       } else {
-        console.log('⚠️ checkAuth: Invalid response, setting guest state');
+        logger.info('⚠️ checkAuth: Invalid response, setting guest state');
         return { user: null, isAuthenticated: false };
       }
     } catch (error) {
@@ -154,12 +156,12 @@ export const refreshAccessToken = createAsyncThunk(
 
     // 이미 갱신 중인 경우 대기
     if (state.auth.isRefreshing) {
-      console.log('🔄 Token refresh already in progress, skipping');
+      logger.info('🔄 Token refresh already in progress, skipping');
       return rejectWithValue('Token refresh already in progress');
     }
 
     try {
-      console.log('🔄 Starting token refresh...');
+      logger.info('🔄 Starting token refresh...');
 
       const response = await fetch('/api/auth/refresh', {
         method: 'POST',
@@ -187,7 +189,7 @@ export const refreshAccessToken = createAsyncThunk(
         localStorage.setItem('token', newToken);
       }
 
-      console.log('✅ Token refreshed successfully');
+      logger.info('✅ Token refreshed successfully');
       return newToken;
 
     } catch (error) {

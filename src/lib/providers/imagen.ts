@@ -1,3 +1,5 @@
+import { logger } from '@/shared/lib/logger';
+
 export type ImagenPreviewOptions = {
   prompt: string;
   size?: '512x512' | '768x768' | '1024x1024' | '1280x720' | '1920x1080';
@@ -45,7 +47,7 @@ export async function generateImagenPreview(
   const preferOpenAI =
     providerPref === 'openai' || providerPref === 'openai-only' || providerPref === 'openai-images';
 
-  console.log('DEBUG: Imagen preview 시작:', {
+  logger.info('DEBUG: Imagen preview 시작:', {
     prompt: prompt.slice(0, 100),
     size,
     n,
@@ -66,7 +68,7 @@ export async function generateImagenPreview(
     const model = process.env.VERTEX_IMAGEN_MODEL || 'imagegeneration@002';
     const saJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
 
-    console.log('DEBUG: Vertex AI 시도:', {
+    logger.info('DEBUG: Vertex AI 시도:', {
       projectId: !!projectId,
       location,
       model,
@@ -74,7 +76,7 @@ export async function generateImagenPreview(
     });
 
     if (!projectId || !saJson) {
-      console.log('DEBUG: Vertex AI 설정 부족');
+      logger.info('DEBUG: Vertex AI 설정 부족');
       return null;
     }
 
@@ -89,7 +91,7 @@ export async function generateImagenPreview(
       const client = await auth.getClient();
       const token = await client.getAccessToken();
       if (!token || !token.token) {
-        console.log('DEBUG: Vertex AI 토큰 획득 실패');
+        logger.info('DEBUG: Vertex AI 토큰 획득 실패');
         return null;
       }
 
@@ -115,7 +117,7 @@ export async function generateImagenPreview(
         },
       };
 
-      console.log('DEBUG: Vertex AI 요청:', {
+      logger.info('DEBUG: Vertex AI 요청:', {
         url,
         width,
         height,
@@ -152,7 +154,7 @@ export async function generateImagenPreview(
         .filter(Boolean)
         .slice(0, n);
 
-      console.log('DEBUG: Vertex AI 성공:', {
+      logger.info('DEBUG: Vertex AI 성공:', {
         predictionsCount: preds.length,
         imagesCount: images.length,
       });
@@ -169,7 +171,7 @@ export async function generateImagenPreview(
       const width = parseInt(wStr, 10) || 768;
       const height = parseInt(hStr, 10) || 768;
 
-      console.log('DEBUG: Google Gemini API 호출 시도:', {
+      logger.info('DEBUG: Google Gemini API 호출 시도:', {
         apiKey: apiKey ? `${apiKey.substring(0, 10)}...` : 'none',
         llmModel,
         prompt: prompt.slice(0, 100),
@@ -237,7 +239,7 @@ export async function generateImagenPreview(
       ];
 
       for (const attempt of attempts) {
-        console.log(`DEBUG: ${attempt.description} 시도 중...`);
+        logger.info(`DEBUG: ${attempt.description} 시도 중...`);
         const controller = new AbortController();
         const t = setTimeout(() => controller.abort(), 15000); // 15초 타임아웃
 
@@ -251,16 +253,16 @@ export async function generateImagenPreview(
 
           clearTimeout(t);
 
-          console.log(`DEBUG: ${attempt.description} 응답 상태:`, res.status, res.statusText);
+          logger.info(`DEBUG: ${attempt.description} 응답 상태:`, res.status, res.statusText);
 
           if (!res.ok) {
             const errorText = await res.text().catch(() => 'unknown error');
-            console.log(`DEBUG: ${attempt.description} 오류 응답:`, errorText);
+            logger.info(`DEBUG: ${attempt.description} 오류 응답:`, errorText);
             continue;
           }
 
           const json: any = await res.json().catch(() => ({}));
-          console.log(`DEBUG: ${attempt.description} 응답 키:`, Object.keys(json));
+          logger.info(`DEBUG: ${attempt.description} 응답 키:`, Object.keys(json));
 
           // 응답 데이터에서 이미지 추출
           const images: string[] = [];
@@ -290,23 +292,23 @@ export async function generateImagenPreview(
             }
           }
 
-          console.log(`DEBUG: ${attempt.description}에서 ${images.length}개 이미지 추출`);
+          logger.info(`DEBUG: ${attempt.description}에서 ${images.length}개 이미지 추출`);
 
           if (images.length > 0) {
             const result = images.slice(0, n).map((img, index) => {
-              console.log(`DEBUG: 이미지 ${index + 1} 생성 완료`);
+              logger.info(`DEBUG: 이미지 ${index + 1} 생성 완료`);
               return img;
             });
             return result;
           }
         } catch (error) {
-          console.log(`DEBUG: ${attempt.description} 시도 중 오류:`, error);
+          logger.info(`DEBUG: ${attempt.description} 시도 중 오류:`, error);
           clearTimeout(t);
           continue;
         }
       }
 
-      console.log('DEBUG: 모든 Google API 시도 실패');
+      logger.info('DEBUG: 모든 Google API 시도 실패');
       return null;
     } catch (error) {
       console.error('DEBUG: Google API 전체 오류:', error);
@@ -346,7 +348,7 @@ export async function generateImagenPreview(
   // OpenAI Images API (gpt-image-1)
   const tryOpenAI = async (): Promise<string[] | null> => {
     const openaiKey = process.env.OPENAI_API_KEY || process.env.OPENAI_API_TOKEN;
-    console.log(
+    logger.info(
       'DEBUG: OpenAI API Key present:',
       !!openaiKey,
       openaiKey ? `${openaiKey.substring(0, 10)}...` : 'none',
@@ -366,7 +368,7 @@ export async function generateImagenPreview(
         response_format: 'b64_json',
         quality: 'standard',
       } as any;
-      console.log('DEBUG: OpenAI request body:', JSON.stringify(body, null, 2));
+      logger.info('DEBUG: OpenAI request body:', JSON.stringify(body, null, 2));
       const controller = new AbortController();
       const t = setTimeout(() => controller.abort(), 8000);
       const res = await fetch(url, {
@@ -378,20 +380,20 @@ export async function generateImagenPreview(
         body: JSON.stringify(body),
         signal: controller.signal as any,
       }).catch((err) => {
-        console.log('DEBUG: OpenAI fetch error:', err);
+        logger.info('DEBUG: OpenAI fetch error:', err);
         return null;
       });
       clearTimeout(t);
-      console.log('DEBUG: OpenAI response status:', res?.status, res?.statusText);
+      logger.info('DEBUG: OpenAI response status:', res?.status, res?.statusText);
       if (!res || !res.ok) {
         if (res) {
           const errorText = await res.text().catch(() => 'unknown error');
-          console.log('DEBUG: OpenAI error response:', errorText);
+          logger.info('DEBUG: OpenAI error response:', errorText);
         }
         return null;
       }
       const json: any = await res.json().catch(() => ({}));
-      console.log('DEBUG: OpenAI response JSON keys:', Object.keys(json));
+      logger.info('DEBUG: OpenAI response JSON keys:', Object.keys(json));
       const images: string[] = Array.isArray(json?.data)
         ? json.data
             .map((d: any) => d?.b64_json)
@@ -399,23 +401,23 @@ export async function generateImagenPreview(
             .slice(0, n)
             .map((b64: string) => `data:image/png;base64,${b64}`)
         : [];
-      console.log('DEBUG: OpenAI images count:', images.length);
+      logger.info('DEBUG: OpenAI images count:', images.length);
       return images.length ? images : null;
     } catch (err) {
-      console.log('DEBUG: OpenAI try-catch error:', err);
+      logger.info('DEBUG: OpenAI try-catch error:', err);
       return null;
     }
   };
 
   // 우선순위: (환경 지정) OpenAI/LLM/Vertex → 기본은 Vertex → LLM → OpenAI
   if (preferOpenAI) {
-    console.log('DEBUG: Trying OpenAI API...');
+    logger.info('DEBUG: Trying OpenAI API...');
     const o = await tryOpenAI();
     if (o && o.length) {
-      console.log('DEBUG: OpenAI API success, returning images');
+      logger.info('DEBUG: OpenAI API success, returning images');
       return { images: o };
     }
-    console.log('DEBUG: OpenAI API failed or returned no images');
+    logger.info('DEBUG: OpenAI API failed or returned no images');
   }
   if (!preferLLM && !preferOpenAI) {
     const v = await tryVertex();

@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createErrorResponse } from '@/shared/schemas/api.schema';
+import { logger } from '@/shared/lib/logger';
 import {
+
+
   createSuccessResponse,
   createErrorResponse as createPlanningErrorResponse,
   DualStorageResult,
-  normalizeRepositoryResult
-} from '@/shared/schemas/planning-response.schema';
+  normalizeRepositoryResult} from '@/shared/schemas/planning-response.schema';
 import { withAuth } from '@/shared/lib/auth-middleware-v2';
 import { getPlanningRepository } from '@/entities/planning';
 import type { ScenarioMetadata } from '@/shared/types/metadata';
@@ -20,7 +22,7 @@ export const dynamic = 'force-dynamic';
 const getHandler = async (request: NextRequest, { user, authContext }: { user: { id: string | null }, authContext: any }) => {
   try {
     const userId = user.id;
-    console.log('✅ Planning scenarios 인증 성공:', userId);
+    logger.info('✅ Planning scenarios 인증 성공:', userId);
 
     // 🔄 Planning Repository를 통한 듀얼 저장소 조회
     const repository = getPlanningRepository();
@@ -60,7 +62,7 @@ const getHandler = async (request: NextRequest, { user, authContext }: { user: {
       total: scenarios.length
     };
 
-    console.log(`✅ 듀얼 저장 Repository에서 ${scenarios.length}개 시나리오 조회 성공`);
+    logger.info(`✅ 듀얼 저장 Repository에서 ${scenarios.length}개 시나리오 조회 성공`);
 
     return NextResponse.json(
       createSuccessResponse(responseData, dualStorageResult),

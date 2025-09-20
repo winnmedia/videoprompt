@@ -6,6 +6,8 @@
 import { useState, useEffect } from 'react';
 import type { PlanningState, PlanningItem, VideoItem, ScenarioItem, PromptItem, ImageAsset } from '@/entities/planning';
 import { safeFetch } from '@/shared/lib/api-retry';
+import { logger } from '@/shared/lib/logger';
+
 
 export function usePlanningState() {
   const [activeTab, setActiveTab] = useState<'scenario' | 'prompt' | 'image' | 'video'>('scenario');
@@ -47,7 +49,7 @@ export function usePlanningState() {
 
     // 이미 로딩 중이거나 최근에 로딩했다면 중단
     if (loading || (now - lastLoadTime < CACHE_DURATION)) {
-      console.log('⚠️ Planning 데이터 로딩 건너뜀 (캐시된 데이터 사용)');
+      logger.info('⚠️ Planning 데이터 로딩 건너뜀 (캐시된 데이터 사용)');
       return;
     }
 
@@ -106,7 +108,7 @@ export function usePlanningState() {
         // 이미지 자산은 빈 배열로 설정
         setImageItems([]);
 
-        console.log(`✅ Planning Dashboard 데이터 로딩 완료:`, data.summary);
+        logger.info(`✅ Planning Dashboard 데이터 로딩 완료:`, data.summary);
 
         // 로딩 시간 업데이트
         setLastLoadTime(now);

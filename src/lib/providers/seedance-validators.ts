@@ -5,6 +5,8 @@
  */
 
 import { getAIApiKeys, getEnvironmentCapabilities, getDegradationMode } from '@/shared/config/env';
+import { logger } from '@/shared/lib/logger';
+
 
 /**
  * BytePlus ModelArk API 키 형식 검증
@@ -84,19 +86,19 @@ export function shouldUseMockProvider(): boolean {
   try {
     // 1. Mock 강제 비활성화 (프로덕션 시나리오 테스트용)
     if (process.env.FORCE_DISABLE_MOCK_API === 'true') {
-      console.log('🚫 Mock API가 강제로 비활성화되었습니다 (프로덕션 시나리오 테스트)');
+      logger.info('🚫 Mock API가 강제로 비활성화되었습니다 (프로덕션 시나리오 테스트)');
       return false;
     }
 
     // 2. 테스트 환경에서는 기본적으로 Mock 사용
     if (process.env.NODE_ENV === 'test') {
-      console.log('🧪 테스트 환경에서는 기본적으로 Mock provider 사용');
+      logger.info('🧪 테스트 환경에서는 기본적으로 Mock provider 사용');
       return true;
     }
 
     // 2. 명시적으로 Mock 활성화된 경우
     if (process.env.NEXT_PUBLIC_ENABLE_MOCK_API === 'true') {
-      console.log('🎭 Mock API가 명시적으로 활성화되었습니다');
+      logger.info('🎭 Mock API가 명시적으로 활성화되었습니다');
       return true;
     }
 

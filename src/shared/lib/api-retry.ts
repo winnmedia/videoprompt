@@ -4,6 +4,8 @@
 
 import { monitoring } from './monitoring';
 import { tokenManager } from './token-manager';
+import { logger } from './logger';
+
 
 interface RetryOptions {
   maxRetries?: number;
@@ -169,7 +171,7 @@ export async function safeFetch(
 
   // Development 환경에서만 디버그 로그 출력
   if (process.env.NODE_ENV === 'development') {
-    console.log(`[API] 호출 URL: ${fullUrl}`);
+    logger.info(`[API] 호출 URL: ${fullUrl}`);
   }
 
   // 프로덕션에서 localhost 사용 감지 및 경고
@@ -248,7 +250,7 @@ export function withDeduplication<T>(
 ): Promise<T> {
   const existing = requestCache.get(key);
   if (existing) {
-    console.log(`📦 중복 요청 방지: ${key}`);
+    logger.info(`📦 중복 요청 방지: ${key}`);
     return existing;
   }
 

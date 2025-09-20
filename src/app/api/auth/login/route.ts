@@ -4,6 +4,8 @@ import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { signInWithSupabase } from '@/shared/lib/auth-supabase';
 import { addCorsHeaders } from '@/shared/lib/cors-utils';
 import { checkRateLimit, RATE_LIMITS } from '@/shared/lib/rate-limiter';
+import { logger } from '@/shared/lib/logger';
+
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -54,7 +56,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { email, password } = LoginSchema.parse(body);
 
-    console.log(`🔐 Login attempt for email: ${email}`);
+    logger.info(`🔐 Login attempt for email: ${email}`);
 
     // Supabase Auth로 로그인
     const { user, session, error } = await signInWithSupabase(email, password);
@@ -70,7 +72,7 @@ export async function POST(req: NextRequest) {
       return addCorsHeaders(response);
     }
 
-    console.log(`✅ Login successful for ${email}, user ID: ${user.id}`);
+    logger.info(`✅ Login successful for ${email}, user ID: ${user.id}`);
 
     // 기존 API 응답 구조 유지
     const responseData = {

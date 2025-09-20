@@ -2,6 +2,8 @@
 
 import { supabase, supabaseAdmin } from '../lib/supabase';
 import { prisma } from '../lib/db';
+import { logger } from '@/shared/lib/logger';
+
 
 /**
  * Prisma 스키마를 Supabase로 마이그레이션하는 스크립트
@@ -310,8 +312,8 @@ class SupabaseMigrator {
    * 마이그레이션 실행
    */
   async migrate(): Promise<void> {
-    console.log('🚀 Supabase 마이그레이션 시작');
-    console.log('📋 옵션:', this.options);
+    logger.info('🚀 Supabase 마이그레이션 시작');
+    logger.info('📋 옵션:', this.options);
 
     try {
       // 1. Admin 클라이언트 확인
@@ -332,7 +334,7 @@ class SupabaseMigrator {
       // 4. 마이그레이션 검증
       await this.validateMigration();
 
-      console.log('✅ Supabase 마이그레이션 완료');
+      logger.info('✅ Supabase 마이그레이션 완료');
 
     } catch (error) {
       console.error('❌ 마이그레이션 실패:', error);
@@ -344,12 +346,12 @@ class SupabaseMigrator {
    * Supabase 테이블 생성
    */
   private async createTables(): Promise<void> {
-    console.log('📦 Supabase 테이블 생성 중...');
+    logger.info('📦 Supabase 테이블 생성 중...');
 
     if (this.options.dryRun) {
-      console.log('🔍 DRY RUN - 실제 실행되지 않음');
-      console.log('실행될 SQL:');
-      console.log(SUPABASE_SCHEMA_SQL);
+      logger.info('🔍 DRY RUN - 실제 실행되지 않음');
+      logger.info('실행될 SQL:');
+      logger.info(SUPABASE_SCHEMA_SQL);
       return;
     }
 
@@ -362,7 +364,7 @@ class SupabaseMigrator {
 
       for (const statement of sqlStatements) {
         if (statement.trim()) {
-          console.log('📝 실행 중:', statement.substring(0, 50) + '...');
+          logger.info('📝 실행 중:', statement.substring(0, 50) + '...');
 
           const { error } = await supabaseAdmin!.rpc('exec_sql', {
             sql_query: statement
@@ -374,7 +376,7 @@ class SupabaseMigrator {
         }
       }
 
-      console.log('✅ 테이블 생성 완료');
+      logger.info('✅ 테이블 생성 완료');
 
     } catch (error) {
       console.error('❌ 테이블 생성 실패:', error);
@@ -386,16 +388,16 @@ class SupabaseMigrator {
    * 기존 Prisma 데이터를 Supabase로 마이그레이션
    */
   private async migrateData(): Promise<void> {
-    console.log('📊 데이터 마이그레이션 시작...');
+    logger.info('📊 데이터 마이그레이션 시작...');
 
     if (this.options.dryRun) {
-      console.log('🔍 DRY RUN - 데이터 마이그레이션 시뮬레이션');
+      logger.info('🔍 DRY RUN - 데이터 마이그레이션 시뮬레이션');
       return;
     }
 
     try {
       // 사용자 데이터 마이그레이션
-      console.log('👥 사용자 데이터 마이그레이션...');
+      logger.info('👥 사용자 데이터 마이그레이션...');
       const prismaUsers = await prisma.user.findMany();
 
       for (const user of prismaUsers) {
@@ -420,7 +422,7 @@ class SupabaseMigrator {
       }
 
       // 프로젝트 데이터 마이그레이션
-      console.log('📁 프로젝트 데이터 마이그레이션...');
+      logger.info('📁 프로젝트 데이터 마이그레이션...');
       const prismaProjects = await prisma.project.findMany();
 
       for (const project of prismaProjects) {
@@ -447,7 +449,7 @@ class SupabaseMigrator {
         }
       }
 
-      console.log('✅ 데이터 마이그레이션 완료');
+      logger.info('✅ 데이터 마이그레이션 완료');
 
     } catch (error) {
       console.error('❌ 데이터 마이그레이션 실패:', error);
@@ -459,7 +461,7 @@ class SupabaseMigrator {
    * 마이그레이션 결과 검증
    */
   private async validateMigration(): Promise<void> {
-    console.log('🔍 마이그레이션 검증 중...');
+    logger.info('🔍 마이그레이션 검증 중...');
 
     try {
       // 테이블 존재 확인
@@ -469,7 +471,7 @@ class SupabaseMigrator {
         .eq('table_schema', 'public');
 
       if (error) {
-        console.log('📊 Supabase 테이블 상태 확인 (직접 쿼리)...');
+        logger.info('📊 Supabase 테이블 상태 확인 (직접 쿼리)...');
 
         // 각 핵심 테이블 확인
         const coreTables = ['users', 'projects', 'stories', 'templates', 'video_assets'];
@@ -484,17 +486,17 @@ class SupabaseMigrator {
             if (tableError) {
               console.error(`❌ 테이블 ${tableName} 확인 실패:`, tableError.message);
             } else {
-              console.log(`✅ 테이블 ${tableName} 존재 확인`);
+              logger.info(`✅ 테이블 ${tableName} 존재 확인`);
             }
           } catch (err) {
             console.warn(`⚠️ 테이블 ${tableName} 접근 불가`);
           }
         }
       } else {
-        console.log(`✅ ${tables?.length || 0}개 테이블 확인됨`);
+        logger.info(`✅ ${tables?.length || 0}개 테이블 확인됨`);
       }
 
-      console.log('✅ 마이그레이션 검증 완료');
+      logger.info('✅ 마이그레이션 검증 완료');
 
     } catch (error) {
       console.warn('⚠️ 검증 중 경고:', error);
@@ -517,7 +519,7 @@ if (require.main === module) {
 
   migrator.migrate()
     .then(() => {
-      console.log('🎉 마이그레이션 성공');
+      logger.info('🎉 마이그레이션 성공');
       process.exit(0);
     })
     .catch((error) => {

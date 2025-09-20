@@ -4,6 +4,8 @@
  */
 
 import { initializeApiClient } from '@/shared/lib/api-client';
+import { logger } from '@/shared/lib/logger';
+
 
 /**
  * 인증 시스템 초기화
@@ -41,7 +43,7 @@ export function initializeAuth(): void {
     });
   }
   
-  console.log('✅ Auth system initialized');
+  logger.info('✅ Auth system initialized');
 }
 
 /**

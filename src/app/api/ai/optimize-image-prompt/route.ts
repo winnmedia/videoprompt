@@ -13,6 +13,8 @@ import { z } from 'zod';
 import { getGeminiClient } from '@/shared/lib/gemini-client';
 import { buildImagePromptOptimizationPrompt } from '@/shared/lib/prompts/storyboard-prompt-templates';
 import { withAICache } from '@/shared/lib/ai-cache';
+import { logger } from '@/shared/lib/logger';
+
 
 // Zod 스키마 정의
 const PromptOptimizationRequestSchema = z.object({
@@ -72,11 +74,11 @@ export async function POST(request: NextRequest) {
     const { description, style, targetService } = validationResult.data;
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('[Prompt Optimizer] ========== 시작 ==========');
-      console.log('[Prompt Optimizer] Gemini 2.0 Flash Preview 사용');
-      console.log(`[Prompt Optimizer] 요청: ${description.substring(0, 100)}...`);
-      console.log(`[Prompt Optimizer] 대상 서비스: ${targetService}`);
-      console.log(`[Prompt Optimizer] 스타일: ${JSON.stringify(style)}`);
+      logger.info('[Prompt Optimizer] ========== 시작 ==========');
+      logger.info('[Prompt Optimizer] Gemini 2.0 Flash Preview 사용');
+      logger.info(`[Prompt Optimizer] 요청: ${description.substring(0, 100)}...`);
+      logger.info(`[Prompt Optimizer] 대상 서비스: ${targetService}`);
+      logger.info(`[Prompt Optimizer] 스타일: ${JSON.stringify(style)}`);
     }
 
     try {
@@ -87,8 +89,8 @@ export async function POST(request: NextRequest) {
       const optimizationPrompt = buildImagePromptOptimizationPrompt(description, style, targetService);
 
       if (process.env.NODE_ENV === 'development') {
-        console.log('[Prompt Optimizer] 최적화 프롬프트 생성 완료');
-        console.log(`[Prompt Optimizer] 프롬프트 길이: ${optimizationPrompt.length} 문자`);
+        logger.info('[Prompt Optimizer] 최적화 프롬프트 생성 완료');
+        logger.info(`[Prompt Optimizer] 프롬프트 길이: ${optimizationPrompt.length} 문자`);
       }
 
       // AI 캐싱 적용: 동일한 입력에 대해 3시간 캐싱 (프롬프트 최적화는 자주 변경되지 않음)
@@ -121,9 +123,9 @@ export async function POST(request: NextRequest) {
       const parsed = parseOptimizedPrompt(optimizedText);
 
       if (process.env.NODE_ENV === 'development') {
-        console.log('[Prompt Optimizer] ✅ 프롬프트 최적화 완료');
-        console.log(`[Prompt Optimizer] 최적화된 프롬프트: ${parsed.positive.substring(0, 150)}...`);
-        console.log(`[Prompt Optimizer] 네거티브 프롬프트: ${parsed.negative}`);
+        logger.info('[Prompt Optimizer] ✅ 프롬프트 최적화 완료');
+        logger.info(`[Prompt Optimizer] 최적화된 프롬프트: ${parsed.positive.substring(0, 150)}...`);
+        logger.info(`[Prompt Optimizer] 네거티브 프롬프트: ${parsed.negative}`);
       }
 
       const result: PromptOptimizationResponse = {
@@ -142,8 +144,8 @@ export async function POST(request: NextRequest) {
       };
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(`[Prompt Optimizer] 최적화 완료 (${result.metadata.processingTime}ms)`);
-        console.log('[Prompt Optimizer] ========== 완료 ==========');
+        logger.info(`[Prompt Optimizer] 최적화 완료 (${result.metadata.processingTime}ms)`);
+        logger.info('[Prompt Optimizer] ========== 완료 ==========');
       }
 
       return NextResponse.json(result);

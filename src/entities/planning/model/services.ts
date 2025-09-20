@@ -9,7 +9,10 @@
  * - 데이터 일관성 보장
  */
 
+import { logger } from '@/shared/lib/logger';
 import {
+
+
   PlanningContent,
   ScenarioContent,
   PromptContent,
@@ -20,8 +23,7 @@ import {
   PlanningDomainError,
   StorageConsistencyError,
   InvalidContentError,
-  DualStorageError
-} from './types';
+  DualStorageError} from './types';
 
 // ============================================================================
 // 외부 의존성 인터페이스 (의존성 주입)
@@ -164,7 +166,7 @@ async function performDualStorage<T extends PlanningContent>(
     supabase: { success: false, error: undefined as string | undefined }
   };
 
-  console.log(`💾 Starting dual storage for ${content.type}: ${content.id}`, {
+  logger.info(`💾 Starting dual storage for ${content.type}: ${content.id}`, {
     prismaEnabled: config.prismaEnabled,
     supabaseEnabled: config.supabaseEnabled,
     requireBoth: config.requireBoth
@@ -177,7 +179,7 @@ async function performDualStorage<T extends PlanningContent>(
       results.prisma = prismaResult;
 
       if (prismaResult.success) {
-        console.log(`✅ Prisma save successful for ${content.id}`);
+        logger.info(`✅ Prisma save successful for ${content.id}`);
       } else {
         console.error(`❌ Prisma save failed for ${content.id}:`, prismaResult.error);
       }
@@ -195,7 +197,7 @@ async function performDualStorage<T extends PlanningContent>(
       results.supabase = supabaseResult;
 
       if (supabaseResult.success) {
-        console.log(`✅ Supabase save successful for ${content.id}`);
+        logger.info(`✅ Supabase save successful for ${content.id}`);
       } else {
         console.error(`❌ Supabase save failed for ${content.id}:`, supabaseResult.error);
       }
@@ -225,7 +227,7 @@ function analyzeStorageResults(
 
   // 완전 성공
   if (prisma.success && supabase.success) {
-    console.log(`🎉 Full consistency achieved for ${contentId}`);
+    logger.info(`🎉 Full consistency achieved for ${contentId}`);
     return {
       success: true,
       contentId,

@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSeedreamStatus } from '@/lib/providers/seedream';
+import { logger } from '@/shared/lib/logger';
 import {
+
+
   createErrorResponse,
-  createSuccessResponse
-} from '@/shared/schemas/api.schema';
+  createSuccessResponse} from '@/shared/schemas/api.schema';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -22,7 +24,7 @@ export async function GET(
       );
     }
 
-    console.log('DEBUG: SeeDream 상태 확인 요청:', {
+    logger.info('DEBUG: SeeDream 상태 확인 요청:', {
       jobId,
       timestamp: new Date().toISOString(),
     });
@@ -45,7 +47,7 @@ export async function GET(
       );
     }
 
-    console.log('DEBUG: SeeDream 상태 확인 성공:', {
+    logger.info('DEBUG: SeeDream 상태 확인 성공:', {
       jobId,
       status: result.status,
       imageCount: result.images?.length || 0,
@@ -100,7 +102,7 @@ export async function DELETE(
       );
     }
 
-    console.log('DEBUG: SeeDream 작업 취소 요청:', {
+    logger.info('DEBUG: SeeDream 작업 취소 요청:', {
       jobId,
       timestamp: new Date().toISOString(),
     });
@@ -141,7 +143,7 @@ export async function DELETE(
 
     // 취소 로직 구현 (BytePlus ModelArk API에서 지원하는 경우)
     // 현재는 상태만 반환
-    console.log('DEBUG: SeeDream 작업 취소 처리됨:', {
+    logger.info('DEBUG: SeeDream 작업 취소 처리됨:', {
       jobId,
       previousStatus: statusResult.status,
     });

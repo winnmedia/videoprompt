@@ -13,6 +13,8 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { apiClient } from '@/shared/lib/api-client';
+import { logger } from '@/shared/lib/logger';
+
 
 // 새로운 타입 시스템 임포트 (Zod 기반)
 import {
@@ -830,8 +832,8 @@ export class RTKQueryUtils {
     if (process.env.NODE_ENV === 'development') {
       const stats = this.getCacheStats(getState);
       console.group('🔄 RTK Query Cache Debug');
-      console.log('Cache Stats:', stats);
-      console.log('Full Cache State:', this.getCacheState(getState));
+      logger.info('Cache Stats:', stats);
+      logger.info('Full Cache State:', this.getCacheState(getState));
       console.groupEnd();
     }
   }

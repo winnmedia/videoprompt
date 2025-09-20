@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
+
 // import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { getUserIdFromRequest } from '@/shared/lib/auth';
@@ -23,7 +25,7 @@ export async function POST(req: NextRequest) {
       const refreshToken = req.cookies.get('refresh_token')?.value;
       
       // Prisma refresh token 취소 처리 비활성화
-      console.log('✅ Logout token revocation skipped (Prisma disabled):', { userId, hasRefreshToken: !!refreshToken });
+      logger.info('✅ Logout token revocation skipped (Prisma disabled):', { userId, hasRefreshToken: !!refreshToken });
     }
 
     const response = success(

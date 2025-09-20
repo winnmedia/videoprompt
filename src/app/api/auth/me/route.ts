@@ -13,6 +13,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withOptionalAuth } from '@/shared/lib/auth-middleware-v2';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
+import { logger } from '@/shared/lib/logger';
+
 // import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { isAuthenticatedUser } from '@/shared/contracts/auth.contract';
 
@@ -53,7 +55,7 @@ export const GET = withOptionalAuth(async (req, { user, authContext }) => {
 
     // Prisma 비활성화 - DB 조회 스킵
     if (isAuthenticatedUser(user) && authContext.degradationMode !== 'disabled') {
-      console.log('✅ Database lookup skipped (Prisma disabled), using token data only');
+      logger.info('✅ Database lookup skipped (Prisma disabled), using token data only');
       // dbUser는 null로 유지되어 토큰 데이터만 사용
     }
 

@@ -2,13 +2,15 @@
 
 import React, { useState, useCallback, useMemo, useEffect, Suspense } from 'react';
 import { useDispatch } from 'react-redux';
+import { logger } from '@/shared/lib/logger';
 import {
+
+
   WORKFLOW_STEPS,
   StoryTemplate,
   WorkflowStep,
   StoryStep,
-  Shot
-} from '@/entities/scenario';
+  Shot} from '@/entities/scenario';
 import { useStoryGeneration } from '@/features/scenario/hooks/use-story-generation';
 import {
   WorkflowProgress,
@@ -78,7 +80,7 @@ export default function ScenarioPage() {
     // 파이프라인 초기화 (기존 프로젝트가 있으면 재사용, 없으면 새로 생성)
     pipeline.initializePipeline(existingProjectId || undefined);
 
-    console.log('📊 Pipeline initialized with ProjectID:', existingProjectId || 'new project');
+    logger.info('📊 Pipeline initialized with ProjectID:', existingProjectId || 'new project');
   }, [pipeline.initializePipeline]);
 
   // ProjectID가 변경되면 URL 업데이트 (브라우저 새로고침 시 동일 프로젝트 유지)
@@ -87,7 +89,7 @@ export default function ScenarioPage() {
       const currentUrl = new URL(window.location.href);
       currentUrl.searchParams.set('projectId', pipeline.projectId);
       window.history.replaceState({}, '', currentUrl.toString());
-      console.log('📊 URL updated with ProjectID:', pipeline.projectId);
+      logger.info('📊 URL updated with ProjectID:', pipeline.projectId);
     }
   }, [pipeline.projectId]);
 
@@ -119,7 +121,7 @@ export default function ScenarioPage() {
           ...updatedStory
         });
 
-        console.log('스토리 업데이트 완료:', updatedStory);
+        logger.info('스토리 업데이트 완료:', updatedStory);
       } catch (error) {
         console.error('스토리 업데이트 실패:', error);
       }
@@ -140,14 +142,14 @@ export default function ScenarioPage() {
       try {
         // 프로젝트 저장을 통한 내보내기
         await pipeline.checkPipelineStatus();
-        console.log('📊 프로젝트 내보내기 완료:', pipeline.projectId);
+        logger.info('📊 프로젝트 내보내기 완료:', pipeline.projectId);
       } catch (error) {
         console.error('내보내기 실패:', error);
       }
     },
     handlePdfExport: async () => {
       try {
-        console.log('📄 PDF 내보내기 시작');
+        logger.info('📄 PDF 내보내기 시작');
         // TODO: PDF 생성 API 호출
         alert('PDF 내보내기 기능은 준비 중입니다.');
       } catch (error) {
@@ -156,7 +158,7 @@ export default function ScenarioPage() {
     },
     handleExcelExport: async () => {
       try {
-        console.log('📊 Excel 내보내기 시작');
+        logger.info('📊 Excel 내보내기 시작');
         // TODO: Excel 생성 API 호출
         alert('Excel 내보내기 기능은 준비 중입니다.');
       } catch (error) {
@@ -165,7 +167,7 @@ export default function ScenarioPage() {
     },
     handleProjectSave: async () => {
       try {
-        console.log('💾 프로젝트 저장 시작');
+        logger.info('💾 프로젝트 저장 시작');
         // 현재 파이프라인 상태를 저장
         await pipeline.checkPipelineStatus();
         alert(`프로젝트 ${pipeline.projectId}가 저장되었습니다. URL을 북마크하여 나중에 편집할 수 있습니다.`);
@@ -311,7 +313,7 @@ export default function ScenarioPage() {
     storyInput: any;
   }) => {
     try {
-      console.log('💾 템플릿 저장 시작:', templateData);
+      logger.info('💾 템플릿 저장 시작:', templateData);
 
       // TODO: 실제 템플릿 저장 API 호출
       // await apiClient.post('/api/planning/templates', templateData);
@@ -342,7 +344,7 @@ export default function ScenarioPage() {
     setIsGeneratingImage(prev => ({ ...prev, [shotId]: true }));
 
     try {
-      console.log('🎨 콘티 이미지 생성 시작:', shotId);
+      logger.info('🎨 콘티 이미지 생성 시작:', shotId);
 
       // 해당 숏트 정보 찾기
       const shot = workflow.shots.find(s => s.id === shotId);
@@ -367,7 +369,7 @@ export default function ScenarioPage() {
       const mockImageUrl = `https://via.placeholder.com/400x200/0066cc/ffffff?text=Conti+${shotId.slice(0, 8)}`;
 
       workflow.updateShot(shotId, 'contiImage', mockImageUrl);
-      console.log('✅ 콘티 이미지 생성 완료:', shotId);
+      logger.info('✅ 콘티 이미지 생성 완료:', shotId);
 
     } catch (error) {
       console.error('콘티 생성 실패:', error);
@@ -380,7 +382,7 @@ export default function ScenarioPage() {
   // 인서트샷 생성 (영상 생성)
   const handleGenerateInsertShots = useCallback(async (shotId: string) => {
     try {
-      console.log('🎬 인서트샷(영상) 생성 시작:', shotId);
+      logger.info('🎬 인서트샷(영상) 생성 시작:', shotId);
 
       // 해당 숏트 정보 찾기
       const shot = workflow.shots.find(s => s.id === shotId);
@@ -397,7 +399,7 @@ export default function ScenarioPage() {
         priority: 'normal'
       });
 
-      console.log('✅ 인서트샷 생성 요청 완료:', shotId);
+      logger.info('✅ 인서트샷 생성 요청 완료:', shotId);
       alert('인서트샷 영상 생성이 요청되었습니다. 처리까지 몇 분이 소요될 수 있습니다.');
 
     } catch (error) {

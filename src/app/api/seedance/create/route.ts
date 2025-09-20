@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { logger } from '@/shared/lib/logger';
 import {
+
+
   createSeedanceVideo,
-  type SeedanceCreatePayload
-} from '@/lib/providers/seedance';
+  type SeedanceCreatePayload} from '@/lib/providers/seedance';
 import { getSeedanceProvider } from '@/lib/providers/mock-seedance';
 import { seedanceService, createSeedanceVideoWithFallback } from '@/lib/providers/seedance-service';
 import {
@@ -70,7 +72,7 @@ const postHandler = async (request: NextRequest, { user, authContext }: { user: 
     let configValidation;
     try {
       configValidation = validateSeedanceConfig();
-      console.log('✅ Seedance 설정 검증 성공:', {
+      logger.info('✅ Seedance 설정 검증 성공:', {
         provider: configValidation.provider,
         environment: configValidation.environment
       });
@@ -105,7 +107,7 @@ const postHandler = async (request: NextRequest, { user, authContext }: { user: 
 
     const body = await request.json();
 
-    console.log('DEBUG: SeeDance 영상 생성 요청 수신:', {
+    logger.info('DEBUG: SeeDance 영상 생성 요청 수신:', {
       hasPrompt: !!body.prompt,
       promptLength: body.prompt?.length || 0,
       aspectRatio: body.aspect_ratio,
@@ -133,7 +135,7 @@ const postHandler = async (request: NextRequest, { user, authContext }: { user: 
 
     // 사용자 인증 정보 사용 (옵셔널 인증)
     const userId = user.id;
-    console.log('DEBUG: SeeDance 사용자 정보:', { userId: userId || 'guest' });
+    logger.info('DEBUG: SeeDance 사용자 정보:', { userId: userId || 'guest' });
 
     // SeeDance API 호출 준비
     const payload: SeedanceCreatePayload = {
@@ -147,7 +149,7 @@ const postHandler = async (request: NextRequest, { user, authContext }: { user: 
       webhook_url: data.webhook_url,
     };
 
-    console.log('DEBUG: SeeDance API 호출 시작:', {
+    logger.info('DEBUG: SeeDance API 호출 시작:', {
       mode: data.image_url ? 'image-to-video' : 'text-to-video',
       duration: data.duration_seconds,
       aspectRatio: data.aspect_ratio,
@@ -217,7 +219,7 @@ const postHandler = async (request: NextRequest, { user, authContext }: { user: 
       );
     }
 
-    console.log('DEBUG: SeeDance API 호출 성공:', {
+    logger.info('DEBUG: SeeDance API 호출 성공:', {
       jobId: result.jobId,
       status: result.status,
       source: result.source,

@@ -1,3 +1,5 @@
+import { logger } from './logger';
+
 /**
  * 클라이언트 측 무한 루프 감지기 - $300 사건 재발 방지
  * 브라우저 개발자 도구에서 실시간 API 호출 패턴 모니터링
@@ -84,7 +86,7 @@ class ClientSideLoopDetector {
       }
     };
 
-    console.log('🔍 Client-side loop detector initialized');
+    logger.info('🔍 Client-side loop detector initialized');
   }
 
   /**
@@ -254,7 +256,7 @@ class ClientSideLoopDetector {
    * 실시간 모니터링 시작
    */
   startRealTimeMonitoring(): void {
-    console.log('🔍 Starting real-time API monitoring...');
+    logger.info('🔍 Starting real-time API monitoring...');
 
     setInterval(() => {
       this.generateMonitoringReport();
@@ -332,7 +334,7 @@ if (typeof window !== 'undefined') {
     const detector = ClientSideLoopDetector.getInstance();
     const status = detector.getStatus();
 
-    console.log('🔍 Loop Detection Status:', status);
+    logger.info('🔍 Loop Detection Status:', status);
 
     if (status.authMeCalls > 10) {
       console.warn('⚠️ High /api/auth/me call frequency detected:', status.authMeCalls);
@@ -344,7 +346,7 @@ if (typeof window !== 'undefined') {
   (window as any).startLoopMonitoring = () => {
     const detector = ClientSideLoopDetector.getInstance();
     detector.startRealTimeMonitoring();
-    console.log('✅ Real-time loop monitoring started');
+    logger.info('✅ Real-time loop monitoring started');
   };
 }
 

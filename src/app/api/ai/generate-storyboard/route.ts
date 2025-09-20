@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getGeminiClient } from '@/shared/lib/gemini-client';
+import { logger } from '@/shared/lib/logger';
 import {
   buildStoryboardPrompt,
   buildImagePromptOptimizationPrompt,
@@ -95,10 +96,10 @@ export async function POST(request: NextRequest) {
     const { structure, visualStyle, duration, aspectRatio, shotCount, genre, tone } = validationResult.data;
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('[Storyboard Generator] ========== 시작 ==========');
-      console.log('[Storyboard Generator] Gemini 2.0 Flash Preview 사용');
-      console.log(`[Storyboard Generator] 스타일: ${visualStyle}, 러닝타임: ${duration}`);
-      console.log(`[Storyboard Generator] Act1: ${structure.act1.title}`);
+      logger.info('[Storyboard Generator] ========== 시작 ==========');
+      logger.info('[Storyboard Generator] Gemini 2.0 Flash Preview 사용');
+      logger.info(`[Storyboard Generator] 스타일: ${visualStyle}, 러닝타임: ${duration}`);
+      logger.info(`[Storyboard Generator] Act1: ${structure.act1.title}`);
     }
 
     try {
@@ -118,8 +119,8 @@ export async function POST(request: NextRequest) {
       const prompt = buildStoryboardPrompt(promptRequest);
 
       if (process.env.NODE_ENV === 'development') {
-        console.log('[Storyboard Generator] 구조화된 프롬프트 생성 완료');
-        console.log(`[Storyboard Generator] 프롬프트 길이: ${prompt.length} 문자`);
+        logger.info('[Storyboard Generator] 구조화된 프롬프트 생성 완료');
+        logger.info(`[Storyboard Generator] 프롬프트 길이: ${prompt.length} 문자`);
       }
 
       // AI 캐싱 적용: 동일한 입력에 대해 2시간 캐싱 (스토리보드는 큰 데이터이므로 적절한 캐싱 시간)
@@ -154,8 +155,8 @@ export async function POST(request: NextRequest) {
       }
 
       if (process.env.NODE_ENV === 'development') {
-        console.log('[Storyboard Generator] ✅ 스토리보드 생성 완료');
-        console.log(`[Storyboard Generator] 샷 개수: ${storyboardResponse.shots.length}`);
+        logger.info('[Storyboard Generator] ✅ 스토리보드 생성 완료');
+        logger.info(`[Storyboard Generator] 샷 개수: ${storyboardResponse.shots.length}`);
       }
 
       // 각 샷의 이미지 프롬프트 최적화 (병렬 처리)
@@ -202,7 +203,7 @@ export async function POST(request: NextRequest) {
           });
 
           if (process.env.NODE_ENV === 'development') {
-            console.log(`[Storyboard Generator] 샷 ${shot.id} 이미지 프롬프트 최적화 완료`);
+            logger.info(`[Storyboard Generator] 샷 ${shot.id} 이미지 프롬프트 최적화 완료`);
           }
 
         } catch (error) {
@@ -219,7 +220,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (process.env.NODE_ENV === 'development') {
-        console.log('[Storyboard Generator] ========== 완료 ==========');
+        logger.info('[Storyboard Generator] ========== 완료 ==========');
       }
 
       // 최종 응답 생성

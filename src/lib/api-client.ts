@@ -1,4 +1,6 @@
 import { getApiConfig, buildApiUrl, getApiTimeout } from './config/api';
+import { logger } from '@/shared/lib/logger';
+
 
 // API 클라이언트 설정 (배포 환경 전용)
 const apiConfig = getApiConfig();
@@ -75,7 +77,7 @@ async function apiRequestWithRetry(
 
       // 마지막 시도가 아니면 재시도
       if (attempt < retryAttempts) {
-        console.log(
+        logger.info(
           `API 요청 실패 (시도 ${attempt}/${retryAttempts}), ${retryDelay}ms 후 재시도...`,
         );
         await new Promise((resolve) => setTimeout(resolve, retryDelay));
@@ -88,7 +90,7 @@ async function apiRequestWithRetry(
 
       // 마지막 시도가 아니면 재시도
       if (attempt < retryAttempts) {
-        console.log(
+        logger.info(
           `API 요청 오류 (시도 ${attempt}/${retryAttempts}), ${retryDelay}ms 후 재시도...`,
           error,
         );
@@ -118,7 +120,7 @@ export const apiRequest = async <T = any>(
     const url = buildApiUrl(endpoint);
     const options = createFetchOptions(method, body, customTimeout);
 
-    console.log(`DEBUG: API 요청 시작: ${method} ${url}`);
+    logger.info(`DEBUG: API 요청 시작: ${method} ${url}`);
 
     const response = await apiRequestWithRetry(url, options);
 
@@ -151,7 +153,7 @@ export const apiRequest = async <T = any>(
     }
 
     const data = await response.json();
-    console.log(`DEBUG: API 응답 성공: ${endpoint}`, { status: response.status, data });
+    logger.info(`DEBUG: API 응답 성공: ${endpoint}`, { status: response.status, data });
 
     return data;
   } catch (error) {

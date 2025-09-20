@@ -8,6 +8,7 @@
  * - 타입 안전성 강화
  */
 
+import { logger } from '@/shared/lib/logger';
 import {
   type StorySuccessResponse,
   type Act,
@@ -337,7 +338,7 @@ export function safeTransformUserToPrisma(
     // 2. Prisma 도메인 모델로 변환
     const prismaUserData = transformSupabaseUserToPrisma(validatedSupabaseUser);
 
-    console.log('✅ 사용자 DTO 변환 성공:', {
+    logger.info('✅ 사용자 DTO 변환 성공:', {
       context,
       userId: validatedSupabaseUser.id,
       email: validatedSupabaseUser.email,

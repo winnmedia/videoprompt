@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
+import { logger } from '@/shared/lib/logger';
+
 
 export const runtime = 'nodejs';
 
@@ -10,7 +12,7 @@ export const runtime = 'nodejs';
  */
 export async function GET(req: NextRequest) {
   const traceId = getTraceId(req);
-  console.log(`[Tables Test ${traceId}] 📋 Supabase 테이블 검증 시작`);
+  logger.info(`[Tables Test ${traceId}] 📋 Supabase 테이블 검증 시작`);
 
   try {
     // getSupabaseClientSafe를 사용한 안전한 클라이언트 초기화
@@ -37,7 +39,7 @@ export async function GET(req: NextRequest) {
 
     for (const tableName of requiredTables) {
       try {
-        console.log(`[Tables Test ${traceId}] 🔍 테이블 ${tableName} 확인 중...`);
+        logger.info(`[Tables Test ${traceId}] 🔍 테이블 ${tableName} 확인 중...`);
 
         // 테이블 존재 여부 및 레코드 수 확인
         const { count, error } = await supabase
@@ -49,13 +51,13 @@ export async function GET(req: NextRequest) {
             exists: false,
             error: error.message
           };
-          console.log(`[Tables Test ${traceId}] ❌ 테이블 ${tableName}: ${error.message}`);
+          logger.info(`[Tables Test ${traceId}] ❌ 테이블 ${tableName}: ${error.message}`);
         } else {
           tableStatus[tableName] = {
             exists: true,
             count: count || 0
           };
-          console.log(`[Tables Test ${traceId}] ✅ 테이블 ${tableName}: ${count || 0}개 레코드`);
+          logger.info(`[Tables Test ${traceId}] ✅ 테이블 ${tableName}: ${count || 0}개 레코드`);
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : String(err);
@@ -63,7 +65,7 @@ export async function GET(req: NextRequest) {
           exists: false,
           error: errorMessage
         };
-        console.log(`[Tables Test ${traceId}] ❌ 테이블 ${tableName} 오류: ${errorMessage}`);
+        logger.info(`[Tables Test ${traceId}] ❌ 테이블 ${tableName} 오류: ${errorMessage}`);
       }
     }
 
@@ -89,7 +91,7 @@ export async function GET(req: NextRequest) {
         : [`Supabase Dashboard에서 SQL 수동 실행`, `${totalTables - existingTables}개 테이블 생성 필요`]
     };
 
-    console.log(`[Tables Test ${traceId}] 📊 검증 완료: ${existingTables}/${totalTables} 테이블 존재`);
+    logger.info(`[Tables Test ${traceId}] 📊 검증 완료: ${existingTables}/${totalTables} 테이블 존재`);
 
     return NextResponse.json(
       success(result, 200, traceId),

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
+
 // import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { getUser } from '@/shared/lib/auth';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
@@ -58,7 +60,7 @@ export async function OPTIONS(req: NextRequest) {
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const traceId = getTraceId(req);
   const { id } = await params;
-  console.log(`[Project ${traceId}] 📋 프로젝트 상세 조회: ${id}`);
+  logger.info(`[Project ${traceId}] 📋 프로젝트 상세 조회: ${id}`);
 
   try {
     // Check authentication
@@ -88,7 +90,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return failure('NOT_FOUND', '프로젝트를 찾을 수 없습니다.', 404, undefined, traceId);
     }
 
-    console.log(`[Project ${traceId}] ✅ 프로젝트 조회 완료`);
+    logger.info(`[Project ${traceId}] ✅ 프로젝트 조회 완료`);
 
     // Prisma automatically handles JSON fields
     const response = project;
@@ -105,7 +107,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const traceId = getTraceId(req);
   const { id } = await params;
-  console.log(`[Project ${traceId}] 🔄 프로젝트 수정: ${id}`);
+  logger.info(`[Project ${traceId}] 🔄 프로젝트 수정: ${id}`);
 
   try {
     // Check authentication
@@ -118,7 +120,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const body = await req.json();
     const validatedData = UpdateProjectSchema.parse(body);
 
-    console.log(`[Project ${traceId}] ✅ 입력 데이터 검증 완료`);
+    logger.info(`[Project ${traceId}] ✅ 입력 데이터 검증 완료`);
 
     // Check if project exists and belongs to user
     const existingProject = await prisma.project.findFirst({
@@ -156,7 +158,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       },
     });
 
-    console.log(`[Project ${traceId}] ✅ 프로젝트 수정 완료`);
+    logger.info(`[Project ${traceId}] ✅ 프로젝트 수정 완료`);
 
     // Prisma automatically handles JSON fields
     const response = project;
@@ -178,7 +180,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const traceId = getTraceId(req);
   const { id } = await params;
-  console.log(`[Project ${traceId}] 🗑️ 프로젝트 삭제: ${id}`);
+  logger.info(`[Project ${traceId}] 🗑️ 프로젝트 삭제: ${id}`);
 
   try {
     // Check authentication
@@ -204,7 +206,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       where: { id },
     });
 
-    console.log(`[Project ${traceId}] ✅ 프로젝트 삭제 완료`);
+    logger.info(`[Project ${traceId}] ✅ 프로젝트 삭제 완료`);
 
     return success({ message: '프로젝트가 삭제되었습니다.' }, 200, traceId);
 

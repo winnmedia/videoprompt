@@ -1,3 +1,5 @@
+import { logger } from '@/shared/lib/logger';
+
 /**
  * Feature Flag 시스템
  * 새로운 기능의 점진적 배포와 A/B 테스트를 위한 설정
@@ -99,7 +101,7 @@ export function logFeatureFlags(userId?: string): void {
     console.group('🚩 Feature Flags Status');
     Object.entries(features).forEach(([flag, enabled]) => {
       const userEnabled = userId ? isFeatureEnabledForUser(userId, flag as keyof FeatureFlags) : enabled;
-      console.log(`${flag}: ${userEnabled ? '✅' : '❌'} ${enabled ? '(globally enabled)' : '(globally disabled)'}`);
+      logger.info(`${flag}: ${userEnabled ? '✅' : '❌'} ${enabled ? '(globally enabled)' : '(globally disabled)'}`);
     });
     console.groupEnd();
   }

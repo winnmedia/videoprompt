@@ -4,6 +4,8 @@ import { getSupabaseClient } from '@/shared/lib/supabase-client';
 import { success, failure, getTraceId, supabaseErrors } from '@/shared/lib/api-response';
 import { addCorsHeaders } from '@/shared/lib/cors-utils';
 import { checkRateLimit, RATE_LIMITS } from '@/shared/lib/rate-limiter';
+import { logger } from '@/shared/lib/logger';
+
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -53,7 +55,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { email } = ForgotPasswordSchema.parse(body);
 
-    console.log(`🔐 Password reset request for email: ${email}`);
+    logger.info(`🔐 Password reset request for email: ${email}`);
 
     // 안전한 Supabase 클라이언트 가져오기
     const supabaseResult = await getSupabaseClient({
@@ -99,7 +101,7 @@ export async function POST(req: NextRequest) {
       return addCorsHeaders(response);
     }
 
-    console.log(`✅ Password reset email sent for: ${email}`);
+    logger.info(`✅ Password reset email sent for: ${email}`);
 
     // 보안상 항상 성공 메시지 반환 (실제 사용자 존재 여부와 관계없이)
     const response = NextResponse.json(

@@ -7,6 +7,8 @@ import { join } from 'path';
 import { randomUUID } from 'crypto';
 import { checkRateLimit, RATE_LIMITS } from '@/shared/lib/rate-limiter';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
+import { logger } from '@/shared/lib/logger';
+
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -123,7 +125,7 @@ export async function POST(request: NextRequest) {
     // 파일 크기에 따른 처리 방법 결정
     if (file.size > VERCEL_FILE_SIZE_LIMIT) {
       // 대용량 파일: Railway 백엔드로 프록시
-      console.log(`📤 대용량 파일 (${(file.size / (1024 * 1024)).toFixed(2)}MB) Railway로 프록시 중...`);
+      logger.info(`📤 대용량 파일 (${(file.size / (1024 * 1024)).toFixed(2)}MB) Railway로 프록시 중...`);
 
       try {
         const railwayResponse = await proxyToRailway(file, slot, token, traceId);
@@ -158,7 +160,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 소용량 파일: 로컬 Vercel에서 처리 (기존 로직)
-    console.log(`📁 소용량 파일 (${(file.size / (1024 * 1024)).toFixed(2)}MB) 로컬 처리 중...`);
+    logger.info(`📁 소용량 파일 (${(file.size / (1024 * 1024)).toFixed(2)}MB) 로컬 처리 중...`);
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);

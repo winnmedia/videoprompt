@@ -4,6 +4,8 @@
  */
 
 import { isValidSeedanceApiKey, getApiKeyFromEnv } from './seedance-validators';
+import { logger } from '@/shared/lib/logger';
+
 
 /**
  * 프로덕션 키 검증 결과
@@ -62,7 +64,7 @@ export function enforceProductionKeyValidation(
   const isMockAllowedEnvironment = finalConfig.allowedEnvironments.includes(environment);
 
   if (finalConfig.logLevel !== 'silent') {
-    console.log(`🔍 프로덕션 키 검증 시작 (환경: ${environment})`);
+    logger.info(`🔍 프로덕션 키 검증 시작 (환경: ${environment})`);
   }
 
   // 2. 프로덕션이 아닌 환경에서는 경고만
@@ -145,7 +147,7 @@ export function enforceProductionKeyValidation(
   result.isValid = true;
 
   if (finalConfig.logLevel !== 'silent') {
-    console.log(`✅ ${isProductionEnvironment ? '프로덕션' : environment} 환경 키 검증 성공`);
+    logger.info(`✅ ${isProductionEnvironment ? '프로덕션' : environment} 환경 키 검증 성공`);
   }
 
   if (isProductionEnvironment) {
@@ -171,8 +173,8 @@ export function validateKeysOnStartup(): void {
 
     // 권장사항 출력
     if (result.recommendations.length > 0 && process.env.NODE_ENV === 'development') {
-      console.log('\n💡 권장사항:');
-      result.recommendations.forEach(rec => console.log(`   - ${rec}`));
+      logger.info('\n💡 권장사항:');
+      result.recommendations.forEach(rec => logger.info(`   - ${rec}`));
     }
 
   } catch (error) {

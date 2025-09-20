@@ -1,3 +1,5 @@
+import { logger } from '@/shared/lib/logger';
+
 /**
  * OpenAI API Client for Story Generation
  *
@@ -135,7 +137,7 @@ export class OpenAIClient {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`DEBUG: OpenAI 스토리 생성 시작 (시도 ${attempt}/${maxRetries}):`, {
+        logger.info(`DEBUG: OpenAI 스토리 생성 시작 (시도 ${attempt}/${maxRetries}):`, {
           story: options.story.slice(0, 100),
           genre: options.genre,
           tone: options.tone,
@@ -157,7 +159,7 @@ export class OpenAIClient {
         // 마지막 시도가 아니면 잠시 대기
         if (attempt < maxRetries) {
           const delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // 지수 백오프
-          console.log(`DEBUG: ${delayMs}ms 후 재시도...`);
+          logger.info(`DEBUG: ${delayMs}ms 후 재시도...`);
           await new Promise(resolve => setTimeout(resolve, delayMs));
         }
 
@@ -172,7 +174,7 @@ export class OpenAIClient {
         // 마지막 시도가 아니면 잠시 대기
         if (attempt < maxRetries) {
           const delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
-          console.log(`DEBUG: 에러 발생, ${delayMs}ms 후 재시도...`);
+          logger.info(`DEBUG: 에러 발생, ${delayMs}ms 후 재시도...`);
           await new Promise(resolve => setTimeout(resolve, delayMs));
         }
       }
@@ -268,7 +270,7 @@ export class OpenAIClient {
       usage.completion_tokens
     );
 
-    console.log('DEBUG: OpenAI 스토리 생성 성공:', {
+    logger.info('DEBUG: OpenAI 스토리 생성 성공:', {
       model: response.model,
       tokensUsed: usage.total_tokens,
       estimatedCost: `$${estimatedCost.toFixed(4)}`,
@@ -323,7 +325,7 @@ export class OpenAIClient {
 
       // 직접 act 구조인 경우 structure 래퍼 추가
       if (hasDirectActStructure) {
-        console.log('DEBUG: 직접 act 구조 감지, structure 래퍼 추가');
+        logger.info('DEBUG: 직접 act 구조 감지, structure 래퍼 추가');
         return {
           success: true,
           data: {

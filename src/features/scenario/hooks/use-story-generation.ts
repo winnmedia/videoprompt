@@ -16,6 +16,8 @@ import { useToast } from '@/shared/lib/hooks/useToast';
 import { pipelineManager } from '@/shared/lib/pipeline-manager';
 import { selectProjectId } from '@/entities/pipeline/store/pipeline-slice';
 import type { RootState } from '@/shared/types/store';
+import { logger } from '@/shared/lib/logger';
+
 
 /**
  * RTK Query 기반 스토리 생성 Hook
@@ -42,7 +44,7 @@ export function useStoryGeneration() {
       // ProjectID 확보 (기존 것이 있으면 사용, 없으면 새로 생성)
       const activeProjectId = projectId || currentProjectId || pipelineManager.startNewProject();
 
-      console.log('🚀 스토리 생성 시작:', {
+      logger.info('🚀 스토리 생성 시작:', {
         projectId: activeProjectId,
         title: storyInput.title
       });
@@ -121,7 +123,7 @@ export function useStorySave() {
         throw new Error('ProjectID가 필요합니다. 먼저 스토리를 생성해주세요.');
       }
 
-      console.log('💾 스토리 저장 시작:', {
+      logger.info('💾 스토리 저장 시작:', {
         projectId: activeProjectId,
         stepCount: data.steps.length
       });

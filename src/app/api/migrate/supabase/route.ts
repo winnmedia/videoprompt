@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
+import { logger } from '@/shared/lib/logger';
+
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -178,7 +180,7 @@ interface MigrationResult {
  */
 export async function POST(request: NextRequest) {
   const traceId = getTraceId(request);
-  console.log(`[Migration ${traceId}] 🚀 Supabase 마이그레이션 시작`);
+  logger.info(`[Migration ${traceId}] 🚀 Supabase 마이그레이션 시작`);
 
   try {
     const body = await request.json().catch(() => ({}));
@@ -211,7 +213,7 @@ export async function POST(request: NextRequest) {
 
     // 1. 테이블 생성
     if (createTables) {
-      console.log(`[Migration ${traceId}] 📦 테이블 생성 시작`);
+      logger.info(`[Migration ${traceId}] 📦 테이블 생성 시작`);
 
       const tablesToCreate = tableNames.length > 0
         ? tableNames.filter((name: string) => name in CORE_TABLES_SQL)
@@ -220,7 +222,7 @@ export async function POST(request: NextRequest) {
       for (const tableName of tablesToCreate) {
         const sql = CORE_TABLES_SQL[tableName as keyof typeof CORE_TABLES_SQL];
 
-        console.log(`[Migration ${traceId}] 📝 테이블 ${tableName} 생성 중...`);
+        logger.info(`[Migration ${traceId}] 📝 테이블 ${tableName} 생성 중...`);
 
         if (dryRun) {
           results.push({
@@ -280,14 +282,14 @@ export async function POST(request: NextRequest) {
 
     // 2. RLS 설정
     if (setupRLS && !dryRun) {
-      console.log(`[Migration ${traceId}] 🛡️ RLS 정책 설정 시작`);
+      logger.info(`[Migration ${traceId}] 🛡️ RLS 정책 설정 시작`);
 
       for (const tableName of Object.keys(RLS_POLICIES)) {
         const policies = RLS_POLICIES[tableName as keyof typeof RLS_POLICIES];
 
         for (const policy of policies) {
           try {
-            console.log(`[Migration ${traceId}] 🔒 RLS 정책 적용: ${tableName}`);
+            logger.info(`[Migration ${traceId}] 🔒 RLS 정책 적용: ${tableName}`);
 
             results.push({
               step: `rls_${tableName}`,
@@ -311,7 +313,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. 마이그레이션 결과 검증
-    console.log(`[Migration ${traceId}] 🔍 결과 검증 중...`);
+    logger.info(`[Migration ${traceId}] 🔍 결과 검증 중...`);
 
     const validationResults = await validateMigration(traceId);
     results.push(...validationResults);
@@ -320,7 +322,7 @@ export async function POST(request: NextRequest) {
     const totalCount = results.length;
     const overallSuccess = successCount === totalCount;
 
-    console.log(`[Migration ${traceId}] ${overallSuccess ? '✅' : '⚠️'} 마이그레이션 완료: ${successCount}/${totalCount}`);
+    logger.info(`[Migration ${traceId}] ${overallSuccess ? '✅' : '⚠️'} 마이그레이션 완료: ${successCount}/${totalCount}`);
 
     return NextResponse.json(
       success({

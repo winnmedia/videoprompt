@@ -4,6 +4,8 @@
  */
 
 import { z } from 'zod';
+import { logger } from './logger';
+
 
 // ============================================
 // 로그 레벨 및 카테고리 정의
@@ -151,7 +153,7 @@ export class StructuredLogger {
   private output(entry: LogEntry): void {
     if (process.env.NODE_ENV === 'production') {
       // 프로덕션: JSON 형태로 구조화된 로그
-      console.log(JSON.stringify(entry));
+      logger.info(JSON.stringify(entry));
     } else {
       // 개발환경: 가독성 있는 형태로 출력
       const contextStr = entry.context && Object.keys(entry.context).length > 0
@@ -162,12 +164,12 @@ export class StructuredLogger {
         ? ` (${Object.entries(entry.metrics).map(([k, v]) => `${k}=${v}`).join(', ')})`
         : '';
 
-      console.log(
+      logger.info(
         `[${entry.timestamp}] ${entry.level} ${entry.category}${contextStr}: ${entry.message}${metricsStr}`
       );
 
       if (entry.data) {
-        console.log('Data:', JSON.stringify(entry.data, null, 2));
+        logger.info('Data:', JSON.stringify(entry.data, null, 2));
       }
 
       if (entry.error) {

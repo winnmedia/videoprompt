@@ -12,6 +12,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateRequest } from './auth-core';
+import { logger } from './logger';
+
 
 // Re-export authenticateRequest for compatibility
 export { authenticateRequest };
@@ -101,7 +103,7 @@ export function withAuth(
       if (isAuthSuccess(authResult)) {
         const { context } = authResult;
 
-        console.log(`✅ Auth middleware success`, {
+        logger.info(`✅ Auth middleware success`, {
           endpoint: endpoint || new URL(req.url).pathname,
           requestId,
           userId: context.user.id,
@@ -187,7 +189,7 @@ export function withOptionalAuth(
       if (isAuthSuccess(authResult)) {
         const { context } = authResult;
 
-        console.log(`✅ withOptionalAuth success`, {
+        logger.info(`✅ withOptionalAuth success`, {
           endpoint: endpoint || new URL(req.url).pathname,
           requestId,
           userId: context.user.id,

@@ -4,6 +4,7 @@
  */
 
 import { generateImagenPreview } from '@/lib/providers/imagen';
+import { logger } from './logger';
 import {
   ShotGenerationStatus,
   StoryboardErrorType,
@@ -253,7 +254,7 @@ export class StoryboardGeneratorService {
     };
     
     // 저장 로직 구현
-    console.log('Storyboard saved:', {
+    logger.info('Storyboard saved:', {
       projectId,
       shotCount: results.length,
       compressed: compress,

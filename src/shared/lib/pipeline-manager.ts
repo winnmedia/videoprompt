@@ -11,6 +11,7 @@
 
 import type { Dispatch } from '@reduxjs/toolkit';
 import type { StoryInput, StoryStep, ScenarioData, PromptData, VideoData } from '@/shared/schemas/api-schemas';
+import { logger } from './logger';
 import {
   setProjectId,
   setCorrelationId,
@@ -77,7 +78,7 @@ export class PipelineManager {
     const newProjectId = projectId || this.generateProjectId();
     const correlationId = this.generateCorrelationId();
 
-    console.log('🚀 새 파이프라인 프로젝트 시작:', {
+    logger.info('🚀 새 파이프라인 프로젝트 시작:', {
       projectId: newProjectId,
       correlationId,
       timestamp: new Date().toISOString()
@@ -99,7 +100,7 @@ export class PipelineManager {
       throw new Error('Redux dispatch not initialized');
     }
 
-    console.log('✅ Story 단계 완료:', {
+    logger.info('✅ Story 단계 완료:', {
       projectId,
       storyId,
       stepCount: steps.length
@@ -135,7 +136,7 @@ export class PipelineManager {
       throw new Error('Redux dispatch not initialized');
     }
 
-    console.log('✅ Scenario 단계 완료:', {
+    logger.info('✅ Scenario 단계 완료:', {
       projectId,
       scenarioId,
       title: scenarioData.title
@@ -172,7 +173,7 @@ export class PipelineManager {
       throw new Error('Redux dispatch not initialized');
     }
 
-    console.log('✅ Prompt 단계 완료:', {
+    logger.info('✅ Prompt 단계 완료:', {
       projectId,
       promptId,
       keywordCount: enhancedKeywords.length
@@ -211,7 +212,7 @@ export class PipelineManager {
       throw new Error('Redux dispatch not initialized');
     }
 
-    console.log('✅ Video 단계 업데이트:', {
+    logger.info('✅ Video 단계 업데이트:', {
       projectId,
       videoId,
       jobId,
@@ -263,7 +264,7 @@ export class PipelineManager {
    * 파이프라인 진행 상황 로깅
    */
   private logPipelineProgress(projectId: string, step: string, status: string): void {
-    console.log(`📊 파이프라인 진행 상황:`, {
+    logger.info(`📊 파이프라인 진행 상황:`, {
       projectId,
       step,
       status,
@@ -338,7 +339,7 @@ export class PipelineManager {
       throw new Error('Redux dispatch not initialized');
     }
 
-    console.log('🔄 파이프라인 재시작:', { projectId });
+    logger.info('🔄 파이프라인 재시작:', { projectId });
 
     this.dispatch(resetPipeline());
     this.dispatch(setProjectId(projectId));
@@ -352,8 +353,8 @@ export class PipelineManager {
     if (process.env.NODE_ENV === 'development') {
       const status = this.getPipelineStatus(getState);
       console.group('🔍 파이프라인 디버그 정보');
-      console.log('상태 요약:', status);
-      console.log('전체 상태:', getState().pipeline);
+      logger.info('상태 요약:', status);
+      logger.info('전체 상태:', getState().pipeline);
       console.groupEnd();
     }
   }

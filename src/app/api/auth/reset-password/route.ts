@@ -4,6 +4,8 @@ import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { addCorsHeaders } from '@/shared/lib/cors-utils';
 import { checkRateLimit, RATE_LIMITS } from '@/shared/lib/rate-limiter';
+import { logger } from '@/shared/lib/logger';
+
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -63,7 +65,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { password, accessToken } = ResetPasswordSchema.parse(body);
 
-    console.log(`🔐 Password reset attempt with token`);
+    logger.info(`🔐 Password reset attempt with token`);
 
     // 환경변수 안전성 확인
     const supabaseUrl = process.env.SUPABASE_URL;
@@ -146,7 +148,7 @@ export async function POST(req: NextRequest) {
       return addCorsHeaders(response);
     }
 
-    console.log(`✅ Password reset successful for user: ${updateData.user.id}`);
+    logger.info(`✅ Password reset successful for user: ${updateData.user.id}`);
 
     const response = NextResponse.json(
       success({

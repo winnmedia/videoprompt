@@ -13,6 +13,8 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
 import { getDegradationMode, getSupabaseConfig } from '@/shared/config/env';
+import { logger } from './logger';
+
 
 // ============================================================================
 // 성능 최적화: 캐싱 시스템
@@ -83,7 +85,7 @@ const isDevelopment = process.env.NODE_ENV === 'development';
 
 function debugLog(message: string, data?: any) {
   if (isDevelopment) {
-    console.log(message, data);
+    logger.info(message, data);
   }
 }
 

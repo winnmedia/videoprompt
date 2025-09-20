@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
+import { logger } from '@/shared/lib/logger';
+
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -9,7 +11,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔍 간단한 Supabase 연결 테스트 시작');
+    logger.info('🔍 간단한 Supabase 연결 테스트 시작');
 
     // getSupabaseClientSafe를 사용한 안전한 클라이언트 초기화
     let supabase;
@@ -35,12 +37,12 @@ export async function GET(request: NextRequest) {
       .eq('table_schema', 'public')
       .limit(5);
 
-    console.log('📋 테이블 조회 결과:', { data: tables, error: tablesError });
+    logger.info('📋 테이블 조회 결과:', { data: tables, error: tablesError });
 
     // 2. 현재 사용자 정보 확인
     const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    console.log('👤 사용자 정보:', { user: user?.id || 'none', error: userError });
+    logger.info('👤 사용자 정보:', { user: user?.id || 'none', error: userError });
 
     const result = {
       timestamp: new Date().toISOString(),
@@ -57,7 +59,7 @@ export async function GET(request: NextRequest) {
       }
     };
 
-    console.log('✅ 테스트 완료:', result);
+    logger.info('✅ 테스트 완료:', result);
 
     return NextResponse.json(result);
 

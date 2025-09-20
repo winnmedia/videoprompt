@@ -14,6 +14,8 @@ export * from './schema-v3';
 import { z } from 'zod';
 import { ScenePromptSchema } from './schema';
 import { validateV3Prompt, UniversalPromptSchema, CineGeniusV3PromptSchema } from './schema-v3';
+import { logger } from '@/shared/lib/logger';
+
 
 // Re-export for convenience
 export { 
@@ -187,7 +189,7 @@ export function createV3Example() {
  */
 export function testAllSchemas() {
   if (process.env.NODE_ENV === 'development') {
-    console.log('🧪 Testing All Schemas...');
+    logger.info('🧪 Testing All Schemas...');
     
     try {
       // v2.x Legacy test
@@ -214,7 +216,7 @@ export function testAllSchemas() {
       };
       
       ScenePromptSchema.parse(legacyData);
-      console.log('✅ Legacy Schema Test Passed');
+      logger.info('✅ Legacy Schema Test Passed');
       
     } catch (error) {
       console.error('❌ Schema Test Failed:', error);
@@ -236,7 +238,7 @@ export function migrateV2ToV3(v2Data: any) {
     
     // 디버깅을 위한 로그 (테스트 환경에서만)
     if (process.env.NODE_ENV === 'test') {
-      console.log('validV2:', JSON.stringify(validV2, null, 2));
+      logger.info('validV2:', JSON.stringify(validV2, null, 2));
     }
     
     // v3.1 구조로 변환
@@ -353,7 +355,7 @@ export function migrateV2ToV3(v2Data: any) {
     
     // 디버깅을 위한 v3Data 출력
     if (process.env.NODE_ENV === 'test') {
-      console.log('Generated v3Data:', JSON.stringify(v3Data, null, 2));
+      logger.info('Generated v3Data:', JSON.stringify(v3Data, null, 2));
     }
     
     // v3.1 스키마로 검증
@@ -387,7 +389,7 @@ function convertTimestamp(timestamp: string): string {
  */
 export function validateSchemasOnStartup() {
   if (process.env.NODE_ENV === 'development') {
-    console.log('🚀 Validating Schemas on Startup...');
+    logger.info('🚀 Validating Schemas on Startup...');
     testAllSchemas();
   }
 }

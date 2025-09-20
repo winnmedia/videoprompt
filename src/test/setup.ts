@@ -2,6 +2,8 @@ import { vi, afterEach, beforeAll, afterAll } from 'vitest';
 import { setupServer } from 'msw/node';
 import { handlers } from '@/shared/lib/mocks/handlers';
 import '@testing-library/jest-dom';
+import { logger } from '@/shared/lib/logger';
+
 
 // 테스트 환경 변수 설정 (최우선)
 process.env.NODE_ENV = 'test';
@@ -96,7 +98,7 @@ beforeAll(async () => {
   // MSW 서버가 완전히 시작될 때까지 대기
   await new Promise(resolve => setTimeout(resolve, 100));
 
-  console.log('🔧 MSW 서버가 시작되었습니다.');
+  logger.info('🔧 MSW 서버가 시작되었습니다.');
 });
 
 afterEach(() => {

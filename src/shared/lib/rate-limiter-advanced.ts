@@ -1,3 +1,5 @@
+import { logger } from './logger';
+
 /**
  * 고급 Rate Limiting 시스템
  *
@@ -280,11 +282,11 @@ setInterval(() => {
     totalCleaned += cleaned;
 
     if (process.env.NODE_ENV === 'development' && cleaned > 0) {
-      console.log(`[RateLimiter] ${name}: cleaned ${cleaned} expired entries`);
+      logger.info(`[RateLimiter] ${name}: cleaned ${cleaned} expired entries`);
     }
   }
 
   if (process.env.NODE_ENV === 'development' && totalCleaned > 0) {
-    console.log(`[RateLimiter] Total cleaned: ${totalCleaned} entries`);
+    logger.info(`[RateLimiter] Total cleaned: ${totalCleaned} entries`);
   }
 }, 5 * 60 * 1000); // 5분마다 정리

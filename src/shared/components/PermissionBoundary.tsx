@@ -13,6 +13,7 @@
 
 import React, { useState, useCallback, useMemo } from 'react';
 import { useAuthContext } from '@/shared/hooks/useAuthContext';
+import { logger } from '@/shared/lib/logger';
 import {
   checkPermissionCached,
   createAccessibilityMessage,
@@ -236,7 +237,7 @@ export function PermissionBoundary({
         window.location.href = '/dashboard';
         break;
       default:
-        console.log('Alternative action:', permission.alternativeAction);
+        logger.info('Alternative action:', permission.alternativeAction);
     }
   }, [permission]);
 

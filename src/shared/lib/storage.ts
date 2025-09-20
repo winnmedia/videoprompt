@@ -1,3 +1,5 @@
+import { logger } from './logger';
+
 /**
  * 스토리 데이터 지속성을 위한 sessionStorage 유틸리티
  * FRD.md 게스트 세션 요구사항에 따라 구현
@@ -55,7 +57,7 @@ export function saveStoryData(data: StoryData): void {
     };
     
     sessionStorage.setItem(STORY_STORAGE_KEY, JSON.stringify(storyWithTimestamp));
-    console.log('Story data saved to sessionStorage:', storyWithTimestamp.id);
+    logger.info('Story data saved to sessionStorage:', storyWithTimestamp.id);
   } catch (error) {
     console.warn('Failed to save story data to sessionStorage:', error);
   }
@@ -72,7 +74,7 @@ export function loadStoryData(): StoryData | null {
     }
     
     const data = JSON.parse(stored) as StoryData;
-    console.log('Story data loaded from sessionStorage:', data.id);
+    logger.info('Story data loaded from sessionStorage:', data.id);
     return data;
   } catch (error) {
     console.warn('Failed to load story data from sessionStorage:', error);
@@ -86,7 +88,7 @@ export function loadStoryData(): StoryData | null {
 export function clearStoryData(): void {
   try {
     sessionStorage.removeItem(STORY_STORAGE_KEY);
-    console.log('Story data cleared from sessionStorage');
+    logger.info('Story data cleared from sessionStorage');
   } catch (error) {
     console.warn('Failed to clear story data from sessionStorage:', error);
   }

@@ -10,6 +10,8 @@
  */
 
 import { z } from 'zod';
+import { logger } from './logger';
+
 
 // ============================================================================
 // Environment Schema Definition
@@ -201,17 +203,17 @@ export function initializeEnvironment(): EnvironmentValidationResult {
   const result = validateEnvironment();
 
   // 로그 출력 (민감 정보 마스킹)
-  console.log('🔧 Environment Validation Result:');
-  console.log(`  Mode: ${result.environment?.NODE_ENV || 'unknown'}`);
-  console.log(`  Degradation: ${result.degradationMode}`);
-  console.log(`  Valid: ${result.isValid}`);
+  logger.info('🔧 Environment Validation Result:');
+  logger.info(`  Mode: ${result.environment?.NODE_ENV || 'unknown'}`);
+  logger.info(`  Degradation: ${result.degradationMode}`);
+  logger.info(`  Valid: ${result.isValid}`);
 
   // Capabilities 로그
-  console.log('🔐 Authentication Capabilities:');
-  console.log(`  Supabase Auth: ${result.capabilities.supabaseAuth ? '✅' : '❌'}`);
-  console.log(`  Legacy Auth: ${result.capabilities.legacyAuth ? '✅' : '❌'}`);
-  console.log(`  Database: ${result.capabilities.database ? '✅' : '❌'}`);
-  console.log(`  Full Admin: ${result.capabilities.fullAdmin ? '✅' : '❌'}`);
+  logger.info('🔐 Authentication Capabilities:');
+  logger.info(`  Supabase Auth: ${result.capabilities.supabaseAuth ? '✅' : '❌'}`);
+  logger.info(`  Legacy Auth: ${result.capabilities.legacyAuth ? '✅' : '❌'}`);
+  logger.info(`  Database: ${result.capabilities.database ? '✅' : '❌'}`);
+  logger.info(`  Full Admin: ${result.capabilities.fullAdmin ? '✅' : '❌'}`);
 
   // 경고사항 출력
   if (result.warnings.length > 0) {
@@ -227,12 +229,12 @@ export function initializeEnvironment(): EnvironmentValidationResult {
 
   // 환경변수 디버그 정보 (개발환경에서만)
   if (result.environment?.NODE_ENV === 'development') {
-    console.log('🔍 Environment Debug Info:');
-    console.log(`  SUPABASE_URL: ${maskUrl(result.environment.SUPABASE_URL)}`);
-    console.log(`  SUPABASE_ANON_KEY: ${maskKey(result.environment.SUPABASE_ANON_KEY)}`);
-    console.log(`  SUPABASE_SERVICE_ROLE_KEY: ${maskKey(result.environment.SUPABASE_SERVICE_ROLE_KEY)}`);
-    console.log(`  JWT_SECRET: ${maskKey(result.environment.JWT_SECRET)}`);
-    console.log(`  DATABASE_URL: ${maskUrl(result.environment.DATABASE_URL)}`);
+    logger.info('🔍 Environment Debug Info:');
+    logger.info(`  SUPABASE_URL: ${maskUrl(result.environment.SUPABASE_URL)}`);
+    logger.info(`  SUPABASE_ANON_KEY: ${maskKey(result.environment.SUPABASE_ANON_KEY)}`);
+    logger.info(`  SUPABASE_SERVICE_ROLE_KEY: ${maskKey(result.environment.SUPABASE_SERVICE_ROLE_KEY)}`);
+    logger.info(`  JWT_SECRET: ${maskKey(result.environment.JWT_SECRET)}`);
+    logger.info(`  DATABASE_URL: ${maskUrl(result.environment.DATABASE_URL)}`);
   }
 
   return result;

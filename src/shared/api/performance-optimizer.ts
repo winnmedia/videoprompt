@@ -11,6 +11,8 @@
 
 import { z } from 'zod';
 import type { EndpointDefinition } from '@reduxjs/toolkit/query';
+import { logger } from '@/shared/lib/logger';
+
 
 // ============================================================================
 // 성능 메트릭 타입 정의
@@ -603,9 +605,9 @@ export const PerformanceUtils = {
   debugPerformance: () => {
     if (process.env.NODE_ENV === 'development') {
       console.group('🚀 RTK Query Performance Debug');
-      console.log('Cache Stats:', adaptiveCache.getCacheStats());
-      console.log('Performance Report:', performanceMonitor.generatePerformanceReport());
-      console.log('Memory Usage:', getMemoryUsage());
+      logger.info('Cache Stats:', adaptiveCache.getCacheStats());
+      logger.info('Performance Report:', performanceMonitor.generatePerformanceReport());
+      logger.info('Memory Usage:', getMemoryUsage());
       console.groupEnd();
     }
   },

@@ -1,3 +1,5 @@
+import { logger } from '@/shared/lib/logger';
+
 /**
  * ByteDance SeeDream 4.0 Image Generation API Client
  *
@@ -96,7 +98,7 @@ export async function createSeedreamImage(
   const url = process.env.SEEDREAM_API_URL_CREATE || DEFAULT_CREATE_URL;
   const apiKey = process.env.SEEDREAM_API_KEY || process.env.MODELARK_API_KEY || '';
 
-  console.log('DEBUG: SeeDream 4.0 이미지 생성 시작:', {
+  logger.info('DEBUG: SeeDream 4.0 이미지 생성 시작:', {
     url,
     hasApiKey: !!apiKey,
     prompt: payload.prompt.slice(0, 100),
@@ -147,7 +149,7 @@ export async function createSeedreamImage(
       body.reference_images = payload.reference_images.slice(0, 6);
     }
 
-    console.log('DEBUG: SeeDream API 요청 전송:', {
+    logger.info('DEBUG: SeeDream API 요청 전송:', {
       model: requestedModel,
       promptLength: payload.prompt.length,
       hasInputImage: !!payload.image_url,
@@ -165,7 +167,7 @@ export async function createSeedreamImage(
     });
 
     const responseText = await response.text();
-    console.log('DEBUG: SeeDream API 응답:', {
+    logger.info('DEBUG: SeeDream API 응답:', {
       status: response.status,
       statusText: response.statusText,
       responseLength: responseText.length,
@@ -192,7 +194,7 @@ export async function createSeedreamImage(
     const jobId = extractJobId(json);
     const images = extractImageUrls(json);
 
-    console.log('DEBUG: SeeDream API 성공:', {
+    logger.info('DEBUG: SeeDream API 성공:', {
       jobId,
       imageCount: images.length,
       status: json.status,
@@ -222,7 +224,7 @@ export async function getSeedreamStatus(jobId: string): Promise<SeedreamStatusRe
   const url = base.replace('{id}', jobId);
   const apiKey = process.env.SEEDREAM_API_KEY || process.env.MODELARK_API_KEY || '';
 
-  console.log('DEBUG: SeeDream 상태 확인:', {
+  logger.info('DEBUG: SeeDream 상태 확인:', {
     jobId,
     url,
     hasApiKey: !!apiKey,
@@ -275,7 +277,7 @@ export async function getSeedreamStatus(jobId: string): Promise<SeedreamStatusRe
     const images = extractImageUrls(json);
     const status = json.status || 'unknown';
 
-    console.log('DEBUG: SeeDream 상태 확인 성공:', {
+    logger.info('DEBUG: SeeDream 상태 확인 성공:', {
       jobId,
       status,
       imageCount: images.length,

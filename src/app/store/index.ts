@@ -8,6 +8,8 @@ import { configureStore } from '@reduxjs/toolkit';
 import { persistStore, persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 import { combineReducers } from '@reduxjs/toolkit';
+import { logger } from '@/shared/lib/logger';
+
 
 // RTK Query API slice
 import { apiSlice, RTKQueryUtils } from '@/shared/api/api-slice';
@@ -123,13 +125,9 @@ export type RootState = ReturnType<typeof rootReducer>;
 export type AppDispatch = typeof store.dispatch;
 
 /**
- * 타입이 지정된 hooks
+ * 타입이 지정된 hooks (별도 파일에서 import)
  */
-import { useSelector, useDispatch } from 'react-redux';
-import type { TypedUseSelectorHook } from 'react-redux';
-
-export const useAppDispatch = () => useDispatch<AppDispatch>();
-export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
+export { useAppDispatch, useAppSelector } from './hooks';
 
 /**
  * Store 유틸리티
@@ -181,9 +179,9 @@ export class StoreUtils {
       const { total, breakdown } = this.getStateSize(state);
 
       console.group('🏪 Redux Store Debug Info');
-      console.log('Total size:', total, 'bytes');
-      console.log('Size breakdown:', breakdown);
-      console.log('Current state:', state);
+      logger.info('Total size:', total, 'bytes');
+      logger.info('Size breakdown:', breakdown);
+      logger.info('Current state:', state);
       console.groupEnd();
     }
   }

@@ -5,7 +5,10 @@
 
 import { useCallback, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/app/store';
+import { logger } from '@/shared/lib/logger';
 import {
+
+
   setProviderConfig,
   setApiKeyValid,
   setApiKeyInvalid,
@@ -16,8 +19,7 @@ import {
   selectProviderStatus,
   selectApiKeyStatus,
   selectProviderSummary,
-  selectIsProviderAvailable,
-} from '../store/seedance-provider-slice';
+  selectIsProviderAvailable,} from '../store/seedance-provider-slice';
 import {
   getApiKeyStatus,
   shouldUseMockProvider,
@@ -43,7 +45,7 @@ export function useSeedanceProvider() {
    */
   const initializeProvider = useCallback(async () => {
     try {
-      console.log('🔧 Seedance Provider 초기화 시작');
+      logger.info('🔧 Seedance Provider 초기화 시작');
 
       // 1. 환경변수 및 API 키 상태 확인
       const apiKeyInfo = getApiKeyStatus();
@@ -64,14 +66,14 @@ export function useSeedanceProvider() {
         }));
 
         dispatch(setProviderReady());
-        console.log('✅ Seedance Provider 준비 완료 (실제 API)');
+        logger.info('✅ Seedance Provider 준비 완료 (실제 API)');
       } else if (apiKeyInfo.shouldUseMock) {
         dispatch(enableMockMode({
           reason: apiKeyInfo.hasApiKey
             ? '유효하지 않은 API 키로 인한 Mock 모드 활성화'
             : 'API 키 없음으로 인한 Mock 모드 활성화'
         }));
-        console.log('🎭 Seedance Provider Mock 모드 활성화');
+        logger.info('🎭 Seedance Provider Mock 모드 활성화');
       } else {
         // 프로덕션에서 유효하지 않은 키
         dispatch(setApiKeyInvalid({

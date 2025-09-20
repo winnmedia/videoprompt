@@ -7,6 +7,7 @@
 import { useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from '@/shared/lib/logger';
 import {
   updateStoryData,
   updateScenarioData,
@@ -91,7 +92,7 @@ export function usePipelineIntegration(): UsePipelineIntegrationReturn {
 
   const resetPipeline = useCallback(() => {
     // Redux 액션으로 파이프라인 초기화 (별도 구현 필요)
-    console.log('파이프라인 초기화');
+    logger.info('파이프라인 초기화');
   }, []);
 
   // ============================================================================
@@ -404,7 +405,7 @@ export function usePipelineIntegration(): UsePipelineIntegrationReturn {
 
       if (result.success && result.data) {
         // 받은 상태로 Redux 업데이트
-        console.log('파이프라인 상태 조회 성공:', result.data);
+        logger.info('파이프라인 상태 조회 성공:', result.data);
         // TODO: 상태 업데이트 로직 구현
       }
     } catch (error) {
@@ -522,16 +523,16 @@ export function useWorkflowStateCompat() {
     },
 
     handleExport: () => {
-      console.log('내보내기 (레거시)');
+      logger.info('내보내기 (레거시)');
     },
 
     setCurrentStep: (step: number) => {
       const stepMap = ['story', 'scenario', 'prompt', 'video'];
-      console.log(`단계 변경: ${stepMap[step - 1]}`);
+      logger.info(`단계 변경: ${stepMap[step - 1]}`);
     },
 
     updateWorkflowData: (updates: any) => {
-      console.log('워크플로우 데이터 업데이트 (레거시):', updates);
+      logger.info('워크플로우 데이터 업데이트 (레거시):', updates);
     }
   };
 }

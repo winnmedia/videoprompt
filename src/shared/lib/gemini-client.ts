@@ -1,3 +1,5 @@
+import { logger } from './logger';
+
 /**
  * Gemini 2.0 Flash Preview Client
  *
@@ -176,16 +178,16 @@ export class GeminiClient {
       if (attempt > 0) {
         const delay = exponentialBackoff(attempt - 1);
         if (enableLogging) {
-          console.log(`[Gemini] Retry attempt ${attempt} after ${delay}ms delay`);
+          logger.info(`[Gemini] Retry attempt ${attempt} after ${delay}ms delay`);
         }
         await sleep(delay);
       }
 
       try {
         if (enableLogging) {
-          console.log(`[Gemini] API call attempt ${attempt + 1}/${maxRetries}`);
-          console.log(`[Gemini] Model: ${this.config.model}`);
-          console.log(`[Gemini] Token limit: ${this.config.maxOutputTokens}`);
+          logger.info(`[Gemini] API call attempt ${attempt + 1}/${maxRetries}`);
+          logger.info(`[Gemini] Model: ${this.config.model}`);
+          logger.info(`[Gemini] Token limit: ${this.config.maxOutputTokens}`);
         }
 
         const response = await fetch(
@@ -222,7 +224,7 @@ export class GeminiClient {
         const data: GeminiResponse = await response.json();
 
         if (enableLogging) {
-          console.log('[Gemini] API response received', {
+          logger.info('[Gemini] API response received', {
             candidates: data.candidates?.length || 0,
             hasContent: !!data.candidates?.[0]?.content,
             finishReason: data.candidates?.[0]?.finishReason
@@ -253,7 +255,7 @@ export class GeminiClient {
         }
 
         if (enableLogging) {
-          console.log(`[Gemini] Success! Generated ${generatedText.length} characters`);
+          logger.info(`[Gemini] Success! Generated ${generatedText.length} characters`);
         }
 
         return generatedText;

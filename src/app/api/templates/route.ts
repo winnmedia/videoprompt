@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
 import { failure, success, getTraceId, supabaseErrors } from '@/shared/lib/api-response';
+import { logger } from '@/shared/lib/logger';
+
 
 export const runtime = 'nodejs';
 
@@ -44,7 +46,7 @@ export async function OPTIONS() {
 // Get templates list
 export async function GET(req: NextRequest) {
   const traceId = getTraceId(req);
-  console.log(`[Templates ${traceId}] 📋 템플릿 목록 조회`);
+  logger.info(`[Templates ${traceId}] 📋 템플릿 목록 조회`);
 
   try {
     // Get query parameters
@@ -53,14 +55,14 @@ export async function GET(req: NextRequest) {
     const page = parseInt(url.searchParams.get('page') || '1');
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '20'), 100); // Max 100 items per page
 
-    console.log(`[Templates ${traceId}] 📋 조회 조건: category=${category}, page=${page}, limit=${limit}`);
+    logger.info(`[Templates ${traceId}] 📋 조회 조건: category=${category}, page=${page}, limit=${limit}`);
 
     // Supabase에서 템플릿 데이터 조회
     let templates: Template[] = [];
     let total = 0;
 
     try {
-      console.log(`[Templates ${traceId}] 🔍 Supabase에서 템플릿 조회 시작`);
+      logger.info(`[Templates ${traceId}] 🔍 Supabase에서 템플릿 조회 시작`);
 
       // getSupabaseClientSafe를 사용한 안전한 클라이언트 초기화
       let supabase;
@@ -123,7 +125,7 @@ export async function GET(req: NextRequest) {
       }
 
       // Supabase 데이터 성공적으로 조회됨
-      console.log(`[Templates ${traceId}] ✅ Supabase에서 ${data?.length || 0}개 템플릿 조회`);
+      logger.info(`[Templates ${traceId}] ✅ Supabase에서 ${data?.length || 0}개 템플릿 조회`);
 
       templates = (data || []).map(item => ({
         id: item.id,
@@ -178,7 +180,7 @@ export async function GET(req: NextRequest) {
       },
     };
 
-    console.log(`[Templates ${traceId}] ✅ 템플릿 ${templates.length}개 조회 완료`);
+    logger.info(`[Templates ${traceId}] ✅ 템플릿 ${templates.length}개 조회 완료`);
 
     // Set cache headers for performance
     const headers = new Headers();
@@ -217,7 +219,7 @@ export async function HEAD(req: NextRequest) {
   const traceId = getTraceId(req);
 
   try {
-    console.log(`[Templates ${traceId}] 🏥 Health check`);
+    logger.info(`[Templates ${traceId}] 🏥 Health check`);
 
     return new NextResponse(null, {
       status: 200,

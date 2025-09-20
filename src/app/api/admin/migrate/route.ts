@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdminClient } from '@/shared/lib/supabase-client';
+import { logger } from '@/shared/lib/logger';
+
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -80,7 +82,7 @@ CREATE INDEX IF NOT EXISTS idx_password_reset_token ON "PasswordReset"(token);
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🚀 Auth 테이블 마이그레이션 시작...');
+    logger.info('🚀 Auth 테이블 마이그레이션 시작...');
 
     // 안전한 Supabase Admin 클라이언트 가져오기
     const supabaseResult = await getSupabaseAdminClient({
@@ -103,7 +105,7 @@ export async function POST(request: NextRequest) {
     const supabase = supabaseResult.client;
 
     // SQL 실행은 현재 제한적이므로 테이블별로 개별 생성 시도
-    console.log('📋 테이블 생성 중...');
+    logger.info('📋 테이블 생성 중...');
     const createdTables: string[] = [];
     const errors: string[] = [];
 
@@ -129,7 +131,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (createdTables.length === authTables.length) {
-      console.log('✅ 모든 Auth 테이블이 이미 존재합니다');
+      logger.info('✅ 모든 Auth 테이블이 이미 존재합니다');
       return NextResponse.json({
         success: true,
         message: '모든 Auth 테이블이 이미 존재합니다',
@@ -137,7 +139,7 @@ export async function POST(request: NextRequest) {
         timestamp: new Date().toISOString()
       });
     } else {
-      console.log('⚠️ 일부 테이블이 누락됨, 수동 마이그레이션 필요');
+      logger.info('⚠️ 일부 테이블이 누락됨, 수동 마이그레이션 필요');
       return NextResponse.json({
         success: false,
         error: 'Supabase JS 클라이언트로는 직접 DDL 실행이 제한됩니다. Supabase Dashboard에서 수동으로 SQL을 실행해주세요.',

@@ -1,5 +1,7 @@
 import { createSeedanceVideo, getSeedanceStatus } from './seedance';
 import { generateVeoVideo, checkVeoVideoStatus } from './veo';
+import { logger } from '@/shared/lib/logger';
+
 
 export type VideoProvider = 'seedance' | 'veo';
 
@@ -51,7 +53,7 @@ export async function generateVideo(
 
   // Veo 선택
   if (provider === 'veo') {
-    console.log('DEBUG: Using Veo for video generation');
+    logger.info('DEBUG: Using Veo for video generation');
     const result = await generateVeoVideo({
       prompt,
       aspectRatio,
@@ -68,7 +70,7 @@ export async function generateVideo(
 
   // Seedance 선택
   if (provider === 'seedance') {
-    console.log('DEBUG: Using Seedance for video generation');
+    logger.info('DEBUG: Using Seedance for video generation');
     const result = await createSeedanceVideo({
       prompt,
       aspect_ratio: aspectRatio,

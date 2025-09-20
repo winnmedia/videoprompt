@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSuccessResponse, createErrorResponse } from '@/shared/schemas/api.schema';
 import { withOptionalAuth } from '@/shared/lib/auth-middleware-v2';
 import { savePrompt } from '@/entities/planning';
+import { logger } from '@/shared/lib/logger';
+
 // import { createDualStorageDependencies } from '@/entities/planning'; // Prisma 의존성으로 인한 임시 비활성화
 import type { PromptMetadata } from '@/shared/types/metadata';
 import type { PromptContent } from '@/entities/planning';
@@ -48,10 +50,10 @@ let recentSaves: Map<string, number[]> = new Map();
  */
 export const GET = withOptionalAuth(async (request: NextRequest, { user, authContext }) => {
   try {
-    console.log('✅ Planning prompts 인증 성공:', user.id);
+    logger.info('✅ Planning prompts 인증 성공:', user.id);
 
     // Prisma 임시 비활성화 - 더미 데이터 반환
-    console.log('✅ Planning prompts 인증 성공 (Prisma disabled):', user.id);
+    logger.info('✅ Planning prompts 인증 성공 (Prisma disabled):', user.id);
 
     // 임시 더미 데이터 (Prisma 제거로 인한 대체)
     const projects = [];
@@ -180,7 +182,7 @@ export const POST = withOptionalAuth(async (request: NextRequest, { user, authCo
     // 듀얼 스토리지 의존성 임시 비활성화 (Prisma 제거로 인한)
     const dualStorageDependencies = null;
 
-    console.log('⚠️ Dual storage dependencies disabled (Prisma removed)');
+    logger.info('⚠️ Dual storage dependencies disabled (Prisma removed)');
 
     // 프롬프트 Content 생성
     const promptContent: PromptContent = {
@@ -216,14 +218,14 @@ export const POST = withOptionalAuth(async (request: NextRequest, { user, authCo
       }
     };
 
-    console.log('💾 Starting prompt save process:', {
+    logger.info('💾 Starting prompt save process:', {
       promptId: promptContent.id,
       userId: user.id,
       scenarioTitle: promptData.scenarioTitle
     });
 
     // Planning Service 임시 비활성화 (Prisma 제거로 인한)
-    console.log('⚠️ Prompt save operation skipped (Prisma dependencies removed)');
+    logger.info('⚠️ Prompt save operation skipped (Prisma dependencies removed)');
 
     // 더미 성공 응답 생성
     const saveResult = {
@@ -240,7 +242,7 @@ export const POST = withOptionalAuth(async (request: NextRequest, { user, authCo
     // Rate limiting 기록 업데이트
     updateRateLimitRecord(user.id ?? 'anonymous');
 
-    console.log('✅ Prompt saved successfully:', {
+    logger.info('✅ Prompt saved successfully:', {
       promptId: promptContent.id,
       storage: saveResult.storage,
       consistency: saveResult.consistency

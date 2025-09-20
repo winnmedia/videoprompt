@@ -6,15 +6,15 @@ const nextConfig = {
   // Prisma 제거 완료 - serverExternalPackages 정리
   // serverExternalPackages: ['@prisma/client'], // 제거됨
 
-  // 품질 게이트 일시 비활성화 - 배포 우선
+  // 품질 게이트 점진적 복원 - Critical Priority 완료로 ESLint 활성화
   eslint: {
-    ignoreDuringBuilds: true, // ESLint 검증 일시 비활성화 - 빠른 배포
+    ignoreDuringBuilds: false, // ESLint 검증 활성화 - 구문 오류 해결 완료
     dirs: ['src'], // 소스 디렉토리만 검사
   },
 
-  // TypeScript 컴파일 최적화 - 일시 비활성화 (테스트 파일 정리 필요)
+  // TypeScript 컴파일 점진적 복원 - 구문 오류 해결 완료로 활성화
   typescript: {
-    ignoreBuildErrors: true, // TypeScript 검증 일시 비활성화 - 테스트 파일 정리 후 활성화
+    ignoreBuildErrors: false, // TypeScript 검증 활성화 - 구문 오류 완전 해결됨
     tsconfigPath: './tsconfig.json',
   },
 

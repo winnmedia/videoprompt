@@ -14,6 +14,7 @@ import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import * as jwt from 'jsonwebtoken';
 import { getSupabaseServerClient, getSupabaseClient } from './supabase-client';
+import { logger } from './logger';
 import {
   AuthResult,
   AuthContext,
@@ -53,7 +54,7 @@ export async function authenticateRequest(
     // 옵션 검증 및 기본값 적용
     const validatedOptions = AuthOptionsContract.parse(options);
 
-    console.log(`🔐 Auth request started`, {
+    logger.info(`🔐 Auth request started`, {
       requestId,
       url: req.url,
       options: validatedOptions
@@ -77,7 +78,7 @@ export async function authenticateRequest(
     const capabilities = getEnvironmentCapabilities();
     const supabaseConfig = getSupabaseConfig();
 
-    console.log(`🔧 Environment validation`, {
+    logger.info(`🔧 Environment validation`, {
       requestId,
       degradationMode,
       isConfigured: supabaseConfig.isConfigured,
@@ -93,7 +94,7 @@ export async function authenticateRequest(
     });
 
     if (authResult.success) {
-      console.log(`✅ Authentication successful`, {
+      logger.info(`✅ Authentication successful`, {
         requestId,
         userId: authResult.context.user.id,
         tokenType: authResult.context.user.tokenType,
@@ -294,7 +295,7 @@ async function checkRateLimit(req: NextRequest, options: AuthOptions): Promise<R
   }
 
   // 정상 통과
-  console.log(`✅ Rate limit check passed for ${clientKey}`, {
+  logger.info(`✅ Rate limit check passed for ${clientKey}`, {
     endpoint,
     count: clientData.count,
     limit: limits.maxPerMinute,
@@ -350,7 +351,7 @@ async function performAuthentication(
     if (supabaseResult.success) {
       return supabaseResult;
     }
-    console.log(`Supabase auth failed, trying legacy...`, {
+    logger.info(`Supabase auth failed, trying legacy...`, {
       requestId,
       reason: !supabaseResult.success ? supabaseResult.error.code : 'unknown'
     });
@@ -362,7 +363,7 @@ async function performAuthentication(
     if (legacyResult.success) {
       return legacyResult;
     }
-    console.log(`Legacy auth failed`, {
+    logger.info(`Legacy auth failed`, {
       requestId,
       reason: !legacyResult.success ? legacyResult.error.code : 'unknown'
     });
@@ -370,7 +371,7 @@ async function performAuthentication(
 
   // 3순위: 게스트 모드 (명시적으로 allowGuest가 true일 때만)
   if (options.allowGuest === true) {
-    console.log(`🔄 Auth failed but allowGuest=true, returning guest result`, {
+    logger.info(`🔄 Auth failed but allowGuest=true, returning guest result`, {
       requestId,
       degradationMode
     });
@@ -480,7 +481,7 @@ async function authenticateWithSupabase(
 
     // allowGuest 옵션이 명시적으로 true인 경우에만 게스트 반환
     if (options.allowGuest === true) {
-      console.log(`🔄 Supabase auth failed but allowGuest=true, returning guest result`, { requestId });
+      logger.info(`🔄 Supabase auth failed but allowGuest=true, returning guest result`, { requestId });
       return createGuestAuthResult(degradationMode, requestId);
     }
 
@@ -581,7 +582,7 @@ async function authenticateWithLegacyJWT(
 
     // allowGuest 옵션이 명시적으로 true인 경우에만 게스트 반환
     if (options.allowGuest === true) {
-      console.log(`🔄 Legacy JWT auth failed but allowGuest=true, returning guest result`, { requestId });
+      logger.info(`🔄 Legacy JWT auth failed but allowGuest=true, returning guest result`, { requestId });
       return createGuestAuthResult(degradationMode, requestId);
     }
 
@@ -607,7 +608,7 @@ async function authenticateWithLegacyJWT(
 
     // allowGuest 옵션이 명시적으로 true인 경우에만 게스트 반환
     if (options.allowGuest === true) {
-      console.log(`🔄 Legacy JWT error but allowGuest=true, returning guest result`, {
+      logger.info(`🔄 Legacy JWT error but allowGuest=true, returning guest result`, {
         requestId,
         error: error instanceof Error ? error.message : 'unknown'
       });

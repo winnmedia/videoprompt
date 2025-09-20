@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { logger } from '@/shared/lib/logger';
 import {
+
+
   createSeedreamImage,
   generateSingleImage,
   generateBatchImages,
   editImage,
-  type SeedreamCreatePayload
-} from '@/lib/providers/seedream';
+  type SeedreamCreatePayload} from '@/lib/providers/seedream';
 import {
   createValidationErrorResponse,
   createErrorResponse,
@@ -45,7 +47,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    console.log('DEBUG: SeeDream 이미지 생성 요청 수신:', {
+    logger.info('DEBUG: SeeDream 이미지 생성 요청 수신:', {
       hasPrompt: !!body.prompt,
       promptLength: body.prompt?.length || 0,
       batchSize: body.batch_size || 1,
@@ -77,7 +79,7 @@ export async function POST(request: NextRequest) {
       const user = await getUserIdFromRequest(request);
       userId = user || null;
     } catch (authError) {
-      console.log('DEBUG: SeeDream 인증 실패 (계속 진행):', authError);
+      logger.info('DEBUG: SeeDream 인증 실패 (계속 진행):', authError);
       // 인증 실패해도 계속 진행 (익명 사용자 허용)
     }
 
@@ -93,7 +95,7 @@ export async function POST(request: NextRequest) {
       reference_images: data.reference_images,
     };
 
-    console.log('DEBUG: SeeDream API 호출 시작:', {
+    logger.info('DEBUG: SeeDream API 호출 시작:', {
       mode: data.image_url ? 'edit' : 'generate',
       batchSize: data.batch_size,
       aspectRatio: data.aspect_ratio,
@@ -129,7 +131,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('DEBUG: SeeDream API 호출 성공:', {
+    logger.info('DEBUG: SeeDream API 호출 성공:', {
       jobId: result.jobId,
       status: result.status,
       imageCount: result.images?.length || 0,

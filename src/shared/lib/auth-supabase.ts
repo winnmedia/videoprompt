@@ -7,6 +7,8 @@
 import type { NextRequest } from 'next/server';
 import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import type { User } from '@supabase/supabase-js';
+import { logger } from './logger';
+
 
 /**
  * Supabase 에러 메시지를 사용자 친화적인 한국어로 변환
@@ -115,7 +117,7 @@ export async function getSupabaseUserFromToken(token: string): Promise<User | nu
       return null;
     }
 
-    console.log(`🔑 Supabase authentication successful: ${user.id}`);
+    logger.info(`🔑 Supabase authentication successful: ${user.id}`);
     return user;
   } catch (error) {
     console.error('🚨 Supabase token parsing error:', error);
@@ -192,7 +194,7 @@ export async function requireSupabaseAuthentication(req: NextRequest): Promise<s
     return null;
   }
 
-  console.log('✅ Supabase 인증 성공:', userId);
+  logger.info('✅ Supabase 인증 성공:', userId);
   return userId;
 }
 

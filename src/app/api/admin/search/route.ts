@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
+
 
 export async function GET(req: Request) {
   try {
     // TODO: Supabase 검색 구현 필요
-    console.log('🔍 Admin search - Supabase 구현 대기 중');
+    logger.info('🔍 Admin search - Supabase 구현 대기 중');
 
     return NextResponse.json({
       videos: [],

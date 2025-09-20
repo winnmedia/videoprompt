@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
+import { logger } from '@/shared/lib/logger';
+
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,7 +13,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   const traceId = getTraceId(request);
-  console.log(`[Health Check ${traceId}] 🔍 Supabase 연결 상태 확인 시작`);
+  logger.info(`[Health Check ${traceId}] 🔍 Supabase 연결 상태 확인 시작`);
 
   try {
     const healthResults = {
@@ -46,7 +48,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 1. 기본 연결 테스트
-    console.log(`[Health Check ${traceId}] 📡 기본 연결 테스트 중...`);
+    logger.info(`[Health Check ${traceId}] 📡 기본 연결 테스트 중...`);
     const startTime = Date.now();
     try {
       const { data, error } = await supabase.from('users').select('count').limit(1);
@@ -66,7 +68,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Public Client 테스트
-    console.log(`[Health Check ${traceId}] 👤 Public Client 테스트 중...`);
+    logger.info(`[Health Check ${traceId}] 👤 Public Client 테스트 중...`);
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
       healthResults.supabase.publicClient = {
@@ -83,7 +85,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. Admin Client 테스트 (사용 가능한 경우)
-    console.log(`[Health Check ${traceId}] 🔑 Admin Client 테스트 중...`);
+    logger.info(`[Health Check ${traceId}] 🔑 Admin Client 테스트 중...`);
     let supabaseAdmin;
     try {
       supabaseAdmin = await getSupabaseClientSafe('admin');
@@ -124,7 +126,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 4. 인증 기능 테스트 (회원가입 가능 여부)
-    console.log(`[Health Check ${traceId}] 🔐 인증 기능 테스트 중...`);
+    logger.info(`[Health Check ${traceId}] 🔐 인증 기능 테스트 중...`);
     try {
       // 테스트용 더미 회원가입 시도 (실제로는 생성하지 않음)
       const testEmail = `healthcheck+${Date.now()}@test.local`;
@@ -155,7 +157,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 5. 데이터베이스 쿼리 테스트
-    console.log(`[Health Check ${traceId}] 🗄️ 데이터베이스 쿼리 테스트 중...`);
+    logger.info(`[Health Check ${traceId}] 🗄️ 데이터베이스 쿼리 테스트 중...`);
     try {
       const { data, error } = await supabase.rpc('version');
 
@@ -174,7 +176,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 6. Storage 기능 테스트
-    console.log(`[Health Check ${traceId}] 📦 Storage 기능 테스트 중...`);
+    logger.info(`[Health Check ${traceId}] 📦 Storage 기능 테스트 중...`);
     try {
       const { data: buckets, error } = await supabase.storage.listBuckets();
 
@@ -206,7 +208,7 @@ export async function GET(request: NextRequest) {
     const overallHealth = allStatuses.every(status => status === 'healthy') ? 'healthy' :
                          allStatuses.some(status => status === 'error') ? 'degraded' : 'unknown';
 
-    console.log(`[Health Check ${traceId}] ✅ Supabase 상태 확인 완료: ${overallHealth}`);
+    logger.info(`[Health Check ${traceId}] ✅ Supabase 상태 확인 완료: ${overallHealth}`);
 
     return NextResponse.json(
       success({
@@ -246,7 +248,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const { runMigrationTest = false, createTestData = false } = body;
 
-    console.log(`[Health Check ${traceId}] 🔬 상세 진단 모드 실행`);
+    logger.info(`[Health Check ${traceId}] 🔬 상세 진단 모드 실행`);
 
     // Supabase 클라이언트 초기화
     let supabase;
@@ -276,7 +278,7 @@ export async function POST(request: NextRequest) {
 
     if (runMigrationTest) {
       // 마이그레이션 준비 상태 테스트
-      console.log(`[Health Check ${traceId}] 📋 마이그레이션 준비 상태 확인`);
+      logger.info(`[Health Check ${traceId}] 📋 마이그레이션 준비 상태 확인`);
 
       try {
         // 기존 테이블 구조 확인
@@ -297,7 +299,7 @@ export async function POST(request: NextRequest) {
 
     if (createTestData) {
       // 테스트 데이터 생성 시도
-      console.log(`[Health Check ${traceId}] 🧪 테스트 데이터 생성 시도`);
+      logger.info(`[Health Check ${traceId}] 🧪 테스트 데이터 생성 시도`);
 
       try {
         // 간단한 테스트 테이블 생성 및 데이터 삽입 시도

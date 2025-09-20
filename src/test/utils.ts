@@ -4,6 +4,8 @@
  */
 
 import { ApiClient } from './api-client';
+import { logger } from '@/shared/lib/logger';
+
 
 // 테스트 데이터 타입 정의
 export interface TestUser {
@@ -158,7 +160,7 @@ export class TestUserManager {
    */
   async cleanupAllUsers(): Promise<void> {
     if (!isCleanupEnabled()) {
-      console.log('Cleanup is disabled. Skipping user cleanup.');
+      logger.info('Cleanup is disabled. Skipping user cleanup.');
       return;
     }
 

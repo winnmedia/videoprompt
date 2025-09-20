@@ -1,3 +1,5 @@
+import { logger } from './logger';
+
 /**
  * 실시간 품질 모니터링 시스템
  * - 테스트 실행 모니터링
@@ -446,7 +448,7 @@ class QualityMonitor {
    */
   private async sendEmailAlert(alertData: any): Promise<void> {
     // 실제 구현에서는 이메일 서비스 사용
-    console.log('📧 Email alert would be sent:', alertData);
+    logger.info('📧 Email alert would be sent:', alertData);
   }
 
   /**

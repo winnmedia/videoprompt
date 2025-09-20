@@ -8,6 +8,8 @@
  */
 
 import { MCPServerConfig, MCP_SERVERS } from './index';
+import { logger } from '@/shared/lib/logger';
+
 
 export interface TestContext {
   testId: string;
@@ -178,7 +180,7 @@ export class BrowserTestManager {
   private async initializePlaywrightMCP(): Promise<void> {
     try {
       // MCP 서버 연결 로직 (실제 구현 필요)
-      console.log('Playwright MCP 서버 초기화 중...');
+      logger.info('Playwright MCP 서버 초기화 중...');
     } catch (error) {
       console.error('Playwright MCP 서버 초기화 실패:', error);
     }
@@ -388,7 +390,7 @@ export class SequentialTestManager {
   private async executeTestStep(step: any, context: TestContext): Promise<void> {
     // 실제 테스트 단계 실행 로직
     // 각 단계별로 다른 테스트 로직을 실행
-    console.log(`Executing test step: ${step.name}`);
+    logger.info(`Executing test step: ${step.name}`);
 
     // 시뮬레이션된 지연
     await new Promise((resolve) => setTimeout(resolve, 100));
