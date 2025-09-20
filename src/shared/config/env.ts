@@ -82,10 +82,45 @@ let cachedEnv: Readonly<Env> | null = null;
 
 export function getEnv(): Readonly<Env> {
   if (cachedEnv) return cachedEnv;
-  const parsed = EnvSchema.safeParse(process.env);
+
+  // 브라우저 환경에서는 서버 전용 환경변수를 제외한 스키마 사용
+  const isClientSide = typeof window !== 'undefined';
+
+  let envToValidate = process.env;
+  let schemaToUse = EnvSchema;
+
+  if (isClientSide) {
+    // 클라이언트에서는 서버 전용 환경변수는 mock으로 설정
+    envToValidate = {
+      ...process.env,
+      SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mock.supabase.co',
+      SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'mock_key_40_characters_long_for_client_side_validation',
+      DATABASE_URL: 'postgresql://mock_client_side_url',
+      SUPABASE_SERVICE_ROLE_KEY: 'mock_service_role_key_40_characters_long_for_client'
+    };
+  }
+
+  const parsed = schemaToUse.safeParse(envToValidate);
   if (!parsed.success) {
     const issues = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', ');
     const errorMessage = `환경변수 검증 실패 - 앱 시작을 차단합니다: ${issues}`;
+
+    // 클라이언트 사이드에서는 경고만 출력
+    if (isClientSide) {
+      console.warn('⚠️ CLIENT: Environment validation failed, using fallback values');
+      console.warn(errorMessage);
+
+      // 클라이언트용 기본값으로 구성
+      cachedEnv = Object.freeze({
+        ...process.env,
+        NODE_ENV: process.env.NODE_ENV || 'development',
+        SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mock.supabase.co',
+        SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'mock_key',
+        DATABASE_URL: 'postgresql://mock_client',
+        SUPABASE_SERVICE_ROLE_KEY: 'mock_service_role_key'
+      } as Env);
+      return cachedEnv;
+    }
 
     // 테스트 환경에서는 경고만 출력하고 계속 진행
     if (process.env.NODE_ENV === 'test') {
@@ -104,7 +139,7 @@ export function getEnv(): Readonly<Env> {
       return cachedEnv;
     }
 
-    // 환경 차단선: 즉시 실패 시스템
+    // 환경 차단선: 즉시 실패 시스템 (서버사이드만)
     console.error('🚨 CRITICAL: Environment validation failed');
     console.error('━'.repeat(70));
     console.error(errorMessage);
@@ -112,9 +147,13 @@ export function getEnv(): Readonly<Env> {
     console.error('💡 해결방법: 누락된 환경변수를 .env 파일에 추가하세요');
     console.error('📖 상세 가이드: README.md 또는 env.example 참조');
 
-    // 프로덕션에서는 즉시 종료
-    if (process.env.NODE_ENV === 'production') {
-      process.exit(1);
+    // 브라우저 환경에서는 process.exit() 불가능 - 에러만 throw
+    // 서버 환경에서만 프로세스 종료 시도
+    if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+      // 서버 사이드에서만 프로세스 종료
+      if (typeof process !== 'undefined' && process.exit) {
+        process.exit(1);
+      }
     }
 
     throw new Error(errorMessage);
@@ -210,10 +249,10 @@ export const envUtils = {
   }
 };
 
-// 프로덕션 환경 확인
-export const isProd = getEnv().NODE_ENV === 'production';
-export const isDev = getEnv().NODE_ENV === 'development';
-export const isTest = getEnv().NODE_ENV === 'test';
+// 프로덕션 환경 확인 (지연 초기화로 즉시 getEnv() 호출 방지)
+export const isProd = () => getEnv().NODE_ENV === 'production';
+export const isDev = () => getEnv().NODE_ENV === 'development';
+export const isTest = () => getEnv().NODE_ENV === 'test';
 
 // 환경변수 검증 헬퍼 (앱 초기화 시 사용) - 환경 차단선 구축
 export function initializeEnvironment(): void {
@@ -232,9 +271,12 @@ export function initializeEnvironment(): void {
   } catch (error) {
     console.error('🚨 Environment initialization failed:', error instanceof Error ? error.message : 'Unknown error');
 
-    // 프로덕션에서는 즉시 종료
-    if (process.env.NODE_ENV === 'production') {
-      process.exit(1);
+    // 브라우저 환경에서는 process.exit() 불가능
+    // 서버 환경에서만 프로세스 종료 시도
+    if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+      if (typeof process !== 'undefined' && process.exit) {
+        process.exit(1);
+      }
     }
 
     throw error;
