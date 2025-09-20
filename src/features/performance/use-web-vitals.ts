@@ -3,6 +3,7 @@ import { onCLS, onINP, onLCP, onFCP, onTTFB, type Metric, type ReportOpts } from
 import { usePerformanceStore } from '@/entities/performance'
 import { performanceApi } from '@/shared/api/performance-api'
 import type { CoreWebVital } from '@/entities/performance'
+import { logger } from '@/shared/lib/logger'
 
 export interface WebVitalsConfig extends ReportOpts {
   /**
@@ -116,7 +117,7 @@ export const useWebVitals = (config: WebVitalsConfig = {}): WebVitalsHook => {
   // 메트릭 처리 함수
   const handleMetric = useCallback((metric: Metric) => {
     if (mergedConfig.debug) {
-      console.log(`[Web Vitals] ${metric.name}:`, metric)
+      logger.info(`[Web Vitals] ${metric.name}:`, { metric })
     }
 
     const coreWebVital = transformMetric(metric)
@@ -159,7 +160,7 @@ export const useWebVitals = (config: WebVitalsConfig = {}): WebVitalsHook => {
       })
       
       if (mergedConfig.debug) {
-        console.log(`[Web Vitals] Sent ${metrics.length} metrics`)
+        logger.info(`[Web Vitals] Sent ${metrics.length} metrics`)
       }
     } catch (error) {
       if (mergedConfig.debug) {
@@ -253,7 +254,7 @@ export const useWebVitals = (config: WebVitalsConfig = {}): WebVitalsHook => {
     startMonitoring()
     
     if (mergedConfig.debug) {
-      console.log(`[Web Vitals] Started session: ${newSessionId}`)
+      logger.info(`[Web Vitals] Started session: ${newSessionId}`)
     }
   }, [setCurrentSession, startMonitoring, mergedConfig.debug])
 
@@ -266,7 +267,7 @@ export const useWebVitals = (config: WebVitalsConfig = {}): WebVitalsHook => {
     stopMonitoring()
     
     if (mergedConfig.debug) {
-      console.log('[Web Vitals] Stopped session')
+      logger.info('[Web Vitals] Stopped session')
     }
   }, [sendBatch, stopMonitoring, mergedConfig.debug])
 
@@ -278,7 +279,7 @@ export const useWebVitals = (config: WebVitalsConfig = {}): WebVitalsHook => {
       await performanceApi.sendMetrics(sessionMetrics)
       
       if (mergedConfig.debug) {
-        console.log('[Web Vitals] Metrics sent successfully')
+        logger.info('[Web Vitals] Metrics sent successfully')
       }
     } catch (error) {
       if (mergedConfig.debug) {
