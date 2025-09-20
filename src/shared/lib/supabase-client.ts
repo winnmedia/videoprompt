@@ -202,11 +202,12 @@ export async function getSupabaseClient(
         },
       });
 
-      // 6. 연결 테스트 (간단한 헬스체크)
-      const { error: healthError } = await client.from('_health').select('count').limit(1);
+      // 6. 연결 테스트 (기본 auth 상태 확인)
+      // _health 테이블 대신 auth.getUser()로 연결 상태 확인
+      const { error: healthError } = await client.auth.getUser();
 
-      // health 테이블이 없어도 정상 (403 Forbidden은 정상 응답)
-      if (healthError && !healthError.message.includes('permission') && !healthError.message.includes('not found')) {
+      // auth 관련 에러는 정상 (인증되지 않은 상태는 연결이 정상임을 의미)
+      if (healthError && !healthError.message.includes('JWT') && !healthError.message.includes('invalid') && !healthError.message.includes('expired')) {
         throw new Error(`Supabase health check failed: ${healthError.message}`);
       }
 
