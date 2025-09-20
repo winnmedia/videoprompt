@@ -68,49 +68,9 @@ export async function POST(req: NextRequest) {
     
     // 중복 사용자 확인 및 사용자 생성을 데이터베이스 작업으로 래핑
 
-    // 1단계: 데이터베이스 작업 (트랜잭션 내에서 수행)
-    const { user } = await executeDatabaseOperation(async () => {
-      // 중복 사용자 확인
-      // PRISMA_DISABLED: const existing = awaitprisma.user.findFirst({
-        where: { OR: [{ email }, { username }] },
-        select: { id: true },
-      });
-      if (existing) {
-        throw new Error('DUPLICATE_USER');
-      }
-
-      const passwordHash = await bcrypt.hash(password, 10);
-
-      // Generate secure verification token and 6-digit code
-      const verificationToken = crypto.randomBytes(32).toString('hex');
-      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-      
-      // Create user in a transaction with email verification record (이메일 전송 제외)
-      // PRISMA_DISABLED: const result = awaitprisma.$transaction(async (tx) => {
-        // Create the user with email verification disabled
-        const user = await tx.user.create({
-          data: {
-            email,
-            username,
-            passwordHash,
-            role: 'user',
-            emailVerified: true, // Email verification disabled
-          },
-          select: { id: true, email: true, username: true, createdAt: true },
-        });
-
-        // Email verification disabled - skip verification record creation
-        return { user };
-      });
-
-      return {
-        user: result.user
-      };
-    }, {
-      retries: 2,
-      timeout: 10000, // 이메일 제외하여 타임아웃 단축
-      fallbackMessage: '회원가입 처리 중 오류가 발생했습니다.'
-    });
+    // Legacy 파일 - 기능 비활성화
+    // 데이터베이스 작업이 비활성화되었으므로 에러 반환
+    throw new Error('LEGACY_DISABLED');
 
     // Email verification disabled - skip email sending
 
@@ -127,7 +87,11 @@ export async function POST(req: NextRequest) {
       return failure('DUPLICATE_USER', '이미 사용 중인 이메일 또는 사용자명입니다.', 409, undefined, traceId);
     }
     
-    // 데이터베이스 오류는 middleware에서 처리
-    return createDatabaseErrorResponse(e, traceId);
+    // Legacy 파일 오류 처리
+    if (e.message === 'LEGACY_DISABLED') {
+      return failure('SERVICE_UNAVAILABLE', 'Legacy API가 비활성화되었습니다.', 503, undefined, traceId);
+    }
+
+    return failure('INTERNAL_ERROR', '서버 오류가 발생했습니다.', 500, e.message, traceId);
   }
 }

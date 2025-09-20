@@ -140,16 +140,8 @@ export async function getUser(req: NextRequest) {
   const { prisma } = await import('@/lib/db');
 
   try {
-    // PRISMA_DISABLED: let user = awaitprisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        createdAt: true,
-        updatedAt: true,
-      }
-    });
+    // PRISMA_DISABLED: Prisma 비활성화로 사용자 정보 없음
+    const user = null;
 
     // 🔄 자동 동기화: Prisma User가 없으면 Supabase에서 동기화 시도
     if (!user) {
@@ -164,17 +156,8 @@ export async function getUser(req: NextRequest) {
         });
 
         if (syncResult.success) {
-          // 동기화 성공 후 다시 조회
-          // PRISMA_DISABLED: user = awaitprisma.user.findUnique({
-            where: { id: userId },
-            select: {
-              id: true,
-              email: true,
-              username: true,
-              createdAt: true,
-              updatedAt: true,
-            }
-          });
+          // 동기화 성공 후 다시 조회 (PRISMA_DISABLED)
+          // user = null; // Prisma 비활성화로 조회 불가
 
           logger.info('✅ 자동 동기화 성공:', userId, syncResult.operation);
         } else {
