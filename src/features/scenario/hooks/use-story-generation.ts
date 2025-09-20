@@ -57,6 +57,15 @@ export function useStoryGeneration() {
       const requestData = pipelineManager.injectProjectId(storyInput, activeProjectId);
       const result = await generateStory(requestData).unwrap();
 
+      // result 및 result.steps 존재 여부 체크
+      if (!result) {
+        throw new Error('스토리 생성 응답이 비어있습니다. 다시 시도해주세요.');
+      }
+
+      if (!result.steps || !Array.isArray(result.steps) || result.steps.length === 0) {
+        throw new Error('스토리 단계 데이터가 없습니다. 다시 시도해주세요.');
+      }
+
       // Redux 상태 업데이트 (기존 로직 유지)
       dispatch(setStorySteps(result.steps));
 
