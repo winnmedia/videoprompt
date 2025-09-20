@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { getUserIdFromRequest } from '@/shared/lib/auth';
 // import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { id } = await params;
 
     // VideoAsset 확인
-    const videoAsset = await prisma.videoAsset.findFirst({
+    // PRISMA_DISABLED: const videoAsset = awaitprisma.videoAsset.findFirst({
       where: {
         id,
         userId,
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     // 상태를 'failed'로 변경 (취소됨 표시)
-    await prisma.videoAsset.update({
+    // PRISMA_DISABLED: awaitprisma.videoAsset.update({
       where: { id },
       data: {
         status: 'failed',

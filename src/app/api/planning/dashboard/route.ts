@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import { createSuccessResponse, createErrorResponse } from '@/shared/schemas/api.schema';
 import { getUserIdFromRequest } from '@/shared/lib/auth';
 import { logger } from '@/shared/lib/logger';
@@ -10,6 +11,7 @@ export const dynamic = 'force-dynamic';
  * GET /api/planning/dashboard
  * Planning Dashboard 통합 데이터 조회 API
  * 기존 3개 API (/scenarios, /prompt, /videos) 통합으로 중복 호출 방지
+ * Supabase 전용 구현
  */
 export async function GET(request: NextRequest) {
   try {
@@ -25,98 +27,60 @@ export async function GET(request: NextRequest) {
 
     logger.info('Planning Dashboard 데이터 조회 시작', { userId });
 
-    // Prisma 클라이언트 임포트 및 연결 검증
-//     const { prisma, checkDatabaseConnection } = await import('@/lib/prisma');
-
-    // 데이터베이스 연결 상태 검증
-    const connectionStatus = await checkDatabaseConnection(2);
-    if (!connectionStatus.success) {
-      logger.error(`Planning Dashboard DB 연결 실패: ${connectionStatus.error || 'Unknown error'}`);
-      return NextResponse.json(
-        createErrorResponse('DATABASE_CONNECTION_ERROR', '데이터베이스 연결에 실패했습니다.'),
-        { status: 503 }
-      );
-    }
+    // Supabase 클라이언트 초기화
+    const supabase = await getSupabaseClientSafe('service-role');
 
     // 🔐 보안 강화: 현재 사용자의 데이터만 조회
-    const [scenarioProjects, promptProjects, videoAssets] = await Promise.all([
+    const [scenarioProjectsResult, promptProjectsResult, videoAssetsResult] = await Promise.all([
       // 시나리오 데이터 (사용자별 필터링)
-      prisma.project.findMany({
-        where: {
-          userId: userId, // 🔐 사용자별 필터링 추가
-          tags: {
-            array_contains: 'scenario'
-          }
-        },
-        orderBy: {
-          updatedAt: 'desc'
-        },
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          metadata: true,
-          status: true,
-          createdAt: true,
-          updatedAt: true,
-          scenario: true,
-          tags: true,
-          user: {
-            select: {
-              id: true,
-              username: true,
-            }
-          }
-        }
-      }),
+      supabase
+        .from('projects')
+        .select(`
+          id, title, description, metadata, status, created_at, updated_at,
+          scenario, tags,
+          user:users!projects_user_id_fkey(id, username)
+        `)
+        .eq('user_id', userId)
+        .contains('tags', ['scenario'])
+        .order('updated_at', { ascending: false }),
 
       // 프롬프트 데이터 (사용자별 필터링)
-      prisma.project.findMany({
-        where: {
-          userId: userId, // 🔐 사용자별 필터링 추가
-          tags: {
-            array_contains: 'prompt'
-          }
-        },
-        orderBy: {
-          updatedAt: 'desc'
-        },
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          metadata: true,
-          status: true,
-          createdAt: true,
-          updatedAt: true,
-          prompt: true,
-          tags: true,
-          user: {
-            select: {
-              id: true,
-              username: true,
-            }
-          }
-        }
-      }),
+      supabase
+        .from('projects')
+        .select(`
+          id, title, description, metadata, status, created_at, updated_at,
+          prompt, tags,
+          user:users!projects_user_id_fkey(id, username)
+        `)
+        .eq('user_id', userId)
+        .contains('tags', ['prompt'])
+        .order('updated_at', { ascending: false }),
 
-      // 비디오 에셋 데이터 (사용자별 필터링 - 기존 테이블 구조 사용)
-      prisma.videoAsset.findMany({
-        where: {
-          userId: userId // 🔐 사용자별 필터링 추가
-        },
-        orderBy: { createdAt: 'desc' },
-        include: {
-          prompt: {
-            select: {
-              id: true,
-              metadata: true,
-              timeline: true,
-            },
-          },
-        },
-      })
+      // 비디오 에셋 데이터 (사용자별 필터링)
+      supabase
+        .from('video_assets')
+        .select(`
+          id, metadata, provider, duration, url, status, created_at,
+          prompt:prompts!video_assets_prompt_id_fkey(id, metadata, timeline)
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
     ]);
+
+    // 오류 처리
+    if (scenarioProjectsResult.error) {
+      throw new Error(`시나리오 데이터 조회 실패: ${scenarioProjectsResult.error.message}`);
+    }
+    if (promptProjectsResult.error) {
+      throw new Error(`프롬프트 데이터 조회 실패: ${promptProjectsResult.error.message}`);
+    }
+    if (videoAssetsResult.error) {
+      throw new Error(`비디오 데이터 조회 실패: ${videoAssetsResult.error.message}`);
+    }
+
+    const scenarioProjects = scenarioProjectsResult.data || [];
+    const promptProjects = promptProjectsResult.data || [];
+    const videoAssets = videoAssetsResult.data || [];
 
     // 데이터 변환 (타입 안전성 강화)
     const scenarios = scenarioProjects.map(project => {
@@ -125,9 +89,9 @@ export async function GET(request: NextRequest) {
         id: project.id,
         title: project.title,
         version: metadata?.version || 'V1',
-        author: project.user?.username || metadata?.author || 'AI Generated',
-        updatedAt: project.updatedAt,
-        createdAt: project.createdAt,
+        author: (project.user as any)?.username || metadata?.author || 'AI Generated',
+        updatedAt: project.updated_at,
+        createdAt: project.created_at,
         hasFourStep: metadata?.hasFourStep || false,
         hasTwelveShot: metadata?.hasTwelveShot || false,
         story: metadata?.story || '',
@@ -152,8 +116,8 @@ export async function GET(request: NextRequest) {
         keywordCount: metadata?.keywordCount || 0,
         segmentCount: metadata?.segmentCount || 1,
         quality: metadata?.quality || 'standard',
-        createdAt: project.createdAt,
-        updatedAt: project.updatedAt,
+        createdAt: project.created_at,
+        updatedAt: project.updated_at,
         finalPrompt: metadata?.finalPrompt || project.prompt || '',
         keywords: metadata?.keywords || [],
         negativePrompt: metadata?.negativePrompt || '',
@@ -165,7 +129,7 @@ export async function GET(request: NextRequest) {
     });
 
     const videos = videoAssets.map(video => {
-      const metadata = (video as any).metadata as VideoMetadata | null;
+      const metadata = video.metadata as VideoMetadata | null;
       return {
         id: video.id,
         title: metadata?.title || 'Untitled Video',
@@ -176,7 +140,7 @@ export async function GET(request: NextRequest) {
         status: video.status || 'queued',
         videoUrl: video.url,
         thumbnailUrl: metadata?.thumbnailUrl || null,
-        createdAt: video.createdAt,
+        createdAt: video.created_at,
         completedAt: metadata?.completedAt || null,
         jobId: metadata?.jobId || null,
       };

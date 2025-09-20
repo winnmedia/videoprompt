@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 // import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { logger } from '@/shared/lib/logger';
 
@@ -16,7 +17,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
         { ok: false, code: 'INVALID_INPUT_FIELDS', error: 'token required' },
         { status: 400 },
       );
-    const found = await prisma.shareToken.findUnique({ where: { token } });
+    // PRISMA_DISABLED: const found = awaitprisma.shareToken.findUnique({ where: { token } });
     if (!found)
       return NextResponse.json(
         { ok: false, code: 'NOT_FOUND', error: 'token not found' },

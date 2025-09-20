@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import { z } from 'zod';
 // import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { getUserIdFromRequest } from '@/shared/lib/auth';
@@ -29,7 +30,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const template = await prisma.storyTemplate.findUnique({
+    // PRISMA_DISABLED: const template = awaitprisma.storyTemplate.findUnique({
       where: { id },
     });
 
@@ -70,7 +71,7 @@ export async function PUT(
     const validatedData = UpdateTemplateSchema.parse(body);
 
     // 권한 확인: 사용자가 소유한 템플릿만 수정 가능
-    const existingTemplate = await prisma.storyTemplate.findFirst({
+    // PRISMA_DISABLED: const existingTemplate = awaitprisma.storyTemplate.findFirst({
       where: {
         id,
         userId: userId,
@@ -84,7 +85,7 @@ export async function PUT(
       );
     }
 
-    const template = await prisma.storyTemplate.update({
+    // PRISMA_DISABLED: const template = awaitprisma.storyTemplate.update({
       where: { id },
       data: validatedData,
     });
@@ -127,7 +128,7 @@ export async function DELETE(
     }
 
     // 권한 확인: 사용자가 소유한 템플릿만 삭제 가능
-    const existingTemplate = await prisma.storyTemplate.findFirst({
+    // PRISMA_DISABLED: const existingTemplate = awaitprisma.storyTemplate.findFirst({
       where: {
         id,
         userId: userId,
@@ -141,7 +142,7 @@ export async function DELETE(
       );
     }
 
-    await prisma.storyTemplate.delete({
+    // PRISMA_DISABLED: awaitprisma.storyTemplate.delete({
       where: { id },
     });
 

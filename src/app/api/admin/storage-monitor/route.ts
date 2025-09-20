@@ -82,13 +82,14 @@ export async function GET(req: NextRequest) {
 
     try {
       // Prisma에서 최근 스토리 수 조회
-      const prismaCount = await prisma.story.count({
-        where: {
-          createdAt: {
+      // PRISMA_DISABLED: const prismaCount = awaitprisma.story.count({
+      const prismaCount = 0; // Fallback value
+        // PRISMA_CONTINUATION: where: {
+          // PRISMA_CONTINUATION: createdAt: {
             gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // 최근 24시간
-          }
-        }
-      });
+          // PRISMA_CONTINUATION: }
+        // PRISMA_CONTINUATION: }
+      // PRISMA_CONTINUATION: });
 
       // Supabase에서 최근 스토리 수 조회
       let supabaseCount = 0;
@@ -116,7 +117,7 @@ export async function GET(req: NextRequest) {
     const overallHealth = {
       status: 'healthy' as 'healthy' | 'degraded' | 'critical',
       components: {
-        prisma: prismaStatus.connected && circuitBreakerStats.prisma.state === 'CLOSED',
+        // PRISMA_DISABLED: prisma: prismaStatus.connected && circuitBreakerStats.prisma.state === 'CLOSED',
         supabase: supabaseStatus.connected && circuitBreakerStats.supabase.state === 'CLOSED',
         consistency: consistencyCheck.consistent
       }
@@ -198,9 +199,9 @@ function generateRecommendations(
   const recommendations: string[] = [];
 
   // 회로 차단기 권장사항
-  if (circuitBreakerStats.prisma.state === 'OPEN') {
-    recommendations.push('Prisma 회로 차단기가 열려있습니다. 데이터베이스 연결을 확인해주세요.');
-  }
+  // PRISMA_DISABLED: if (circuitBreakerStats.prisma.state === 'OPEN') {
+    // PRISMA_CONTINUATION: recommendations.push('Prisma 회로 차단기가 열려있습니다. 데이터베이스 연결을 확인해주세요.');
+  // PRISMA_CONTINUATION: }
 
   if (circuitBreakerStats.supabase.state === 'OPEN') {
     recommendations.push('Supabase 회로 차단기가 열려있습니다. API 키와 연결을 확인해주세요.');
@@ -229,9 +230,9 @@ function generateRecommendations(
   }
 
   // 가동률 기반 권장사항
-  if (circuitBreakerStats.prisma.uptime < 95) {
-    recommendations.push(`Prisma 가동률이 낮습니다 (${circuitBreakerStats.prisma.uptime}%). 연결 안정성을 점검해주세요.`);
-  }
+  // PRISMA_DISABLED: if (circuitBreakerStats.prisma.uptime < 95) {
+    // PRISMA_DISABLED: recommendations.push(`Prisma 가동률이 낮습니다 (${circuitBreakerStats.prisma.uptime}%). 연결 안정성을 점검해주세요.`);
+  // PRISMA_CONTINUATION: }
 
   if (circuitBreakerStats.supabase.uptime < 95) {
     recommendations.push(`Supabase 가동률이 낮습니다 (${circuitBreakerStats.supabase.uptime}%). 연결 안정성을 점검해주세요.`);

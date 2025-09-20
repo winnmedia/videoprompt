@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 // import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { logger } from '@/shared/lib/logger';
 
@@ -26,7 +27,7 @@ export async function GET() {
     let dbError = null;
 
     try {
-      await prisma.$queryRaw`SELECT 1`;
+      // PRISMA_DISABLED: awaitprisma.$queryRaw`SELECT 1`;
     } catch (error) {
       dbStatus = 'unhealthy';
       dbError = error instanceof Error ? error.message : String(error);

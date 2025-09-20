@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 
 function isAuthorized(req: Request): boolean {
   const token = req.headers.get('x-admin-token');
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
   }
   try {
     const { prisma } = await import('@/lib/db');
-    const existing = await prisma.videoAsset.findUnique({ where: { id } });
+    // PRISMA_DISABLED: const existing = awaitprisma.videoAsset.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ ok: false, error: 'not_found' }, { status: 404 });
     }
@@ -28,10 +29,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: 'not_failed' }, { status: 400 });
     }
 
-    const updated = await prisma.videoAsset.update({
-      where: { id },
-      data: { status: 'queued' },
-    });
+    // Prisma 대신 Supabase 사용 (임시 구현)
+    const { data: updated, error } = await getSupabaseClientSafe('service-role')
+      .from('VideoAsset')
+      .update({ status: 'queued' })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
     return NextResponse.json({ ok: true, id: updated.id, status: updated.status });
   } catch (error) {
     return NextResponse.json({ ok: false, error: 'internal_error' }, { status: 500 });

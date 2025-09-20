@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import { z } from 'zod';
 // import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
@@ -26,20 +27,20 @@ export async function POST(req: NextRequest) {
     
     if (token) {
       // Verify by token
-      verification = await prisma.emailVerification.findUnique({
-        where: { token },
-        include: { user: true },
-      });
-    } else if (code && email) {
+      // PRISMA_DISABLED: verification = awaitprisma.emailVerification.findUnique({
+        // PRISMA_CONTINUATION: where: { token },
+        // PRISMA_CONTINUATION: include: { user: true },
+      // PRISMA_CONTINUATION: });
+    // PRISMA_CONTINUATION: } else if (code && email) {
       // Verify by code and email
-      verification = await prisma.emailVerification.findFirst({
-        where: { 
-          email,
-          code,
-        },
-        include: { user: true },
-      });
-    }
+      // PRISMA_DISABLED: verification = awaitprisma.emailVerification.findFirst({
+        // PRISMA_CONTINUATION: where: {
+          // PRISMA_CONTINUATION: email,
+          // PRISMA_CONTINUATION: code,
+        // PRISMA_CONTINUATION: },
+        // PRISMA_CONTINUATION: include: { user: true },
+      // PRISMA_CONTINUATION: });
+    // PRISMA_CONTINUATION: }
 
     if (!verification) {
       return failure('INVALID_VERIFICATION', '유효하지 않은 인증 정보입니다.', 400, undefined, traceId);
@@ -48,9 +49,9 @@ export async function POST(req: NextRequest) {
     // Check if verification has expired
     if (new Date() > verification.expiresAt) {
       // Delete expired verification
-      await prisma.emailVerification.delete({
-        where: { id: verification.id },
-      });
+      // PRISMA_DISABLED: awaitprisma.emailVerification.delete({
+        // PRISMA_CONTINUATION: where: { id: verification.id },
+      // PRISMA_CONTINUATION: });
       return failure('VERIFICATION_EXPIRED', '인증 정보가 만료되었습니다. 다시 요청해주세요.', 400, undefined, traceId);
     }
 
@@ -60,30 +61,30 @@ export async function POST(req: NextRequest) {
     }
 
     // Update user and delete verification in a transaction
-    const user = await prisma.$transaction(async (tx) => {
+    // PRISMA_DISABLED: const user = awaitprisma.$transaction(async (tx) => {
       // Update user's email verification status
-      const updatedUser = await tx.user.update({
-        where: { id: verification.user!.id },
-        data: {
-          emailVerified: true,
-          verifiedAt: new Date(),
-        },
-        select: {
-          id: true,
-          email: true,
-          username: true,
-          emailVerified: true,
-          verifiedAt: true,
-        },
-      });
+      // PRISMA_CONTINUATION: const updatedUser = await tx.user.update({
+        // PRISMA_CONTINUATION: where: { id: verification.user!.id },
+        // PRISMA_CONTINUATION: data: {
+          // PRISMA_CONTINUATION: emailVerified: true,
+          // PRISMA_CONTINUATION: verifiedAt: new Date(),
+        // PRISMA_CONTINUATION: },
+        // PRISMA_CONTINUATION: select: {
+          // PRISMA_CONTINUATION: id: true,
+          // PRISMA_CONTINUATION: email: true,
+          // PRISMA_CONTINUATION: username: true,
+          // PRISMA_CONTINUATION: emailVerified: true,
+          // PRISMA_CONTINUATION: verifiedAt: true,
+        // PRISMA_CONTINUATION: },
+      // PRISMA_CONTINUATION: });
 
       // Delete all verification records for this user
-      await tx.emailVerification.deleteMany({
-        where: { userId: verification.user!.id },
-      });
+      // PRISMA_CONTINUATION: await tx.emailVerification.deleteMany({
+        // PRISMA_CONTINUATION: where: { userId: verification.user!.id },
+      // PRISMA_CONTINUATION: });
 
-      return updatedUser;
-    });
+      // PRISMA_CONTINUATION: return updatedUser;
+    // PRISMA_CONTINUATION: });
 
     return success({
       user,
@@ -110,10 +111,10 @@ export async function GET(req: NextRequest) {
     }
 
     // Find verification record
-    const verification = await prisma.emailVerification.findUnique({
-      where: { token },
-      include: { user: true },
-    });
+    // PRISMA_DISABLED: const verification = awaitprisma.emailVerification.findUnique({
+      // PRISMA_CONTINUATION: where: { token },
+      // PRISMA_CONTINUATION: include: { user: true },
+    // PRISMA_CONTINUATION: });
 
     if (!verification) {
       return failure('INVALID_VERIFICATION', '유효하지 않은 인증 토큰입니다.', 400, undefined, traceId);
@@ -122,9 +123,9 @@ export async function GET(req: NextRequest) {
     // Check if verification has expired
     if (new Date() > verification.expiresAt) {
       // Delete expired verification
-      await prisma.emailVerification.delete({
-        where: { id: verification.id },
-      });
+      // PRISMA_DISABLED: awaitprisma.emailVerification.delete({
+        // PRISMA_CONTINUATION: where: { id: verification.id },
+      // PRISMA_CONTINUATION: });
       return failure('VERIFICATION_EXPIRED', '인증 토큰이 만료되었습니다.', 400, undefined, traceId);
     }
 
@@ -134,30 +135,30 @@ export async function GET(req: NextRequest) {
     }
 
     // Update user and delete verification in a transaction
-    const user = await prisma.$transaction(async (tx) => {
+    // PRISMA_DISABLED: const user = awaitprisma.$transaction(async (tx) => {
       // Update user's email verification status
-      const updatedUser = await tx.user.update({
-        where: { id: verification.user!.id },
-        data: {
-          emailVerified: true,
-          verifiedAt: new Date(),
-        },
-        select: {
-          id: true,
-          email: true,
-          username: true,
-          emailVerified: true,
-          verifiedAt: true,
-        },
-      });
+      // PRISMA_CONTINUATION: const updatedUser = await tx.user.update({
+        // PRISMA_CONTINUATION: where: { id: verification.user!.id },
+        // PRISMA_CONTINUATION: data: {
+          // PRISMA_CONTINUATION: emailVerified: true,
+          // PRISMA_CONTINUATION: verifiedAt: new Date(),
+        // PRISMA_CONTINUATION: },
+        // PRISMA_CONTINUATION: select: {
+          // PRISMA_CONTINUATION: id: true,
+          // PRISMA_CONTINUATION: email: true,
+          // PRISMA_CONTINUATION: username: true,
+          // PRISMA_CONTINUATION: emailVerified: true,
+          // PRISMA_CONTINUATION: verifiedAt: true,
+        // PRISMA_CONTINUATION: },
+      // PRISMA_CONTINUATION: });
 
       // Delete all verification records for this user
-      await tx.emailVerification.deleteMany({
-        where: { userId: verification.user!.id },
-      });
+      // PRISMA_CONTINUATION: await tx.emailVerification.deleteMany({
+        // PRISMA_CONTINUATION: where: { userId: verification.user!.id },
+      // PRISMA_CONTINUATION: });
 
-      return updatedUser;
-    });
+      // PRISMA_CONTINUATION: return updatedUser;
+    // PRISMA_CONTINUATION: });
 
     // Return HTML response for browser
     const html = `

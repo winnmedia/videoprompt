@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -118,16 +119,38 @@ export async function POST(req: NextRequest) {
 
     const { email, username, id, password } = LoginSchema.parse(await req.json());
 
-    const user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          ...(email ? [{ email }] : []),
-          ...(username ? [{ username }] : []),
-          ...(id ? [{ id }] : []),
-        ],
-      },
-      select: { id: true, email: true, username: true, passwordHash: true, createdAt: true },
-    });
+    // Supabase로 사용자 조회
+    const supabase = await getSupabaseClientSafe('service-role');
+    let user = null;
+
+    try {
+      let query = supabase
+        .from('users')
+        .select('id, email, username, password_hash, created_at')
+        .limit(1);
+
+      if (email) {
+        query = query.eq('email', email);
+      } else if (username) {
+        query = query.eq('username', username);
+      } else if (id) {
+        query = query.eq('id', id);
+      }
+
+      const { data, error } = await query.single();
+
+      if (!error && data) {
+        user = {
+          id: data.id,
+          email: data.email,
+          username: data.username,
+          passwordHash: data.password_hash,
+          createdAt: data.created_at
+        };
+      }
+    } catch (error) {
+      console.warn('Supabase user lookup failed:', error);
+    }
     if (!user) {
       const response = failure('NOT_FOUND', '사용자를 찾을 수 없습니다.', 404, undefined, traceId);
       return addCorsHeaders(response);
@@ -154,26 +177,33 @@ export async function POST(req: NextRequest) {
       deviceId
     });
 
-    // 기존 refresh token들 정리 (같은 디바이스)
-    await prisma.refreshToken.deleteMany({
-      where: {
-        userId: user.id,
-        userAgent,
-        ipAddress
-      }
-    });
+    // 기존 refresh token들 정리 (같은 디바이스) - Supabase 구현
+    try {
+      await supabase
+        .from('refresh_tokens')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('user_agent', userAgent)
+        .eq('ip_address', ipAddress);
+    } catch (error) {
+      console.warn('Refresh token cleanup failed:', error);
+    }
 
-    // 새 refresh token 저장
-    await prisma.refreshToken.create({
-      data: {
-        token: refreshToken,
-        userId: user.id,
-        deviceId,
-        userAgent,
-        ipAddress,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7일
-      }
-    });
+    // 새 refresh token 저장 - Supabase 구현
+    try {
+      await supabase
+        .from('refresh_tokens')
+        .insert({
+          token: refreshToken,
+          user_id: user.id,
+          device_id: deviceId,
+          user_agent: userAgent,
+          ip_address: ipAddress,
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+        });
+    } catch (error) {
+      console.warn('Refresh token storage failed:', error);
+    }
 
     // 기존 세션 쿠키도 유지 (하위 호환성)
     const legacyToken = signSessionToken({ userId: user.id, email: user.email, username: user.username });

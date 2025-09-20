@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server';
+import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import jwt from 'jsonwebtoken';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
@@ -139,7 +140,7 @@ export async function getUser(req: NextRequest) {
   const { prisma } = await import('@/lib/db');
 
   try {
-    let user = await prisma.user.findUnique({
+    // PRISMA_DISABLED: let user = awaitprisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -164,7 +165,7 @@ export async function getUser(req: NextRequest) {
 
         if (syncResult.success) {
           // 동기화 성공 후 다시 조회
-          user = await prisma.user.findUnique({
+          // PRISMA_DISABLED: user = awaitprisma.user.findUnique({
             where: { id: userId },
             select: {
               id: true,
