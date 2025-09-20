@@ -52,5 +52,15 @@ const mockPrisma = {
 
 export const prisma = mockPrisma;
 
+// Mock database helper functions for compatibility
+export const initializeDatabase = async (): Promise<{ success: boolean; message?: string }> => {
+  return { success: true, message: 'Mock database initialized' };
+};
+
+export const checkDatabaseConnection = async (prisma?: any, retries = 3): Promise<{ success: boolean; message?: string }> => {
+  return { success: true, message: 'Mock database connection healthy' };
+};
+
 // For compatibility with different import patterns
+export const prisma = mockPrisma;
 export default mockPrisma;
