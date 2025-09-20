@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabase';
+import { logger } from './logger';
+
 
 type SessionPayload = {
   sub: string; // userId
@@ -55,7 +57,7 @@ export function getUserIdFromRequest(req: NextRequest): string | undefined {
           Buffer.from(supabaseAccessToken.split('.')[1], 'base64').toString()
         );
         if (tokenPayload.sub) {
-          console.log(`🔑 Supabase Cookie token authentication successful: ${tokenPayload.sub}`);
+          logger.info(`🔑 Supabase Cookie token authentication successful: ${tokenPayload.sub}`);
           return tokenPayload.sub;
         }
       } catch (e) {
@@ -79,7 +81,7 @@ export function getUserIdFromRequest(req: NextRequest): string | undefined {
           Buffer.from(token.split('.')[1], 'base64').toString()
         );
         if (tokenPayload.iss && tokenPayload.iss.includes('supabase')) {
-          console.log(`🔑 Supabase Bearer token authentication successful: ${tokenPayload.sub}`);
+          logger.info(`🔑 Supabase Bearer token authentication successful: ${tokenPayload.sub}`);
           return tokenPayload.sub;
         }
       } catch (e) {
@@ -89,7 +91,7 @@ export function getUserIdFromRequest(req: NextRequest): string | undefined {
       // 레거시 JWT도 확인
       const p = verifySessionToken(token);
       if (p?.sub) {
-        console.log(`🔑 Legacy Bearer token authentication successful: ${p.sub}`);
+        logger.info(`🔑 Legacy Bearer token authentication successful: ${p.sub}`);
         return p.sub;
       } else {
         console.warn('🚨 Bearer token verification failed');
@@ -105,7 +107,7 @@ export function getUserIdFromRequest(req: NextRequest): string | undefined {
     if (cookie) {
       const p = verifySessionToken(cookie);
       if (p?.sub) {
-        console.log(`🔑 Legacy Cookie authentication successful: ${p.sub}`);
+        logger.info(`🔑 Legacy Cookie authentication successful: ${p.sub}`);
         return p.sub;
       } else {
         console.warn('🚨 Cookie token verification failed');
@@ -120,7 +122,7 @@ export function getUserIdFromRequest(req: NextRequest): string | undefined {
   if (allowHeader) {
     const uid = req.headers.get('x-user-id') || undefined;
     if (uid) {
-      console.log(`🧪 Test header authentication: ${uid}`);
+      logger.info(`🧪 Test header authentication: ${uid}`);
       return uid;
     }
   }
@@ -150,7 +152,7 @@ export async function getUser(req: NextRequest) {
 
     // 🔄 자동 동기화: Prisma User가 없으면 Supabase에서 동기화 시도
     if (!user) {
-      console.log('🔄 사용자 동기화 시도:', userId);
+      logger.info('🔄 사용자 동기화 시도:', userId);
 
       try {
         const { userSyncService } = await import('@/shared/lib/user-sync.service');
@@ -173,7 +175,7 @@ export async function getUser(req: NextRequest) {
             }
           });
 
-          console.log('✅ 자동 동기화 성공:', userId, syncResult.operation);
+          logger.info('✅ 자동 동기화 성공:', userId, syncResult.operation);
         } else {
           console.warn('⚠️ 자동 동기화 실패:', userId, syncResult.errors);
         }
@@ -201,7 +203,7 @@ export function requireAuthentication(req: NextRequest): string | null {
     return null;
   }
 
-  console.log('✅ 인증 성공:', userId);
+  logger.info('✅ 인증 성공:', userId);
   return userId;
 }
 

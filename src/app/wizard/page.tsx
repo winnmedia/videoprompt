@@ -8,6 +8,7 @@ import { Button } from '@/shared/ui';
 import { Icon } from '@/shared/ui';
 import { getApiUrl, API_ENDPOINTS } from '@/lib/config/api';
 import { ScenePrompt } from '@/shared/types/api';
+import { logger } from '@/shared/lib/logger';
 import {
   createAIServiceManager,
   translateToEnglish,
@@ -689,7 +690,7 @@ export default function SceneWizardPage() {
         setVeo3Preview(json.videoUrl);
       } else if (json.operationId) {
         // 상태 확인을 위한 폴링 시작
-        console.log('Veo operation started:', json.operationId);
+        logger.info('Veo operation started:', json.operationId);
       }
     } catch (e) {
       console.error('Veo create failed', e);
@@ -710,7 +711,7 @@ export default function SceneWizardPage() {
   const handleSave = async () => {
     if (!generatedPrompt) return;
     try {
-      console.log('Saving prompt:', generatedPrompt);
+      logger.info('Saving prompt:', generatedPrompt);
       setStatusKind('success');
       setStatusMsg('프롬프트 저장 완료');
     } catch (err) {

@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import crypto from 'crypto';
+import { logger } from '@/shared/lib/logger';
+
 // import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { sendVerificationEmail } from '@/lib/email/sender';
@@ -26,7 +28,7 @@ const SendVerificationSchema = z.object({
 export async function POST(req: NextRequest) {
   const traceId = getTraceId(req);
   
-  console.log(`[SendVerification ${traceId}] 🚀 이메일 인증 요청 시작`);
+  logger.info(`[SendVerification ${traceId}] 🚀 이메일 인증 요청 시작`);
   
   try {
     // Request body 안전 파싱
@@ -37,10 +39,10 @@ export async function POST(req: NextRequest) {
     }
     
     const { email } = parseResult.data!;
-    console.log(`[SendVerification ${traceId}] ✅ 입력값 파싱 및 검증 성공:`, { email });
+    logger.info(`[SendVerification ${traceId}] ✅ 입력값 파싱 및 검증 성공:`, { email });
 
     // Prisma 데이터베이스 작업 임시 비활성화
-    console.log('⚠️ Database operations skipped (Prisma disabled)');
+    logger.info('⚠️ Database operations skipped (Prisma disabled)');
 
     const existingUser = null;
     const verificationToken = crypto.randomBytes(32).toString('hex');
@@ -53,7 +55,7 @@ export async function POST(req: NextRequest) {
                      'http://localhost:3000';
       const verificationLink = `${baseUrl}/verify-email/${verificationToken}`;
       
-      console.log(`[SendVerification ${traceId}] Sending verification email to ${email}`);
+      logger.info(`[SendVerification ${traceId}] Sending verification email to ${email}`);
       
       await sendVerificationEmail(
         email,
@@ -62,7 +64,7 @@ export async function POST(req: NextRequest) {
         verificationCode
       );
       
-      console.log(`[SendVerification ${traceId}] Verification email sent successfully`);
+      logger.info(`[SendVerification ${traceId}] Verification email sent successfully`);
     } catch (emailError) {
       console.error(`[SendVerification ${traceId}] Failed to send verification email:`, emailError);
       // 이메일 발송 실패해도 토큰은 생성되었으므로 부분 성공으로 처리

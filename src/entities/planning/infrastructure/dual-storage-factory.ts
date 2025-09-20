@@ -13,6 +13,8 @@ import type { DualStorageConfig } from '../model/types';
 import { createPrismaRepository } from './prisma-repository';
 import { createSupabaseRepository } from './supabase-repository';
 import { getEnvironmentCapabilities, getDegradationMode } from '@/shared/config/env';
+import { logger } from '@/shared/lib/logger';
+
 
 interface StorageClients {
   prisma?: PrismaClient;
@@ -45,7 +47,7 @@ export class DualStorageFactory {
     const capabilities = getEnvironmentCapabilities();
     const degradationMode = getDegradationMode();
 
-    console.log('🔧 듀얼 스토리지 설정 생성:', {
+    logger.info('🔧 듀얼 스토리지 설정 생성:', {
       degradationMode,
       capabilities: {
         supabaseAuth: capabilities.supabaseAuth,
@@ -113,7 +115,7 @@ export class DualStorageFactory {
       throw new Error('At least one storage client must be provided');
     }
 
-    console.log('🏗️ 듀얼 스토리지 의존성 생성 완료:', {
+    logger.info('🏗️ 듀얼 스토리지 의존성 생성 완료:', {
       prismaEnabled: !!prismaRepo,
       supabaseEnabled: !!supabaseRepo,
       config: this.config
@@ -142,7 +144,7 @@ export class DualStorageFactory {
       ...newConfig
     };
 
-    console.log('🔄 듀얼 스토리지 설정 업데이트:', this.config);
+    logger.info('🔄 듀얼 스토리지 설정 업데이트:', this.config);
   }
 
   /**
@@ -199,7 +201,7 @@ export class DualStorageFactory {
       result.overall = 'critical';
     }
 
-    console.log('🩺 듀얼 스토리지 헬스 체크:', result);
+    logger.info('🩺 듀얼 스토리지 헬스 체크:', result);
     return result;
   }
 }

@@ -4,6 +4,8 @@
  */
 
 import type { SeedanceCreatePayload, SeedanceCreateResult, SeedanceStatusResult } from './seedance';
+import { logger } from '@/shared/lib/logger';
+
 
 // 모의 응답용 별도 타입 정의
 interface MockCreateResult {
@@ -94,7 +96,7 @@ export async function getMockStatus(jobId: string): Promise<SeedanceStatusResult
 export async function createMockSeedanceVideo(
   payload: SeedanceCreatePayload,
 ): Promise<MockCreateResult> {
-  console.log('🎭 [MOCK] Seedance 영상 생성 시뮬레이션:', {
+  logger.info('🎭 [MOCK] Seedance 영상 생성 시뮬레이션:', {
     prompt: payload.prompt?.slice(0, 50) + '...',
     imageUrl: payload.image_url ? 'provided' : 'none',
     duration: (payload as any).duration_seconds || 5
@@ -121,7 +123,7 @@ export async function createMockSeedanceVideo(
  * 모의 영상 상태 확인 (로컬 개발용)
  */
 export async function getMockSeedanceStatus(jobId: string): Promise<MockStatusResult> {
-  console.log('🎭 [MOCK] Seedance 상태 확인:', jobId);
+  logger.info('🎭 [MOCK] Seedance 상태 확인:', jobId);
 
   // 모의 진행률 계산 (시간 기반)
   const createdTime = parseInt(jobId.split('-')[1]) || Date.now();
@@ -183,7 +185,7 @@ export function isMockEnabled(): boolean {
  */
 export function getSeedanceProvider() {
   if (isMockEnabled()) {
-    console.log('🎭 Mock Seedance API 활성화됨 (개발용)');
+    logger.info('🎭 Mock Seedance API 활성화됨 (개발용)');
     return {
       createVideo: createMockSeedanceVideo,
       getStatus: getMockSeedanceStatus,

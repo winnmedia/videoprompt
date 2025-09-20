@@ -4,7 +4,7 @@
  */
 
 import { useCallback } from 'react';
-import { useAppDispatch, useAppSelector } from '../index';
+import { useAppDispatch, useAppSelector } from '../hooks';
 import {
   selectAuth,
   selectUser,

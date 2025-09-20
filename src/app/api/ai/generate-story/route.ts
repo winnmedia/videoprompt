@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { generateStoryWithOpenAI } from '@/lib/providers/openai-client';
+import { logger } from '@/shared/lib/logger';
 import {
   createValidationErrorResponse,
   createErrorResponse,
@@ -176,7 +177,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    console.log('DEBUG: 스토리 생성 요청 수신:', {
+    logger.info('DEBUG: 스토리 생성 요청 수신:', {
       hasTitle: !!body.title,
       hasStory: !!body.oneLineStory,
       genre: body.genre,
@@ -187,7 +188,7 @@ export async function POST(request: NextRequest) {
     // 1단계: DTO 변환 (배열 -> 문자열 변환 포함)
     const transformedBody = transformStoryInputToApiRequest(body);
 
-    console.log('DEBUG: DTO 변환 완료:', {
+    logger.info('DEBUG: DTO 변환 완료:', {
       originalToneAndManner: body.toneAndManner,
       transformedToneAndManner: transformedBody.toneAndManner,
     });
@@ -217,10 +218,10 @@ export async function POST(request: NextRequest) {
     if (isAuthenticated(authResult)) {
       // 인증 성공
       userId = authResult.id;
-      console.log(`DEBUG: 스토리 생성 - 인증된 사용자: ${userId} (토큰 타입: ${authResult.tokenType})`);
+      logger.info(`DEBUG: 스토리 생성 - 인증된 사용자: ${userId} (토큰 타입: ${authResult.tokenType})`);
     } else if (isGuest(authResult)) {
       // 게스트 모드
-      console.log('DEBUG: 스토리 생성 - 비인증 사용자 (게스트 모드)');
+      logger.info('DEBUG: 스토리 생성 - 비인증 사용자 (게스트 모드)');
       userId = null;
 
       // 게스트 모드 제한 확인 (필요시)
@@ -243,7 +244,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('DEBUG: 스토리 생성 시작 - Gemini 우선 시도');
+    logger.info('DEBUG: 스토리 생성 시작 - Gemini 우선 시도');
 
     // 1단계: Gemini 2.0 Flash 시도 (주요) + 캐싱
     try {
@@ -263,7 +264,7 @@ export async function POST(request: NextRequest) {
       );
 
       if (geminiResult.success && geminiResult.steps) {
-        console.log('DEBUG: Gemini 스토리 생성 성공:', {
+        logger.info('DEBUG: Gemini 스토리 생성 성공:', {
           model: geminiResult.model,
           stepCount: geminiResult.steps.length,
           usage: geminiResult.usage,
@@ -288,7 +289,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 2단계: OpenAI 폴백 시도 + 캐싱
-    console.log('DEBUG: OpenAI 폴백 시도');
+    logger.info('DEBUG: OpenAI 폴백 시도');
 
     try {
       const openaiRequestData = {
@@ -345,7 +346,7 @@ export async function POST(request: NextRequest) {
           },
         ];
 
-        console.log('DEBUG: OpenAI 스토리 생성 성공:', {
+        logger.info('DEBUG: OpenAI 스토리 생성 성공:', {
           model: openaiResult.model,
           stepCount: steps.length,
           usage: openaiResult.usage,

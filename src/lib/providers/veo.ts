@@ -1,3 +1,5 @@
+import { logger } from '@/shared/lib/logger';
+
 export type VeoVideoOptions = {
   prompt: string;
   aspectRatio?: '16:9' | '9:16' | '1:1';
@@ -19,7 +21,7 @@ export type VeoVideoResponse = {
 // Google Veo 3 API를 통한 동영상 생성
 export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVideoResponse> {
   // 임시 차단 - VEO3 비용 절감
-  console.log('DEBUG: VEO3 서비스가 일시적으로 비활성화되었습니다.');
+  logger.info('DEBUG: VEO3 서비스가 일시적으로 비활성화되었습니다.');
   return {
     ok: false,
     error: 'VEO3 서비스가 일시적으로 비활성화되었습니다. 서비스 개선을 위해 잠시 중단된 상태입니다.',
@@ -41,7 +43,7 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
     process.env.GOOGLE_AI_STUDIO_API_KEY || process.env.GOOGLE_API_KEY || process.env.VEO_API_KEY;
   const provider = process.env.VEO_PROVIDER || 'google';
 
-  console.log('DEBUG: VEO 비디오 생성 시작:', {
+  logger.info('DEBUG: VEO 비디오 생성 시작:', {
     prompt: prompt.slice(0, 100),
     aspectRatio,
     duration,
@@ -93,8 +95,8 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
       };
     }
 
-    console.log('DEBUG: VEO 요청 URL:', url);
-    console.log('DEBUG: VEO 요청 본문:', JSON.stringify(requestBody, null, 2));
+    logger.info('DEBUG: VEO 요청 URL:', url);
+    logger.info('DEBUG: VEO 요청 본문:', JSON.stringify(requestBody, null, 2));
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60000); // 60초 타임아웃 (비디오 생성은 시간이 오래 걸림)
@@ -112,14 +114,14 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
 
       clearTimeout(timeout);
 
-      console.log('DEBUG: VEO 응답 상태:', {
+      logger.info('DEBUG: VEO 응답 상태:', {
         status: response.status,
         statusText: response.statusText,
       });
 
       // 응답 텍스트를 먼저 가져와서 JSON 파싱 에러 방지
       const responseText = await response.text();
-      console.log('DEBUG: VEO 응답 텍스트 (처음 500자):', responseText.slice(0, 500));
+      logger.info('DEBUG: VEO 응답 텍스트 (처음 500자):', responseText.slice(0, 500));
 
       if (!response.ok) {
         console.error('DEBUG: VEO HTTP 에러:', {
@@ -146,7 +148,7 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
         };
       }
 
-      console.log('DEBUG: VEO 파싱된 응답:', JSON.stringify(jsonResponse, null, 2));
+      logger.info('DEBUG: VEO 파싱된 응답:', JSON.stringify(jsonResponse, null, 2));
 
       // VEO API 응답에서 operation ID와 비디오 URL 추출
       const operationId = jsonResponse?.operationId || jsonResponse?.operation?.name;
@@ -193,7 +195,7 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
 // Veo 2 operation 상태 확인 및 동영상 다운로드
 export async function checkVeoVideoStatus(operationId: string): Promise<VeoVideoResponse> {
   // 임시 차단 - VEO3 비용 절감
-  console.log('DEBUG: VEO3 상태 확인 서비스가 일시적으로 비활성화되었습니다.');
+  logger.info('DEBUG: VEO3 상태 확인 서비스가 일시적으로 비활성화되었습니다.');
   return {
     ok: false,
     error: 'VEO3 서비스가 일시적으로 비활성화되었습니다. 서비스 개선을 위해 잠시 중단된 상태입니다.',

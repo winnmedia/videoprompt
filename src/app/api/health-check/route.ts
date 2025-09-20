@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/shared/lib/supabase-client';
+import { logger } from '@/shared/lib/logger';
+
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -25,7 +27,7 @@ async function checkDatabaseHealth(): Promise<HealthCheckResult> {
 
   try {
     // 안전한 Supabase 클라이언트 가져오기
-    console.log('🔍 Supabase 데이터베이스 연결 테스트 시작...');
+    logger.info('🔍 Supabase 데이터베이스 연결 테스트 시작...');
 
     const supabaseResult = await getSupabaseClient({
       throwOnError: false,
@@ -70,7 +72,7 @@ async function checkDatabaseHealth(): Promise<HealthCheckResult> {
     const latency = Date.now() - startTime;
 
     if (existingTables === authTables.length) {
-      console.log(`✅ Supabase 연결 성공 - 모든 Auth 테이블 확인됨 (${latency}ms)`);
+      logger.info(`✅ Supabase 연결 성공 - 모든 Auth 테이블 확인됨 (${latency}ms)`);
       return {
         service: 'database',
         status: 'healthy',
@@ -79,7 +81,7 @@ async function checkDatabaseHealth(): Promise<HealthCheckResult> {
         timestamp: new Date().toISOString()
       };
     } else if (existingTables > 0) {
-      console.log(`⚠️ Supabase 연결됨 - 일부 테이블 누락 (${existingTables}/${authTables.length})`);
+      logger.info(`⚠️ Supabase 연결됨 - 일부 테이블 누락 (${existingTables}/${authTables.length})`);
       return {
         service: 'database',
         status: 'warning',
@@ -88,7 +90,7 @@ async function checkDatabaseHealth(): Promise<HealthCheckResult> {
         timestamp: new Date().toISOString()
       };
     } else {
-      console.log(`❌ Supabase 연결됨 - Auth 테이블 없음 (${latency}ms)`);
+      logger.info(`❌ Supabase 연결됨 - Auth 테이블 없음 (${latency}ms)`);
       return {
         service: 'database',
         status: 'warning',

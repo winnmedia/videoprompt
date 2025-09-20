@@ -8,6 +8,7 @@
 
 import { SupabaseClient } from '@supabase/supabase-js';
 import type { SupabaseRepository } from '../model/services';
+import { logger } from '@/shared/lib/logger';
 import type {
   ScenarioContent,
   PromptContent,
@@ -57,7 +58,7 @@ export class SupabaseRepositoryImpl implements SupabaseRepository {
         throw error;
       }
 
-      console.log(`✅ Supabase: 시나리오 저장 성공 - ${data.id}`);
+      logger.info(`✅ Supabase: 시나리오 저장 성공 - ${data.id}`);
       return { success: true };
 
     } catch (error) {
@@ -92,7 +93,7 @@ export class SupabaseRepositoryImpl implements SupabaseRepository {
         throw error;
       }
 
-      console.log(`✅ Supabase: 프롬프트 저장 성공 - ${data.id}`);
+      logger.info(`✅ Supabase: 프롬프트 저장 성공 - ${data.id}`);
       return { success: true };
 
     } catch (error) {
@@ -127,7 +128,7 @@ export class SupabaseRepositoryImpl implements SupabaseRepository {
         throw error;
       }
 
-      console.log(`✅ Supabase: 영상 저장 성공 - ${data.id}`);
+      logger.info(`✅ Supabase: 영상 저장 성공 - ${data.id}`);
       return { success: true };
 
     } catch (error) {
@@ -274,7 +275,7 @@ export class SupabaseRepositoryImpl implements SupabaseRepository {
         throw error;
       }
 
-      console.log(`✅ Supabase: 상태 업데이트 성공 - ${id}`);
+      logger.info(`✅ Supabase: 상태 업데이트 성공 - ${id}`);
       return { success: true };
 
     } catch (error) {

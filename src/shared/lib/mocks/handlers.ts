@@ -8,6 +8,8 @@ import { safeBase64Encode } from '../encoding-utils';
 import type { StoryboardResult } from '../types/storyboard';
 import Busboy from 'busboy';
 import { Readable } from 'stream';
+import { logger } from './logger';
+
 
 // multipart/form-data 파싱 헬퍼
 async function parseMultipartFormData(request: Request): Promise<{ files: Map<string, { buffer: Buffer; filename: string; mimetype: string }>; fields: Map<string, string> }> {
@@ -802,7 +804,7 @@ export const handlers = [
       const contentType = request.headers.get('content-type') || '';
       const testScenario = request.headers.get('x-test-scenario') || '';
 
-      console.log('[MSW] Video upload handler called:', { contentType, testScenario });
+      logger.info('[MSW] Video upload handler called:', { contentType, testScenario });
 
       // 테스트 시나리오 기반 처리
       switch (testScenario) {
@@ -864,7 +866,7 @@ export const handlers = [
       const contentType = request.headers.get('content-type') || '';
       const testScenario = request.headers.get('x-test-scenario') || '';
 
-      console.log('[MSW] Image upload handler called:', { contentType, testScenario });
+      logger.info('[MSW] Image upload handler called:', { contentType, testScenario });
 
       // 테스트 시나리오 기반 처리
       switch (testScenario) {

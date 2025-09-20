@@ -6,6 +6,8 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useProjectStore } from '@/entities/project';
 import { apiClient } from '@/shared/lib/api-client';
+import { logger } from '@/shared/lib/logger';
+
 
 export interface WorkflowData {
   story: string;
@@ -112,7 +114,7 @@ export function useWorkflowState() {
         target: 'General'
       });
 
-      console.log('✅ 스토리 저장 완료:', result);
+      logger.info('✅ 스토리 저장 완료:', result);
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '스토리 저장 실패';
@@ -144,7 +146,7 @@ export function useWorkflowState() {
         }
       });
 
-      console.log('✅ 시나리오 생성 완료:', result);
+      logger.info('✅ 시나리오 생성 완료:', result);
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '시나리오 생성 실패';
@@ -186,7 +188,7 @@ export function useWorkflowState() {
         }
       }));
 
-      console.log('✅ AI 프롬프트 생성 완료:', result);
+      logger.info('✅ AI 프롬프트 생성 완료:', result);
       return result;
     } catch (error) {
       // AI 생성 실패 시 기본 프롬프트 생성
@@ -236,7 +238,7 @@ export function useWorkflowState() {
         aspect_ratio: '16:9'
       });
 
-      console.log('✅ Seedance 영상 생성 요청 완료:', result);
+      logger.info('✅ Seedance 영상 생성 요청 완료:', result);
 
       if (result.success && result.data?.jobId) {
         const jobId = result.data.jobId;

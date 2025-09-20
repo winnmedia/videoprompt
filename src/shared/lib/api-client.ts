@@ -7,6 +7,8 @@ import { apiLimiter, withRetry } from './api-retry';
 import { ContractViolationError } from '@/shared/contracts/auth.contract';
 import { productionMonitor } from './production-monitor';
 import { tokenManager } from './token-manager';
+import { logger } from './logger';
+
 
 export interface ApiClientOptions extends RequestInit {
   skipAuth?: boolean;
@@ -68,7 +70,7 @@ export class ApiClient {
    */
   public performMaintenanceCleanup(): void {
     if (this.isDebugMode()) {
-      console.log('🧹 [API Client] Automatic cache cleanup and token sync');
+      logger.info('🧹 [API Client] Automatic cache cleanup and token sync');
     }
 
     // 캐시 정리 (만료된 항목들)
@@ -94,7 +96,7 @@ export class ApiClient {
     });
 
     if (this.isDebugMode() && cleanedCount > 0) {
-      console.log(`🧹 [API Client] Cleaned ${cleanedCount} expired cache entries`);
+      logger.info(`🧹 [API Client] Cleaned ${cleanedCount} expired cache entries`);
     }
   }
   
@@ -105,14 +107,14 @@ export class ApiClient {
   setTokenProvider(provider: () => string | null): void {
     // 토큰 제공자는 TokenManager로 통합됨 - 별도 동작 불필요
     if (this.isDebugMode()) {
-      console.info('[API Client] TokenProvider integration: TokenManager handles all token sources automatically');
+      logger.info('[API Client] TokenProvider integration: TokenManager handles all token sources automatically');
     }
   }
 
   setTokenSetter(setter: (token: string) => void): void {
     // 토큰 설정은 TokenManager.setToken()으로 통합됨 - 별도 동작 불필요
     if (this.isDebugMode()) {
-      console.info('[API Client] TokenSetter integration: Use tokenManager.setToken() directly');
+      logger.info('[API Client] TokenSetter integration: Use tokenManager.setToken() directly');
     }
   }
   
@@ -167,7 +169,7 @@ export class ApiClient {
   }
 
   private async performTokenRefresh(): Promise<string> {
-    console.log('🔄 Token refresh - Using native fetch (avoiding circular calls)');
+    logger.info('🔄 Token refresh - Using native fetch (avoiding circular calls)');
 
     // 🚨 무한 루프 방지: 네이티브 fetch 사용 (this.fetch 사용 금지)
     const response = await fetch('/api/auth/refresh', {
@@ -182,7 +184,7 @@ export class ApiClient {
     if (!response.ok) {
       // 🚨 핵심: 400 vs 401 구분 처리로 무한 루프 방지
       if (response.status === 400) {
-        console.log('🚨 Token refresh 400 - No refresh token available (guest user)');
+        logger.info('🚨 Token refresh 400 - No refresh token available (guest user)');
         // 400: 토큰이 없음 → 게스트 사용자로 즉시 전환
         if (typeof window !== 'undefined') {
           tokenManager.clearAllTokens();
@@ -192,7 +194,7 @@ export class ApiClient {
       }
 
       if (response.status === 401) {
-        console.log('🚨 Token refresh 401 - Refresh token expired/invalid');
+        logger.info('🚨 Token refresh 401 - Refresh token expired/invalid');
         // 401: 토큰이 만료됨 → 완전한 인증 실패
         if (typeof window !== 'undefined') {
           tokenManager.clearAllTokens();
@@ -221,7 +223,7 @@ export class ApiClient {
   private async handle401Error(url: string, options: RequestInit): Promise<Response> {
     // 토큰 갱신이 이미 진행 중이면 큐에 대기
     if (this.refreshPromise) {
-      console.log('🔄 Token refresh in progress, queuing request');
+      logger.info('🔄 Token refresh in progress, queuing request');
       return new Promise((resolve, reject) => {
         this.requestQueue.push({ url, options, resolve, reject });
       });
@@ -252,7 +254,7 @@ export class ApiClient {
       const retryResponse = await fetch(url, updatedOptions);
 
       if (retryResponse.ok) {
-        console.log('✅ Request retry successful after token refresh');
+        logger.info('✅ Request retry successful after token refresh');
         return retryResponse;
       }
 
@@ -275,10 +277,10 @@ export class ApiClient {
       // 🚨 핵심: 400 vs 401 구분에 따른 명확한 에러 메시지
       if (refreshError instanceof Error) {
         if (refreshError.message.includes('guest mode activated')) {
-          console.log('🚨 Guest mode activated - skipping authentication failure handling');
+          logger.info('🚨 Guest mode activated - skipping authentication failure handling');
           // 게스트 모드는 별도 처리하지 않음 (이미 토큰 정리됨)
         } else if (refreshError.message.includes('authentication required')) {
-          console.log('🚨 Authentication required - handling complete auth failure');
+          logger.info('🚨 Authentication required - handling complete auth failure');
           this.handleAuthenticationFailure();
         } else {
           // 서버 오류나 기타 경우
@@ -303,7 +305,7 @@ export class ApiClient {
     const queuedRequests = [...this.requestQueue];
     this.requestQueue = [];
 
-    console.log(`🔄 Processing ${queuedRequests.length} queued requests with new token`);
+    logger.info(`🔄 Processing ${queuedRequests.length} queued requests with new token`);
 
     // 모든 대기 요청을 병렬로 처리
     const promises = queuedRequests.map(async ({ url, options, resolve, reject }) => {
@@ -333,7 +335,7 @@ export class ApiClient {
     const queuedRequests = [...this.requestQueue];
     this.requestQueue = [];
 
-    console.log(`❌ Rejecting ${queuedRequests.length} queued requests due to refresh failure`);
+    logger.info(`❌ Rejecting ${queuedRequests.length} queued requests due to refresh failure`);
 
     queuedRequests.forEach(({ reject }) => {
       reject(error);
@@ -362,7 +364,7 @@ export class ApiClient {
 
     if (!tokenInfo) {
       if (this.isDebugMode()) {
-        console.debug('🔍 [Auth Headers] No token available from TokenManager');
+        logger.debug('🔍 [Auth Headers] No token available from TokenManager');
       }
       return {};
     }
@@ -370,7 +372,7 @@ export class ApiClient {
     // 토큰 만료 확인 (TokenManager가 이미 만료된 토큰 필터링하지만 이중 확인)
     if (this.isTokenExpired(tokenInfo.token)) {
       if (this.isDebugMode()) {
-        console.debug('🔄 [Auth Headers] Token expired, attempting refresh');
+        logger.debug('🔄 [Auth Headers] Token expired, attempting refresh');
       }
 
       try {
@@ -385,7 +387,7 @@ export class ApiClient {
     }
 
     if (this.isDebugMode()) {
-      console.debug(`✅ [Auth Headers] Using ${tokenInfo.type} token from ${tokenInfo.source}`);
+      logger.debug(`✅ [Auth Headers] Using ${tokenInfo.type} token from ${tokenInfo.source}`);
     }
 
     return {
@@ -407,7 +409,7 @@ export class ApiClient {
     }
 
     this.cacheHitCount++;
-    console.log(`💾 캐시에서 데이터 반환: ${key} (캐시 히트: ${this.cacheHitCount})`);
+    logger.info(`💾 캐시에서 데이터 반환: ${key} (캐시 히트: ${this.cacheHitCount})`);
     return entry.data;
   }
 
@@ -454,20 +456,20 @@ export class ApiClient {
     const method = options.method || 'GET';
     const requestKey = this.generateRequestKey(url, method, options.body);
 
-    console.log(`🔍 API 요청: ${method} ${url}`, { requestKey });
+    logger.info(`🔍 API 요청: ${method} ${url}`, { requestKey });
 
     // 1단계: GET 요청 캐시 체크 (최우선)
     if (method === 'GET') {
       const cachedData = this.getFromCache<T>(requestKey);
       if (cachedData) {
-        console.log(`💾 캐시에서 데이터 반환: ${requestKey}`);
+        logger.info(`💾 캐시에서 데이터 반환: ${requestKey}`);
         return cachedData;
       }
     }
 
     // 2단계: 진행 중인 동일 요청 체크 (중복 호출 방지)
     if (this.pendingApiRequests.has(requestKey)) {
-      console.log(`⚡ 진행 중인 요청 재사용: ${requestKey}`);
+      logger.info(`⚡ 진행 중인 요청 재사용: ${requestKey}`);
       const pendingRequest = this.pendingApiRequests.get(requestKey)!;
       return await pendingRequest.promise;
     }
@@ -494,7 +496,7 @@ export class ApiClient {
         const isAuthRequest = url.includes('/api/auth/me');
         const cacheTTL = options.cacheTTL || (isAuthRequest ? this.authCacheTTL : this.defaultCacheTTL);
         this.setCache(requestKey, result, cacheTTL);
-        console.log(`💾 캐시에 저장: ${requestKey} (TTL: ${cacheTTL}ms)`);
+        logger.info(`💾 캐시에 저장: ${requestKey} (TTL: ${cacheTTL}ms)`);
       }
 
       return result;
@@ -521,7 +523,7 @@ export class ApiClient {
 
     const data = await response.json();
 
-    console.log(`✅ 요청 완료: ${requestKey}`);
+    logger.info(`✅ 요청 완료: ${requestKey}`);
     return data;
   }
 
@@ -567,7 +569,7 @@ export class ApiClient {
       // 성능 모니터링: 1분마다 통계 출력
       const now = Date.now();
       if (now - this.lastResetTime > 60000) {
-        console.log(`📊 API Performance (1min): 총 호출 ${this.apiCallCount}회, 캐시 히트 ${this.cacheHitCount}회, 절약률 ${this.cacheHitCount > 0 ? ((this.cacheHitCount / (this.apiCallCount + this.cacheHitCount)) * 100).toFixed(1) : 0}%`);
+        logger.info(`📊 API Performance (1min): 총 호출 ${this.apiCallCount}회, 캐시 히트 ${this.cacheHitCount}회, 절약률 ${this.cacheHitCount > 0 ? ((this.cacheHitCount / (this.apiCallCount + this.cacheHitCount)) * 100).toFixed(1) : 0}%`);
         this.lastResetTime = now;
       }
 
@@ -600,7 +602,7 @@ export class ApiClient {
 
       // 🚨 무한 루프 방지: 400 에러는 클라이언트 오류로 재시도하지 않음
       if (response.status === 400) {
-        console.log('🚨 400 Bad Request - Client error, not retrying');
+        logger.info('🚨 400 Bad Request - Client error, not retrying');
 
         // 🔍 400 에러 모니터링 - 특별히 MISSING_REFRESH_TOKEN 패턴 감지
         const errorType = url.includes('/api/auth/refresh') ? 'MISSING_REFRESH_TOKEN' : 'BAD_REQUEST';
@@ -635,7 +637,7 @@ export class ApiClient {
     // auth/me와 같은 중요한 엔드포인트는 반드시 캐싱 적용
     const isAuthRequest = url.includes('/api/auth/me');
     if (isAuthRequest) {
-      console.log('🚨 auth/me 요청 감지 - 캐싱 적용');
+      logger.info('🚨 auth/me 요청 감지 - 캐싱 적용');
     }
 
     return this.safeFetchWithCache<T>(url, {
@@ -743,7 +745,7 @@ export function initializeApiClient(
   const isDebugMode = typeof process !== 'undefined' && process.env.NODE_ENV !== 'production';
 
   if (isDebugMode) {
-    console.info('🔧 [API Client] Initialization requested:', {
+    logger.info('🔧 [API Client] Initialization requested:', {
       tokenManagerActive: !!tokenManager,
       availableTokens: {
         supabase: tokenStatus.hasSupabase,

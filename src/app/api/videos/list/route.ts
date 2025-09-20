@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     const videos: any[] = [];
     const totalCount = 0;
 
-    console.log('✅ Videos list API - Prisma disabled, returning empty data');
+    logger.info('✅ Videos list API - Prisma disabled, returning empty data');
 
     return success({
       videos: videos.map((video: any) => ({
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
 
     // Prisma 비활성화로 인한 더미 데이터
     const existingVideos: any[] = [];
-    console.log('✅ Videos sync - Prisma disabled, skipping database operations');
+    logger.info('✅ Videos sync - Prisma disabled, skipping database operations');
 
     // 기존 레코드를 Map으로 인덱싱 (빠른 조회를 위해)
     const existingMap = new Map(
@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Prisma 비활성화 - 배치 작업 스킵
-    console.log('✅ Videos sync batch operation skipped (Prisma disabled)');
+    logger.info('✅ Videos sync batch operation skipped (Prisma disabled)');
 
     // 모든 작업을 스킵된 것으로 표시
     syncResults.forEach(result => {

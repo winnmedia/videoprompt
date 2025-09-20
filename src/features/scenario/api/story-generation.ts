@@ -1,6 +1,7 @@
 import { StoryInput, StoryStep } from '@/entities/scenario';
 import { safeFetch, withDeduplication } from '@/shared/lib/api-retry';
-import { 
+import { logger } from '@/shared/lib/logger';
+import {
   transformApiResponseToStorySteps,
   transformStoryInputToApiRequest,
   transformApiError,
@@ -57,7 +58,7 @@ export async function generateStorySteps({
   // 캐시 확인
   const cached = storyCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    console.log('💾 캐시된 스토리 사용 - API 호출 절약');
+    logger.info('💾 캐시된 스토리 사용 - API 호출 절약');
     onSuccess?.(cached.steps, '캐시된 스토리를 불러왔습니다. ⚡');
     return cached.steps;
   }
@@ -65,7 +66,7 @@ export async function generateStorySteps({
   // 진행 중인 요청 확인 (중복 방지)
   const pendingRequest = pendingRequests.get(cacheKey);
   if (pendingRequest) {
-    console.log('⏳ 동일한 요청 진행 중 - 중복 방지');
+    logger.info('⏳ 동일한 요청 진행 중 - 중복 방지');
     return pendingRequest;
   }
 

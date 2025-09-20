@@ -14,6 +14,8 @@ import { createServerClient } from '@supabase/ssr';
 import { NextRequest } from 'next/server';
 import { getDegradationMode, getSupabaseConfig } from '@/shared/config/env';
 import { HTTP_503_CASES } from '@/shared/lib/http-status-guide';
+import { logger } from './logger';
+
 
 // ============================================================================
 // Circuit Breaker State Management
@@ -88,7 +90,7 @@ function isCircuitOpen(key: string): boolean {
     // 재시도 시간 도달 - Half Open 상태
     state.isOpen = false;
     circuitState.set(key, state);
-    console.log(`🔄 Circuit breaker Half-Open for ${key}`);
+    logger.info(`🔄 Circuit breaker Half-Open for ${key}`);
     return false;
   }
 
@@ -128,7 +130,7 @@ export async function getSupabaseClient(
     const degradationMode = getDegradationMode();
     const supabaseConfig = getSupabaseConfig();
 
-    console.log(`🔧 Supabase client requested`, {
+    logger.info(`🔧 Supabase client requested`, {
       serviceName,
       degradationMode,
       isConfigured: supabaseConfig.isConfigured,
@@ -211,7 +213,7 @@ export async function getSupabaseClient(
       // 7. 성공
       updateCircuitBreaker(circuitKey, true);
 
-      console.log(`✅ Supabase client created successfully`, {
+      logger.info(`✅ Supabase client created successfully`, {
         serviceName,
         degradationMode,
         hasFullAdmin: supabaseConfig.hasFullAdmin
@@ -424,7 +426,7 @@ export async function getSupabaseAdminClient(
 
     updateCircuitBreaker(circuitKey, true);
 
-    console.log(`✅ Supabase Admin client created`, { serviceName, degradationMode });
+    logger.info(`✅ Supabase Admin client created`, { serviceName, degradationMode });
 
     return {
       client,
@@ -528,7 +530,7 @@ export function getCircuitBreakerStatus(): Array<{
 export function resetCircuitBreaker(key: string): boolean {
   if (circuitState.has(key)) {
     circuitState.delete(key);
-    console.log(`🔄 Circuit breaker manually reset for ${key}`);
+    logger.info(`🔄 Circuit breaker manually reset for ${key}`);
     return true;
   }
   return false;
@@ -540,6 +542,6 @@ export function resetCircuitBreaker(key: string): boolean {
 export function resetAllCircuitBreakers(): number {
   const count = circuitState.size;
   circuitState.clear();
-  console.log(`🔄 All circuit breakers reset (${count} circuits)`);
+  logger.info(`🔄 All circuit breakers reset (${count} circuits)`);
   return count;
 }

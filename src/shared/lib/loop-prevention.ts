@@ -8,6 +8,8 @@
  */
 
 import React, { useEffect, type DependencyList, type EffectCallback } from 'react';
+import { logger } from './logger';
+
 
 interface LoopDetectionConfig {
   maxCallsPerSecond: number;
@@ -280,7 +282,7 @@ export class InfiniteLoopDetector {
     this.totalCost = 0;
     this.emergencyMode = false;
 
-    console.log('🔄 InfiniteLoopDetector 리셋 완료');
+    logger.info('🔄 InfiniteLoopDetector 리셋 완료');
     return true;
   }
 }

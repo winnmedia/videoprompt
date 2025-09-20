@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { MailDataRequired } from '@sendgrid/mail';
 import { getSendGridClient, getSendGridConfig } from './sendgrid';
 import { getTemplate } from './templates';
+import { logger } from '@/shared/lib/logger';
 import {
   SendEmailRequestSchema,
   SendEmailResponseSchema,
@@ -145,7 +146,7 @@ async function retryWithBackoff<T>(
 
       // Calculate and apply backoff
       const delay = calculateBackoff(attempt, baseDelay);
-      console.log(`[Email] Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
+      logger.info(`[Email] Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -192,16 +193,16 @@ export async function sendEmail(request: SendEmailRequest): Promise<SendEmailRes
     
     // 개발 환경에서 placeholder key 사용 시 이메일 시뮬레이션
     if (config.apiKey === 'development-placeholder-key') {
-      console.log('\n📧 =========================== 이메일 시뮬레이션 ===========================');
-      console.log('🎯 받는 사람:', Array.isArray(validatedRequest.to) 
+      logger.info('\n📧 =========================== 이메일 시뮬레이션 ===========================');
+      logger.info('🎯 받는 사람:', Array.isArray(validatedRequest.to) 
         ? validatedRequest.to.map(r => `${r.name} <${r.email}>`).join(', ')
         : `${validatedRequest.to.name} <${validatedRequest.to.email}>`);
-      console.log('📝 제목:', validatedRequest.subject);
-      console.log('🔗 HTML 내용:');
-      console.log(validatedRequest.html);
-      console.log('📄 텍스트 내용:');
-      console.log(validatedRequest.text);
-      console.log('========================================================================\n');
+      logger.info('📝 제목:', validatedRequest.subject);
+      logger.info('🔗 HTML 내용:');
+      logger.info(validatedRequest.html);
+      logger.info('📄 텍스트 내용:');
+      logger.info(validatedRequest.text);
+      logger.info('========================================================================\n');
       
       // 가짜 응답 생성
       const mockResponse = {
@@ -218,7 +219,7 @@ export async function sendEmail(request: SendEmailRequest): Promise<SendEmailRes
         timestamp: new Date().toISOString(),
       };
       
-      console.log('[Email] ✅ 개발 환경에서 이메일 시뮬레이션 완료', {
+      logger.info('[Email] ✅ 개발 환경에서 이메일 시뮬레이션 완료', {
         messageId: result.messageId,
         to: Array.isArray(validatedRequest.to) 
           ? validatedRequest.to.map(r => r.email) 
@@ -245,7 +246,7 @@ export async function sendEmail(request: SendEmailRequest): Promise<SendEmailRes
     };
     
     // Log success
-    console.log('[Email] Sent successfully', {
+    logger.info('[Email] Sent successfully', {
       messageId: result.messageId,
       to: Array.isArray(validatedRequest.to) 
         ? validatedRequest.to.map(r => r.email) 
@@ -341,7 +342,7 @@ export async function sendBatchEmails(request: BatchEmailRequest): Promise<Batch
       errors: errors.length > 0 ? errors : undefined,
     };
     
-    console.log('[Email] Batch sent', {
+    logger.info('[Email] Batch sent', {
       batchId: result.batchId,
       accepted: result.accepted,
       rejected: result.rejected,
@@ -488,7 +489,7 @@ export async function validateEmailConfiguration(): Promise<boolean> {
       text: 'This is a configuration test email.',
     });
     
-    console.log('[Email] Configuration validated successfully');
+    logger.info('[Email] Configuration validated successfully');
     return true;
   } catch (error) {
     console.error('[Email] Configuration validation failed:', error);

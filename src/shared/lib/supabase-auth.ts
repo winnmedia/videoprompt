@@ -13,6 +13,8 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabase';
 import { verifySessionToken } from './auth';
+import { logger } from './logger';
+
 
 interface AuthUser {
   id: string;
@@ -55,7 +57,7 @@ export async function requireSupabaseAuthentication(
     // 1순위: Supabase 토큰 확인
     const supabaseResult = await authenticateWithSupabase(req);
     if (supabaseResult.isAuthenticated) {
-      console.log(`🔑 Supabase authentication successful: ${supabaseResult.id}`);
+      logger.info(`🔑 Supabase authentication successful: ${supabaseResult.id}`);
 
       if (requireEmailVerified && !supabaseResult.email) {
         return {
@@ -71,13 +73,13 @@ export async function requireSupabaseAuthentication(
     // 2순위: 레거시 JWT 확인 (백업 경로)
     const legacyResult = await authenticateWithLegacyJWT(req);
     if (legacyResult.isAuthenticated) {
-      console.log(`🔑 Legacy JWT authentication successful: ${legacyResult.id}`);
+      logger.info(`🔑 Legacy JWT authentication successful: ${legacyResult.id}`);
       return legacyResult;
     }
 
     // 3순위: 게스트 모드 처리
     if (allowGuest) {
-      console.log('👤 Guest mode activated');
+      logger.info('👤 Guest mode activated');
       return {
         id: null,
         email: null,

@@ -1,3 +1,5 @@
+import { logger } from './logger';
+
 /**
  * 프로덕션 모니터링 클라이언트 - $300 사건 재발 방지
  * 자동 에러 추적 및 실시간 모니터링
@@ -60,7 +62,7 @@ class ProductionMonitor {
    */
   async reportError(report: ErrorReport): Promise<void> {
     if (!this.config.enabled) {
-      console.log('🔍 [DEV] Error would be reported:', report);
+      logger.info('🔍 [DEV] Error would be reported:', report);
       return;
     }
 

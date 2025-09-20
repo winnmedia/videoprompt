@@ -5,6 +5,8 @@
 
 import { useRef, useCallback } from 'react';
 import { productionMonitor } from '@/shared/lib/production-monitor';
+import { logger } from '@/shared/lib/logger';
+
 
 interface ApiCallGuardOptions {
   maxCallsPerMinute?: number;
@@ -167,7 +169,7 @@ export function useApiCallGuard(
           callRecord.status = 'success';
 
           if (enableLogging) {
-            console.log(`✅ API call successful: ${endpoint}`);
+            logger.info(`✅ API call successful: ${endpoint}`);
           }
 
           resolve({

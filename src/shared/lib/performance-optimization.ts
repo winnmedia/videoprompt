@@ -6,6 +6,8 @@
 
 import React, { useCallback, useMemo, useRef, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { logger } from './logger';
+
 
 // =============================================================================
 // 디바운싱 및 쓰로틀링
@@ -415,7 +417,7 @@ export function useRenderPerformance(componentName: string) {
       renderCount.current += 1;
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(
+        logger.info(
           `[Performance] ${componentName} render #${renderCount.current}: ${renderTime.toFixed(2)}ms`
         );
 
@@ -447,14 +449,14 @@ export function measureExecutionTime<T extends (...args: any[]) => any>(
       return result.finally(() => {
         const endTime = performance.now();
         if (process.env.NODE_ENV === 'development') {
-          console.log(`[Performance] ${name || fn.name}: ${(endTime - startTime).toFixed(2)}ms`);
+          logger.info(`[Performance] ${name || fn.name}: ${(endTime - startTime).toFixed(2)}ms`);
         }
       });
     }
 
     const endTime = performance.now();
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[Performance] ${name || fn.name}: ${(endTime - startTime).toFixed(2)}ms`);
+      logger.info(`[Performance] ${name || fn.name}: ${(endTime - startTime).toFixed(2)}ms`);
     }
 
     return result;

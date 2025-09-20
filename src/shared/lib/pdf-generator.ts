@@ -5,6 +5,8 @@
 
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { logger } from './logger';
+
 
 // 한글 폰트 지원을 위한 인터페이스
 interface PdfData {
@@ -368,7 +370,7 @@ export async function generatePlanningPDF(data: PdfData): Promise<void> {
     const fileName = `VLANET_기획안_${data.scenario.title || 'untitled'}_${new Date().getFullYear()}${(new Date().getMonth() + 1).toString().padStart(2, '0')}${new Date().getDate().toString().padStart(2, '0')}.pdf`;
     pdf.save(fileName);
     
-    console.log('PDF가 성공적으로 생성되었습니다:', fileName);
+    logger.info('PDF가 성공적으로 생성되었습니다:', fileName);
     
   } catch (error) {
     console.error('PDF 생성 중 오류 발생:', error);
@@ -491,7 +493,7 @@ export async function generatePlanningPDFWithProgress(
     pdf.save(fileName);
     
     onProgress?.(100);
-    console.log('PDF가 성공적으로 생성되었습니다:', fileName);
+    logger.info('PDF가 성공적으로 생성되었습니다:', fileName);
     
   } catch (error) {
     onProgress?.(0);

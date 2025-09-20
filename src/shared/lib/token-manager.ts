@@ -1,3 +1,5 @@
+import { logger } from './logger';
+
 /**
  * 통합 토큰 매니저 - Supabase + 레거시 토큰 통합 관리
  * 프로덕션 401/400 에러 근본 해결을 위한 토큰 시스템 일원화
@@ -271,7 +273,7 @@ class TokenManager {
 
   private debugLog(...args: any[]): void {
     if (this.config.enableDebugLogging) {
-      console.log('[TokenManager]', ...args);
+      logger.info('[TokenManager]', ...args);
     }
   }
 }

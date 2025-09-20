@@ -9,6 +9,8 @@
 import sgMail from '@sendgrid/mail';
 import { z } from 'zod';
 import { EmailServiceConfigSchema, type EmailServiceConfig } from './contracts/email.schema';
+import { logger } from '@/shared/lib/logger';
+
 
 // ============================================================================
 // Configuration
@@ -93,7 +95,7 @@ class SendGridClient {
       // 개발 환경에서는 더 유연하게 처리
       if (process.env.NODE_ENV === 'development' && !process.env.SENDGRID_API_KEY) {
         console.warn('[SendGrid] 🚧 개발 환경: SendGrid API 키가 없습니다. 이메일 전송이 시뮬레이션됩니다.');
-        console.info('[SendGrid] 📧 실제 이메일을 보내려면 .env.local에 SENDGRID_API_KEY를 설정하세요.');
+        logger.info('[SendGrid] 📧 실제 이메일을 보내려면 .env.local에 SENDGRID_API_KEY를 설정하세요.');
         return {
           SENDGRID_API_KEY: 'development-placeholder-key',
           SENDGRID_FROM_EMAIL: process.env.DEFAULT_FROM_EMAIL || 'dev@vlanet.net',
@@ -171,7 +173,7 @@ class SendGridClient {
       
       this.initialized = true;
       
-      console.log('[SendGrid] Client initialized successfully', {
+      logger.info('[SendGrid] Client initialized successfully', {
         sandboxMode: this.config.sandboxMode,
         defaultFrom: this.config.defaultFrom.email,
         usingPlaceholder: this.config.apiKey === 'development-placeholder-key',

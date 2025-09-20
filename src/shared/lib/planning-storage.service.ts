@@ -8,6 +8,8 @@
 import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import { supabaseCircuitBreaker } from '@/shared/lib/circuit-breaker';
 import type { Story } from '@/shared/schemas/story.schema';
+import { logger } from './logger';
+
 
 // 단일 저장소 결과 타입
 interface StorageResult<T> {
@@ -87,7 +89,7 @@ interface UpdateStoryInput {
  * 스토리를 Supabase에 저장
  */
 export async function saveStory(input: CreateStoryInput): Promise<StorageResult<Story>> {
-  console.log('🔄 Planning Storage: 스토리 저장 시작', {
+  logger.info('🔄 Planning Storage: 스토리 저장 시작', {
     title: input.title,
     userId: input.userId || 'guest'
   });
@@ -121,7 +123,7 @@ export async function saveStory(input: CreateStoryInput): Promise<StorageResult<
       return data;
     });
 
-    console.log('✅ 스토리 저장 성공:', result.id);
+    logger.info('✅ 스토리 저장 성공:', result.id);
     return {
       success: true,
       data: result,
@@ -143,7 +145,7 @@ export async function saveStory(input: CreateStoryInput): Promise<StorageResult<
  * 시나리오를 Supabase에 저장
  */
 export async function saveScenario(input: CreateScenarioInput): Promise<StorageResult<any>> {
-  console.log('🔄 Planning Storage: 시나리오 저장 시작', {
+  logger.info('🔄 Planning Storage: 시나리오 저장 시작', {
     title: input.title,
     userId: input.userId || 'guest'
   });
@@ -177,7 +179,7 @@ export async function saveScenario(input: CreateScenarioInput): Promise<StorageR
       return data;
     });
 
-    console.log('✅ 시나리오 저장 성공:', result.id);
+    logger.info('✅ 시나리오 저장 성공:', result.id);
     return {
       success: true,
       data: result,
@@ -198,7 +200,7 @@ export async function saveScenario(input: CreateScenarioInput): Promise<StorageR
  * 프롬프트를 Supabase에 저장
  */
 export async function savePrompt(input: CreatePromptInput): Promise<StorageResult<any>> {
-  console.log('🔄 Planning Storage: 프롬프트 저장 시작', {
+  logger.info('🔄 Planning Storage: 프롬프트 저장 시작', {
     title: input.title,
     userId: input.userId || 'guest'
   });
@@ -234,7 +236,7 @@ export async function savePrompt(input: CreatePromptInput): Promise<StorageResul
       return data;
     });
 
-    console.log('✅ 프롬프트 저장 성공:', result.id);
+    logger.info('✅ 프롬프트 저장 성공:', result.id);
     return {
       success: true,
       data: result,
@@ -255,7 +257,7 @@ export async function savePrompt(input: CreatePromptInput): Promise<StorageResul
  * 영상 메타데이터를 Supabase에 저장
  */
 export async function saveVideo(input: CreateVideoInput): Promise<StorageResult<any>> {
-  console.log('🔄 Planning Storage: 영상 메타데이터 저장 시작', {
+  logger.info('🔄 Planning Storage: 영상 메타데이터 저장 시작', {
     title: input.title,
     provider: input.provider,
     userId: input.userId || 'guest'
@@ -291,7 +293,7 @@ export async function saveVideo(input: CreateVideoInput): Promise<StorageResult<
       return data;
     });
 
-    console.log('✅ 영상 메타데이터 저장 성공:', result.id);
+    logger.info('✅ 영상 메타데이터 저장 성공:', result.id);
     return {
       success: true,
       data: result,
@@ -312,7 +314,7 @@ export async function saveVideo(input: CreateVideoInput): Promise<StorageResult<
  * 스토리 업데이트
  */
 export async function updateStory(input: UpdateStoryInput): Promise<StorageResult<any>> {
-  console.log('🔄 Planning Storage: 스토리 업데이트 시작', {
+  logger.info('🔄 Planning Storage: 스토리 업데이트 시작', {
     projectId: input.projectId,
     title: input.title,
   });
@@ -343,7 +345,7 @@ export async function updateStory(input: UpdateStoryInput): Promise<StorageResul
       return data;
     });
 
-    console.log('✅ 스토리 업데이트 성공:', result.id);
+    logger.info('✅ 스토리 업데이트 성공:', result.id);
     return {
       success: true,
       data: result,
@@ -551,17 +553,17 @@ export const saveVideoToProject = saveVideo;
 
 // 트랜잭션 관리 (Supabase는 트랜잭션을 다르게 처리하므로 호환성 메서드)
 export async function savePipelineTransaction(data: any): Promise<StorageResult<any>> {
-  console.log('📦 Pipeline transaction:', data);
+  logger.info('📦 Pipeline transaction:', data);
   return { success: true, data: null };
 }
 
 export async function recoverPartialTransaction(projectId: string): Promise<StorageResult<any>> {
-  console.log('🔄 Recovering transaction for project:', projectId);
+  logger.info('🔄 Recovering transaction for project:', projectId);
   return { success: true, data: null };
 }
 
 export async function rollbackTransaction(transactionId: string): Promise<StorageResult<any>> {
-  console.log('↩️ Rolling back transaction:', transactionId);
+  logger.info('↩️ Rolling back transaction:', transactionId);
   return { success: true, data: null };
 }
 
@@ -586,30 +588,30 @@ export async function updateProject(projectId: string, updates: any): Promise<St
 
 // 협업 관리 (향후 구현 예정)
 export async function addCollaborator(projectId: string, userId: string): Promise<StorageResult<any>> {
-  console.log('👥 Adding collaborator:', { projectId, userId });
+  logger.info('👥 Adding collaborator:', { projectId, userId });
   return { success: true, data: null };
 }
 
 // 공유 링크 (향후 구현 예정)
 export async function createShareLink(projectId: string, options: any): Promise<StorageResult<any>> {
-  console.log('🔗 Creating share link:', { projectId, options });
+  logger.info('🔗 Creating share link:', { projectId, options });
   return { success: true, data: null };
 }
 
 // 버전 관리 (향후 구현 예정)
 export async function createVersion(projectId: string, data: any): Promise<StorageResult<any>> {
-  console.log('📝 Creating version:', { projectId, data });
+  logger.info('📝 Creating version:', { projectId, data });
   return { success: true, data: null };
 }
 
 // 데이터 일관성 검사 (향후 구현 예정)
 export async function checkDataConsistency(projectId: string): Promise<StorageResult<any>> {
-  console.log('✅ Checking data consistency:', projectId);
+  logger.info('✅ Checking data consistency:', projectId);
   return { success: true, data: { consistent: true } };
 }
 
 export async function repairDataInconsistency(projectId: string): Promise<StorageResult<any>> {
-  console.log('🔧 Repairing data inconsistency:', projectId);
+  logger.info('🔧 Repairing data inconsistency:', projectId);
   return { success: true, data: null };
 }
 

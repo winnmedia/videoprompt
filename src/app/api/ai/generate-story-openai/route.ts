@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { logger } from '@/shared/lib/logger';
+
 // import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { getUser } from '@/shared/lib/auth';
 import {
@@ -76,10 +78,10 @@ export const POST = withCors(async (request: NextRequest) => {
     const { story, genre, tone, target, duration, format, tempo, developmentMethod, developmentIntensity, projectId, saveAsProject, projectTitle } = validationResult.data;
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('[OpenAI Story Generator] ========== 시작 ==========');
-      console.log('[OpenAI Story Generator] GPT-4o Mini 사용');
-      console.log(`[OpenAI Story Generator] 스토리: ${story.substring(0, 100)}...`);
-      console.log(`[OpenAI Story Generator] 장르: ${genre}, 톤: ${tone}, 전개: ${developmentMethod}`);
+      logger.info('[OpenAI Story Generator] ========== 시작 ==========');
+      logger.info('[OpenAI Story Generator] GPT-4o Mini 사용');
+      logger.info(`[OpenAI Story Generator] 스토리: ${story.substring(0, 100)}...`);
+      logger.info(`[OpenAI Story Generator] 장르: ${genre}, 톤: ${tone}, 전개: ${developmentMethod}`);
     }
 
     try {
@@ -116,10 +118,10 @@ export const POST = withCors(async (request: NextRequest) => {
       }
 
       if (process.env.NODE_ENV === 'development') {
-        console.log('[OpenAI Story Generator] ✅ 스토리 생성 성공');
-        console.log(`[OpenAI Story Generator] 모델: ${result.model}`);
-        console.log(`[OpenAI Story Generator] 토큰 사용량: ${result.usage?.totalTokens || 0}`);
-        console.log(`[OpenAI Story Generator] 예상 비용: $${result.usage?.estimatedCost.toFixed(4) || 0}`);
+        logger.info('[OpenAI Story Generator] ✅ 스토리 생성 성공');
+        logger.info(`[OpenAI Story Generator] 모델: ${result.model}`);
+        logger.info(`[OpenAI Story Generator] 토큰 사용량: ${result.usage?.totalTokens || 0}`);
+        logger.info(`[OpenAI Story Generator] 예상 비용: $${result.usage?.estimatedCost.toFixed(4) || 0}`);
 
         // Gemini와 비용 비교
         if (result.usage) {
@@ -127,7 +129,7 @@ export const POST = withCors(async (request: NextRequest) => {
             result.usage.promptTokens,
             result.usage.completionTokens
           );
-          console.log(`[OpenAI Story Generator] 💰 비용 비교: ${comparison.savings}`);
+          logger.info(`[OpenAI Story Generator] 💰 비용 비교: ${comparison.savings}`);
         }
       }
 
@@ -140,7 +142,7 @@ export const POST = withCors(async (request: NextRequest) => {
             user = await getUser(request);
           } catch (authError) {
             if (process.env.NODE_ENV === 'development') {
-              console.log('[OpenAI Story Generator] 인증 실패 - DB 저장 거부:', authError);
+              logger.info('[OpenAI Story Generator] 인증 실패 - DB 저장 거부:', authError);
             }
           }
 
@@ -179,11 +181,11 @@ export const POST = withCors(async (request: NextRequest) => {
             };
 
             if (process.env.NODE_ENV === 'development') {
-              console.log(`[OpenAI Story Generator] 프로젝트 저장 스킵 (Prisma disabled): ${savedProject.id}`);
+              logger.info(`[OpenAI Story Generator] 프로젝트 저장 스킵 (Prisma disabled): ${savedProject.id}`);
             }
           } else {
             if (process.env.NODE_ENV === 'development') {
-              console.log('[OpenAI Story Generator] ⚠️ DATABASE_URL 없음 - 프로젝트 저장 건너뜀');
+              logger.info('[OpenAI Story Generator] ⚠️ DATABASE_URL 없음 - 프로젝트 저장 건너뜀');
             }
           }
         } catch (dbError) {
@@ -194,7 +196,7 @@ export const POST = withCors(async (request: NextRequest) => {
       }
 
       if (process.env.NODE_ENV === 'development') {
-        console.log('[OpenAI Story Generator] ========== 완료 ==========');
+        logger.info('[OpenAI Story Generator] ========== 완료 ==========');
       }
 
       // 응답 반환

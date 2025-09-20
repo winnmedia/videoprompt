@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prismaCircuitBreaker, supabaseCircuitBreaker } from '@/shared/lib/circuit-breaker';
 import { checkAllRequiredTables } from '@/shared/lib/supabase-schema-sync';
+import { logger } from '@/shared/lib/logger';
+
 // import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import { createSuccessResponse, createErrorResponse } from '@/shared/schemas/api.schema';
@@ -14,7 +16,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(req: NextRequest) {
   try {
-    console.log('📊 저장소 모니터링 대시보드 요청');
+    logger.info('📊 저장소 모니터링 대시보드 요청');
 
     // 1. 회로 차단기 상태 조회
     const circuitBreakerStats = {
@@ -158,7 +160,7 @@ export async function GET(req: NextRequest) {
       recommendations: generateRecommendations(overallHealth, circuitBreakerStats, tableStatus, consistencyCheck)
     };
 
-    console.log('✅ 저장소 모니터링 완료:', {
+    logger.info('✅ 저장소 모니터링 완료:', {
       status: overallHealth.status,
       healthyComponents: healthyComponents
     });

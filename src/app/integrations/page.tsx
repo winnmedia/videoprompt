@@ -4,13 +4,15 @@ import React, { useState, useMemo } from 'react';
 import { IntegrationGrid } from '@/shared/ui';
 import { Button } from '@/shared/ui';
 import { Icon } from '@/shared/ui';
+import { logger } from '@/shared/lib/logger';
 import {
+
+
   videoPlanetIntegrations,
   integrationCategories,
   getIntegrationsByCategory,
   searchIntegrations,
-  type VideoPlanetIntegration,
-} from '@/lib/integrations';
+  type VideoPlanetIntegration,} from '@/lib/integrations';
 
 export default function IntegrationsPage() {
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -51,15 +53,15 @@ export default function IntegrationsPage() {
 
   // 이벤트 핸들러
   const handleConnect = (id: string) => {
-    console.log('Connecting to:', id);
+    logger.info('Connecting to:', id);
   };
 
   const handleDisconnect = (id: string) => {
-    console.log('Disconnecting from:', id);
+    logger.info('Disconnecting from:', id);
   };
 
   const handleConfigure = (id: string) => {
-    console.log('Configuring:', id);
+    logger.info('Configuring:', id);
   };
 
   return (

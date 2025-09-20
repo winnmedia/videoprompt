@@ -9,6 +9,7 @@
  */
 
 import { supabase, supabaseAdmin, supabaseConfig } from '@/lib/supabase';
+import { logger } from './logger';
 import {
   transformSupabaseUserToPrisma,
   validateUserDataQuality,
@@ -48,7 +49,7 @@ export class UserSyncService {
     const { createIfNotExists = true, forceUpdate = false } = options;
 
     try {
-      console.log(`Starting user sync for ${userId}`);
+      logger.info(`Starting user sync for ${userId}`);
 
       // 1. Supabase에서 사용자 정보 조회
       const supabaseUser = await this.getSupabaseUser(userId);
@@ -87,7 +88,7 @@ export class UserSyncService {
           if (createIfNotExists) {
             operation = 'create';
             changes = { ...prismaUserData };
-            console.log(`✨ Creating new user in Prisma: ${userId}`);
+            logger.info(`✨ Creating new user in Prisma: ${userId}`);
             return await tx.user.create({
               data: prismaUserData
             });
@@ -101,7 +102,7 @@ export class UserSyncService {
           if (needsUpdate) {
             operation = 'update';
             changes = this.getChanges(existingPrismaUser, prismaUserData);
-            console.log(`Updating existing user in Prisma: ${userId}`, changes);
+            logger.info(`Updating existing user in Prisma: ${userId}`, changes);
             return await tx.user.update({
               where: { id: userId },
               data: {
@@ -111,7 +112,7 @@ export class UserSyncService {
             });
           } else {
             operation = 'skip';
-            console.log(`⏭️ No changes needed for user: ${userId}`);
+            logger.info(`⏭️ No changes needed for user: ${userId}`);
             return existingPrismaUser;
           }
         }
@@ -141,7 +142,7 @@ export class UserSyncService {
         executionTime: Date.now() - startTime
       });
 
-      console.log(`User sync completed: ${userId} (${operation}, ${result.qualityScore}점)`);
+      logger.info(`User sync completed: ${userId} (${operation}, ${result.qualityScore}점)`);
       return result;
 
     } catch (error) {
@@ -297,13 +298,13 @@ export class UserSyncService {
   }> {
     const { batchSize, skipErrors, qualityThreshold } = options;
 
-    console.log(`Starting batch sync with options:`, options);
+    logger.info(`Starting batch sync with options:`, options);
 
     // Supabase에서 모든 사용자 조회
     const supabaseUsers = await this.getAllSupabaseUsers();
     const total = supabaseUsers.length;
 
-    console.log(`Found ${total} users in Supabase`);
+    logger.info(`Found ${total} users in Supabase`);
 
     const results: SyncResult[] = [];
     let successful = 0;
@@ -312,7 +313,7 @@ export class UserSyncService {
     // 배치 단위로 처리
     for (let i = 0; i < total; i += batchSize) {
       const batch = supabaseUsers.slice(i, i + batchSize);
-      console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(total/batchSize)} (${batch.length} users)`);
+      logger.info(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(total/batchSize)} (${batch.length} users)`);
 
       // 배치 내 병렬 처리
       const batchPromises = batch.map(async (user) => {
@@ -366,7 +367,7 @@ export class UserSyncService {
     }
 
     const summary = `배치 동기화 완료: 전체 ${total}명 중 성공 ${successful}명, 실패 ${failed}명 (성공률 ${Math.round(successful/total*100)}%)`;
-    console.log(`${summary}`);
+    logger.info(`${summary}`);
 
     return {
       totalProcessed: total,

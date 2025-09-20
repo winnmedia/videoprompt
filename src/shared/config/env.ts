@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { logger } from '@/shared/lib/logger';
+
 
 // 환경변수 로드 (Next.js 외부에서도 동작하도록)
 if (typeof window === 'undefined') { // 서버사이드에서만 실행
@@ -125,7 +127,7 @@ export function getEnv(): Readonly<Env> {
 export function assertEnvInitialized() {
   try {
     getEnv();
-    console.log('✅ 환경변수 검증 완료 - 앱 시작 허용');
+    logger.info('✅ 환경변수 검증 완료 - 앱 시작 허용');
   } catch (error) {
     console.error('❌ 환경변수 검증 실패 - 앱 시작 차단');
     throw error;
@@ -226,7 +228,7 @@ export function initializeEnvironment(): void {
       validateDevelopmentEnv();
     }
 
-    console.log(`✅ Environment validation completed for ${env.NODE_ENV} mode`);
+    logger.info(`✅ Environment validation completed for ${env.NODE_ENV} mode`);
   } catch (error) {
     console.error('🚨 Environment initialization failed:', error instanceof Error ? error.message : 'Unknown error');
 

@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { apiClient, initializeApiClient } from '@/shared/lib/api-client';
 import { parseAuthResponse } from '@/shared/contracts/auth.contract';
+import { logger } from '@/shared/lib/logger';
+
 
 /**
  * JWT 토큰 형식 검증 (무한 루프 방지)
@@ -129,7 +131,7 @@ export const useAuthStore = create<AuthState>()(
         );
 
         if (!hasToken) {
-          console.log('🚨 checkAuth: No token found - setting guest state');
+          logger.info('🚨 checkAuth: No token found - setting guest state');
           set({
             user: null,
             isAuthenticated: false,
@@ -141,13 +143,13 @@ export const useAuthStore = create<AuthState>()(
 
         // 🚀 캐싱: 5분 이내에 이미 확인했으면 스킵
         if (lastCheckTime && currentTime - lastCheckTime < CACHE_DURATION) {
-          console.log('🔄 Using cached auth state (within 5 minutes)');
+          logger.info('🔄 Using cached auth state (within 5 minutes)');
           return;
         }
 
         // 🚀 중복 방지: 이미 진행 중인 Promise 재사용
         if (checkAuthPromise) {
-          console.log('🔄 Reusing existing auth check promise');
+          logger.info('🔄 Reusing existing auth check promise');
           return checkAuthPromise;
         }
 
@@ -163,14 +165,14 @@ export const useAuthStore = create<AuthState>()(
 
           try {
             // 🔥 401 오류 해결: ApiClient 사용으로 통합된 토큰 관리
-            console.log('🔐 checkAuth: Making API call to /api/auth/me');
+            logger.info('🔐 checkAuth: Making API call to /api/auth/me');
             const rawResponse = await apiClient.json('/api/auth/me');
 
             // 🚨 데이터 계약 검증
             const validatedData = parseAuthResponse(rawResponse);
 
             if (validatedData.ok && validatedData.data) {
-              console.log('✅ checkAuth: Authentication successful');
+              logger.info('✅ checkAuth: Authentication successful');
 
               // 🚨 CRITICAL FIX: guest-token 저장 방지로 무한 루프 차단
               if (validatedData.data.token && typeof window !== 'undefined') {
@@ -204,7 +206,7 @@ export const useAuthStore = create<AuthState>()(
               // isAuthenticated 상태를 서버 응답 기반으로 설정
               set({ isAuthenticated: isUserAuthenticated });
             } else {
-              console.log('⚠️ checkAuth: Invalid response, setting guest state');
+              logger.info('⚠️ checkAuth: Invalid response, setting guest state');
               set({
                 user: null,
                 isAuthenticated: false
@@ -242,14 +244,14 @@ export const useAuthStore = create<AuthState>()(
 
         // 이미 갱신 중인 경우 대기
         if (isRefreshing) {
-          console.log('🔄 Token refresh already in progress, skipping');
+          logger.info('🔄 Token refresh already in progress, skipping');
           return null;
         }
 
         set({ isRefreshing: true });
 
         try {
-          console.log('🔄 Starting token refresh...');
+          logger.info('🔄 Starting token refresh...');
 
           const response = await fetch('/api/auth/refresh', {
             method: 'POST',
@@ -288,7 +290,7 @@ export const useAuthStore = create<AuthState>()(
             }
           }
 
-          console.log('✅ Token refreshed successfully');
+          logger.info('✅ Token refreshed successfully');
           return newToken;
 
         } catch (error) {

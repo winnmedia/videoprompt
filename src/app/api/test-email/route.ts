@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { sendEmail, getEmailServiceStatus } from '@/lib/email/sender';
 import { getSendGridConfig } from '@/lib/email/sendgrid';
+import { logger } from '@/shared/lib/logger';
+
 
 export const runtime = 'nodejs';
 
@@ -31,17 +33,17 @@ export async function POST(req: NextRequest) {
 
   const traceId = getTraceId(req);
   
-  console.log(`[TestEmail ${traceId}] 🧪 이메일 서비스 테스트 시작`);
+  logger.info(`[TestEmail ${traceId}] 🧪 이메일 서비스 테스트 시작`);
   
   try {
     const body = await req.json();
     const { to, type } = TestEmailSchema.parse(body);
     
-    console.log(`[TestEmail ${traceId}] 요청 타입: ${type}, 대상: ${to}`);
+    logger.info(`[TestEmail ${traceId}] 요청 타입: ${type}, 대상: ${to}`);
     
     // 1. 이메일 서비스 상태 확인
     const status = getEmailServiceStatus();
-    console.log(`[TestEmail ${traceId}] 이메일 서비스 상태:`, status);
+    logger.info(`[TestEmail ${traceId}] 이메일 서비스 상태:`, status);
     
     if (type === 'status') {
       return success({
@@ -54,7 +56,7 @@ export async function POST(req: NextRequest) {
     let config;
     try {
       config = getSendGridConfig();
-      console.log(`[TestEmail ${traceId}] SendGrid 설정:`, {
+      logger.info(`[TestEmail ${traceId}] SendGrid 설정:`, {
         configured: !!config,
         defaultFrom: config.defaultFrom,
         sandboxMode: config.sandboxMode,
@@ -73,7 +75,7 @@ export async function POST(req: NextRequest) {
     
     // 3. 실제 이메일 전송 테스트
     try {
-      console.log(`[TestEmail ${traceId}] 테스트 이메일 전송 시작...`);
+      logger.info(`[TestEmail ${traceId}] 테스트 이메일 전송 시작...`);
       
       const emailResult = await sendEmail({
         to: { email: to, name: 'Test User' },
@@ -103,7 +105,7 @@ export async function POST(req: NextRequest) {
         `,
       });
       
-      console.log(`[TestEmail ${traceId}] ✅ 이메일 전송 성공:`, {
+      logger.info(`[TestEmail ${traceId}] ✅ 이메일 전송 성공:`, {
         messageId: emailResult.messageId,
         statusCode: emailResult.statusCode,
       });

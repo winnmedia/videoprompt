@@ -9,6 +9,8 @@
  */
 
 import { z } from 'zod'
+import { logger } from './logger';
+
 
 /**
  * 환경변수 스키마 정의 - Zod 런타임 검증
@@ -74,7 +76,7 @@ export function validateEnvironment(options: {
     const mode = config.SUPABASE_SERVICE_ROLE_KEY ? 'full' : 'degraded'
 
     if (logErrors && config.NODE_ENV === 'development') {
-      console.log(`✅ Environment validation successful (${mode} mode)`, {
+      logger.info(`✅ Environment validation successful (${mode} mode)`, {
         hasSupabaseUrl: !!config.SUPABASE_URL,
         hasAnonKey: !!config.SUPABASE_ANON_KEY,
         hasServiceKey: !!config.SUPABASE_SERVICE_ROLE_KEY,
@@ -176,5 +178,5 @@ export const ENV_STATUS = {
  * 개발 환경에서만 환경변수 상태 출력
  */
 if (process.env.NODE_ENV === 'development') {
-  console.log('🔧 Environment Status:', ENV_STATUS)
+  logger.info('🔧 Environment Status:', ENV_STATUS)
 }

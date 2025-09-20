@@ -11,6 +11,7 @@
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { StoryInput, StoryStep, Shot, StoryboardShot } from '@/entities/scenario';
+import { logger } from '@/shared/lib/logger';
 import {
   useCreateProjectMutation,
   useUpdateProjectMutation,
@@ -55,7 +56,7 @@ export function useCreateProject() {
     storyInput: StoryInput;
   }) => {
     try {
-      console.log('🎆 새 프로젝트 생성 시작:', {
+      logger.info('🎆 새 프로젝트 생성 시작:', {
         title: data.title,
         hasDescription: !!data.description
       });
@@ -70,7 +71,7 @@ export function useCreateProject() {
 
       toast.success(`"${project.title}" 프로젝트가 생성되었습니다`, '프로젝트 생성 완료');
 
-      console.log('✅ 프로젝트 생성 완료:', {
+      logger.info('✅ 프로젝트 생성 완료:', {
         projectId: newProjectId,
         resultId: project.id
       });
@@ -116,7 +117,7 @@ export function useUpdateProject() {
         });
       }
 
-      console.log('🔄 프로젝트 업데이트:', {
+      logger.info('🔄 프로젝트 업데이트:', {
         projectId: data.id,
         updateKeys: Object.keys(data.updates)
       });

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { failure, getTraceId } from './api-response';
+import { logger } from './logger';
+
 
 // CORS 헤더 상수
 const CORS_HEADERS = {
@@ -14,7 +16,7 @@ const CORS_HEADERS = {
 export function createOptionsHandler() {
   return async function OPTIONS(req: NextRequest) {
     const traceId = getTraceId(req);
-    console.log(`[OPTIONS ${traceId}] CORS preflight request for ${req.url}`);
+    logger.info(`[OPTIONS ${traceId}] CORS preflight request for ${req.url}`);
     
     return new Response(null, {
       status: 200,

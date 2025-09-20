@@ -7,6 +7,8 @@
  */
 
 import { beforeAll, beforeEach, afterEach, afterAll, vi } from 'vitest';
+import { logger } from '@/shared/lib/logger';
+
 
 // 전역 시간 고정 (2024-01-01 00:00:00 UTC)
 const FIXED_DATE = new Date('2024-01-01T00:00:00.000Z');
@@ -170,8 +172,8 @@ export const testUtils = {
 
 // 글로벌 테스트 환경 정보 출력
 if (process.env.VITEST_DETERMINISTIC) {
-  console.log('🔧 결정론적 테스트 환경이 활성화되었습니다.');
-  console.log(`⏰ 고정 시간: ${FIXED_DATE.toISOString()}`);
-  console.log(`🌍 시간대: ${process.env.TZ}`);
-  console.log(`🎲 랜덤 시드: 고정됨`);
+  logger.info('🔧 결정론적 테스트 환경이 활성화되었습니다.');
+  logger.info(`⏰ 고정 시간: ${FIXED_DATE.toISOString()}`);
+  logger.info(`🌍 시간대: ${process.env.TZ}`);
+  logger.info(`🎲 랜덤 시드: 고정됨`);
 }

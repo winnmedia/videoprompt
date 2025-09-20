@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { seedanceService } from '@/lib/providers/seedance-service';
+import { logger } from '@/shared/lib/logger';
 import {
+
+
   createErrorResponse,
-  createSuccessResponse
-} from '@/shared/schemas/api.schema';
+  createSuccessResponse} from '@/shared/schemas/api.schema';
 import {
   createUserFriendlyError,
   detectErrorContext,
@@ -45,7 +47,7 @@ const getHandler = async (
     let configValidation;
     try {
       configValidation = validateSeedanceConfig();
-      console.log('✅ Seedance 설정 검증 성공 (Status API):', {
+      logger.info('✅ Seedance 설정 검증 성공 (Status API):', {
         provider: configValidation.provider,
         environment: configValidation.environment
       });
@@ -78,7 +80,7 @@ const getHandler = async (
       }
     }
 
-    console.log('DEBUG: Seedance 상태 확인 요청:', {
+    logger.info('DEBUG: Seedance 상태 확인 요청:', {
       jobId,
       userId: user.id || 'guest',
     });
@@ -119,7 +121,7 @@ const getHandler = async (
       );
     }
 
-    console.log('DEBUG: Seedance 상태 확인 성공:', {
+    logger.info('DEBUG: Seedance 상태 확인 성공:', {
       jobId: result.jobId,
       status: result.status,
       progress: result.progress,

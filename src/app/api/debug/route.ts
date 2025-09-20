@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
+
 
 export const dynamic = 'force-dynamic';
 
@@ -86,20 +88,20 @@ export async function POST() {
       tags: ['debug', 'test']
     };
 
-    console.log('🔍 테스트 데이터 생성 시도:', testId);
+    logger.info('🔍 테스트 데이터 생성 시도:', testId);
 
     const savedItem = await prisma.project.create({
       data: testData,
     });
 
-    console.log('✅ 테스트 데이터 생성 성공:', savedItem.id);
+    logger.info('✅ 테스트 데이터 생성 성공:', savedItem.id);
 
     // 생성된 데이터 즉시 삭제
     await prisma.project.delete({
       where: { id: savedItem.id }
     });
 
-    console.log('🗑️ 테스트 데이터 삭제 완료');
+    logger.info('🗑️ 테스트 데이터 삭제 완료');
 
     return NextResponse.json({
       success: true,

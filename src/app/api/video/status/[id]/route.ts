@@ -3,6 +3,8 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { checkVideoStatus } from '@/lib/providers/video-generator';
+import { logger } from '@/shared/lib/logger';
+
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -19,7 +21,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       );
     }
 
-    console.log(
+    logger.info(
       'DEBUG: Unified video status check for operation:',
       operationId,
       'provider:',

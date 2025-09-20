@@ -7,6 +7,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { supabase, supabaseAdmin, supabaseConfig } from '@/lib/supabase';
+import { logger } from '@/shared/lib/logger';
 import {
   type PrismaProjectData,
   type DualStorageResult,
@@ -86,7 +87,7 @@ export class DualStorageEngine {
     let rollbackExecuted = false;
 
     try {
-      console.log('🔄 이중 저장 시작:', {
+      logger.info('🔄 이중 저장 시작:', {
         strategy: this.strategy.strategy,
         environment: this.strategy.environment,
         supabaseMode: supabaseConfig.mode,
@@ -99,13 +100,13 @@ export class DualStorageEngine {
 
       // 2. Prisma 저장 (Primary)
       prismaResult = await this.saveToPrisma(registeredItem, user);
-      console.log('✅ Prisma 저장 성공:', prismaResult.id);
+      logger.info('✅ Prisma 저장 성공:', prismaResult.id);
 
       // 3. Supabase 저장 (Secondary) - 전략에 따라 처리
       if (this.shouldSaveToSupabase()) {
         try {
           supabaseResults = await this.saveToSupabase(registeredItem, user);
-          console.log('✅ Supabase 저장 성공:', supabaseResults);
+          logger.info('✅ Supabase 저장 성공:', supabaseResults);
         } catch (supabaseError) {
           console.error('❌ Supabase 저장 실패:', supabaseError);
 
@@ -133,7 +134,7 @@ export class DualStorageEngine {
       }
 
       const latencyMs = Date.now() - startTime;
-      console.log(`⏱️ 이중 저장 완료: ${latencyMs}ms`);
+      logger.info(`⏱️ 이중 저장 완료: ${latencyMs}ms`);
 
       return {
         success: true,
@@ -335,7 +336,7 @@ export class DualStorageEngine {
 
           if (error) throw error;
           results.scenario = true;
-          console.log('✅ Scenario 전용 테이블 저장 성공:', scenarioData.id);
+          logger.info('✅ Scenario 전용 테이블 저장 성공:', scenarioData.id);
         } catch (error) {
           console.error('❌ Supabase Scenario 저장 실패:', error);
           results.scenario = false;
@@ -368,7 +369,7 @@ export class DualStorageEngine {
 
           if (error) throw error;
           results.prompt = true;
-          console.log('✅ Prompt 전용 테이블 저장 성공:', promptData.id);
+          logger.info('✅ Prompt 전용 테이블 저장 성공:', promptData.id);
         } catch (error) {
           console.error('❌ Supabase Prompt 저장 실패:', error);
           results.prompt = false;
@@ -421,7 +422,7 @@ export class DualStorageEngine {
       await prisma.project.delete({
         where: { id: projectId }
       });
-      console.log('🔙 Prisma 롤백 성공:', projectId);
+      logger.info('🔙 Prisma 롤백 성공:', projectId);
     } catch (error) {
       console.error('❌ Prisma 롤백 실패:', error);
       // 롤백 실패는 치명적 - 수동 정리 필요

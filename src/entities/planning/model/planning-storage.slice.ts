@@ -6,6 +6,7 @@
  */
 
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
+import { logger } from '@/shared/lib/logger';
 import type {
   DualStorageResult,
   PlanningStorageState,
@@ -58,7 +59,7 @@ export const submitDualStorage = createAsyncThunk<
   'planningStorage/submitDualStorage',
   async (request, { rejectWithValue }) => {
     try {
-      console.log('🚀 이중 저장 요청 시작:', {
+      logger.info('🚀 이중 저장 요청 시작:', {
         type: request.type,
         projectId: request.projectId,
         timestamp: new Date().toISOString(),
@@ -79,7 +80,7 @@ export const submitDualStorage = createAsyncThunk<
 
       const result = await response.json();
 
-      console.log('✅ 이중 저장 완료:', {
+      logger.info('✅ 이중 저장 완료:', {
         projectId: result.data?.id,
         success: result.success,
         dualStorage: result.data?.dualStorage,
@@ -113,7 +114,7 @@ export const retryFailedStorage = createAsyncThunk<
         return [];
       }
 
-      console.log(`🔄 ${retryQueue.length}개 요청 재시도 시작`);
+      logger.info(`🔄 ${retryQueue.length}개 요청 재시도 시작`);
 
       const retryPromises = retryQueue.map(request =>
         dispatch(submitDualStorage(request)).unwrap()
@@ -126,7 +127,7 @@ export const retryFailedStorage = createAsyncThunk<
         )
         .map(result => result.value);
 
-      console.log(`✅ 재시도 완료: ${successfulResults.length}/${retryQueue.length} 성공`);
+      logger.info(`✅ 재시도 완료: ${successfulResults.length}/${retryQueue.length} 성공`);
 
       return successfulResults;
     } catch (error) {
@@ -231,7 +232,7 @@ export const planningStorageSlice = createSlice({
         // 상태 업데이트
         state.status = state.activeRequests.size > 0 ? 'loading' : 'idle';
 
-        console.log('✅ Redux: 이중 저장 성공 처리 완료', {
+        logger.info('✅ Redux: 이중 저장 성공 처리 완료', {
           projectId: request.projectId,
           totalSuccessful: state.results.successful.length,
           successRate: state.metrics.successRate,
@@ -299,7 +300,7 @@ export const planningStorageSlice = createSlice({
         state.retryQueue = [];
         state.status = 'idle';
 
-        console.log('✅ Redux: 재시도 완료', {
+        logger.info('✅ Redux: 재시도 완료', {
           successfulCount: successfulResults.length,
           newSuccessRate: state.metrics.successRate,
         });

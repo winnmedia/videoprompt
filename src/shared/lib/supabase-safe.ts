@@ -11,6 +11,8 @@
 
 import { getSupabaseClient, getSupabaseAdminClient, createSupabaseErrorResponse } from './supabase-client';
 import { getDegradationMode } from '../config/env';
+import { logger } from './logger';
+
 
 /**
  * Service Configuration Error - API Contract 준수
@@ -229,5 +231,5 @@ export const checkSupabaseForAPI = async () => {
 // 환경 초기화 시 상태 로그
 if (process.env.NODE_ENV === 'development') {
   const mode = getDegradationMode();
-  console.log(`🔒 Supabase Safe initialized in ${mode} mode`);
+  logger.info(`🔒 Supabase Safe initialized in ${mode} mode`);
 }

@@ -4,6 +4,8 @@
  */
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { logger } from '@/shared/lib/logger';
+
 
 // Provider 설정 타입
 export interface ProviderConfig {
@@ -138,7 +140,7 @@ const seedanceProviderSlice = createSlice({
       state.status.errorMessage = null;
       state.status.lastChecked = new Date().toISOString();
 
-      console.log(`🎭 Mock mode enabled: ${action.payload.reason}`);
+      logger.info(`🎭 Mock mode enabled: ${action.payload.reason}`);
     },
   },
 });

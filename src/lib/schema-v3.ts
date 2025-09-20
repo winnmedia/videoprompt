@@ -6,6 +6,8 @@
  */
 
 import { z } from 'zod';
+import { logger } from '@/shared/lib/logger';
+
 
 // =============================================================================
 // 🎯 정규식 패턴 (Production-grade validation)
@@ -490,8 +492,8 @@ export function validatePartialV3Prompt(data: unknown) {
  */
 export function printSchemaStructure() {
   if (process.env.NODE_ENV === 'development') {
-    console.log('📋 CineGenius v3.1 Schema Structure:');
-    console.log(JSON.stringify(CineGeniusV3PromptSchema.shape, null, 2));
+    logger.info('📋 CineGenius v3.1 Schema Structure:');
+    logger.info(JSON.stringify(CineGeniusV3PromptSchema.shape, null, 2));
   }
 }
 

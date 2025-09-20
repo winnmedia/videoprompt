@@ -12,6 +12,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { unifiedAuth, isAuthError, type AuthOptions, type AuthContext } from './unified-auth';
 import { withLoopPrevention } from './loop-prevention';
+import { logger } from './logger';
+
 
 /**
  * 인증된 핸들러 함수 타입
@@ -84,7 +86,7 @@ export function withAuth(
       // 인증 성공 - 핸들러 실행
       const { context } = authResult;
 
-      console.log(`✅ Authentication successful`, {
+      logger.info(`✅ Authentication successful`, {
         userId: context.user.id,
         tokenType: context.user.tokenType,
         degradationMode: context.degradationMode,

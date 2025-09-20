@@ -1,5 +1,7 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
+import { logger } from '@/shared/lib/logger';
+
 // import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { safeParseRequestBody } from '@/lib/json-utils';
@@ -25,7 +27,7 @@ const VerifyCodeSchema = z.object({
 export async function POST(req: NextRequest) {
   const traceId = getTraceId(req);
   
-  console.log(`[VerifyCode ${traceId}] 🚀 인증 코드 확인 요청 시작`);
+  logger.info(`[VerifyCode ${traceId}] 🚀 인증 코드 확인 요청 시작`);
   
   try {
     // Request body 안전 파싱
@@ -36,7 +38,7 @@ export async function POST(req: NextRequest) {
     }
     
     const { email, code } = parseResult.data!;
-    console.log(`[VerifyCode ${traceId}] ✅ 입력값 파싱 및 검증 성공:`, { email, code });
+    logger.info(`[VerifyCode ${traceId}] ✅ 입력값 파싱 및 검증 성공:`, { email, code });
 
     // 데이터베이스 작업을 안전하게 실행
     const result = await executeDatabaseOperation(async () => {
@@ -52,11 +54,11 @@ export async function POST(req: NextRequest) {
       });
 
       if (!verification) {
-        console.log(`[VerifyCode ${traceId}] ❌ 인증 코드가 유효하지 않음`);
+        logger.info(`[VerifyCode ${traceId}] ❌ 인증 코드가 유효하지 않음`);
         throw new Error('INVALID_CODE');
       }
 
-      console.log(`[VerifyCode ${traceId}] ✅ 인증 코드 확인 성공`);
+      logger.info(`[VerifyCode ${traceId}] ✅ 인증 코드 확인 성공`);
 
       // 사용된 인증 레코드 삭제
       await prisma.emailVerification.delete({

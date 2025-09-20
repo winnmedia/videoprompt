@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { failure, success, getTraceId } from '@/shared/lib/api-response';
 import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
+import { logger } from '@/shared/lib/logger';
+
 
 export const runtime = 'nodejs';
 
@@ -21,7 +23,7 @@ export async function OPTIONS() {
 // Seed templates data
 export async function POST(req: NextRequest) {
   const traceId = getTraceId(req);
-  console.log(`[Seed Templates ${traceId}] 🌱 템플릿 시드 데이터 삽입 시작`);
+  logger.info(`[Seed Templates ${traceId}] 🌱 템플릿 시드 데이터 삽입 시작`);
 
   try {
     // Template seed data
@@ -196,7 +198,7 @@ export async function POST(req: NextRequest) {
       }
     ];
 
-    console.log(`[Seed Templates ${traceId}] 📝 ${seedTemplates.length}개 템플릿 삽입 시작`);
+    logger.info(`[Seed Templates ${traceId}] 📝 ${seedTemplates.length}개 템플릿 삽입 시작`);
 
     // Insert seed data using Supabase Admin Client - one by one
     let supabaseAdmin;
@@ -207,14 +209,14 @@ export async function POST(req: NextRequest) {
       return failure('SUPABASE_CONFIG_ERROR', 'Supabase 설정이 올바르지 않습니다.', 500, envError instanceof Error ? envError.message : 'Supabase configuration error', traceId);
     }
 
-    console.log(`[Seed Templates ${traceId}] 🔑 Service Role로 개별 삽입 시작`);
+    logger.info(`[Seed Templates ${traceId}] 🔑 Service Role로 개별 삽입 시작`);
 
     const insertedTemplates = [];
     let successCount = 0;
 
     for (const template of seedTemplates) {
       try {
-        console.log(`[Seed Templates ${traceId}] 📝 템플릿 "${template.title}" 삽입 중...`);
+        logger.info(`[Seed Templates ${traceId}] 📝 템플릿 "${template.title}" 삽입 중...`);
 
         const { data, error } = await supabaseAdmin
           .from('templates')
@@ -230,7 +232,7 @@ export async function POST(req: NextRequest) {
         if (data && data.length > 0) {
           insertedTemplates.push(data[0]);
           successCount++;
-          console.log(`[Seed Templates ${traceId}] ✅ 템플릿 "${template.title}" 삽입 완료`);
+          logger.info(`[Seed Templates ${traceId}] ✅ 템플릿 "${template.title}" 삽입 완료`);
         }
 
       } catch (templateError) {
@@ -239,7 +241,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    console.log(`[Seed Templates ${traceId}] ✅ ${successCount}개 템플릿 삽입 완료`);
+    logger.info(`[Seed Templates ${traceId}] ✅ ${successCount}개 템플릿 삽입 완료`);
 
     // Count total templates
     let totalCount = 0;
@@ -269,7 +271,7 @@ export async function POST(req: NextRequest) {
 // Get current template count (for verification)
 export async function GET(req: NextRequest) {
   const traceId = getTraceId(req);
-  console.log(`[Seed Templates ${traceId}] 🔍 템플릿 현황 확인`);
+  logger.info(`[Seed Templates ${traceId}] 🔍 템플릿 현황 확인`);
 
   try {
     let supabaseAdmin;

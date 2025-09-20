@@ -4,6 +4,8 @@
  */
 
 import { getSupabaseClientSafe } from './supabase-safe';
+import { logger } from './logger';
+
 
 export interface SchemaSyncResult {
   success: boolean;
@@ -146,7 +148,7 @@ export async function createMissingTables(): Promise<SchemaSyncResult> {
   `;
 
     // 1. 트리거 함수 생성
-    console.log('🔧 업데이트 트리거 함수 생성 중...');
+    logger.info('🔧 업데이트 트리거 함수 생성 중...');
     const { error: triggerError } = await supabase.rpc('exec_sql', {
       sql: triggerFunctionSQL
     });
@@ -154,11 +156,11 @@ export async function createMissingTables(): Promise<SchemaSyncResult> {
     if (triggerError) {
       console.warn('⚠️ 트리거 함수 생성 실패 (이미 존재할 수 있음):', triggerError.message);
     } else {
-      console.log('✅ 트리거 함수 생성 성공');
+      logger.info('✅ 트리거 함수 생성 성공');
     }
 
     // 2. Story 테이블 생성
-    console.log('📦 Story 테이블 생성 중...');
+    logger.info('📦 Story 테이블 생성 중...');
     const { error: storyError } = await supabase.rpc('exec_sql', {
       sql: storyTableSQL
     });
@@ -168,7 +170,7 @@ export async function createMissingTables(): Promise<SchemaSyncResult> {
       console.error('❌ Story 테이블 생성 실패:', storyError);
     } else {
       result.tablesCreated.push('Story');
-      console.log('✅ Story 테이블 생성 성공');
+      logger.info('✅ Story 테이블 생성 성공');
 
       // Story 업데이트 트리거 생성
       const storyTriggerSQL = `
@@ -186,12 +188,12 @@ export async function createMissingTables(): Promise<SchemaSyncResult> {
       if (storyTriggerError) {
         console.warn('⚠️ Story 트리거 생성 실패:', storyTriggerError.message);
       } else {
-        console.log('✅ Story 트리거 생성 성공');
+        logger.info('✅ Story 트리거 생성 성공');
       }
     }
 
     // 3. Scenario 테이블 생성
-    console.log('📦 Scenario 테이블 생성 중...');
+    logger.info('📦 Scenario 테이블 생성 중...');
     const { error: scenarioError } = await supabase.rpc('exec_sql', {
       sql: scenarioTableSQL
     });
@@ -201,7 +203,7 @@ export async function createMissingTables(): Promise<SchemaSyncResult> {
       console.error('❌ Scenario 테이블 생성 실패:', scenarioError);
     } else {
       result.tablesCreated.push('Scenario');
-      console.log('✅ Scenario 테이블 생성 성공');
+      logger.info('✅ Scenario 테이블 생성 성공');
 
       // Scenario 업데이트 트리거 생성
       const scenarioTriggerSQL = `
@@ -219,7 +221,7 @@ export async function createMissingTables(): Promise<SchemaSyncResult> {
       if (scenarioTriggerError) {
         console.warn('⚠️ Scenario 트리거 생성 실패:', scenarioTriggerError.message);
       } else {
-        console.log('✅ Scenario 트리거 생성 성공');
+        logger.info('✅ Scenario 트리거 생성 성공');
       }
     }
 
@@ -235,7 +237,7 @@ export async function createMissingTables(): Promise<SchemaSyncResult> {
     result.success = false;
   }
 
-  console.log('🎯 스키마 동기화 완료:', {
+  logger.info('🎯 스키마 동기화 완료:', {
     success: result.success,
     tablesCreated: result.tablesCreated,
     errorCount: result.errors.length

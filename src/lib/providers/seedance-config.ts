@@ -6,6 +6,7 @@
  * 패턴: Configuration Provider + Strategy Pattern
  */
 
+import { logger } from '@/shared/lib/logger';
 import {
   getAIApiKeys,
   getEnvironmentCapabilities,
@@ -94,7 +95,7 @@ export class SeedanceConfigManager {
     this.cachedConfig = this.createConfig();
     this.lastValidation = now;
 
-    console.log('🔧 Seedance 설정 생성/갱신:', {
+    logger.info('🔧 Seedance 설정 생성/갱신:', {
       mode: this.cachedConfig.mode,
       degradationMode: this.cachedConfig.degradationMode,
       reliability: this.cachedConfig.reliability.score,

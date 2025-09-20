@@ -4,6 +4,8 @@ import { success, failure, getTraceId, supabaseErrors } from '@/shared/lib/api-r
 import { signUpWithSupabase } from '@/shared/lib/auth-supabase';
 import { checkRateLimit, RATE_LIMITS } from '@/shared/lib/rate-limiter';
 import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
+import { logger } from '@/shared/lib/logger';
+
 
 export const runtime = 'nodejs';
 
@@ -57,7 +59,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { email, username, password } = RegisterSchema.parse(body);
 
-    console.log(`📝 Registration attempt for email: ${email}, username: ${username}`);
+    logger.info(`📝 Registration attempt for email: ${email}, username: ${username}`);
 
     // 1단계: Supabase Auth로 회원가입
     const { user, session, error } = await signUpWithSupabase(email, password, {
@@ -122,7 +124,7 @@ export async function POST(req: NextRequest) {
 
         // 🔄 롤백: Supabase Auth에서 생성된 사용자 삭제
         try {
-          console.log(`🔄 사용자 데이터 롤백 시작: ${user.id}`);
+          logger.info(`🔄 사용자 데이터 롤백 시작: ${user.id}`);
           const adminClient = await getSupabaseClientSafe('admin');
 
           const { error: deleteError } = await adminClient.auth.admin.deleteUser(user.id);
@@ -130,7 +132,7 @@ export async function POST(req: NextRequest) {
           if (deleteError) {
             console.error('❌ 사용자 롤백 실패:', deleteError);
           } else {
-            console.log(`✅ 사용자 롤백 완료: ${user.id}`);
+            logger.info(`✅ 사용자 롤백 완료: ${user.id}`);
           }
         } catch (rollbackError) {
           console.error('❌ 롤백 중 예외 발생:', rollbackError);
@@ -145,13 +147,13 @@ export async function POST(req: NextRequest) {
         return failure('DATABASE_ERROR', '사용자 정보 저장에 실패했습니다. 다시 시도해주세요.', 500, insertError.message, traceId);
       }
 
-      console.log(`✅ User data saved to users table:`, insertedUser);
+      logger.info(`✅ User data saved to users table:`, insertedUser);
     } catch (tableError) {
       console.error('❌ 테이블 저장 중 예외 발생:', tableError);
 
       // 🔄 롤백: Supabase Auth에서 생성된 사용자 삭제
       try {
-        console.log(`🔄 예외 발생으로 인한 사용자 롤백 시작: ${user.id}`);
+        logger.info(`🔄 예외 발생으로 인한 사용자 롤백 시작: ${user.id}`);
         const adminClient = await getSupabaseClientSafe('admin');
 
         const { error: deleteError } = await adminClient.auth.admin.deleteUser(user.id);
@@ -159,7 +161,7 @@ export async function POST(req: NextRequest) {
         if (deleteError) {
           console.error('❌ 예외 시 사용자 롤백 실패:', deleteError);
         } else {
-          console.log(`✅ 예외 시 사용자 롤백 완료: ${user.id}`);
+          logger.info(`✅ 예외 시 사용자 롤백 완료: ${user.id}`);
         }
       } catch (rollbackError) {
         console.error('❌ 예외 시 롤백 중 에러:', rollbackError);
@@ -169,7 +171,7 @@ export async function POST(req: NextRequest) {
       return failure('DATABASE_ERROR', '데이터베이스 오류가 발생했습니다. 다시 시도해주세요.', 500, String(tableError), traceId);
     }
 
-    console.log(`✅ Registration successful for ${email}, user ID: ${user.id}`);
+    logger.info(`✅ Registration successful for ${email}, user ID: ${user.id}`);
 
     // 이메일 확인 필요 여부 체크
     let needsEmailConfirmation = !user.email_confirmed_at;
@@ -179,7 +181,7 @@ export async function POST(req: NextRequest) {
       try {
         const adminClient = await getSupabaseClientSafe('admin');
 
-        console.log(`🔧 개발 환경: 사용자 ${user.id}의 이메일 자동 확인 중...`);
+        logger.info(`🔧 개발 환경: 사용자 ${user.id}의 이메일 자동 확인 중...`);
 
         const { error: confirmError } = await adminClient.auth.admin.updateUserById(
           user.id,
@@ -188,7 +190,7 @@ export async function POST(req: NextRequest) {
 
         if (!confirmError) {
           needsEmailConfirmation = false;
-          console.log(`✅ 개발 환경: 사용자 ${user.id}의 이메일이 자동 확인되었습니다.`);
+          logger.info(`✅ 개발 환경: 사용자 ${user.id}의 이메일이 자동 확인되었습니다.`);
 
           // users 테이블도 업데이트
           await supabaseClient

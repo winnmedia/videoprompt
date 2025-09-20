@@ -5,6 +5,7 @@
  */
 
 import { z } from 'zod';
+import { logger } from '@/shared/lib/logger';
 import {
   StoryGenerationResponseSchema,
   StorySaveResponseSchema,
@@ -271,7 +272,7 @@ export function createResponseTransformer<T extends EndpointName>(
         return response;
       }
 
-      console.log(`✅ ${endpointName} 응답 검증 성공`);
+      logger.info(`✅ ${endpointName} 응답 검증 성공`);
       return validationResult.data;
 
     } catch (error) {

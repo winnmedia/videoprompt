@@ -1,3 +1,5 @@
+import { logger } from './logger';
+
 /**
  * 단순화된 모니터링 시스템
  * CLAUDE.md 원칙 준수: YAGNI, 단순성, 통합성
@@ -119,9 +121,9 @@ class SimpleMonitor {
     const report = this.getReport();
 
     console.group('📊 Simple Monitor Report');
-    console.log('API Calls:', report.apiCalls);
-    console.log('Critical Metrics:', report.criticalMetrics);
-    console.log('Total Cost:', `$${report.totalCost.toFixed(3)}`);
+    logger.info('API Calls:', report.apiCalls);
+    logger.info('Critical Metrics:', report.criticalMetrics);
+    logger.info('Total Cost:', `$${report.totalCost.toFixed(3)}`);
     console.groupEnd();
   }
 

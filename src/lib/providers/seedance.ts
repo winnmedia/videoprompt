@@ -93,6 +93,7 @@ const DEFAULT_MODEL_ID =
   process.env.MODELARK_ENDPOINT_ID ||
   '';
 
+import { logger } from '@/shared/lib/logger';
 import {
   isValidSeedanceApiKey,
   shouldUseMockProvider as shouldUseMockProviderValidator,
@@ -112,7 +113,7 @@ export async function createSeedanceVideo(
 ): Promise<SeedanceCreateResult> {
   // Mock provider 자동 폴백 체크
   if (shouldUseMockProvider()) {
-    console.log('🎭 Using Mock provider for video generation');
+    logger.info('🎭 Using Mock provider for video generation');
     const { createMockVideo } = await import('./mock-seedance');
     return createMockVideo(payload);
   }
@@ -130,7 +131,7 @@ export async function createSeedanceVideo(
 
   const apiKey = envApiKey;
 
-  console.log('DEBUG: Seedance 영상 생성 시작:', {
+  logger.info('DEBUG: Seedance 영상 생성 시작:', {
     url,
     envApiKey: envApiKey ? `${envApiKey.slice(0, 8)}...${envApiKey.slice(-8)}` : 'N/A',
     usingFallback: !envApiKey,
@@ -180,7 +181,7 @@ export async function createSeedanceVideo(
       modelId = 'seedance-1-0-lite-t2v-250428';
     }
 
-    console.log('DEBUG: 모델 ID 결정:', { requestedModel, envModel, finalModelId: modelId });
+    logger.info('DEBUG: 모델 ID 결정:', { requestedModel, envModel, finalModelId: modelId });
 
     if (!modelId) {
       const error =
@@ -191,7 +192,7 @@ export async function createSeedanceVideo(
 
     // 모델 타입 감지
     const modelType = detectModelType(modelId);
-    console.log('DEBUG: 모델 타입 감지:', { modelId, modelType });
+    logger.info('DEBUG: 모델 타입 감지:', { modelId, modelType });
 
     const body: any = {
       model: modelId,
@@ -214,17 +215,17 @@ export async function createSeedanceVideo(
         type: 'image_url',
         image_url: { url: imageUrl },
       });
-      console.log('DEBUG: 이미지-비디오 모델에 이미지 추가:', imageUrl);
+      logger.info('DEBUG: 이미지-비디오 모델에 이미지 추가:', imageUrl);
     } else if (payload.image_url) {
       // 텍스트-비디오 모델이지만 이미지가 제공된 경우에도 추가
       body.content.push({
         type: 'image_url',
         image_url: { url: payload.image_url },
       });
-      console.log('DEBUG: 텍스트-비디오 모델에 추가 이미지 추가:', payload.image_url);
+      logger.info('DEBUG: 텍스트-비디오 모델에 추가 이미지 추가:', payload.image_url);
     }
 
-    console.log('DEBUG: Seedance 요청 본문:', JSON.stringify(body, null, 2));
+    logger.info('DEBUG: Seedance 요청 본문:', JSON.stringify(body, null, 2));
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60000); // 60초 타임아웃 (배포 환경 고려)
@@ -242,7 +243,7 @@ export async function createSeedanceVideo(
 
       clearTimeout(timeout);
 
-      console.log('DEBUG: Seedance 응답 상태:', {
+      logger.info('DEBUG: Seedance 응답 상태:', {
         status: response.status,
         statusText: response.statusText,
       });
@@ -257,7 +258,7 @@ export async function createSeedanceVideo(
           responseText.length,
         );
         const truncatedText = responseText.slice(0, 1000);
-        console.log('DEBUG: Seedance 응답 텍스트 (처음 1000자):', truncatedText);
+        logger.info('DEBUG: Seedance 응답 텍스트 (처음 1000자):', truncatedText);
 
         // 응답이 너무 큰 경우 안전한 에러 응답 반환
         return {
@@ -267,7 +268,7 @@ export async function createSeedanceVideo(
         };
       }
 
-      console.log('DEBUG: Seedance 응답 텍스트 (처음 500자):', responseText.slice(0, 500));
+      logger.info('DEBUG: Seedance 응답 텍스트 (처음 500자):', responseText.slice(0, 500));
 
       if (!response.ok) {
         console.error('DEBUG: Seedance HTTP 에러:', {
@@ -328,7 +329,7 @@ export async function createSeedanceVideo(
         };
       }
 
-      console.log('DEBUG: Seedance 파싱된 응답:', JSON.stringify(jsonResponse, null, 2));
+      logger.info('DEBUG: Seedance 파싱된 응답:', JSON.stringify(jsonResponse, null, 2));
 
       const jobId = extractJobId(jsonResponse);
       if (!jobId) {
@@ -400,7 +401,7 @@ function buildStatusUrl(jobId: string): string | undefined {
 export async function getSeedanceStatus(jobId: string): Promise<SeedanceStatusResult> {
   // Mock provider 자동 폴백 체크
   if (shouldUseMockProvider()) {
-    console.log('🎭 Using Mock provider for status check');
+    logger.info('🎭 Using Mock provider for status check');
     const { getMockStatus } = await import('./mock-seedance');
     return getMockStatus(jobId);
   }

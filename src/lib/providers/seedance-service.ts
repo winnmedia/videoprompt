@@ -3,6 +3,7 @@
  * Circuit Breaker 패턴과 자동 폴백 시스템
  */
 
+import { logger } from '@/shared/lib/logger';
 import {
   createSeedanceVideo,
   getSeedanceStatus,
@@ -51,7 +52,7 @@ export async function createSeedanceVideoWithFallback(
 ): Promise<SeedanceResultWithFallback> {
   // 1. 처음부터 Mock 모드인 경우
   if (shouldUseMockProvider()) {
-    console.log('🎭 Mock 모드로 비디오 생성');
+    logger.info('🎭 Mock 모드로 비디오 생성');
     const result = await createMockVideo(payload);
     return {
       ...result,
@@ -61,7 +62,7 @@ export async function createSeedanceVideoWithFallback(
 
   // 2. 실제 API 시도
   try {
-    console.log('🔧 실제 API로 비디오 생성 시도');
+    logger.info('🔧 실제 API로 비디오 생성 시도');
     const realResult = await createSeedanceVideo(payload);
 
     if (realResult.ok) {
@@ -119,7 +120,7 @@ export async function getSeedanceStatusWithFallback(
 ): Promise<SeedanceStatusWithFallback> {
   // Mock 작업 ID 패턴 감지
   if (jobId.startsWith('mock-')) {
-    console.log('🎭 Mock 작업 ID 감지, Mock 상태 확인');
+    logger.info('🎭 Mock 작업 ID 감지, Mock 상태 확인');
     const result = await getMockStatus(jobId);
     return {
       ...result,
@@ -129,7 +130,7 @@ export async function getSeedanceStatusWithFallback(
 
   // 처음부터 Mock 모드인 경우
   if (shouldUseMockProvider()) {
-    console.log('🎭 Mock 모드로 상태 확인');
+    logger.info('🎭 Mock 모드로 상태 확인');
     const result = await getMockStatus(jobId);
     return {
       ...result,
@@ -139,7 +140,7 @@ export async function getSeedanceStatusWithFallback(
 
   // 실제 API 시도
   try {
-    console.log('🔧 실제 API로 상태 확인 시도');
+    logger.info('🔧 실제 API로 상태 확인 시도');
     const realResult = await getSeedanceStatus(jobId);
 
     if (realResult.ok) {
@@ -188,7 +189,7 @@ export class SeedanceService {
   async createVideo(payload: SeedanceCreatePayload): Promise<SeedanceResultWithFallback> {
     // Circuit Breaker 상태 확인
     if (this.shouldSkipRealApi()) {
-      console.log('🔌 Circuit Breaker 작동 - Mock 모드로 직접 전환');
+      logger.info('🔌 Circuit Breaker 작동 - Mock 모드로 직접 전환');
       const result = await createMockVideo(payload);
       return {
         ...result,
@@ -218,7 +219,7 @@ export class SeedanceService {
    */
   async runHealthCheck(): Promise<ServiceHealthStatus> {
     try {
-      console.log('🔍 Seedance 서비스 헬스체크 실행 (강화된 검증)');
+      logger.info('🔍 Seedance 서비스 헬스체크 실행 (강화된 검증)');
 
       // 1. 새로운 계약 기반 검증 시도
       let configValidation;
@@ -226,7 +227,7 @@ export class SeedanceService {
 
       try {
         configValidation = validateSeedanceConfig();
-        console.log('✅ Seedance 설정 검증 성공:', {
+        logger.info('✅ Seedance 설정 검증 성공:', {
           provider: configValidation.provider,
           environment: configValidation.environment
         });
@@ -266,7 +267,7 @@ export class SeedanceService {
 
       // 4. Circuit Breaker 복구 확인
       if (this.circuitBreakerOpen && this.canAttemptRecovery()) {
-        console.log('🔄 Circuit Breaker 복구 시도');
+        logger.info('🔄 Circuit Breaker 복구 시도');
         this.circuitBreakerOpen = false;
         this.consecutiveFailures = 0;
       }
@@ -377,7 +378,7 @@ export class SeedanceService {
    * Circuit Breaker 상태 리셋 (관리자용)
    */
   resetCircuitBreaker(): void {
-    console.log('🔄 Circuit Breaker 수동 리셋');
+    logger.info('🔄 Circuit Breaker 수동 리셋');
     this.consecutiveFailures = 0;
     this.circuitBreakerOpen = false;
     this.lastFailureTime = null;

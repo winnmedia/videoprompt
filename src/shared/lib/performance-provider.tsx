@@ -6,6 +6,8 @@ import { usePerformanceStore } from '@/entities/performance'
 import { performanceApi } from '@/shared/api/performance-api'
 import type { WebVitalsConfig } from '@/features/performance/use-web-vitals'
 import type { ApiMonitoringConfig } from '@/features/performance/use-api-monitoring'
+import { logger } from './logger';
+
 
 export interface PerformanceProviderConfig {
   /**
@@ -144,7 +146,7 @@ export const PerformanceProvider = ({
       apiMonitoring.startMonitoring()
       
       if (process.env.NODE_ENV === 'development') {
-        console.log(`[Performance] Started session: ${newSessionId}`)
+        logger.info(`[Performance] Started session: ${newSessionId}`)
       }
     } catch (error) {
       const err = error instanceof Error ? error : new Error('Failed to start session')
@@ -164,7 +166,7 @@ export const PerformanceProvider = ({
         apiMonitoring.stopMonitoring()
         
         if (process.env.NODE_ENV === 'development') {
-          console.log(`[Performance] Ended session: ${sessionIdRef.current}`)
+          logger.info(`[Performance] Ended session: ${sessionIdRef.current}`)
         }
         
         sessionIdRef.current = null
@@ -185,7 +187,7 @@ export const PerformanceProvider = ({
       ])
       
       if (process.env.NODE_ENV === 'development') {
-        console.log('[Performance] Metrics sent successfully')
+        logger.info('[Performance] Metrics sent successfully')
       }
     } catch (error) {
       const err = error instanceof Error ? error : new Error('Failed to send metrics')

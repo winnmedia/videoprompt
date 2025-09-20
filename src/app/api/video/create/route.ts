@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
+
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -69,7 +71,7 @@ export async function POST(request: NextRequest) {
           }
         }
       } catch (seedanceError) {
-        console.log('DEBUG: Seedance 로컬 API 호출 실패:', seedanceError);
+        logger.info('DEBUG: Seedance 로컬 API 호출 실패:', seedanceError);
       }
     }
 

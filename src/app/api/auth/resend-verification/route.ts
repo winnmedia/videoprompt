@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import crypto from 'crypto';
+import { logger } from '@/shared/lib/logger';
+
 // import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { sendVerificationEmail } from '@/lib/email/sender';
@@ -64,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     // Prisma user 조회 비활성화
     const user = null;
-    console.log('✅ User lookup skipped (Prisma disabled):', email);
+    logger.info('✅ User lookup skipped (Prisma disabled):', email);
 
     if (!user) {
       // Don't reveal if user exists or not for security
@@ -90,7 +92,7 @@ export async function POST(req: NextRequest) {
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     // Prisma verification 레코드 생성 비활성화
-    console.log('✅ Verification record creation skipped (Prisma disabled)');
+    logger.info('✅ Verification record creation skipped (Prisma disabled)');
 
     // Send verification email
     try {
@@ -110,7 +112,7 @@ export async function POST(req: NextRequest) {
       console.error('[ResendVerification] Failed to send email:', emailError);
       
       // Prisma verification 레코드 롤백 비활성화
-      console.log('✅ Verification record rollback skipped (Prisma disabled)');
+      logger.info('✅ Verification record rollback skipped (Prisma disabled)');
       
       return failure(
         'EMAIL_SEND_FAILED',

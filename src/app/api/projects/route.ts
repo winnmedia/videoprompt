@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
+
 // import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
 import { getUser } from '@/shared/lib/auth';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
@@ -58,7 +60,7 @@ export async function OPTIONS(req: NextRequest) {
 // Create new project
 export async function POST(req: NextRequest) {
   const traceId = getTraceId(req);
-  console.log(`[Projects ${traceId}] 🚀 프로젝트 생성 요청`);
+  logger.info(`[Projects ${traceId}] 🚀 프로젝트 생성 요청`);
 
   try {
     // Check authentication
@@ -71,7 +73,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const validatedData = CreateProjectSchema.parse(body);
 
-    console.log(`[Projects ${traceId}] ✅ 입력 데이터 검증 완료`);
+    logger.info(`[Projects ${traceId}] ✅ 입력 데이터 검증 완료`);
 
     // Create project in database
     const project = await prisma.project.create({
@@ -98,7 +100,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    console.log(`[Projects ${traceId}] ✅ 프로젝트 생성 완료: ${project.id}`);
+    logger.info(`[Projects ${traceId}] ✅ 프로젝트 생성 완료: ${project.id}`);
 
     // Prisma automatically handles JSON fields
     const response = project;
@@ -119,7 +121,7 @@ export async function POST(req: NextRequest) {
 // Get user's projects
 export async function GET(req: NextRequest) {
   const traceId = getTraceId(req);
-  console.log(`[Projects ${traceId}] 📋 프로젝트 목록 조회`);
+  logger.info(`[Projects ${traceId}] 📋 프로젝트 목록 조회`);
 
   try {
     // Check authentication
@@ -156,7 +158,7 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
-    console.log(`[Projects ${traceId}] ✅ ${projects.length}개 프로젝트 조회 완료`);
+    logger.info(`[Projects ${traceId}] ✅ ${projects.length}개 프로젝트 조회 완료`);
 
     // Parse JSON fields
     const response = {

@@ -9,6 +9,8 @@
  */
 
 import { useCallback } from 'react';
+import { logger } from './logger';
+
 
 interface QualityMetric {
   name: string;
@@ -91,7 +93,7 @@ export class QualityMonitor {
     // 주기적 검사 설정
     this.setupPeriodicChecks();
 
-    console.log('🛡️ Quality Monitor initialized');
+    logger.info('🛡️ Quality Monitor initialized');
   }
 
   /**

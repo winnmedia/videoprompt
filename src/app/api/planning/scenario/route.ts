@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
+
 // Prisma 제거됨 - Supabase 단일 저장소 사용
 import { z } from 'zod';
 import { getUserIdFromRequest } from '@/shared/lib/auth';
@@ -29,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     const userId = getUserIdFromRequest(req);
 
-    console.log('🔄 시나리오 생성 요청 (Dual Storage):', {
+    logger.info('🔄 시나리오 생성 요청 (Dual Storage):', {
       title,
       userId: userId || 'guest'
     });
@@ -56,7 +58,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 성공: Supabase에 저장됨
-    console.log('✅ 시나리오 생성 성공:', {
+    logger.info('✅ 시나리오 생성 성공:', {
       id: result.data?.id,
       title
     });

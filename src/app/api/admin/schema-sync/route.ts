@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createMissingTables, checkAllRequiredTables } from '@/shared/lib/supabase-schema-sync';
 import { createSuccessResponse, createErrorResponse } from '@/shared/schemas/api.schema';
+import { logger } from '@/shared/lib/logger';
+
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,11 +13,11 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(req: NextRequest) {
   try {
-    console.log('🔧 스키마 동기화 시작...');
+    logger.info('🔧 스키마 동기화 시작...');
 
     // 1. 현재 테이블 상태 확인
     const tableStatus = await checkAllRequiredTables();
-    console.log('📊 현재 테이블 상태:', tableStatus);
+    logger.info('📊 현재 테이블 상태:', tableStatus);
 
     // 2. 누락된 테이블 생성
     const syncResult = await createMissingTables();
@@ -37,7 +39,7 @@ export async function POST(req: NextRequest) {
     // 3. 동기화 후 테이블 상태 재확인
     const finalTableStatus = await checkAllRequiredTables();
 
-    console.log('✅ 스키마 동기화 완료:', {
+    logger.info('✅ 스키마 동기화 완료:', {
       tablesCreated: syncResult.tablesCreated,
       beforeSync: tableStatus,
       afterSync: finalTableStatus

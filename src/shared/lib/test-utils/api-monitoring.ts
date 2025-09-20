@@ -1,3 +1,5 @@
+import { logger } from './logger';
+
 /**
  * API 호출 모니터링 및 플래키 테스트 방지 유틸리티
  *
@@ -468,8 +470,8 @@ export const createAPIMonitoringPlugin = () => {
 
         // 테스트 실패 시 API 패턴 분석
         if (result.state === 'fail' && stats.flakyPatterns.length > 0) {
-          console.log(`🔍 Test failure analysis for "${test.name}":`);
-          console.log(apiMonitoring.generateReport());
+          logger.info(`🔍 Test failure analysis for "${test.name}":`);
+          logger.info(apiMonitoring.generateReport());
         }
       });
     }

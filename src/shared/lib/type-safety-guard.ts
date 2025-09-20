@@ -7,6 +7,8 @@
 
 import { z } from 'zod';
 import type { BaseContent, PlanningContent, ContentType, ContentStatus, StorageStatus } from '@/entities/planning';
+import { logger } from './logger';
+
 
 // ============================================================================
 // 런타임 스키마 정의 (Zod)
@@ -272,13 +274,13 @@ export function debugTypeValidation(data: unknown, schemaName: string): void {
   if (process.env.NODE_ENV !== 'development') return;
 
   console.group(`🔍 Type Validation Debug: ${schemaName}`);
-  console.log('Data:', data);
+  logger.info('Data:', data);
 
   const baseResult = validateBaseContent(data);
-  console.log('BaseContent validation:', baseResult);
+  logger.info('BaseContent validation:', baseResult);
 
   if (!baseResult.success && baseResult.details) {
-    console.log('Validation errors:', baseResult.details.issues);
+    logger.info('Validation errors:', baseResult.details.issues);
   }
 
   console.groupEnd();
