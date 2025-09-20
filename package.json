@@ -9,7 +9,7 @@
   "scripts": {
     "validate-env": "tsx scripts/validate-env-realtime.ts",
     "dev": "pnpm validate-env && next dev",
-    "prebuild": "echo 'Prebuild checks temporarily disabled for deployment'",
+    "prebuild": "node scripts/detect-hardcoded-keys.js && node scripts/verify-build.js",
     "build": "next build",
     "vercel-build": "pnpm run prebuild && next build && pnpm run postbuild",
     "postbuild": "node scripts/verify-build.js && echo '✅ Build verification passed'",
