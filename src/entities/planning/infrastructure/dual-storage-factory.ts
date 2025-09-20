@@ -6,19 +6,19 @@
  * 패턴: Abstract Factory + Dependency Injection
  */
 
-import { PrismaClient } from '@prisma/client';
+// Prisma 완전 제거 (2025-09-21) - Supabase 전용으로 전환
+// import { PrismaClient } from '@prisma/client';
 import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import { SupabaseClient } from '@supabase/supabase-js';
 import type { DualStorageDependencies } from '../model/services';
 import type { DualStorageConfig } from '../model/types';
-import { createPrismaRepository } from './prisma-repository';
+// import { createPrismaRepository } from './prisma-repository'; // Prisma 제거
 import { createSupabaseRepository } from './supabase-repository';
 import { getEnvironmentCapabilities, getDegradationMode } from '@/shared/config/env';
 import { logger } from '@/shared/lib/logger';
 
 
 interface StorageClients {
-  prisma?: PrismaClient;
   supabase?: SupabaseClient;
 }
 
@@ -61,29 +61,29 @@ export class DualStorageFactory {
       case 'full':
         // 모든 기능 활성화
         return {
-          prismaEnabled: capabilities.database,
+          prismaEnabled: false, // Prisma 완전 제거
           supabaseEnabled: capabilities.supabaseAuth,
-          requireBoth: true, // 완전 일관성 요구
-          fallbackToPrisma: true
+          requireBoth: false, // Supabase 전용
+          fallbackToPrisma: false
         };
 
       case 'degraded':
         // 부분 기능으로 동작
         return {
-          prismaEnabled: capabilities.database,
+          prismaEnabled: false, // Prisma 완전 제거
           supabaseEnabled: capabilities.supabaseAuth,
-          requireBoth: false, // 부분 성공 허용
-          fallbackToPrisma: capabilities.database
+          requireBoth: false, // Supabase 전용
+          fallbackToPrisma: false
         };
 
       case 'disabled':
       default:
         // 최소한의 기능만
         return {
-          prismaEnabled: capabilities.database,
-          supabaseEnabled: false,
+          prismaEnabled: false, // Prisma 완전 제거
+          supabaseEnabled: capabilities.supabaseAuth,
           requireBoth: false,
-          fallbackToPrisma: true
+          fallbackToPrisma: false
         };
     }
   }
@@ -92,13 +92,9 @@ export class DualStorageFactory {
    * 듀얼 스토리지 의존성 생성
    */
   createDependencies(clients: StorageClients): DualStorageDependencies {
-    const { prisma, supabase } = clients;
+    const { supabase } = clients;
 
-    // 설정 검증
-    if (this.config.prismaEnabled && !prisma) {
-      throw new Error('Prisma client is required but not provided');
-    }
-
+    // 설정 검증 (Supabase 전용)
     if (this.config.supabaseEnabled && !supabase) {
       console.warn('⚠️ Supabase client is required but not provided, falling back to Prisma only');
       this.config = {
@@ -108,25 +104,23 @@ export class DualStorageFactory {
       };
     }
 
-    // Repository 생성
-    const prismaRepo = prisma ? createPrismaRepository(prisma) : null;
+    // Repository 생성 (Supabase 전용)
+    // const prismaRepo = prisma ? createPrismaRepository(prisma) : null; // Prisma 제거
     const supabaseRepo = supabase ? createSupabaseRepository(supabase) : null;
 
-    if (!prismaRepo && !supabaseRepo) {
-      throw new Error('At least one storage client must be provided');
+    if (!supabaseRepo) {
+      throw new Error('Supabase storage client must be provided');
     }
 
-    logger.info('🏗️ 듀얼 스토리지 의존성 생성 완료:', {
-      prismaEnabled: !!prismaRepo,
+    logger.info('🏗️ Supabase 스토리지 의존성 생성 완료:', {
       supabaseEnabled: !!supabaseRepo,
       config: this.config
     });
 
     return {
-      prisma: prismaRepo!,
       supabase: supabaseRepo!,
       config: this.config
-    };
+    } as DualStorageDependencies;
   }
 
   /**
@@ -162,15 +156,7 @@ export class DualStorageFactory {
       overall: 'critical' as 'healthy' | 'degraded' | 'critical'
     };
 
-    // Prisma 헬스 체크
-    if (clients.prisma && this.config.prismaEnabled) {
-      try {
-        // PRISMA_DISABLED: await clients.prisma.$queryRaw`SELECT 1`;
-        // PRISMA_DISABLED: result.prisma.available = true;
-      } catch (error) {
-        // PRISMA_DISABLED: result.prisma.error = error instanceof Error ? error.message : 'Unknown error';
-      }
-    }
+    // Prisma 완전 제거됨
 
     // Supabase 헬스 체크
     if (clients.supabase && this.config.supabaseEnabled) {
@@ -190,9 +176,9 @@ export class DualStorageFactory {
       }
     }
 
-    // 전체 상태 판단
-    // PRISMA_DISABLED: const availableCount = [result.prisma.available, result.supabase.available].filter(Boolean).length;
-    const enabledCount = [this.config.prismaEnabled, this.config.supabaseEnabled].filter(Boolean).length;
+    // 전체 상태 판단 (Supabase 전용)
+    const availableCount = result.supabase.available ? 1 : 0;
+    const enabledCount = this.config.supabaseEnabled ? 1 : 0;
 
     if (availableCount === enabledCount && availableCount > 0) {
       result.overall = 'healthy';

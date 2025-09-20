@@ -5,7 +5,7 @@
  * 핵심 원칙:
  * - 도메인 로직만 포함 (순수 함수)
  * - 외부 의존성 주입 방식
- * - Prisma + Supabase 듀얼 스토리지 지원
+ * - Supabase 전용 스토리지 (Prisma 완전 제거)
  * - 데이터 일관성 보장
  */
 
@@ -30,14 +30,6 @@ import {
 // 외부 의존성 인터페이스 (의존성 주입)
 // ============================================================================
 
-export interface PrismaRepository {
-  saveScenario(data: ScenarioContent): Promise<{ success: boolean; error?: string }>;
-  savePrompt(data: PromptContent): Promise<{ success: boolean; error?: string }>;
-  saveVideo(data: VideoContent): Promise<{ success: boolean; error?: string }>;
-  findById(id: string): Promise<PlanningContent | null>;
-  updateStatus(id: string, status: Partial<PlanningContent>): Promise<{ success: boolean; error?: string }>;
-}
-
 export interface SupabaseRepository {
   saveScenario(data: ScenarioContent): Promise<{ success: boolean; error?: string }>;
   savePrompt(data: PromptContent): Promise<{ success: boolean; error?: string }>;
@@ -47,7 +39,6 @@ export interface SupabaseRepository {
 }
 
 export interface DualStorageDependencies {
-  prisma: PrismaRepository;
   supabase: SupabaseRepository;
   config: DualStorageConfig;
 }
@@ -161,35 +152,16 @@ async function performDualStorage<T extends PlanningContent>(
   dependencies: DualStorageDependencies,
   operation: 'saveScenario' | 'savePrompt' | 'saveVideo'
 ): Promise<StorageResult> {
-  const { prisma, supabase, config } = dependencies;
+  const { supabase, config } = dependencies;
   const results = {
-    prisma: { success: false, error: undefined as string | undefined },
     supabase: { success: false, error: undefined as string | undefined }
   };
 
-  logger.info(`💾 Starting dual storage for ${content.type}: ${content.id}`, {
-    prismaEnabled: config.prismaEnabled,
-    supabaseEnabled: config.supabaseEnabled,
-    requireBoth: config.requireBoth
+  logger.info(`💾 Starting Supabase storage for ${content.type}: ${content.id}`, {
+    supabaseEnabled: config.supabaseEnabled
   });
 
-  // Prisma 저장 시도
-  if (config.prismaEnabled) {
-    try {
-      const prismaResult = await (prisma[operation] as any)(content);
-      results.prisma = prismaResult;
-
-      if (prismaResult.success) {
-        logger.info(`✅ Prisma save successful for ${content.id}`);
-      } else {
-        console.error(`❌ Prisma save failed for ${content.id}:`, prismaResult.error);
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown Prisma error';
-      results.prisma = { success: false, error: errorMessage };
-      console.error(`❌ Prisma save exception for ${content.id}:`, errorMessage);
-    }
-  }
+  // Prisma 완전 제거됨
 
   // Supabase 저장 시도
   if (config.supabaseEnabled) {
@@ -219,26 +191,25 @@ async function performDualStorage<T extends PlanningContent>(
 function analyzeStorageResults(
   contentId: string,
   results: {
-    prisma: { success: boolean; error?: string };
     supabase: { success: boolean; error?: string };
   },
   config: DualStorageConfig
 ): StorageResult {
-  const { prisma, supabase } = results;
+  const { supabase } = results;
 
-  // 완전 성공 - DISABLED (Prisma removed)
-  // PRISMA_DISABLED: if (prisma.success && supabase.success) {
-  //   logger.info(`🎉 Full consistency achieved for ${contentId}`);
-  //   return {
-  //     success: true,
-  //     contentId,
-  //     storage: results,
-  //     message: 'Content saved successfully to both storages',
-  //     consistency: 'full'
-  //   };
-  // }
+  // Supabase 전용 성공 처리
+  if (supabase.success) {
+    logger.info(`✅ Supabase save successful for ${contentId}`);
+    return {
+      success: true,
+      contentId,
+      storage: results,
+      message: 'Content saved successfully to Supabase',
+      consistency: 'full'
+    };
+  }
 
-  // 부분 성공 처리 - DISABLED (Prisma removed)
+  // Supabase 실패 처리
   // PRISMA_DISABLED: if (prisma.success || supabase.success) {
   //   const successfulStorage = prisma.success ? 'Prisma' : 'Supabase';
   //   const failedStorage = !prisma.success ? 'Prisma' : 'Supabase';
@@ -278,13 +249,13 @@ function analyzeStorageResults(
   //   }
   // }
 
-  // 완전 실패
-  console.error(`❌ Complete storage failure for ${contentId}`);
+  // Supabase 실패
+  console.error(`❌ Supabase storage failure for ${contentId}:`, supabase.error);
   return {
     success: false,
     contentId,
     storage: results,
-    message: `Complete storage failure. Supabase: ${supabase.error || 'Unknown error'}`,
+    message: `Supabase save failed: ${supabase.error || 'Unknown error'}`,
     consistency: 'failed'
   };
 }
