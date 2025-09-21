@@ -197,11 +197,34 @@ export { useProject, useProjectStore } from './hooks/useProject';
 export { usePerformance, usePerformanceStore } from './hooks/usePerformance';
 
 /**
- * Redux slice actions export
+ * Redux slice actions export (only specific exports to avoid conflicts)
  */
 export * from './auth-slice';
-export * from './project-slice';
-export * from './performance-slice';
+export {
+  reset as resetProject,
+  init,
+  setScenario,
+  setPrompt,
+  setVideo,
+  setScenarioId,
+  setPromptId,
+  setVideoAssetId,
+  addVersion,
+  updateVideo
+} from './project-slice';
+export {
+  reset as resetPerformance,
+  startMonitoring,
+  stopMonitoring,
+  addCoreWebVital,
+  addApiMetric,
+  addAlert,
+  clearAlerts,
+  acknowledgeAlert,
+  updateBudget,
+  setCurrentSession,
+  calculateStats
+} from './performance-slice';
 
 /**
  * RTK Query exports
