@@ -59,7 +59,7 @@ export default function FeedbackPage() {
         label: 'v1',
         uploadedBy: 'demo',
         uploadedAt: new Date().toISOString(),
-        src: project.video.videoUrl || '/sample-video.mp4',
+        src: project.video.videoUrl || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
       },
     ];
   }, [project.versions, project.video.videoUrl]);

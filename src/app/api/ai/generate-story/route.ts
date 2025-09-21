@@ -14,7 +14,6 @@ import { transformStoryInputToApiRequest } from '@/shared/api/dto-transformers';
 import { getAIApiKeys } from '@/shared/config/env';
 import { withAICache } from '@/shared/lib/ai-cache';
 
-export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // 스키마는 shared/schemas/story-generation.schema.ts에서 import
