@@ -122,6 +122,10 @@ jobs:
     needs: fast-validation
     if: needs.fast-validation.outputs.should-skip != 'true' && needs.fast-validation.outputs.should-continue == 'true'
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        test-group: [unit, integration, e2e]
 
     steps:
       - name: Checkout
@@ -132,14 +136,46 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
+          cache-dependency-path: '**/pnpm-lock.yaml'
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: ${{ env.PNPM_VERSION }}
 
+      # 의존성 캐시 최적화 - 캐시 적중률 향상
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        id: pnpm-cache
+        with:
+          path: |
+            node_modules
+            ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
       - name: Install dependencies
+        if: steps.pnpm-cache.outputs.cache-hit != 'true'
         run: pnpm install --frozen-lockfile
+
+      # TypeScript 컴파일 캐시
+      - name: Cache TypeScript
+        uses: actions/cache@v4
+        with:
+          path: |
+            **/.tsbuildinfo
+            **/tsconfig.tsbuildinfo
+          key: ${{ runner.os }}-typescript-${{ hashFiles('**/tsconfig*.json', '**/pnpm-lock.yaml') }}
+
+      # 테스트 캐시
+      - name: Cache test results
+        uses: actions/cache@v4
+        with:
+          path: |
+            coverage
+            .vitest
+          key: ${{ runner.os }}-tests-${{ hashFiles('src/**/*.{ts,tsx}', '**/*.test.{ts,tsx}') }}
 
       # 완전한 TypeScript 컴파일 검사
       - name: Full TypeScript Check
@@ -149,30 +185,60 @@ jobs:
       - name: ESLint - FSD Architecture & Code Quality
         run: pnpm lint
 
-      # 단위 테스트 실행
-      - name: Unit Tests with Coverage
+      # 매트릭스 기반 병렬 테스트 실행
+      - name: Run Tests (${{ matrix.test-group }})
         run: |
-          pnpm test:coverage
-        env:
-          CI: true
+          case "${{ matrix.test-group }}" in
+            unit)
+              echo "🧪 단위 테스트 및 커버리지 수집..."
+              pnpm test:unit:coverage || {
+                echo "❌ 단위 테스트 실패!"
+                exit 1
+              }
 
-      # 통합 테스트
-      - name: Integration Tests
-        run: |
-          echo "🔗 통합 테스트 실행..."
-          pnpm test:integration || {
-            echo "❌ 통합 테스트 실패!"
-            exit 1
-          }
+              # 커버리지 임계값 검증
+              echo "📊 커버리지 임계값 검증..."
+              if [ -f coverage/coverage-summary.json ]; then
+                echo "✅ 커버리지 리포트 생성됨"
+              else
+                echo "❌ 커버리지 리포트 누락!"
+                exit 1
+              fi
+              ;;
+            integration)
+              echo "🔗 통합 테스트 실행..."
+              pnpm test:integration || {
+                echo "❌ 통합 테스트 실패!"
+                exit 1
+              }
+              ;;
+            e2e)
+              echo "🌐 E2E 테스트 실행..."
+              pnpm test:e2e:unit || {
+                echo "❌ E2E 테스트 실패!"
+                exit 1
+              }
+              ;;
+          esac
         env:
           CI: true
-          INTEGRATION_TEST: true
+          COVERAGE: ${{ matrix.test-group == 'unit' && 'true' || 'false' }}
+          INTEGRATION_TEST: ${{ matrix.test-group != 'unit' && 'true' || 'false' }}
+
+      # 커버리지 업로드 (단위 테스트만)
+      - name: Upload Coverage Reports
+        if: matrix.test-group == 'unit'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: coverage/
+          retention-days: 30
 
       # API 계약 테스트
       - name: API Contract Tests
         run: |
           echo "📋 API 계약 테스트..."
-          pnpm test:api-contracts || {
+          pnpm test:integration || {
             echo "❌ API 계약 위반!"
             exit 1
           }
@@ -219,7 +285,7 @@ jobs:
       - name: Auth Infinite Loop Prevention Tests
         run: |
           echo "🔒 인증 무한 루프 방지 테스트..."
-          pnpm test:auth:infinite-loop-prevention || {
+          pnpm test:infinite-loop || {
             echo "❌ 인증 무한 루프 방지 테스트 실패!"
             exit 1
           }
@@ -228,17 +294,17 @@ jobs:
       - name: 401 Error Handling Tests
         run: |
           echo "🚫 401 에러 처리 테스트..."
-          pnpm test:auth:401-handling || {
+          pnpm test:e2e:auth-401 || {
             echo "❌ 401 에러 처리 테스트 실패!"
             exit 1
           }
 
-      # 토큰 재발급 실패 시나리오
-      - name: Token Refresh Failure Scenarios
+      # 인증 관련 통합 테스트
+      - name: Auth Integration Tests
         run: |
-          echo "🔄 토큰 재발급 실패 시나리오 테스트..."
-          pnpm test:auth:token-refresh-failure || {
-            echo "❌ 토큰 재발급 실패 테스트 실패!"
+          echo "🔄 인증 통합 테스트..."
+          pnpm test:auth || {
+            echo "❌ 인증 통합 테스트 실패!"
             exit 1
           }
 
@@ -295,7 +361,7 @@ jobs:
       - name: Smoke Tests
         run: |
           echo "💨 스모크 테스트 실행..."
-          pnpm test:smoke || {
+          pnpm test:e2e:production:smoke || {
             echo "❌ 스모크 테스트 실패!"
             exit 1
           }

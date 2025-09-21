@@ -5,9 +5,10 @@
 
 import { setupServer } from 'msw/node';
 import { seedanceHandlers, seedanceTestUtils } from '../mocks/seedance-handlers';
+import { globalHandlers } from '../mocks/global-handlers';
 
-// MSW 서버 생성
-export const server = setupServer(...seedanceHandlers);
+// MSW 서버 생성 - 모든 핸들러 포함
+export const server = setupServer(...globalHandlers, ...seedanceHandlers);
 
 /**
  * 테스트 환경 전역 설정

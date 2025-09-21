@@ -31,6 +31,24 @@ const eslintConfig = [
           allow: ['warn', 'error'] // warn과 error는 허용 (개발 중 디버깅용)
         }
       ],
+      // TypeScript 품질 강화
+      '@typescript-eslint/ban-ts-comment': [
+        'error',
+        {
+          'ts-expect-error': 'allow-with-description',
+          'ts-ignore': true,
+          'ts-nocheck': true,
+          'ts-check': false,
+          minimumDescriptionLength: 10
+        }
+      ],
+      // React 품질 강화
+      'react/no-unstable-nested-components': 'error',
+      'react/jsx-no-bind': ['error', { allowArrowFunctions: true }],
+      // 코드 복잡도 제한
+      'complexity': ['warn', { max: 15 }],
+      'max-depth': ['warn', { max: 4 }],
+      'max-lines-per-function': ['warn', { max: 50, skipBlankLines: true, skipComments: true }],
     },
   },
   // 테스트와 타입 파일에 대해 엄격 규칙을 완화하여 배포 차단 방지
@@ -94,6 +112,11 @@ const eslintConfig = [
             {
               group: ['@/pages/**', '@/widgets/**', '@/features/**'],
               message: 'FSD 위반: 상위 레이어로의 의존은 금지됩니다. shared나 entities 레이어를 사용하세요.',
+            },
+            // CLAUDE.md Part 5.3: moment.js 사용 금지
+            {
+              group: ['moment'],
+              message: 'moment.js 사용 금지: date-fns나 dayjs를 사용하세요.',
             },
           ],
         },

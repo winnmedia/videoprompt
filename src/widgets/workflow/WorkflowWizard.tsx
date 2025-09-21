@@ -7,7 +7,7 @@
 
 import React, { memo, useEffect, useState } from 'react';
 import { Button } from '@/shared/ui';
-// import { useWorkflowState } from '@/features/workflow'; // FSD 위반 - 임시 비활성화
+import { useWorkflowState } from '@/features/workflow';
 import { useVideoPolling } from '@/shared/hooks/useVideoPolling';
 // import { TemplateSelector } from '@/widgets/scenario/TemplateSelector'; // FSD 위반: widgets 간 의존 금지
 import { StoryTemplate } from '@/entities/scenario';
@@ -126,7 +126,7 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">스토리 입력</h3>
             <textarea
-              className="w-full p-3 border rounded-lg h-32 resize-none"
+              className="w-full p-3 border border-neutral-300 rounded-lg h-32 resize-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-colors"
               placeholder="영상의 기본 스토리를 입력하세요..."
               value={workflowData.story}
               onChange={(e) => updateWorkflowData({ story: e.target.value })}
@@ -140,9 +140,9 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
             <h3 className="text-lg font-semibold">시나리오 설정</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">장르</label>
+                <label className="block text-sm font-medium mb-2 text-neutral-700">장르</label>
                 <select
-                  className="w-full p-2 border rounded-lg"
+                  className="w-full p-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-colors"
                   value={workflowData.scenario.genre}
                   onChange={(e) => updateWorkflowData({
                     scenario: { ...workflowData.scenario, genre: e.target.value }
@@ -156,9 +156,9 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">톤</label>
+                <label className="block text-sm font-medium mb-2 text-neutral-700">톤</label>
                 <select
-                  className="w-full p-2 border rounded-lg"
+                  className="w-full p-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-colors"
                   value={workflowData.scenario.tone}
                   onChange={(e) => updateWorkflowData({
                     scenario: { ...workflowData.scenario, tone: e.target.value }
@@ -181,9 +181,9 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
             <h3 className="text-lg font-semibold">프롬프트 설정</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">비주얼 스타일</label>
+                <label className="block text-sm font-medium mb-2 text-neutral-700">비주얼 스타일</label>
                 <select
-                  className="w-full p-2 border rounded-lg"
+                  className="w-full p-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-colors"
                   value={workflowData.prompt.visualStyle}
                   onChange={(e) => updateWorkflowData({
                     prompt: { ...workflowData.prompt, visualStyle: e.target.value }
@@ -197,9 +197,9 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">품질</label>
+                <label className="block text-sm font-medium mb-2 text-neutral-700">품질</label>
                 <select
-                  className="w-full p-2 border rounded-lg"
+                  className="w-full p-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-colors"
                   value={workflowData.prompt.quality}
                   onChange={(e) => updateWorkflowData({
                     prompt: { ...workflowData.prompt, quality: e.target.value }
@@ -212,9 +212,9 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">최종 프롬프트</label>
+              <label className="block text-sm font-medium mb-2 text-neutral-700">최종 프롬프트</label>
               <textarea
-                className="w-full p-3 border rounded-lg h-24 resize-none"
+                className="w-full p-3 border border-neutral-300 rounded-lg h-24 resize-none bg-neutral-50"
                 placeholder="생성된 프롬프트가 여기에 표시됩니다..."
                 value={workflowData.prompt.finalPrompt || ''}
                 readOnly
@@ -229,9 +229,9 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
             <h3 className="text-lg font-semibold">영상 생성</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">영상 길이</label>
+                <label className="block text-sm font-medium mb-2 text-neutral-700">영상 길이</label>
                 <select
-                  className="w-full p-2 border rounded-lg"
+                  className="w-full p-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-colors"
                   value={workflowData.video.duration}
                   onChange={(e) => updateWorkflowData({
                     video: { ...workflowData.video, duration: Number(e.target.value) }
@@ -245,9 +245,9 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">생성 모델</label>
+                <label className="block text-sm font-medium mb-2 text-neutral-700">생성 모델</label>
                 <select
-                  className="w-full p-2 border rounded-lg"
+                  className="w-full p-2 border border-neutral-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-colors"
                   value={workflowData.video.model}
                   onChange={(e) => updateWorkflowData({
                     video: { ...workflowData.video, model: e.target.value }
@@ -260,9 +260,9 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
               </div>
             </div>
 
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h4 className="font-medium mb-2">생성 설정 요약</h4>
-              <div className="text-sm text-gray-600 space-y-1">
+            <div className="bg-primary-50 p-4 rounded-lg">
+              <h4 className="font-medium mb-2 text-neutral-900">생성 설정 요약</h4>
+              <div className="text-sm text-neutral-600 space-y-1">
                 <div>스토리: {workflowData.story.slice(0, 50)}...</div>
                 <div>장르: {workflowData.scenario.genre}</div>
                 <div>스타일: {workflowData.prompt.visualStyle}</div>
@@ -272,20 +272,20 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
 
             {/* 영상 생성 상태 표시 */}
             {workflowData.video.jobId && (
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-medium mb-2">생성 상태</h4>
+              <div className="bg-neutral-50 p-4 rounded-lg">
+                <h4 className="font-medium mb-2 text-neutral-900">생성 상태</h4>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">작업 ID:</span>
+                    <span className="text-sm text-neutral-600">작업 ID:</span>
                     <span className="text-sm font-mono">{workflowData.video.jobId}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">상태:</span>
+                    <span className="text-sm text-neutral-600">상태:</span>
                     <span className={`text-sm px-2 py-1 rounded ${
-                      workflowData.video.status === 'completed' ? 'bg-green-100 text-green-800' :
-                      workflowData.video.status === 'failed' ? 'bg-red-100 text-red-800' :
-                      workflowData.video.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-gray-100 text-gray-800'
+                      workflowData.video.status === 'completed' ? 'bg-success-100 text-success-800' :
+                      workflowData.video.status === 'failed' ? 'bg-danger-100 text-danger-800' :
+                      workflowData.video.status === 'processing' ? 'bg-warning-100 text-warning-800' :
+                      'bg-neutral-100 text-neutral-800'
                     }`}>
                       {workflowData.video.status === 'queued' && '대기 중'}
                       {workflowData.video.status === 'processing' && '생성 중'}
@@ -300,7 +300,7 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
                         href={workflowData.video.videoUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-block bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700"
+                        className="inline-block bg-success-600 text-white px-4 py-2 rounded text-sm hover:bg-success-700 transition-colors"
                       >
                         ▶️ 영상 보기
                       </a>
@@ -308,7 +308,7 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
                   )}
 
                   {workflowData.video.status === 'failed' && workflowData.video.error && (
-                    <div className="mt-2 p-2 bg-red-50 text-red-800 text-sm rounded">
+                    <div className="mt-2 p-2 bg-danger-50 text-danger-800 text-sm rounded">
                       {workflowData.video.error}
                     </div>
                   )}
@@ -333,34 +333,34 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
 
       <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
         {/* 템플릿 기반 빠른 시작 */}
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-8 border border-blue-200 hover:shadow-lg hover:scale-105 transition-all duration-200 ease-out cursor-pointer group">
+        <div className="bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl p-8 border border-primary-200 hover:shadow-medium hover:scale-105 transition-all duration-200 ease-out cursor-pointer group">
           <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-700 group-hover:scale-110 transition-all duration-200">
+            <div className="w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-primary-700 group-hover:scale-110 transition-all duration-200">
               <span className="text-2xl text-white">⚡</span>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">템플릿으로 빠르게 시작</h3>
-            <p className="text-gray-600 mb-4">미리 준비된 템플릿으로 빠르게 영상을 생성하세요</p>
-            <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium inline-block">
+            <h3 className="text-2xl font-bold text-neutral-900 mb-2">템플릿으로 빠르게 시작</h3>
+            <p className="text-neutral-600 mb-4">미리 준비된 템플릿으로 빠르게 영상을 생성하세요</p>
+            <div className="bg-primary-100 text-primary-800 px-3 py-1 rounded-full text-sm font-medium inline-block">
               약 2분 내 완성
             </div>
           </div>
-          <ul className="space-y-2 mb-6 text-sm text-gray-600">
+          <ul className="space-y-2 mb-6 text-sm text-neutral-600">
             <li className="flex items-center">
-              <span className="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+              <span className="w-2 h-2 bg-primary-500 rounded-full mr-3"></span>
               템플릿 기반 자동 설정
             </li>
             <li className="flex items-center">
-              <span className="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+              <span className="w-2 h-2 bg-primary-500 rounded-full mr-3"></span>
               빠른 프로토타이핑
             </li>
             <li className="flex items-center">
-              <span className="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+              <span className="w-2 h-2 bg-primary-500 rounded-full mr-3"></span>
               검증된 설정값 사용
             </li>
           </ul>
           <Button
             onClick={handleTemplateStart}
-            className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 active:scale-95 text-white py-3 text-lg font-semibold transition-all duration-150 ease-out transform hover:scale-105"
+            className="w-full bg-primary-600 hover:bg-primary-700 active:bg-primary-800 active:scale-95 text-white py-3 text-lg font-semibold transition-all duration-150 ease-out transform hover:scale-105"
             aria-label="템플릿으로 빠르게 시작"
           >
             {workflowMode === 'template' ? (
@@ -375,40 +375,40 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
         </div>
 
         {/* 직접 설정 시작 */}
-        <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8 border border-gray-200 hover:shadow-lg hover:scale-105 transition-all duration-200 ease-out cursor-pointer group">
+        <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-xl p-8 border border-neutral-200 hover:shadow-medium hover:scale-105 transition-all duration-200 ease-out cursor-pointer group">
           <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-gray-700 group-hover:scale-110 transition-all duration-200">
+            <div className="w-16 h-16 bg-neutral-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-neutral-700 group-hover:scale-110 transition-all duration-200">
               <span className="text-2xl text-white">⚙️</span>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">직접 설정하여 시작</h3>
-            <p className="text-gray-600 mb-4">모든 설정을 직접 조정하여 맞춤형 영상을 생성하세요</p>
-            <div className="bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm font-medium inline-block">
+            <h3 className="text-2xl font-bold text-neutral-900 mb-2">직접 설정하여 시작</h3>
+            <p className="text-neutral-600 mb-4">모든 설정을 직접 조정하여 맞춤형 영상을 생성하세요</p>
+            <div className="bg-neutral-200 text-neutral-700 px-3 py-1 rounded-full text-sm font-medium inline-block">
               상세 설정 가능
             </div>
           </div>
-          <ul className="space-y-2 mb-6 text-sm text-gray-600">
+          <ul className="space-y-2 mb-6 text-sm text-neutral-600">
             <li className="flex items-center">
-              <span className="w-2 h-2 bg-gray-500 rounded-full mr-3"></span>
+              <span className="w-2 h-2 bg-neutral-500 rounded-full mr-3"></span>
               모든 옵션 커스터마이징
             </li>
             <li className="flex items-center">
-              <span className="w-2 h-2 bg-gray-500 rounded-full mr-3"></span>
+              <span className="w-2 h-2 bg-neutral-500 rounded-full mr-3"></span>
               단계별 세부 조정
             </li>
             <li className="flex items-center">
-              <span className="w-2 h-2 bg-gray-500 rounded-full mr-3"></span>
+              <span className="w-2 h-2 bg-neutral-500 rounded-full mr-3"></span>
               전문가 수준 제어
             </li>
           </ul>
           <Button
             onClick={handleDirectStart}
             variant="outline"
-            className="w-full border-gray-400 text-gray-700 hover:bg-gray-50 active:bg-gray-100 active:scale-95 py-3 text-lg font-semibold transition-all duration-150 ease-out transform hover:scale-105"
+            className="w-full border-neutral-400 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 active:scale-95 py-3 text-lg font-semibold transition-all duration-150 ease-out transform hover:scale-105"
             aria-label="직접 설정하여 시작"
           >
             {workflowMode === 'direct' ? (
               <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600 mr-2"></div>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-neutral-600 mr-2"></div>
                 로딩 중...
               </div>
             ) : (
@@ -461,7 +461,7 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
       {/* 개선된 헤더 */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-3xl font-bold text-gray-900">워크플로우</h1>
+          <h1 className="text-3xl font-bold text-neutral-900">워크플로우</h1>
           <Button
             variant="outline"
             onClick={() => {
@@ -473,14 +473,14 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
             처음으로 돌아가기
           </Button>
         </div>
-        <p className="text-gray-600 mb-4">
+        <p className="text-neutral-600 mb-4">
           {workflowMode === 'template' ? '템플릿 기반 빠른 생성' : '단계별 상세 설정'}
         </p>
 
         {/* 개선된 진행률 표시기 */}
-        <div className="bg-gray-200 rounded-full h-3 mb-2 overflow-hidden shadow-inner">
+        <div className="bg-neutral-200 rounded-full h-3 mb-2 overflow-hidden shadow-inner">
           <div
-            className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500 ease-out relative"
+            className="bg-gradient-to-r from-primary-500 to-primary-600 h-3 rounded-full transition-all duration-500 ease-out relative"
             style={{ width: `${calculateProgress()}%` }}
             role="progressbar"
             aria-valuenow={calculateProgress()}
@@ -489,13 +489,13 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
             aria-label={`진행률 ${calculateProgress()}%`}
           >
             {/* 진행 애니메이션 효과 */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 animate-pulse"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 animate-pulse-slow"></div>
             {calculateProgress() > 0 && (
-              <div className="absolute right-0 top-0 h-full w-1 bg-white opacity-60 animate-pulse"></div>
+              <div className="absolute right-0 top-0 h-full w-1 bg-white opacity-60 animate-pulse-slow"></div>
             )}
           </div>
         </div>
-        <div className="flex justify-between text-sm text-gray-500">
+        <div className="flex justify-between text-sm text-neutral-500">
           <span>진행률: {Math.round(calculateProgress())}%</span>
           <span>예상 소요시간: 30초</span>
         </div>
@@ -511,33 +511,33 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
 
             return (
               <div key={step.id} className="flex items-center">
-                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all ${
+                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300 ${
                   isCompleted
-                    ? 'bg-green-600 border-green-600 text-white'
+                    ? 'bg-success-600 border-success-600 text-white shadow-soft scale-105'
                     : isActive
-                    ? 'bg-blue-600 border-blue-600 text-white animate-pulse'
+                    ? 'bg-primary-600 border-primary-600 text-white animate-pulse shadow-medium scale-110'
                     : isAccessible
-                    ? 'border-gray-300 text-gray-400'
-                    : 'border-gray-200 text-gray-200'
+                    ? 'border-neutral-300 text-neutral-400 hover:border-primary-300 hover:text-primary-500'
+                    : 'border-neutral-200 text-neutral-200'
                 }`}>
                   {isCompleted ? '✓' : step.id}
                 </div>
                 <div className={`ml-3 ${
-                  isActive ? 'text-blue-600' :
-                  isCompleted ? 'text-green-600' :
-                  isAccessible ? 'text-gray-400' : 'text-gray-200'
+                  isActive ? 'text-primary-600' :
+                  isCompleted ? 'text-success-600' :
+                  isAccessible ? 'text-neutral-400' : 'text-neutral-200'
                 }`}>
                   <div className="text-sm font-medium">{step.title}</div>
                   <div className="text-xs">{step.description}</div>
                   {isActive && (
-                    <div className="text-xs text-blue-500 mt-1">
+                    <div className="text-xs text-primary-500 mt-1">
                       진행 중...
                     </div>
                   )}
                 </div>
                 {index < steps.length - 1 && (
                   <div className={`mx-4 h-0.5 w-16 transition-all ${
-                    isCompleted ? 'bg-green-600' : 'bg-gray-300'
+                    isCompleted ? 'bg-success-600' : 'bg-neutral-300'
                   }`} />
                 )}
               </div>
@@ -606,9 +606,9 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
         {isLoading && (
           <div className="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600 font-medium">처리 중...</p>
-              <p className="text-gray-500 text-sm">잠시만 기다려주세요</p>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+              <p className="text-neutral-600 font-medium">처리 중...</p>
+              <p className="text-neutral-500 text-sm">잠시만 기다려주세요</p>
             </div>
           </div>
         )}

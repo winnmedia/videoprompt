@@ -3,7 +3,19 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Button } from '@/shared/ui/button';
 import { Modal } from '@/shared/ui/Modal';
-import { Camera, MessageSquare, Share2, Repeat, Upload } from 'lucide-react';
+import { Camera, MessageSquare, Share2, Repeat, Upload, FileUp } from 'lucide-react';
+import dynamic from 'next/dynamic';
+
+// 동적 임포트로 클라이언트 컴포넌트 로드
+const FileUploadDropzone = dynamic(() => import('@/widgets/feedback/FileUploadDropzone'), {
+  ssr: false,
+  loading: () => <div className="p-8 text-center text-gray-500">업로드 컴포넌트 로딩 중...</div>
+});
+
+const FeedbackFilesList = dynamic(() => import('@/widgets/feedback/FeedbackFilesList'), {
+  ssr: false,
+  loading: () => <div className="p-4 text-center text-gray-500">파일 목록 로딩 중...</div>
+});
 import { cn } from '@/shared/lib/utils';
 import { useProjectStore } from '@/app/store';
 import { safeFetch } from '@/shared/lib/api-retry';
@@ -108,6 +120,7 @@ export default function FeedbackPage() {
   const [shareOpen, setShareOpen] = useState(false);
   const [replaceOpen, setReplaceOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [feedbackUploadOpen, setFeedbackUploadOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
@@ -115,6 +128,7 @@ export default function FeedbackPage() {
   const [showVersionComparison, setShowVersionComparison] = useState(false);
   const [compareVersionId, setCompareVersionId] = useState<string | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<{[key: number]: File | null}>({});
+  const [filesListKey, setFilesListKey] = useState(0); // 파일 목록 새로고침용
 
   // 파일 선택 핸들러
   const handleFileSelect = (slotIndex: number, file: File | null) => {
@@ -516,6 +530,13 @@ export default function FeedbackPage() {
         </Button>
         <Button
           variant="outline"
+          onClick={() => setFeedbackUploadOpen(true)}
+          leftIcon={<FileUp className="h-4 w-4" />}
+        >
+          파일 업로드
+        </Button>
+        <Button
+          variant="outline"
           onClick={() => setReplaceOpen(true)}
           leftIcon={<Repeat className="h-4 w-4" />}
         >
@@ -621,8 +642,16 @@ export default function FeedbackPage() {
           </div>
         </section>
 
-        {/* Right: Tabs (stub) */}
-        <aside>
+        {/* Right: Tabs */}
+        <aside className="space-y-6">
+          {/* 첨부 파일 목록 */}
+          <FeedbackFilesList
+            key={filesListKey}
+            feedbackId={activeVersionId}
+            onRefresh={() => setFilesListKey(prev => prev + 1)}
+          />
+
+          {/* 기존 탭 (추후 확장용) */}
           <div className="rounded-lg border bg-white">
             <div className="flex border-b">
               <button className="px-4 py-2 text-sm font-medium">팀원</button>
@@ -800,6 +829,46 @@ export default function FeedbackPage() {
                 </option>
               ))}
             </select>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Feedback File Upload Modal */}
+      <Modal
+        open={feedbackUploadOpen}
+        onClose={() => setFeedbackUploadOpen(false)}
+        title="피드백 파일 업로드"
+        description="비디오, 이미지, 문서 파일을 업로드하여 피드백에 첨부할 수 있습니다."
+      >
+        <div className="space-y-4">
+          <FileUploadDropzone
+            feedbackId={activeVersionId} // 현재 버전을 피드백 ID로 사용
+            userId={tokenInfo?.nickname || undefined}
+            onUploadComplete={(files) => {
+              console.log('Upload completed:', files);
+              // 업로드 완료 후 파일 목록 새로고침
+              setFilesListKey(prev => prev + 1);
+              // 성공 메시지 표시
+              if (files.length > 0) {
+                alert(`${files.length}개 파일이 성공적으로 업로드되었습니다.`);
+              }
+            }}
+            onUploadError={(error) => {
+              console.error('Upload error:', error);
+              alert(`업로드 오류: ${error}`);
+            }}
+            maxFiles={10}
+            maxSizePerFile={50 * 1024 * 1024} // 50MB
+            className="w-full"
+          />
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => setFeedbackUploadOpen(false)}
+            >
+              닫기
+            </Button>
           </div>
         </div>
       </Modal>

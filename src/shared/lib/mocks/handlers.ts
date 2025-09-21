@@ -113,11 +113,19 @@ function generateMockStoryboardResult(shotId: string, prompt: string): Storyboar
 
 // 시나리오 핸들러 import
 import { scenarioHandlers } from './scenario-handlers';
+// 글로벌 핸들러 import (누락된 API 엔드포인트 커버)
+import { healthHandlers, planningHandlers, aiHandlers, externalHandlers } from '../../../__tests__/mocks/global-handlers';
 
 /**
  * MSW 핸들러 정의 - 실제 API 엔드포인트와 통합 테스트용
  */
 export const handlers = [
+  // 글로벌 핸들러 추가 (누락된 API 엔드포인트 커버)
+  ...healthHandlers,
+  ...planningHandlers,
+  ...aiHandlers,
+  ...externalHandlers,
+
   // 시나리오 관련 핸들러 추가
   ...scenarioHandlers,
 
