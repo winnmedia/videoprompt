@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     logger.info('Planning Dashboard 데이터 조회 시작', { userId });
 
     // Supabase 클라이언트 초기화
-    const supabase = await getSupabaseClientSafe('service-role');
+    const supabase = await getSupabaseClientSafe('admin');
 
     // 🔐 보안 강화: 현재 사용자의 데이터만 조회
     const [scenarioProjectsResult, promptProjectsResult, videoAssetsResult] = await Promise.all([

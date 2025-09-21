@@ -1,37 +1,32 @@
 // Database health check API endpoint
 import { NextRequest, NextResponse } from 'next/server';
-import { initializeDatabase, validateDatabaseSchema, checkDatabaseConnection } from '@/lib/db';
+import { initializeDatabase, checkDatabaseConnection } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
-    // 초기화 및 전체 상태 검사
-    const result = await initializeDatabase();
-    
-    // 상세 정보 추가 수집
+    // 데이터베이스 비활성화로 인한 기능 비활성화
     const detailedResponse = {
       timestamp: new Date().toISOString(),
-      status: result.initialized ? 'healthy' : 'unhealthy',
+      status: 'disabled',
       checks: {
         connection: {
-          status: result.connectionStatus ? 'pass' : 'fail',
-          details: result.connectionStatus ? '데이터베이스 연결 성공' : '데이터베이스 연결 실패'
+          status: 'disabled',
+          details: '데이터베이스 기능이 비활성화되었습니다.'
         },
         schema: {
-          status: result.schemaValid ? 'pass' : 'fail', 
-          details: result.schemaValid ? '스키마 검증 완료' : '스키마 검증 실패'
+          status: 'disabled',
+          details: '스키마 검증이 비활성화되었습니다.'
         }
       },
-      error: result.error || null,
+      error: null,
       environment: {
         nodeEnv: process.env.NODE_ENV,
-        databaseUrl: process.env.DATABASE_URL ? 
-          `${process.env.DATABASE_URL.substring(0, 20)}...` : 'NOT_SET'
+        databaseUrl: 'DISABLED'
       }
     };
 
-
     // HTTP 상태 코드 결정
-    const httpStatus = result.initialized ? 200 : 503;
+    const httpStatus = 503;
 
     return NextResponse.json(detailedResponse, { status: httpStatus });
 

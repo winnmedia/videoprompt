@@ -29,26 +29,9 @@ export async function POST(req: NextRequest) {
   try {
     const traceId = getTraceId(req);
     const { token, targetType, targetId, text, timecode } = postSchema.parse(await req.json());
-    // PRISMA_DISABLED: const found = awaitprisma.shareToken.findUnique({ where: { token } });
-    if (!found) return json({ ok: false, code: 'FORBIDDEN', error: 'invalid token' }, 403);
-    if (found.expiresAt < new Date())
-      return json({ ok: false, code: 'EXPIRED', error: 'token expired' }, 410);
-    if (found.role !== 'commenter')
-      return json({ ok: false, code: 'FORBIDDEN', error: 'no comment permission' }, 403);
 
-    const reqUserId = getUserIdFromRequest(req);
-    // PRISMA_DISABLED: const created = awaitprisma.comment.create({
-      // PRISMA_CONTINUATION: data: {
-        // PRISMA_CONTINUATION: targetType,
-        // PRISMA_CONTINUATION: targetId,
-        // PRISMA_CONTINUATION: author: found.nickname ?? null,
-        // PRISMA_CONTINUATION: ...(reqUserId ? { userId: reqUserId } : {}),
-        // PRISMA_CONTINUATION: text,
-        // PRISMA_CONTINUATION: timecode: timecode ?? null,
-      // PRISMA_CONTINUATION: },
-    // PRISMA_CONTINUATION: });
-    logger.info('comment created', { id: created.id, targetType, targetId, traceId });
-    return success({ id: created.id, createdAt: created.createdAt }, 200, traceId);
+    // 임시 구현: 코멘트 기능 비활성화 (Prisma 제거로 인한)
+    return json({ ok: false, code: 'FEATURE_DISABLED', error: 'Comment feature temporarily disabled' }, 503);
   } catch (e: any) {
     if (e instanceof z.ZodError) return failure('INVALID_INPUT_FIELDS', e.message, 400);
     return failure('UNKNOWN', e?.message || 'Server error', 500);
@@ -61,12 +44,10 @@ export async function GET(req: NextRequest) {
     const targetType = req.nextUrl.searchParams.get('targetType') || 'video';
     const targetId = req.nextUrl.searchParams.get('targetId');
     if (!targetId) return failure('INVALID_INPUT_FIELDS', 'targetId required', 400);
-    // PRISMA_DISABLED: const rows = awaitprisma.comment.findMany({
-      // PRISMA_CONTINUATION: where: { targetType, targetId },
-      // PRISMA_CONTINUATION: orderBy: { createdAt: 'desc' },
-    // PRISMA_CONTINUATION: });
-    logger.info('comment list', { count: rows.length, targetType, targetId, traceId });
-    return success(rows, 200, traceId);
+
+    // 임시 구현: 빈 코멘트 목록 반환 (Prisma 제거로 인한)
+    logger.info('comment list', { count: 0, targetType, targetId, traceId });
+    return success([], 200, traceId);
   } catch (e: any) {
     return failure('UNKNOWN', e?.message || 'Server error', 500);
   }

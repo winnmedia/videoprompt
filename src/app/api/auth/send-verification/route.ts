@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
       return failure('EMAIL_ALREADY_VERIFIED', '이미 인증된 이메일입니다.', 409, undefined, traceId);
     }
     
-    // 데이터베이스 오류는 middleware에서 처리
-    return createDatabaseErrorResponse(e, traceId);
+    // 데이터베이스 오류 처리 - 임시 비활성화
+    return failure('INTERNAL_ERROR', '서버 오류가 발생했습니다.', 500, e.message, traceId);
   }
 }

@@ -3,7 +3,7 @@ import React, { useState, useCallback, useTransition } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSelectedLayoutSegment } from 'next/navigation';
 import { useSoftPrefetch, useInstantFeedback } from '@/shared/lib/prefetch';
-import { useAuthStore } from '@/app/store';
+import { useAuth } from '@/app/store/hooks/useAuth';
 import { AuthStatus, AuthLoadingSkeleton } from '@/shared/ui/AuthStatus';
 import { logger } from '@/shared/lib/logger';
 
@@ -29,7 +29,7 @@ export function MainNav() {
   const router = useRouter();
   const selectedSegment = useSelectedLayoutSegment(); // 정확한 활성 상태 판별
   const [isPending, startTransition] = useTransition(); // 라우팅 상태 관리
-  const { user, isAuthenticated, isLoading, logout } = useAuthStore();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [logoutLoading, setLogoutLoading] = useState(false);
   const getInstantFeedback = useInstantFeedback();
 

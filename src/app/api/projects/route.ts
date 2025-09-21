@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
     logger.info(`[Projects ${traceId}] ✅ 입력 데이터 검증 완료`);
 
     // Create project in Supabase
-    const supabase = await getSupabaseClientSafe('service-role');
+    const supabase = await getSupabaseClientSafe('admin');
 
     const projectData = {
       title: validatedData.title,
@@ -147,7 +147,7 @@ export async function GET(req: NextRequest) {
     const offset = (page - 1) * limit;
 
     // Fetch projects with pagination using Supabase
-    const supabase = await getSupabaseClientSafe('service-role');
+    const supabase = await getSupabaseClientSafe('admin');
 
     // Get projects with pagination
     const { data: projects, error: projectsError } = await supabase

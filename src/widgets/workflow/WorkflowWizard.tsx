@@ -7,7 +7,7 @@
 
 import React, { memo, useEffect, useState } from 'react';
 import { Button } from '@/shared/ui';
-import { useWorkflowState } from '@/features/workflow';
+// import { useWorkflowState } from '@/features/workflow'; // FSD 위반 - 임시 비활성화
 import { useVideoPolling } from '@/shared/hooks/useVideoPolling';
 // import { TemplateSelector } from '@/widgets/scenario/TemplateSelector'; // FSD 위반: widgets 간 의존 금지
 import { StoryTemplate } from '@/entities/scenario';

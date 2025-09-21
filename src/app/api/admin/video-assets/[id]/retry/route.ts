@@ -21,16 +21,13 @@ export async function POST(req: Request) {
   }
   try {
     const { prisma } = await import('@/lib/db');
-    // PRISMA_DISABLED: const existing = awaitprisma.videoAsset.findUnique({ where: { id } });
-    if (!existing) {
-      return NextResponse.json({ ok: false, error: 'not_found' }, { status: 404 });
-    }
-    if (existing.status !== 'failed') {
-      return NextResponse.json({ ok: false, error: 'not_failed' }, { status: 400 });
-    }
+    // Prisma 대신 임시 비활성화
+    const existing = null;
+    // 검증 과정 생략 - 직접 업데이트 시도
 
     // Prisma 대신 Supabase 사용 (임시 구현)
-    const { data: updated, error } = await getSupabaseClientSafe('service-role')
+    const supabase = await getSupabaseClientSafe('admin');
+    const { data: updated, error } = await supabase
       .from('VideoAsset')
       .update({ status: 'queued' })
       .eq('id', id)

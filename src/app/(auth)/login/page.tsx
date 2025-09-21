@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Logo, Button, FormError, Input } from '@/shared/ui';
-import { useAuthStore } from '@/shared/store';
+import { useAuth } from '@/app/store/hooks/useAuth';
 import { useAuthRedirect } from '@/shared/hooks';
 import { logger } from '@/shared/lib/logger';
 import {
@@ -16,7 +16,7 @@ import {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { setUser } = useAuthStore();
+  const { setUser } = useAuth();
 
   // 인증된 사용자는 홈으로 리다이렉트
   const { isLoading: authLoading } = useAuthRedirect({ redirectPath: '/' });

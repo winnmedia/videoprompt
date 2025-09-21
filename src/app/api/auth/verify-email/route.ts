@@ -23,56 +23,7 @@ export async function POST(req: NextRequest) {
     const { token, code, email } = VerifyEmailSchema.parse(body);
 
     // 데이터베이스 비활성화로 인한 기능 비활성화
-    throw new Error('EMAIL_VERIFICATION_DISABLED');
-
-    if (!verification) {
-      return failure('INVALID_VERIFICATION', '유효하지 않은 인증 정보입니다.', 400, undefined, traceId);
-    }
-
-    // Check if verification has expired
-    if (new Date() > verification.expiresAt) {
-      // Delete expired verification
-      // PRISMA_DISABLED: awaitprisma.emailVerification.delete({
-        // PRISMA_CONTINUATION: where: { id: verification.id },
-      // PRISMA_CONTINUATION: });
-      return failure('VERIFICATION_EXPIRED', '인증 정보가 만료되었습니다. 다시 요청해주세요.', 400, undefined, traceId);
-    }
-
-    // Check if user exists
-    if (!verification.user) {
-      return failure('USER_NOT_FOUND', '사용자를 찾을 수 없습니다.', 404, undefined, traceId);
-    }
-
-    // Update user and delete verification in a transaction
-    // PRISMA_DISABLED: const user = awaitprisma.$transaction(async (tx) => {
-      // Update user's email verification status
-      // PRISMA_CONTINUATION: const updatedUser = await tx.user.update({
-        // PRISMA_CONTINUATION: where: { id: verification.user!.id },
-        // PRISMA_CONTINUATION: data: {
-          // PRISMA_CONTINUATION: emailVerified: true,
-          // PRISMA_CONTINUATION: verifiedAt: new Date(),
-        // PRISMA_CONTINUATION: },
-        // PRISMA_CONTINUATION: select: {
-          // PRISMA_CONTINUATION: id: true,
-          // PRISMA_CONTINUATION: email: true,
-          // PRISMA_CONTINUATION: username: true,
-          // PRISMA_CONTINUATION: emailVerified: true,
-          // PRISMA_CONTINUATION: verifiedAt: true,
-        // PRISMA_CONTINUATION: },
-      // PRISMA_CONTINUATION: });
-
-      // Delete all verification records for this user
-      // PRISMA_CONTINUATION: await tx.emailVerification.deleteMany({
-        // PRISMA_CONTINUATION: where: { userId: verification.user!.id },
-      // PRISMA_CONTINUATION: });
-
-      // PRISMA_CONTINUATION: return updatedUser;
-    // PRISMA_CONTINUATION: });
-
-    return success({
-      user,
-      message: '이메일 인증이 완료되었습니다.',
-    }, 200, traceId);
+    return failure('SERVICE_UNAVAILABLE', '이메일 인증 기능이 비활성화되었습니다.', 503, undefined, traceId);
   } catch (e: any) {
     if (e.message === 'EMAIL_VERIFICATION_DISABLED') {
       return failure('SERVICE_UNAVAILABLE', '이메일 인증 기능이 비활성화되었습니다.', 503, undefined, getTraceId(req));
@@ -96,55 +47,8 @@ export async function GET(req: NextRequest) {
       return failure('MISSING_TOKEN', '인증 토큰이 필요합니다.', 400, undefined, traceId);
     }
 
-    // Find verification record
-    // PRISMA_DISABLED: const verification = awaitprisma.emailVerification.findUnique({
-      // PRISMA_CONTINUATION: where: { token },
-      // PRISMA_CONTINUATION: include: { user: true },
-    // PRISMA_CONTINUATION: });
-
-    if (!verification) {
-      return failure('INVALID_VERIFICATION', '유효하지 않은 인증 토큰입니다.', 400, undefined, traceId);
-    }
-
-    // Check if verification has expired
-    if (new Date() > verification.expiresAt) {
-      // Delete expired verification
-      // PRISMA_DISABLED: awaitprisma.emailVerification.delete({
-        // PRISMA_CONTINUATION: where: { id: verification.id },
-      // PRISMA_CONTINUATION: });
-      return failure('VERIFICATION_EXPIRED', '인증 토큰이 만료되었습니다.', 400, undefined, traceId);
-    }
-
-    // Check if user exists
-    if (!verification.user) {
-      return failure('USER_NOT_FOUND', '사용자를 찾을 수 없습니다.', 404, undefined, traceId);
-    }
-
-    // Update user and delete verification in a transaction
-    // PRISMA_DISABLED: const user = awaitprisma.$transaction(async (tx) => {
-      // Update user's email verification status
-      // PRISMA_CONTINUATION: const updatedUser = await tx.user.update({
-        // PRISMA_CONTINUATION: where: { id: verification.user!.id },
-        // PRISMA_CONTINUATION: data: {
-          // PRISMA_CONTINUATION: emailVerified: true,
-          // PRISMA_CONTINUATION: verifiedAt: new Date(),
-        // PRISMA_CONTINUATION: },
-        // PRISMA_CONTINUATION: select: {
-          // PRISMA_CONTINUATION: id: true,
-          // PRISMA_CONTINUATION: email: true,
-          // PRISMA_CONTINUATION: username: true,
-          // PRISMA_CONTINUATION: emailVerified: true,
-          // PRISMA_CONTINUATION: verifiedAt: true,
-        // PRISMA_CONTINUATION: },
-      // PRISMA_CONTINUATION: });
-
-      // Delete all verification records for this user
-      // PRISMA_CONTINUATION: await tx.emailVerification.deleteMany({
-        // PRISMA_CONTINUATION: where: { userId: verification.user!.id },
-      // PRISMA_CONTINUATION: });
-
-      // PRISMA_CONTINUATION: return updatedUser;
-    // PRISMA_CONTINUATION: });
+    // 데이터베이스 비활성화로 인한 기능 비활성화
+    return failure('SERVICE_UNAVAILABLE', '이메일 인증 기능이 비활성화되었습니다.', 503, undefined, traceId);
 
     // Return HTML response for browser
     const html = `

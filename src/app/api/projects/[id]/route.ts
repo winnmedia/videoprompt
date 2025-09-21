@@ -69,7 +69,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     // Find project using Supabase
-    const supabase = await getSupabaseClientSafe('service-role');
+    const supabase = await getSupabaseClientSafe('admin');
     const { data: project, error } = await supabase
       .from('projects')
       .select('id, title, description, metadata, status, created_at, updated_at')
@@ -123,7 +123,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     logger.info(`[Project ${traceId}] ✅ 입력 데이터 검증 완료`);
 
     // Check if project exists and belongs to user using Supabase
-    const supabase = await getSupabaseClientSafe('service-role');
+    const supabase = await getSupabaseClientSafe('admin');
     const { data: existingProject, error: checkError } = await supabase
       .from('projects')
       .select('id')
@@ -198,7 +198,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
 
     // Check if project exists and belongs to user using Supabase
-    const supabase = await getSupabaseClientSafe('service-role');
+    const supabase = await getSupabaseClientSafe('admin');
     const { data: existingProject, error: checkError } = await supabase
       .from('projects')
       .select('id')

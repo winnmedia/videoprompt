@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { useAuthStore } from '@/shared/store';
+import { useAuth } from '@/app/store/hooks/useAuth';
 import { useAuthApiGuard } from '@/shared/hooks/useApiCallGuard';
 import { logger } from '@/shared/lib/logger';
 
@@ -16,7 +16,7 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const { checkAuth } = useAuthStore();
+  const { checkAuth } = useAuth();
 
   // 🚨 $300 사건 방지: API 호출 가드 시스템
   const { guardedCall, getStatus } = useAuthApiGuard();

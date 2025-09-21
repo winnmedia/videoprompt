@@ -22,7 +22,7 @@ type ApiError = { ok: false; code: string; error: string; details?: string };
 export async function GET(_req: NextRequest) {
   try {
     // Supabase 클라이언트 초기화
-    const supabase = await getSupabaseClientSafe('service-role');
+    const supabase = await getSupabaseClientSafe('admin');
 
     // 비디오 에셋 데이터 조회
     const { data: rows, error } = await supabase

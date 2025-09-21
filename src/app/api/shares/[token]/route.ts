@@ -17,31 +17,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
         { ok: false, code: 'INVALID_INPUT_FIELDS', error: 'token required' },
         { status: 400 },
       );
-    // PRISMA_DISABLED: const found = awaitprisma.shareToken.findUnique({ where: { token } });
-    if (!found)
-      return NextResponse.json(
-        { ok: false, code: 'NOT_FOUND', error: 'token not found' },
-        { status: 404 },
-      );
-    if (found.expiresAt < new Date())
-      return NextResponse.json(
-        { ok: false, code: 'EXPIRED', error: 'token expired' },
-        { status: 410 },
-      );
-    logger.info('share token validated', {
-      targetType: found.targetType,
-      targetId: found.targetId,
-    });
-    return NextResponse.json({
-      ok: true,
-      data: {
-        token: found.token,
-        role: found.role,
-        nickname: found.nickname,
-        targetType: found.targetType,
-        targetId: found.targetId,
-      },
-    });
+    // 데이터베이스 비활성화로 인한 기능 비활성화
+    return NextResponse.json(
+      { ok: false, code: 'SERVICE_UNAVAILABLE', error: 'Share token feature is disabled' },
+      { status: 503 },
+    );
   } catch (e: any) {
     return NextResponse.json(
       { ok: false, code: 'UNKNOWN', error: e?.message || 'Server error' },

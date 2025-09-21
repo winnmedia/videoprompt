@@ -17,13 +17,13 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/app/store';
+import { useAuth } from '@/app/store/hooks/useAuth';
 import { Button, VisuallyHidden } from '@/shared/ui';
 import { logger } from '@/shared/lib/logger';
 
 export function UserMenu() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading, logout } = useAuthStore();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [logoutLoading, setLogoutLoading] = useState(false);
 
   const handleLogout = async () => {

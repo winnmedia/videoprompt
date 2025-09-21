@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
       scenario: z.any(),
       shots: z.array(z.any()).optional(),
       prompt: z.any().optional(),
-      format: z.enum(['json', 'pdf']).optional(),
+      format: z.enum(['json', 'pdf', 'excel']).optional(),
     });
     const { scenario, shots, prompt, format } = schema.parse(await req.json());
     if (!scenario)
@@ -34,14 +34,24 @@ export async function POST(req: NextRequest) {
       prompt: prompt ?? null,
       exportedAt: new Date().toISOString(),
     };
-    // PDF 생성은 클라이언트 사이드에서 처리하도록 변경
+    // PDF/Excel 생성은 클라이언트 사이드에서 처리하도록 변경
     // 서버에서는 구조화된 데이터만 제공
     if (format === 'pdf') {
       // PDF용 구조화된 데이터 반환
       return NextResponse.json(success({
         ...exportPayload,
         format: 'pdf-data',
-        title: 'VLANET • 기획안 내보내기',
+        title: 'VLANET • 기획안 PDF 내보내기',
+        generatedAt: new Date().toLocaleString('ko-KR'),
+      }), { status: 200 });
+    }
+
+    if (format === 'excel') {
+      // Excel용 구조화된 데이터 반환
+      return NextResponse.json(success({
+        ...exportPayload,
+        format: 'excel-data',
+        title: 'VLANET • 기획안 Excel 내보내기',
         generatedAt: new Date().toLocaleString('ko-KR'),
       }), { status: 200 });
     }

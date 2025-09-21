@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useAuthStore } from '@/shared/store';
+import { useAuth } from '@/app/store/hooks/useAuth';
 import { useEffect, useState } from 'react';
 
 interface AuthStatusProps {
@@ -14,7 +14,7 @@ interface AuthStatusProps {
 }
 
 export function AuthStatus({ showDetails = false, className = '' }: AuthStatusProps) {
-  const { user, isAuthenticated, isLoading } = useAuthStore();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [connectionState, setConnectionState] = useState<'connected' | 'reconnecting' | 'error'>('connected');
 
   // 연결 상태 모니터링

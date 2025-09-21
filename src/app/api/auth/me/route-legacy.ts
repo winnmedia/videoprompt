@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 사용자 정보 조회 - Supabase 구현
-    const supabase = await getSupabaseClientSafe('service-role');
+    const supabase = await getSupabaseClientSafe('admin');
     let user = null;
 
     try {

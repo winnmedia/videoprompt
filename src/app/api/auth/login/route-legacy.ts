@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
     const { email, username, id, password } = LoginSchema.parse(await req.json());
 
     // Supabase로 사용자 조회
-    const supabase = await getSupabaseClientSafe('service-role');
+    const supabase = await getSupabaseClientSafe('admin');
     let user = null;
 
     try {
