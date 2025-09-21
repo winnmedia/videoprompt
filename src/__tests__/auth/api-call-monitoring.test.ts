@@ -31,11 +31,9 @@ describe('🚨 API 호출 모니터링 - $300 사건 재발 방지', () => {
         });
       } catch (error) {
         firstError = error;
-        console.log('🔍 첫 번째 요청 에러:', (error as Error).message);
       }
 
       const firstDuration = Date.now() - firstStartTime;
-      console.log('🔍 첫 번째 요청 소요 시간:', firstDuration, 'ms');
 
       // 즉시 두 번째 요청 (캐시에서 가져와야 함)
       const secondStartTime = Date.now();
@@ -50,14 +48,11 @@ describe('🚨 API 호출 모니터링 - $300 사건 재발 방지', () => {
         });
       } catch (error) {
         secondError = error;
-        console.log('🔍 두 번째 요청 에러:', (error as Error).message);
       }
 
       const secondDuration = Date.now() - secondStartTime;
-      console.log('🔍 두 번째 요청 소요 시간:', secondDuration, 'ms');
 
       // THEN: 두 번째 요청이 훨씬 빨라야 함 (캐시 히트)
-      console.log(`📊 캐시 효과: 첫 번째 ${firstDuration}ms, 두 번째 ${secondDuration}ms`);
 
       // 두 번째 요청이 10ms 미만이어야 함 (캐시에서 즉시 반환)
       expect(secondDuration).toBeLessThan(10);
@@ -104,7 +99,6 @@ describe('🚨 API 호출 모니터링 - $300 사건 재발 방지', () => {
             method: 'GET',
             cacheTTL: 10000 // 10초 캐시
           }).catch(err => {
-            console.log(`요청 ${index + 1} 에러:`, err.message);
             return { error: err.message, requestIndex: index + 1 };
           })
         );
@@ -112,11 +106,6 @@ describe('🚨 API 호출 모니터링 - $300 사건 재발 방지', () => {
         const results = await Promise.allSettled(promises);
         const endTime = Date.now();
 
-        console.log('🔍 동시 요청 결과 분석:');
-        console.log(`  - 총 요청 수: ${promises.length}`);
-        console.log(`  - 실제 API 호출: ${actualApiCallCount}회`);
-        console.log(`  - 캐시 히트: ${cacheHitCount}회`);
-        console.log(`  - 총 소요 시간: ${endTime - startTime}ms`);
 
         // THEN: 실제 API 호출은 1번만 발생해야 함
         expect(actualApiCallCount).toBeLessThanOrEqual(1);
@@ -124,7 +113,6 @@ describe('🚨 API 호출 모니터링 - $300 사건 재발 방지', () => {
         // 나머지는 캐시나 중복 방지로 처리되어야 함
         if (actualApiCallCount === 1) {
           // 첫 번째 요청이 실행되고 나머지는 중복 방지 또는 캐시로 처리
-          console.log('✅ 중복 호출 방지 성공 - 1번만 실제 실행됨');
         }
 
         // 모든 요청이 처리되어야 함
@@ -132,7 +120,6 @@ describe('🚨 API 호출 모니터링 - $300 사건 재발 방지', () => {
 
         // 비용 절약 계산
         const estimatedSavings = (5 - actualApiCallCount) * 0.001; // 요청당 $0.001 가정
-        console.log(`💰 예상 비용 절약: $${estimatedSavings.toFixed(3)}`);
 
       } finally {
         console.log = originalLog; // 복원
@@ -145,18 +132,15 @@ describe('🚨 API 호출 모니터링 - $300 사건 재발 방지', () => {
 
       // WHEN: 짧은 TTL로 첫 번째 요청
       const shortTTL = 100; // 100ms
-      console.log(`🕐 캐시 TTL 설정: ${shortTTL}ms`);
 
       const firstResult = await apiClient.safeFetchWithCache('/api/test-cache-expire', {
         method: 'GET',
         cacheTTL: shortTTL
       }).catch(err => ({ error: err.message }));
 
-      console.log('🔍 첫 번째 요청 완료');
 
       // TTL 만료까지 대기
       await new Promise(resolve => setTimeout(resolve, shortTTL + 50));
-      console.log('⏰ 캐시 TTL 만료 후');
 
       // 두 번째 요청 (캐시가 만료되어 새로운 요청이어야 함)
       let secondApiCall = false;
@@ -177,7 +161,6 @@ describe('🚨 API 호출 모니터링 - $300 사건 재발 방지', () => {
 
       // THEN: 두 번째 요청이 실제로 실행되어야 함 (캐시 만료)
       expect(secondApiCall).toBe(true);
-      console.log('✅ 캐시 만료 후 새로운 요청 실행됨');
     });
 
   });
@@ -220,16 +203,11 @@ describe('🚨 API 호출 모니터링 - $300 사건 재발 방지', () => {
         await Promise.allSettled(rapidCalls);
 
         // THEN: 실제 API 호출은 제한되어야 함
-        console.log(`📊 무한루프 시뮬레이션 결과:`);
-        console.log(`  - 시도한 호출: 10회`);
-        console.log(`  - 실제 API 호출: ${totalApiCalls}회`);
-        console.log(`  - 에러 발생: ${totalErrors}회`);
 
         // 캐싱과 중복 방지로 실제 호출은 훨씬 적어야 함
         expect(totalApiCalls).toBeLessThan(5);
 
         if (totalApiCalls <= 2) {
-          console.log('✅ $300 사건 방지 성공 - 중복 호출 차단됨');
         }
 
       } finally {
@@ -265,16 +243,11 @@ describe('🚨 API 호출 모니터링 - $300 사건 재발 방지', () => {
       const actualDuration = Date.now() - startTime;
       const requestsPerSecond = requestCount / (actualDuration / 1000);
 
-      console.log(`📊 성능 모니터링 결과:`);
-      console.log(`  - 총 요청 시도: ${requestCount}회`);
-      console.log(`  - 실제 소요 시간: ${actualDuration}ms`);
-      console.log(`  - 초당 요청 수: ${requestsPerSecond.toFixed(2)} req/s`);
 
       // THEN: 과도한 요청이 차단되어야 함
       if (requestsPerSecond > 100) {
         console.warn('⚠️ 과도한 요청 빈도 감지 - 추가 제한 필요할 수 있음');
       } else {
-        console.log('✅ 적절한 요청 빈도 유지됨');
       }
 
       expect(requestCount).toBeGreaterThan(0);
@@ -331,7 +304,6 @@ class ApiCallTracker {
     times.push(now);
     this.timestamps.set(endpoint, times);
 
-    console.log(`📊 [${endpoint}] 호출됨 (총 ${current + 1}회)`);
   }
 
   getCallCount(endpoint: string): number {
@@ -573,7 +545,6 @@ describe('📊 API 호출 횟수 모니터링 테스트', () => {
       }
 
       // Then: 정확한 호출 횟수 추적
-      console.log(tracker.getReport());
       expect(tracker.getCallCount('/api/auth/me')).toBe(3);
       expect(tracker.getTotalCalls()).toBe(3);
     });
@@ -591,7 +562,6 @@ describe('📊 API 호출 횟수 모니터링 테스트', () => {
       await refreshAccessToken(); // /api/auth/refresh (실패 예상)
 
       // Then: 각 엔드포인트별 추적
-      console.log(tracker.getReport());
       expect(tracker.getCallCount('/api/auth/me')).toBe(1);
       expect(tracker.getCallCount('/api/auth/refresh')).toBe(1);
       expect(tracker.getTotalCalls()).toBe(2);
@@ -619,7 +589,6 @@ describe('📊 API 호출 횟수 모니터링 테스트', () => {
       }
 
       // Then: 시간 윈도우별 정확한 계산
-      console.log(tracker.getReport());
       expect(callsInFirstMinute).toBe(3);
       expect(tracker.getCallsInTimeWindow('/api/auth/me', 60 * 1000)).toBe(2); // 최근 1분
       expect(tracker.getTotalCalls()).toBe(5);
@@ -639,12 +608,10 @@ describe('📊 API 호출 횟수 모니터링 테스트', () => {
           (global as any).advanceTime(1000); // 1초씩 증가 (1분 내)
           await checkAuth();
         } catch (error) {
-          console.log(`🚫 에러 발생 (${i + 1}번째): ${error}`);
         }
       }
 
       // Then: Rate Limit 후 429 에러 발생
-      console.log(tracker.getReport());
       expect(tracker.getCallCount('/api/auth/me')).toBe(12);
 
       // 마지막 호출은 429 에러였을 것으로 예상
@@ -667,12 +634,10 @@ describe('📊 API 호출 횟수 모니터링 테스트', () => {
           (global as any).advanceTime(1000); // 1초씩 증가
           await refreshAccessToken();
         } catch (error) {
-          console.log(`🚫 Refresh 에러 (${i + 1}번째): ${error}`);
         }
       }
 
       // Then: Rate Limit 적용
-      console.log(tracker.getReport());
       expect(tracker.getCallCount('/api/auth/refresh')).toBe(7);
     });
 
@@ -706,7 +671,6 @@ describe('📊 API 호출 횟수 모니터링 테스트', () => {
       }
 
       // Then: Rate Limit 복구 확인
-      console.log(tracker.getReport());
       expect(tracker.getCallCount('/api/auth/me')).toBe(callsAfterLimit + 1);
     });
   });
@@ -733,8 +697,6 @@ describe('📊 API 호출 횟수 모니터링 테스트', () => {
       const duration = endTime - startTime;
 
       // Then: 동시 호출 패턴 분석
-      console.log(tracker.getReport());
-      console.log(`⏱️ 동시 10개 호출 처리 시간: ${duration}ms`);
 
       // Promise 재사용으로 인해 API 호출은 1번만 발생해야 함
       expect(tracker.getCallCount('/api/auth/me')).toBe(1);
@@ -772,9 +734,6 @@ describe('📊 API 호출 횟수 모니터링 테스트', () => {
       const concurrentCalls = tracker.getCallCount('/api/auth/me');
 
       // Then: 성능 비교 및 분석
-      console.log(`📈 성능 비교 리포트:`);
-      console.log(`  순차 호출: ${sequentialDuration}ms, API 호출 ${sequentialCalls}회`);
-      console.log(`  동시 호출: ${concurrentDuration}ms, API 호출 ${concurrentCalls}회`);
 
       expect(sequentialCalls).toBe(5); // 순차는 5번 모두
       expect(concurrentCalls).toBe(1); // 동시는 1번만
@@ -793,12 +752,10 @@ describe('📊 API 호출 횟수 모니터링 테스트', () => {
           (global as any).advanceTime(6 * 60 * 1000); // 캐시 무효화
           await checkAuth();
         } catch (error) {
-          console.log(`❌ ${i + 1}번째 에러: ${error}`);
         }
       }
 
       // Then: 에러 상황에서도 호출 추적
-      console.log(tracker.getReport());
       expect(tracker.getCallCount('/api/auth/me')).toBe(5);
 
       // 모든 호출이 실패했으므로 인증되지 않은 상태
@@ -830,8 +787,6 @@ describe('📊 API 호출 횟수 모니터링 테스트', () => {
       const maxTime = Math.max(...measurements);
 
       // Then: 응답 시간 임계값 검증
-      console.log(`⏱️ API 응답 시간: 평균 ${averageTime.toFixed(2)}ms, 최대 ${maxTime.toFixed(2)}ms`);
-      console.log(tracker.getReport());
 
       expect(averageTime).toBeLessThan(500); // 평균 500ms 이하
       expect(maxTime).toBeLessThan(1000); // 최대 1초 이하
@@ -864,8 +819,6 @@ describe('📊 API 호출 횟수 모니터링 테스트', () => {
       const totalTime = endTime - startTime;
 
       // Then: 전체 처리 시간 검증
-      console.log(`⏱️ ${CALL_COUNT}회 호출 총 처리 시간: ${totalTime.toFixed(2)}ms`);
-      console.log(tracker.getReport());
 
       expect(totalTime).toBeLessThan(MAX_TOTAL_TIME);
 
@@ -895,8 +848,6 @@ describe('📊 API 호출 횟수 모니터링 테스트', () => {
       const memoryIncrease = finalMemory - initialMemory;
 
       // Then: 메모리 사용량 검증
-      console.log(`💾 메모리 증가: ${(memoryIncrease / 1024 / 1024).toFixed(2)} MB`);
-      console.log(tracker.getReport());
 
       // 메모리 증가가 10MB 이하여야 함 (합리적 임계값)
       expect(memoryIncrease).toBeLessThan(10 * 1024 * 1024);
@@ -931,8 +882,6 @@ describe('📊 API 호출 횟수 모니터링 테스트', () => {
       }
 
       // Then: 간헐적 에러 패턴 확인
-      console.log(tracker.getReport());
-      console.log(`📊 AI API 결과: 성공 ${successCount}회, 에러 ${errorCount}회`);
 
       expect(tracker.getCallCount('/api/ai/generate-story')).toBe(10);
       expect(errorCount).toBeGreaterThan(0); // 일부 에러 발생

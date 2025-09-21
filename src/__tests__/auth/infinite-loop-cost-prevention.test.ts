@@ -219,7 +219,6 @@ afterEach(() => {
   server.resetHandlers();
   vi.clearAllMocks();
   const report = costTracker.getReport();
-  console.log('💰 비용 추적 리포트:', JSON.stringify(report, null, 2));
 });
 
 describe('🚨 $300 사건 재발 방지 - 무한 루프 비용 차단', () => {
@@ -325,7 +324,6 @@ describe('🚨 $300 사건 재발 방지 - 무한 루프 비용 차단', () => {
       expect(risk.riskLevel).toBe('LOW');
       expect(risk.estimatedDailyCost).toBeLessThan(1.0);
 
-      console.log(`✅ 올바른 패턴: 예상 일일 비용 $${risk.estimatedDailyCost.toFixed(2)}`);
     });
 
     test('⚡ [GREEN] 캐싱 메커니즘으로 중복 호출 방지', async () => {
@@ -464,7 +462,6 @@ describe('🚨 $300 사건 재발 방지 - 무한 루프 비용 차단', () => {
       expect(risk.riskLevel).toBe('LOW');
       expect(risk.estimatedDailyCost).toBeLessThan(1.0);
 
-      console.log(`✅ 올바른 Header 패턴: 총 비용 $${costTracker.getTotalCost().toFixed(3)}`);
     });
 
     test('🛡️ [GREEN] 최종 방어 메커니즘 - 모든 층위 차단', async () => {
@@ -493,7 +490,6 @@ describe('🚨 $300 사건 재발 방지 - 무한 루프 비용 차단', () => {
       const risk = costTracker.getInfiniteLoopRisk();
       expect(risk.estimatedDailyCost).toBeLessThan(300); // $300 미만 보장
 
-      console.log(`🛡️ 최종 방어: 성공 ${successfulCalls}, 차단 ${blockedCalls}, 비용 $${costTracker.getTotalCost().toFixed(3)}`);
     });
   });
 

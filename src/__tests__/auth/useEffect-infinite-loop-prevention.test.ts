@@ -34,7 +34,6 @@ class InfiniteLoopDetector {
     const recentTimes = times.filter(time => now - time <= this.TIME_WINDOW);
     this.timestamps.set(identifier, recentTimes);
 
-    console.log(`🔍 [${identifier}] 호출됨 (${newCount}회 총, ${recentTimes.length}회 최근)`);
 
     // 위험 임계값 체크
     if (recentTimes.length >= this.CRITICAL_THRESHOLD) {
@@ -203,7 +202,6 @@ describe('🚨 useEffect 무한 루프 회귀 방지 테스트', () => {
       const callCount = detector.getCallCount('checkAuth');
       const isInfiniteLoop = detector.isInfiniteLoop('checkAuth');
 
-      console.log(detector.getReport());
 
       expect(callCount).toBeGreaterThan(50); // 50회 초과 호출
       expect(isInfiniteLoop).toBe(true); // 무한 루프로 판단
@@ -227,7 +225,6 @@ describe('🚨 useEffect 무한 루프 회귀 방지 테스트', () => {
       const callCount = detector.getCallCount('safeCheckAuth');
       const isInfiniteLoop = detector.isInfiniteLoop('safeCheckAuth');
 
-      console.log(detector.getReport());
 
       expect(callCount).toBeLessThanOrEqual(1); // 최대 1회만 호출
       expect(isInfiniteLoop).toBe(false); // 무한 루프가 아님
@@ -258,7 +255,6 @@ describe('🚨 useEffect 무한 루프 회귀 방지 테스트', () => {
       const callCount = detector.getCallCount('conditionalLoop');
       const isInfiniteLoop = detector.isInfiniteLoop('conditionalLoop');
 
-      console.log(detector.getReport());
 
       expect(callCount).toBeGreaterThan(50);
       expect(isInfiniteLoop).toBe(true);
@@ -507,8 +503,6 @@ describe('🚨 useEffect 무한 루프 회귀 방지 테스트', () => {
       const duration = endTime - startTime;
       const memoryIncrease = endMemory - startMemory;
 
-      console.log(`⏱️ 1000회 추적 처리 시간: ${duration.toFixed(2)}ms`);
-      console.log(`💾 메모리 증가: ${(memoryIncrease / 1024).toFixed(2)}KB`);
 
       expect(duration).toBeLessThan(100); // 100ms 이하
       expect(memoryIncrease).toBeLessThan(1024 * 1024); // 1MB 이하

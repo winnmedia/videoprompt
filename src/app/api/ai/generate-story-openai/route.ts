@@ -142,7 +142,7 @@ export const POST = withCors(async (request: NextRequest) => {
             user = await getUser(request);
           } catch (authError) {
             if (process.env.NODE_ENV === 'development') {
-              logger.info('[OpenAI Story Generator] 인증 실패 - DB 저장 거부:', authError);
+              logger.info('[OpenAI Story Generator] 인증 실패 - DB 저장 거부', { authError: String(authError) });
             }
           }
 
@@ -173,7 +173,7 @@ export const POST = withCors(async (request: NextRequest) => {
               id: projectId || `dummy-project-${Date.now()}`,
               title: projectTitle || `${genre} 스토리: ${scenarioData.title}`,
               description: `OpenAI 생성 스토리 (${result.model}) - ${tone} 톤앤매너`,
-              userId: user.id,
+              userId: user?.id || null,
               metadata: scenarioData,
               status: 'draft',
               createdAt: new Date(),

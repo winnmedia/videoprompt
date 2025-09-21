@@ -32,8 +32,6 @@ describe('🔒 httpOnly 쿠키 실제 동작 검증', () => {
         }
       });
 
-      console.log('🔍 요청 쿠키:', request.cookies.getAll());
-      console.log('🔍 요청 헤더:', Object.fromEntries(request.headers.entries()));
 
       // WHEN: 실제 핸들러 호출
       let response: Response;
@@ -44,9 +42,6 @@ describe('🔒 httpOnly 쿠키 실제 동작 검증', () => {
         response = await authMeHandler(request);
         responseData = await response.json();
 
-        console.log('🔍 응답 상태:', response.status);
-        console.log('🔍 응답 데이터:', responseData);
-        console.log('🔍 응답 헤더:', Object.fromEntries(response.headers.entries()));
 
       } catch (e) {
         error = e;
@@ -58,7 +53,6 @@ describe('🔒 httpOnly 쿠키 실제 동작 검증', () => {
 
       // 실제로는 어떤 응답이 올지 확인
       if (response! && responseData) {
-        console.log(`📊 실제 응답: ${response!.status} - ${JSON.stringify(responseData, null, 2)}`);
 
         // 게스트 모드로 응답하는지 확인
         if (response!.status === 200) {
@@ -78,7 +72,6 @@ describe('🔒 httpOnly 쿠키 실제 동작 검증', () => {
         }
       });
 
-      console.log('🔍 Refresh 요청 쿠키:', request.cookies.getAll());
 
       // WHEN: 실제 refresh 핸들러 호출
       let response: Response;
@@ -89,8 +82,6 @@ describe('🔒 httpOnly 쿠키 실제 동작 검증', () => {
         response = await authRefreshHandler(request);
         responseData = await response.json();
 
-        console.log('🔍 Refresh 응답 상태:', response.status);
-        console.log('🔍 Refresh 응답 데이터:', responseData);
 
       } catch (e) {
         error = e;
@@ -101,12 +92,10 @@ describe('🔒 httpOnly 쿠키 실제 동작 검증', () => {
       expect(error).toBeNull();
 
       if (response! && responseData) {
-        console.log(`📊 실제 Refresh 응답: ${response!.status} - ${JSON.stringify(responseData, null, 2)}`);
 
         // 400 에러가 나와야 무한루프 방지됨
         if (response!.status === 400) {
           expect(responseData.error).toContain('MISSING_REFRESH_TOKEN');
-          console.log('✅ 무한루프 방지 - 400 에러 정상 반환');
         } else {
           console.warn(`⚠️ 예상과 다른 응답: ${response!.status}`);
         }
@@ -130,7 +119,6 @@ describe('🔒 httpOnly 쿠키 실제 동작 검증', () => {
         }
       });
 
-      console.log('🔍 쿠키 시뮬레이션 요청:', request.cookies.getAll());
 
       // WHEN: 실제 핸들러 호출
       let response: Response;
@@ -141,8 +129,6 @@ describe('🔒 httpOnly 쿠키 실제 동작 검증', () => {
         response = await authMeHandler(request);
         responseData = await response.json();
 
-        console.log('🔍 쿠키 시뮬레이션 응답 상태:', response.status);
-        console.log('🔍 쿠키 시뮬레이션 응답 데이터:', responseData);
 
       } catch (e) {
         error = e;
@@ -151,12 +137,9 @@ describe('🔒 httpOnly 쿠키 실제 동작 검증', () => {
 
       // THEN: 결과 분석
       if (error) {
-        console.log('❌ 쿠키가 있어도 에러 발생 - 환경 설정 문제 가능성');
       } else if (response!) {
-        console.log(`📊 쿠키 시뮬레이션 결과: ${response!.status}`);
 
         if (response!.status === 200 && responseData) {
-          console.log('✅ 쿠키 인식 성공');
           expect(responseData.data).toBeDefined();
         }
       }
@@ -174,7 +157,6 @@ describe('🔒 httpOnly 쿠키 실제 동작 검증', () => {
         }
       });
 
-      console.log('🔍 Bearer 토큰 요청 헤더:', Object.fromEntries(request.headers.entries()));
 
       // WHEN: 실제 핸들러 호출
       let response: Response;
@@ -185,8 +167,6 @@ describe('🔒 httpOnly 쿠키 실제 동작 검증', () => {
         response = await authMeHandler(request);
         responseData = await response.json();
 
-        console.log('🔍 Bearer 토큰 응답 상태:', response.status);
-        console.log('🔍 Bearer 토큰 응답 데이터:', responseData);
 
       } catch (e) {
         error = e;
@@ -195,9 +175,7 @@ describe('🔒 httpOnly 쿠키 실제 동작 검증', () => {
 
       // THEN: 결과 분석
       if (error) {
-        console.log('❌ Bearer 토큰도 에러 발생 - 인증 시스템 전체 문제');
       } else if (response!) {
-        console.log(`📊 Bearer 토큰 결과: ${response!.status}`);
       }
     });
 
@@ -218,17 +196,14 @@ describe('🔒 httpOnly 쿠키 실제 동작 검증', () => {
         }
       });
 
-      console.log('🔍 Step 1: 무효한 토큰으로 auth/me 호출');
 
       let authResponse: Response;
       let authError: any = null;
 
       try {
         authResponse = await authMeHandler(authRequest);
-        console.log('🔍 auth/me 응답 상태:', authResponse.status);
 
         if (authResponse.status === 401) {
-          console.log('✅ 401 에러 정상 반환 - 다음은 refresh 시도');
 
           // Step 2: refresh API 호출 (토큰 없이)
           const refreshRequest = new NextRequest('http://localhost:3000/api/auth/refresh', {
@@ -238,13 +213,10 @@ describe('🔒 httpOnly 쿠키 실제 동작 검증', () => {
             }
           });
 
-          console.log('🔍 Step 2: refresh API 호출 (토큰 없이)');
 
           const refreshResponse = await authRefreshHandler(refreshRequest);
-          console.log('🔍 refresh 응답 상태:', refreshResponse.status);
 
           if (refreshResponse.status === 400) {
-            console.log('✅ 무한루프 차단 성공 - 400 에러로 체인 종료');
             expect(refreshResponse.status).toBe(400);
           } else {
             console.warn(`⚠️ 무한루프 위험: refresh가 ${refreshResponse.status} 반환`);
@@ -281,8 +253,6 @@ describe('🔒 httpOnly 쿠키 실제 동작 검증', () => {
         const endTime = Date.now();
         const responseTime = endTime - startTime;
 
-        console.log(`🔍 auth/me 실제 응답 시간: ${responseTime}ms`);
-        console.log(`🔍 응답 상태: ${response.status}`);
 
         // THEN: 성능 기준 확인
         expect(responseTime).toBeLessThan(5000); // 5초 내 응답

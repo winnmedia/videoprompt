@@ -50,13 +50,13 @@ let recentSaves: Map<string, number[]> = new Map();
  */
 export const GET = withOptionalAuth(async (request: NextRequest, { user, authContext }) => {
   try {
-    logger.info('✅ Planning prompts 인증 성공:', user.id);
+    logger.info('✅ Planning prompts 인증 성공', { userId: user?.id });
 
     // Prisma 임시 비활성화 - 더미 데이터 반환
-    logger.info('✅ Planning prompts 인증 성공 (Prisma disabled):', user.id);
+    logger.info('✅ Planning prompts 인증 성공 (Prisma disabled)', { userId: user?.id });
 
     // 임시 더미 데이터 (Prisma 제거로 인한 대체)
-    const projects = [];
+    const projects: any[] = [];
 
     // 프롬프트 형식으로 변환
     const prompts = projects.map(project => {
@@ -220,7 +220,7 @@ export const POST = withOptionalAuth(async (request: NextRequest, { user, authCo
 
     logger.info('💾 Starting prompt save process:', {
       promptId: promptContent.id,
-      userId: user.id,
+      userId: user?.id || undefined,
       scenarioTitle: promptData.scenarioTitle
     });
 

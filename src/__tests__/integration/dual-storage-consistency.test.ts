@@ -118,10 +118,8 @@ describe('듀얼 스토리지 데이터 일관성 검증', () => {
       // 데이터 무결성을 위해 완전 실패가 더 안전함
       if (result.success) {
         expect(result.partialFailure).toBeDefined();
-        console.log('부분 성공:', result.partialFailure);
       } else {
         expect(result.error).toBeDefined();
-        console.log('완전 실패 (안전):', result.error);
       }
     });
   });
@@ -230,8 +228,6 @@ describe('듀얼 스토리지 데이터 일관성 검증', () => {
       const prismaStats = prismaCircuitBreaker.getStats();
       const supabaseStats = supabaseCircuitBreaker.getStats();
 
-      console.log('Prisma Circuit Breaker Stats:', prismaStats);
-      console.log('Supabase Circuit Breaker Stats:', supabaseStats);
 
       // 최소한 일부 실패가 발생했는지 확인
       expect(failureCount).toBeGreaterThan(0);

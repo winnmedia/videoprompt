@@ -30,7 +30,6 @@ const server = setupServer(
     apiCallCount.authMe++;
     apiCallCount.total++;
 
-    console.log(`🔍 [${apiCallCount.total}] /api/auth/me 호출됨 (총 ${apiCallCount.authMe}번째)`);
 
     const auth = request.headers.get('Authorization');
 
@@ -61,7 +60,6 @@ const server = setupServer(
     apiCallCount.refresh++;
     apiCallCount.total++;
 
-    console.log(`🔍 [${apiCallCount.total}] /api/auth/refresh 호출됨 (총 ${apiCallCount.refresh}번째)`);
 
     // 401 에러로 무한 루프 시뮬레이션 가능
     return new HttpResponse(null, { status: 401 });
@@ -152,7 +150,6 @@ describe('🚨 무한 루프 방지 테스트 - $300 폭탄 재발 방지', () =
       await Promise.all(promises);
 
       // Then: API 호출은 1번만 발생해야 함 (현재 실패할 것으로 예상)
-      console.log(`🔍 총 API 호출 횟수: ${apiCallCount.authMe}`);
       expect(apiCallCount.authMe).toBe(1);
     });
 
@@ -166,14 +163,12 @@ describe('🚨 무한 루프 방지 테스트 - $300 폭탄 재발 방지', () =
       await checkAuth();
 
       const firstCallCount = apiCallCount.authMe;
-      console.log(`🔍 첫 번째 호출 후 API 호출 횟수: ${firstCallCount}`);
 
       // When: 5분 이내 두 번째 checkAuth 호출 (캐시 기간 내)
       vi.spyOn(Date, 'now').mockReturnValue(1000 + (4 * 60 * 1000)); // 4분 후
       await checkAuth();
 
       // Then: 두 번째 호출은 API 호출 없어야 함
-      console.log(`🔍 두 번째 호출 후 API 호출 횟수: ${apiCallCount.authMe}`);
       expect(apiCallCount.authMe).toBe(firstCallCount); // 증가하지 않아야 함
     });
 
@@ -253,7 +248,6 @@ describe('🚨 무한 루프 방지 테스트 - $300 폭탄 재발 방지', () =
       const results = await Promise.all(promises);
 
       // Then: 첫 번째만 실행되고 나머지는 null
-      console.log(`🔍 Refresh 결과들:`, results);
       expect(results.filter(r => r === null)).toHaveLength(3); // 모두 null (실패)
       expect(apiCallCount.refresh).toBe(1); // API는 1번만 호출
     });
@@ -297,7 +291,6 @@ describe('🚨 무한 루프 방지 테스트 - $300 폭탄 재발 방지', () =
       }
 
       // Then: 총 API 호출 횟수가 임계값 이하여야 함
-      console.log(`🔍 총 API 호출 횟수: ${apiCallCount.total} (임계값: ${MAX_API_CALLS_PER_MINUTE})`);
       expect(apiCallCount.total).toBeLessThanOrEqual(MAX_API_CALLS_PER_MINUTE);
     });
 
@@ -323,7 +316,6 @@ describe('🚨 무한 루프 방지 테스트 - $300 폭탄 재발 방지', () =
       }
 
       // Then: 호출 횟수가 1회를 초과하면 무한 루프 패턴
-      console.log(`🔍 Effect 호출 횟수: ${effectCallCount}`);
       expect(effectCallCount).toBeGreaterThan(1); // 문제 패턴 감지
     });
   });
@@ -357,7 +349,6 @@ describe('🚨 무한 루프 방지 테스트 - $300 폭탄 재발 방지', () =
 
       // Then: 네트워크 오류에도 불구하고 5번 모두 API 호출 발생
       // (캐시가 무효화되었기 때문)
-      console.log(`🔍 네트워크 오류 시 API 호출 횟수: ${apiCallCount.authMe}`);
       expect(apiCallCount.authMe).toBe(5);
     });
 
@@ -408,7 +399,6 @@ describe('🚨 무한 루프 방지 테스트 - $300 폭탄 재발 방지', () =
       const duration = endTime - startTime;
 
       // Then: 3초 이내 타임아웃 발생
-      console.log(`🔍 응답 지연 테스트 지속 시간: ${duration}ms`);
       expect(duration).toBeLessThan(3100); // 타임아웃 + 여유시간
       expect(apiCallCount.authMe).toBe(1); // API는 호출됨
     });

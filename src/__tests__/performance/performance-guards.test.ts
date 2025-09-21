@@ -77,7 +77,6 @@ describe('성능 가드 테스트', () => {
       expect(duration).toBeLessThan(PERFORMANCE_THRESHOLDS.MAX_RESPONSE_TIME);
       expect(data.stories).toBeDefined();
       
-      console.log(`Stories API response time: ${duration}ms`);
     });
 
     it('스토리 생성 API가 성능 임계값 내에서 응답해야 함', async () => {
@@ -103,7 +102,6 @@ describe('성능 가드 테스트', () => {
       expect(duration).toBeLessThan(PERFORMANCE_THRESHOLDS.MAX_RESPONSE_TIME);
       expect(data.id).toBeDefined();
       
-      console.log(`Story creation API response time: ${duration}ms`);
     });
 
     it('파일 업로드 API가 성능 임계값 내에서 응답해야 함', async () => {
@@ -127,7 +125,6 @@ describe('성능 가드 테스트', () => {
       expect(duration).toBeLessThan(PERFORMANCE_THRESHOLDS.MAX_RESPONSE_TIME);
       expect(data.success).toBe(true);
       
-      console.log(`Upload API response time: ${duration}ms`);
     });
   });
 
@@ -150,7 +147,6 @@ describe('성능 가드 테스트', () => {
       );
 
       expect(response.status).toBe(200);
-      console.log('PDF generation completed within timeout');
     });
 
     it('시나리오 개발 API가 최대 타임아웃 내에서 완료되어야 함', async () => {
@@ -170,7 +166,6 @@ describe('성능 가드 테스트', () => {
       );
 
       expect(response.status).toBe(200);
-      console.log('Scenario development completed within timeout');
     });
   });
 
@@ -198,7 +193,6 @@ describe('성능 가드 테스트', () => {
         expect(response.status).toBe(200);
       });
 
-      console.log(`${concurrentRequests.length} concurrent requests completed in ${totalDuration}ms`);
     });
 
     it('메모리 사용량이 임계값을 초과하지 않아야 함', async () => {
@@ -223,7 +217,6 @@ describe('성능 가드 테스트', () => {
       // Assert
       expect(memoryIncrease).toBeLessThan(PERFORMANCE_THRESHOLDS.MAX_MEMORY_USAGE_MB);
       
-      console.log(`Memory increase: ${memoryIncrease.toFixed(2)}MB`);
     });
   });
 
@@ -268,7 +261,6 @@ describe('성능 가드 테스트', () => {
         expect(finalResponse.status).toBe(200);
       }
       
-      console.log(`Retry logic completed after ${attemptCount} attempts`);
     });
   });
 
@@ -300,7 +292,6 @@ describe('성능 가드 테스트', () => {
       expect(response.status).toBe(200);
       expect(memoryIncrease).toBeLessThan(PERFORMANCE_THRESHOLDS.MAX_MEMORY_USAGE_MB);
       
-      console.log(`Memory increase after large response: ${memoryIncrease.toFixed(2)}MB`);
     });
   });
 
@@ -340,12 +331,9 @@ describe('성능 가드 테스트', () => {
       benchmarks.push({ api: 'PDF Generation', duration: pdfGenerateTime });
 
       // 결과 출력 및 검증
-      console.log('\n=== Performance Benchmarks ===');
       benchmarks.forEach(({ api, duration }) => {
-        console.log(`${api}: ${duration}ms`);
         expect(duration).toBeLessThan(PERFORMANCE_THRESHOLDS.MAX_RESPONSE_TIME);
       });
-      console.log('===============================\n');
 
       // 전체 평균 성능 검증
       const averageTime = benchmarks.reduce((sum, { duration }) => sum + duration, 0) / benchmarks.length;

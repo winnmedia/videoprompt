@@ -61,7 +61,6 @@ class SeedanceApiTracker {
       error
     });
 
-    console.log(`📞 [${environment}] ${endpoint} - ${status} (${responseTime}ms) ${isMocked ? '[MOCKED]' : '[REAL]'}`);
 
     // API 키 사용량 업데이트
     if (apiKey && status === 'success') {
@@ -96,7 +95,6 @@ class SeedanceApiTracker {
 
     this.apiKeyStates.set(apiKey, keyState);
 
-    console.log(`🔑 API 키 검증: ${this.maskApiKey(apiKey)} - ${keyState.isValid ? '✅' : '❌'}`);
 
     return {
       isValid: keyState.isValid,
@@ -131,7 +129,6 @@ class SeedanceApiTracker {
       timestamp: Date.now()
     });
 
-    console.log(`🛡️ Fallback 모드 활성화: ${reason}`);
   }
 
   deactivateFallback(activationIndex: number) {
@@ -139,7 +136,6 @@ class SeedanceApiTracker {
       this.fallbackActivations[activationIndex].duration =
         Date.now() - this.fallbackActivations[activationIndex].timestamp;
 
-      console.log(`✅ Fallback 모드 해제`);
     }
   }
 
@@ -513,7 +509,6 @@ describe('🔑 Seedance API 키 검증 및 Mock 전환 테스트', () => {
       expect(verifyData.permissions).toContain('write');
       expect(verifyData.rate_limit_remaining).toBeGreaterThan(0);
 
-      console.log('✅ API 키 검증 성공');
     });
 
     test('❌ [RED] 잘못된 형식의 API 키', async () => {
@@ -536,7 +531,6 @@ describe('🔑 Seedance API 키 검증 및 Mock 전환 테스트', () => {
         const verifyData = await verifyResponse.json();
         expect(verifyData.error).toBeTruthy();
 
-        console.log(`❌ 잘못된 키 형식 검증 실패: ${invalidKey}`);
       }
     });
 
@@ -555,7 +549,6 @@ describe('🔑 Seedance API 키 검증 및 Mock 전환 테스트', () => {
       const body = await response.json();
       expect(body.code).toBe('MISSING_API_KEY');
 
-      console.log(seedanceTracker.getDetailedReport());
     });
 
     test('❌ [RED] 만료된 API 키', async () => {
@@ -615,7 +608,6 @@ describe('🔑 Seedance API 키 검증 및 Mock 전환 테스트', () => {
       expect(devCalls[0].responseTime).toBeLessThan(100);
       expect(devCalls[0].isMocked).toBe(true);
 
-      console.log('🏗️ 개발환경: Mock API 사용');
     });
 
     test('🧪 [테스트환경] Mock API 사용', async () => {
@@ -636,7 +628,6 @@ describe('🔑 Seedance API 키 검증 및 Mock 전환 테스트', () => {
       const testCalls = seedanceTracker.getCallsByEnvironment('test');
       expect(testCalls[0].isMocked).toBe(true);
 
-      console.log('🧪 테스트환경: Mock API 사용');
     });
 
     test('🚀 [프로덕션환경] 실제 API 사용', async () => {
@@ -667,7 +658,6 @@ describe('🔑 Seedance API 키 검증 및 Mock 전환 테스트', () => {
       const prodCalls = seedanceTracker.getCallsByEnvironment('production');
       expect(prodCalls[0].isMocked).toBe(false);
 
-      console.log('🚀 프로덕션환경: 실제 API 사용');
     });
   });
 
@@ -707,7 +697,6 @@ describe('🔑 Seedance API 키 검증 및 Mock 전환 테스트', () => {
 
       expect(fallbackResponse.status).toBe(200);
 
-      console.log('⏱️ 타임아웃 시 Fallback 모드 활성화');
     });
 
     test('🚫 [Rate Limit] Rate Limit 시 지수 백오프', async () => {
@@ -735,7 +724,6 @@ describe('🔑 Seedance API 키 검증 및 Mock 전환 테스트', () => {
       // Fallback 모드 활성화
       seedanceTracker.activateFallback('Rate limit exceeded');
 
-      console.log('🚫 Rate Limit 후 Fallback 모드');
     });
 
     test('🛡️ [서버에러] 서버 에러 시 자동 Mock 전환', async () => {
@@ -768,7 +756,6 @@ describe('🔑 Seedance API 키 검증 및 Mock 전환 테스트', () => {
       const fallbackBody = await fallbackResponse.json();
       expect(fallbackBody.isMock).toBe(true);
 
-      console.log('🛡️ 서버 에러 후 자동 Mock 전환');
     });
   });
 
@@ -805,11 +792,6 @@ describe('🔑 Seedance API 키 검증 및 Mock 전환 테스트', () => {
       const mockedCalls = seedanceTracker.getMockedCallsCount();
       const realCalls = seedanceTracker.getRealCallsCount();
 
-      console.log('📊 성능 모니터링 결과:');
-      console.log(`  성공률: ${successRate.toFixed(1)}%`);
-      console.log(`  Mock 호출: ${mockedCalls}회`);
-      console.log(`  실제 호출: ${realCalls}회`);
-      console.log(seedanceTracker.getDetailedReport());
 
       expect(mockedCalls).toBeGreaterThan(0);
       expect(realCalls).toBeGreaterThan(0);
@@ -840,10 +822,6 @@ describe('🔑 Seedance API 키 검증 및 Mock 전환 테스트', () => {
 
       const failedCalls = callCount - successfulCalls;
 
-      console.log('🔄 안정성 테스트 결과:');
-      console.log(`  성공: ${successfulCalls}/${callCount}회`);
-      console.log(`  실패: ${failedCalls}/${callCount}회`);
-      console.log(`  성공률: ${(successfulCalls / callCount * 100).toFixed(1)}%`);
 
       expect(successfulCalls).toBeGreaterThan(callCount * 0.8); // 80% 이상 성공
     });
@@ -873,8 +851,6 @@ describe('🔑 Seedance API 키 검증 및 Mock 전환 테스트', () => {
         expect(keyStatus?.usageCount).toBe(5);
         expect(keyStatus?.rateLimitRemaining).toBeLessThan(1000);
 
-        console.log(`💰 ${seedanceTracker.getDetailedReport()}`);
-        console.log(`  키 ${apiKey.substring(0, 12)}... 사용량: ${keyStatus?.usageCount}회`);
       }
     });
   });
@@ -893,7 +869,6 @@ describe('🔑 Seedance API 키 검증 및 Mock 전환 테스트', () => {
       // 이 상황에서는 Mock으로 자동 전환되어야 함
       seedanceTracker.activateFallback('Missing API key environment variable');
 
-      console.log('❌ API 키 환경변수 누락 - Mock 모드로 전환');
     });
 
     test('✅ [GREEN] 환경변수 설정 정상', async () => {
@@ -911,7 +886,6 @@ describe('🔑 Seedance API 키 검증 및 Mock 전환 테스트', () => {
       const validation = seedanceTracker.validateApiKey(testApiKey);
       expect(validation.isValid).toBe(true);
 
-      console.log('✅ 환경변수 API 키 정상 설정');
     });
 
     test('🔀 [전환] 개발 → 프로덕션 환경 전환', async () => {
@@ -950,8 +924,6 @@ describe('🔑 Seedance API 키 검증 및 Mock 전환 테스트', () => {
       expect(devCalls[0].isMocked).toBe(true);
       expect(prodCalls[0].isMocked).toBe(false);
 
-      console.log('🔀 개발 → 프로덕션 환경 전환 완료');
-      console.log(seedanceTracker.getDetailedReport());
     });
   });
 
@@ -981,13 +953,9 @@ describe('🔑 Seedance API 키 검증 및 Mock 전환 테스트', () => {
       const isHealthy = successRate >= 50; // 50% 이상이면 건강
 
       // Then: 상태 판단
-      console.log('🏥 Seedance API 헬스 체크:');
-      console.log(`  성공률: ${successRate.toFixed(1)}%`);
-      console.log(`  상태: ${isHealthy ? '✅ 건강' : '❌ 불안정'}`);
 
       if (!isHealthy) {
         seedanceTracker.activateFallback('API health check failed');
-        console.log('🛡️ 헬스 체크 실패로 Fallback 모드 활성화');
       }
     });
 
@@ -1020,8 +988,6 @@ describe('🔑 Seedance API 키 검증 및 Mock 전환 테스트', () => {
       // Fallback 모드 해제
       seedanceTracker.deactivateFallback(0);
 
-      console.log('🔄 API 복구 완료 - 정상 서비스 전환');
-      console.log(seedanceTracker.getDetailedReport());
     });
   });
 });

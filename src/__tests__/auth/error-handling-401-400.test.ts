@@ -38,13 +38,11 @@ class ErrorTracker {
     };
 
     this.errors.push(error);
-    console.log(`❌ 에러 추적: ${endpoint} - ${status} ${code ? `(${code})` : ''}: ${error.message}`);
   }
 
   markHandled(index: number) {
     if (this.errors[index]) {
       this.errors[index].handled = true;
-      console.log(`✅ 에러 처리 완료: ${this.errors[index].endpoint}`);
     }
   }
 
@@ -418,7 +416,6 @@ describe('🚨 401/400 에러 처리 검증 테스트', () => {
       const body = await response.json();
       expect(body.code).toBe('UNAUTHORIZED');
 
-      console.log(errorTracker.getReport());
       expect(errorTracker.getErrorsByStatus(401)).toHaveLength(1);
     });
 
@@ -435,7 +432,6 @@ describe('🚨 401/400 에러 처리 검증 테스트', () => {
       expect(state.isAuthenticated).toBe(false);
       expect(state.user).toBeNull();
 
-      console.log(errorTracker.getReport());
       expect(errorTracker.getErrorsByStatus(401)).toHaveLength(1);
     });
 
@@ -461,7 +457,6 @@ describe('🚨 401/400 에러 처리 검증 테스트', () => {
       expect(body.code).toBe('TOKEN_EXPIRED');
       expect(body.error).toContain('다시 로그인해주세요');
 
-      console.log(errorTracker.getReport());
       const expiredErrors = errorTracker.getErrorsByEndpoint('/api/auth/me')
         .filter(e => e.code === 'TOKEN_EXPIRED');
       expect(expiredErrors).toHaveLength(1);
@@ -480,7 +475,6 @@ describe('🚨 401/400 에러 처리 검증 테스트', () => {
       const body = await response.json();
       expect(body.code).toBe('MALFORMED_TOKEN');
 
-      console.log(errorTracker.getReport());
       expect(errorTracker.getErrorsByStatus(401)).toHaveLength(1);
     });
 
@@ -509,7 +503,6 @@ describe('🚨 401/400 에러 처리 검증 테스트', () => {
       expect(finalState.isLoading).toBe(false);
 
       // localStorage에서 토큰 제거 확인 (ApiClient 내부에서 처리)
-      console.log(errorTracker.getReport());
       expect(errorTracker.getErrorsByStatus(401)).toHaveLength(1);
     });
   });
@@ -526,7 +519,6 @@ describe('🚨 401/400 에러 처리 검증 테스트', () => {
       expect(body.code).toBe('MISSING_PROMPT');
       expect(body.error).toBe('프롬프트가 필요합니다.');
 
-      console.log(errorTracker.getReport());
       expect(errorTracker.getErrorsByStatus(400)).toHaveLength(1);
     });
 
@@ -543,7 +535,6 @@ describe('🚨 401/400 에러 처리 검증 테스트', () => {
       const body = await response.json();
       expect(body.code).toBe('INVALID_PARAMETERS');
 
-      console.log(errorTracker.getReport());
       expect(errorTracker.getErrorsByStatus(400)).toHaveLength(1);
     });
 
@@ -561,7 +552,6 @@ describe('🚨 401/400 에러 처리 검증 테스트', () => {
       expect(body.code).toBe('PROMPT_TOO_LONG');
       expect(body.error).toContain('1000자를 초과할 수 없습니다');
 
-      console.log(errorTracker.getReport());
       expect(errorTracker.getErrorsByStatus(400)).toHaveLength(1);
     });
 
@@ -575,7 +565,6 @@ describe('🚨 401/400 에러 처리 검증 테스트', () => {
       const body = await response.json();
       expect(body.code).toBe('MISSING_REFRESH_TOKEN');
 
-      console.log(errorTracker.getReport());
       expect(errorTracker.getErrorsByStatus(400)).toHaveLength(1);
     });
   });
@@ -599,8 +588,6 @@ describe('🚨 401/400 에러 처리 검증 테스트', () => {
       const errorCount = results.filter(status => status === 400).length;
       const successCount = results.filter(status => status === 200).length;
 
-      console.log(`📊 간헐적 에러 결과: 성공 ${successCount}회, 에러 ${errorCount}회`);
-      console.log(errorTracker.getReport());
 
       expect(errorCount).toBeGreaterThan(0);
       expect(successCount).toBeGreaterThan(0);
@@ -624,7 +611,6 @@ describe('🚨 401/400 에러 처리 검증 테스트', () => {
       expect(body.ok).toBe(true);
       expect(body.data.story).toBe('Generated story content');
 
-      console.log(errorTracker.getReport());
       expect(errorTracker.getErrorsByStatus(400)).toHaveLength(1);
     });
   });
@@ -652,7 +638,6 @@ describe('🚨 401/400 에러 처리 검증 테스트', () => {
       expect(state.user).toBeNull();
 
       // 이 시점에서 AuthProvider나 라우터가 로그인 페이지로 리다이렉트할 수 있음
-      console.log(errorTracker.getReport());
     });
 
     test('❌ [RED] 400 에러 시 사용자 피드백 메시지', async () => {
@@ -669,8 +654,6 @@ describe('🚨 401/400 에러 처리 검증 테스트', () => {
       expect(body.code).toBe('PROMPT_TOO_LONG');
 
       // 프론트엔드에서 이 메시지를 사용자에게 표시할 수 있음
-      console.log('사용자 에러 메시지:', body.error);
-      console.log(errorTracker.getReport());
     });
 
     test('❌ [RED] Rate Limit(429) 에러의 Retry-After 헤더 처리', async () => {
@@ -687,7 +670,6 @@ describe('🚨 401/400 에러 처리 검증 테스트', () => {
       expect(body.error).toContain('잠시 후 다시 시도해주세요');
 
       // 실제 구현에서는 Retry-After 헤더도 확인할 수 있어야 함
-      console.log(errorTracker.getReport());
     });
 
     test('❌ [RED] 인증 필요 서비스 접근 시 명확한 401 메시지', async () => {
@@ -703,7 +685,6 @@ describe('🚨 401/400 에러 처리 검증 테스트', () => {
       expect(body.code).toBe('AUTHENTICATION_REQUIRED');
       expect(body.error).toBe('인증이 필요한 서비스입니다.');
 
-      console.log(errorTracker.getReport());
     });
   });
 
@@ -724,14 +705,12 @@ describe('🚨 401/400 에러 처리 검증 테스트', () => {
       }
 
       // Then: 모든 에러가 추적됨
-      console.log(errorTracker.getReport());
 
       expect(errorTracker.getErrorsByStatus(400)).toHaveLength(2); // missing-refresh-token, missing-prompt
       expect(errorTracker.getErrorsByStatus(401)).toHaveLength(2); // no-token, expired-token
       expect(errorTracker.getErrorsByStatus(429)).toHaveLength(1); // rate-limit
 
       const unhandledErrors = errorTracker.getUnhandledErrors();
-      console.log(`미처리 에러: ${unhandledErrors.length}개`);
 
       // 실제 프로덕션에서는 모든 에러가 처리되어야 함
       // 여기서는 테스트 목적으로 추적만 확인
@@ -762,7 +741,6 @@ describe('🚨 401/400 에러 처리 검증 테스트', () => {
       expect(refreshResult).toBeNull();
       expect(useAuthStore.getState().isAuthenticated).toBe(false);
 
-      console.log(errorTracker.getReport());
 
       // 두 번의 401 에러가 발생해야 함
       const authErrors = errorTracker.getErrorsByStatus(401);

@@ -396,8 +396,6 @@ beforeEach(() => {
 afterEach(() => {
   server.resetHandlers();
   vi.clearAllMocks();
-  console.log('\n📊 프로덕션 통합 테스트 리포트:');
-  console.log(JSON.stringify(analyzer.getProductionReport(), null, 2));
 });
 
 describe('🚀 최종 프로덕션 401/400 에러 해결 검증', () => {
@@ -412,7 +410,6 @@ describe('🚀 최종 프로덕션 401/400 에러 해결 검증', () => {
       expect(process.env.NEXT_PUBLIC_API_BASE_URL).toBe('https://www.vridge.kr');
 
       // Then: 프로덕션 환경 완료
-      console.log('🌐 프로덕션 환경 시뮬레이션: www.vridge.kr');
     });
 
     test('✅ Health Check 엔드포인트 정상 동작', async () => {
@@ -515,7 +512,6 @@ describe('🚀 최종 프로덕션 401/400 에러 해결 검증', () => {
         console.error(`🚨 무한 루프 감지! 비용: $${infiniteLoopCheck.estimatedCost}`);
         expect(infiniteLoopCheck.isInfiniteLoop).toBe(false); // 실패해야 함
       } else {
-        console.log(`✅ 무한 루프 방지 성공. API 호출: ${infiniteLoopCheck.count}회`);
         expect(infiniteLoopCheck.count).toBeLessThanOrEqual(10);
       }
 

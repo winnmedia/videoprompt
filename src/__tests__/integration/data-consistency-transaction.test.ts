@@ -47,7 +47,6 @@ class TransactionTracker {
       consistency: 'unknown'
     });
 
-    console.log(`🟡 [${id}] 트랜잭션 시작`);
   }
 
   addOperation(
@@ -70,7 +69,6 @@ class TransactionTracker {
       data
     });
 
-    console.log(`⚪ [${transactionId}] ${service}.${operation} 시작`);
   }
 
   markOperationSuccess(
@@ -89,7 +87,6 @@ class TransactionTracker {
     if (op) {
       op.status = 'success';
       op.data = data;
-      console.log(`✅ [${transactionId}] ${service}.${operation} 성공`);
     }
   }
 
@@ -109,7 +106,6 @@ class TransactionTracker {
     if (op) {
       op.status = 'failed';
       op.error = error;
-      console.log(`❌ [${transactionId}] ${service}.${operation} 실패: ${error}`);
     }
 
     // 하나라도 실패하면 전체 트랜잭션 실패
@@ -125,7 +121,6 @@ class TransactionTracker {
     if (hasFailures) {
       transaction.status = 'failed';
       transaction.endTime = Date.now();
-      console.log(`❌ [${transactionId}] 트랜잭션 커밋 실패 - 일부 작업 실패`);
       return false;
     }
 
@@ -133,7 +128,6 @@ class TransactionTracker {
     transaction.endTime = Date.now();
     transaction.consistency = this.checkConsistency(transactionId);
 
-    console.log(`✅ [${transactionId}] 트랜잭션 커밋 완료 (${transaction.consistency})`);
     return true;
   }
 
@@ -144,7 +138,6 @@ class TransactionTracker {
     transaction.status = 'rolled_back';
     transaction.endTime = Date.now();
 
-    console.log(`🔄 [${transactionId}] 트랜잭션 롤백 완료`);
   }
 
   updateDataState(entityId: string, service: 'supabase' | 'seedance', data: any): void {
@@ -166,7 +159,6 @@ class TransactionTracker {
     }
 
     this.dataStates.set(entityId, state);
-    console.log(`📊 [${entityId}] ${service} 데이터 업데이트 (${state.syncStatus})`);
   }
 
   private checkConsistency(transactionId: string): 'consistent' | 'inconsistent' {
@@ -639,7 +631,6 @@ describe('🔄 데이터 저장 일관성 트랜잭션 테스트', () => {
       const consistency = transactionTracker.getDataConsistency(planData.id);
       expect(consistency?.syncStatus).toBe('synced');
 
-      console.log(transactionTracker.getDetailedReport());
     });
 
     test('✅ [GREEN] 대량 트랜잭션 처리 성능', async () => {
@@ -671,7 +662,6 @@ describe('🔄 데이터 저장 일관성 트랜잭션 테스트', () => {
 
       // 성능 확인 (전체 처리 시간)
       const totalTime = endTime - startTime;
-      console.log(`⚡ 10개 트랜잭션 처리 시간: ${totalTime.toFixed(2)}ms`);
       expect(totalTime).toBeLessThan(3000); // 3초 이내
 
       // 데이터 일관성 확인
@@ -682,7 +672,6 @@ describe('🔄 데이터 저장 일관성 트랜잭션 테스트', () => {
 
       expect(syncedEntities).toHaveLength(10);
 
-      console.log(transactionTracker.getDetailedReport());
     });
   });
 
@@ -719,7 +708,6 @@ describe('🔄 데이터 저장 일관성 트랜잭션 테스트', () => {
       expect(failedOps).toHaveLength(1);
       expect(successOps).toHaveLength(1);
 
-      console.log(transactionTracker.getDetailedReport());
     });
 
     test('❌ [RED] Seedance 실패 시 트랜잭션 실패', async () => {
@@ -743,7 +731,6 @@ describe('🔄 데이터 저장 일관성 트랜잭션 테스트', () => {
       expect(result.supabaseResponse.status).toBe(200); // Supabase는 성공
       expect(result.seedanceResponse.status).toBe(401); // Seedance 실패
 
-      console.log(transactionTracker.getDetailedReport());
     });
 
     test('🔄 [ROLLBACK] 부분 실패 후 롤백 실행', async () => {
@@ -773,8 +760,6 @@ describe('🔄 데이터 저장 일관성 트랜잭션 테스트', () => {
       const consistency = transactionTracker.getDataConsistency(planData.id);
       expect(consistency?.supabase).toBeNull();
 
-      console.log('🔄 롤백 완료');
-      console.log(transactionTracker.getDetailedReport());
     });
 
     test('⏱️ [TIMEOUT] 타임아웃 시 트랜잭션 실패', async () => {
@@ -809,7 +794,6 @@ describe('🔄 데이터 저장 일관성 트랜잭션 테스트', () => {
       const duration = Date.now() - startTime;
       expect(duration).toBeLessThan(3100); // 3초 + 여유시간
 
-      console.log(`⏱️ 타임아웃 테스트 완료: ${duration}ms`);
     });
   });
 
@@ -840,9 +824,6 @@ describe('🔄 데이터 저장 일관성 트랜잭션 테스트', () => {
       const inconsistentEntities = transactionTracker.getInconsistentEntities();
       expect(inconsistentEntities).toContain(planData.id);
 
-      console.log('❌ 데이터 불일치 감지:');
-      console.log('Supabase:', consistency?.supabase);
-      console.log('Seedance:', consistency?.seedance);
     });
 
     test('🔍 [VERIFICATION] 동기화 상태 API 검증', async () => {
@@ -872,7 +853,6 @@ describe('🔄 데이터 저장 일관성 트랜잭션 테스트', () => {
       expect(syncData.data.seedanceData).not.toBeNull();
       expect(syncData.data.lastSync).toBeGreaterThan(0);
 
-      console.log('🔍 동기화 상태 확인:', syncData.data);
     });
 
     test('📊 [METRICS] 트랜잭션 성공률 및 일관성 메트릭', async () => {
@@ -912,11 +892,6 @@ describe('🔄 데이터 저장 일관성 트랜잭션 테스트', () => {
 
       const inconsistentEntities = transactionTracker.getInconsistentEntities();
 
-      console.log('📊 트랜잭션 메트릭:');
-      console.log(`  성공: ${successfulTransactions.length}/${scenarios.length}`);
-      console.log(`  실패: ${failedTransactions.length}/${scenarios.length}`);
-      console.log(`  데이터 불일치: ${inconsistentEntities.length}개`);
-      console.log(transactionTracker.getDetailedReport());
 
       expect(successfulTransactions.length).toBe(2); // 완전 성공은 2개
       expect(failedTransactions.length).toBe(2); // 실패는 2개
@@ -948,7 +923,6 @@ describe('🔄 데이터 저장 일관성 트랜잭션 테스트', () => {
       const seedanceBody = await result.seedanceResponse.json();
       expect(seedanceBody.retryAfter).toBe(60);
 
-      console.log('❌ Rate Limit으로 인한 트랜잭션 실패');
     });
 
     test('🔄 [RETRY] Rate Limit 후 재시도 성공', async () => {
@@ -981,7 +955,6 @@ describe('🔄 데이터 저장 일관성 트랜잭션 테스트', () => {
       // Then: 재시도 성공
       expect(retryResult.success).toBe(true);
 
-      console.log('🔄 Rate Limit 후 재시도 성공');
     });
   });
 
@@ -1012,7 +985,6 @@ describe('🔄 데이터 저장 일관성 트랜잭션 테스트', () => {
       const repairedConsistency = transactionTracker.getDataConsistency(planData.id);
       expect(repairedConsistency?.syncStatus).toBe('synced');
 
-      console.log('🔧 데이터 동기화 보정 완료');
     });
 
     test('📈 [MONITORING] 장기간 일관성 모니터링', async () => {
@@ -1041,8 +1013,6 @@ describe('🔄 데이터 저장 일관성 트랜잭션 테스트', () => {
       expect(inconsistentEntities).toHaveLength(1);
       expect(inconsistentEntities[0]).toBe('plan-monitoring-3');
 
-      console.log('📈 장기간 모니터링 결과:');
-      console.log(transactionTracker.getDetailedReport());
     });
   });
 });

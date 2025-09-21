@@ -45,11 +45,9 @@ describe('🔄 토큰 갱신 실패 시나리오 검증', () => {
           }
         });
 
-        console.log('🔍 Refresh API 응답 상태:', result.status);
 
         if (!result.ok) {
           const errorData = await result.json();
-          console.log('🔍 Refresh API 에러 데이터:', errorData);
         }
 
       } catch (error) {
@@ -65,9 +63,7 @@ describe('🔄 토큰 갱신 실패 시나리오 검증', () => {
         expect([400, 503]).toContain(result.status);
 
         if (result.status === 400) {
-          console.log('✅ 400 에러 - 무한루프 방지 작동');
         } else if (result.status === 503) {
-          console.log('✅ 503 에러 - 환경 설정 문제로 서비스 불가');
         }
       }
     });
@@ -86,7 +82,6 @@ describe('🔄 토큰 갱신 실패 시나리오 검증', () => {
       for (let i = 0; i < 5; i++) {
         promises.push(
           apiClient.safeFetchWithCache(testUrl, { method: 'GET' }).catch(err => {
-            console.log(`요청 ${i + 1} 에러:`, err.message);
             return { error: err.message, requestIndex: i + 1 };
           })
         );
@@ -95,21 +90,17 @@ describe('🔄 토큰 갱신 실패 시나리오 검증', () => {
       const results = await Promise.allSettled(promises);
       const endTime = Date.now();
 
-      console.log('🔍 동시 요청 결과:', results.length);
-      console.log('🔍 총 소요 시간:', endTime - startTime, 'ms');
 
       // THEN: 중복 방지가 작동했다면 빠르게 완료되어야 함
       const totalTime = endTime - startTime;
 
       // 모든 요청이 개별적으로 실행되었다면 시간이 오래 걸림
       // 중복 방지가 작동했다면 빠르게 완료
-      console.log(`📊 성능 분석: ${totalTime}ms`);
 
       // 결과 분석
       const successCount = results.filter(r => r.status === 'fulfilled').length;
       const errorCount = results.filter(r => r.status === 'rejected').length;
 
-      console.log(`📊 성공: ${successCount}, 실패: ${errorCount}`);
 
       // 모든 요청이 어떤 형태로든 처리되어야 함 (에러여도 무방)
       expect(results.length).toBe(5);
@@ -132,11 +123,9 @@ describe('🔄 토큰 갱신 실패 시나리오 검증', () => {
         });
       } catch (error) {
         firstError = error;
-        console.log('🔍 첫 번째 요청 에러:', (error as Error).message);
       }
 
       const firstDuration = Date.now() - firstRequestTime;
-      console.log('🔍 첫 번째 요청 소요 시간:', firstDuration, 'ms');
 
       // 두 번째 요청 (캐시에서 가져와야 함)
       const secondRequestTime = Date.now();
@@ -151,17 +140,13 @@ describe('🔄 토큰 갱신 실패 시나리오 검증', () => {
         });
       } catch (error) {
         secondError = error;
-        console.log('🔍 두 번째 요청 에러:', (error as Error).message);
       }
 
       const secondDuration = Date.now() - secondRequestTime;
-      console.log('🔍 두 번째 요청 소요 시간:', secondDuration, 'ms');
 
       // THEN: 캐시가 작동했다면 두 번째 요청이 훨씬 빨라야 함
-      console.log(`📊 캐시 효과: 첫 번째 ${firstDuration}ms, 두 번째 ${secondDuration}ms`);
 
       if (secondDuration < firstDuration / 2) {
-        console.log('✅ 캐시 작동 확인됨');
       } else {
         console.warn('⚠️ 캐시가 예상대로 작동하지 않음');
       }
@@ -199,7 +184,6 @@ describe('🔄 토큰 갱신 실패 시나리오 검증', () => {
         apiLimiter.recordRequest();
         const afterRequest = apiLimiter.getRemainingRequests();
 
-        console.log('🔍 요청 후 남은 횟수:', afterRequest);
         expect(afterRequest).toBeLessThan(initialRequests);
       }
     });
@@ -215,14 +199,10 @@ describe('🔄 토큰 갱신 실패 시나리오 검증', () => {
 
       // WHEN: 각 에러에 대한 처리 확인
       testErrors.forEach(error => {
-        console.log('🔍 에러 패턴 분석:', error.message);
 
         if (error.message.includes('guest mode activated')) {
-          console.log('✅ 게스트 모드 활성화 - 무한루프 차단');
         } else if (error.message.includes('authentication required')) {
-          console.log('✅ 재인증 필요 - 완전한 로그아웃');
         } else if (error.message.includes('server error')) {
-          console.log('✅ 서버 에러 - 일시적 문제');
         }
       });
 
@@ -245,9 +225,7 @@ describe('🔄 토큰 갱신 실패 시나리오 검증', () => {
         // 정리 메서드가 존재하는지 확인하고 호출
         if (typeof apiClient.performMaintenanceCleanup === 'function') {
           apiClient.performMaintenanceCleanup();
-          console.log('✅ 캐시 정리 메서드 실행됨');
         } else {
-          console.log('⚠️ 캐시 정리 메서드가 존재하지 않음');
         }
       } catch (error) {
         console.error('🚨 캐시 정리 중 에러:', error);
@@ -257,7 +235,6 @@ describe('🔄 토큰 갱신 실패 시나리오 검증', () => {
 
       // THEN: 정리 작업이 빠르게 완료되어야 함
       expect(cleanupTime).toBeLessThan(1000); // 1초 미만
-      console.log('🔍 캐시 정리 소요 시간:', cleanupTime, 'ms');
     });
 
     it('🔧 타임아웃 처리 검증', async () => {
@@ -274,7 +251,6 @@ describe('🔄 토큰 갱신 실패 시나리오 검증', () => {
         });
       } catch (error) {
         timeoutError = error;
-        console.log('🔍 타임아웃 에러:', (error as Error).message);
       }
 
       const requestTime = Date.now() - startTime;
@@ -283,7 +259,6 @@ describe('🔄 토큰 갱신 실패 시나리오 검증', () => {
       expect(timeoutError).not.toBeNull();
       expect(requestTime).toBeLessThan(100); // 타임아웃이 빠르게 발생
 
-      console.log('🔍 타임아웃 처리 시간:', requestTime, 'ms');
     });
 
   });

@@ -229,7 +229,6 @@ function Component() {
   // 올바른 useEffect 사용
   useEffect(() => {
     if (user) {
-      console.log('User authenticated');
     }
   }, [user]); // primitive value dependency
 

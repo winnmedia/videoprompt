@@ -119,12 +119,10 @@ describe('📊 마이그레이션 진행 상황 체크', () => {
     // 완료된 항목 검증
     Object.entries(completedMigrations).forEach(([name, completed]) => {
       expect(completed).toBe(true);
-      console.log(`✅ ${name}: 완료`);
     });
 
     // 진행 중인 항목 기록
     Object.entries(pendingMigrations).forEach(([name, completed]) => {
-      console.log(`🔄 ${name}: ${completed ? '완료' : '대기 중'}`);
     });
 
     // 최소 1개 이상 완료되어야 함
@@ -143,7 +141,6 @@ describe('📊 마이그레이션 진행 상황 체크', () => {
     requiredFiles.forEach(async (filePath) => {
       try {
         await import(filePath);
-        console.log(`✅ ${filePath}: 존재`);
       } catch (error) {
         console.warn(`⚠️ ${filePath}: 확인 필요`);
       }
@@ -168,7 +165,6 @@ describe('🎯 핵심 기능별 백엔드 연동 상태', () => {
 
     expect(status.migrated).toBe(true);
     expect(status.backend).toBe('Supabase');
-    console.log(`✅ ${status.api}: ${status.backend} (${status.status})`);
   });
 
   it('Auth System - Prisma 사용 중', () => {
@@ -180,7 +176,6 @@ describe('🎯 핵심 기능별 백엔드 연동 상태', () => {
     };
 
     expect(status.migrated).toBe(false);
-    console.log(`🔄 ${status.api}: ${status.backend} (${status.nextStep})`);
   });
 
   it('Stories/Planning - Prisma 사용 중', () => {
@@ -192,7 +187,6 @@ describe('🎯 핵심 기능별 백엔드 연동 상태', () => {
     };
 
     expect(status.migrated).toBe(false);
-    console.log(`🔄 ${status.api}: ${status.backend} (${status.nextStep})`);
   });
 
   it('Video Upload - 로컬/Railway 사용 중', () => {
@@ -204,7 +198,6 @@ describe('🎯 핵심 기능별 백엔드 연동 상태', () => {
     };
 
     expect(status.migrated).toBe(false);
-    console.log(`🔄 ${status.api}: ${status.backend} (${status.nextStep})`);
   });
 
   it('Queue Management - Prisma 사용 중', () => {
@@ -216,7 +209,6 @@ describe('🎯 핵심 기능별 백엔드 연동 상태', () => {
     };
 
     expect(status.migrated).toBe(false);
-    console.log(`🔄 ${status.api}: ${status.backend} (${status.nextStep})`);
   });
 
 });
@@ -257,9 +249,7 @@ describe('🚀 다음 단계 권장사항', () => {
       }
     ];
 
-    console.log('\\n📋 마이그레이션 우선순위:');
     priorities.forEach(({ priority, feature, status, action }) => {
-      console.log(`${priority}. ${feature}: ${status} → ${action}`);
     });
 
     // 최소 1개 기능이 완료되어야 함
@@ -276,9 +266,7 @@ describe('🚀 다음 단계 권장사항', () => {
       'Queue의 Supabase Realtime 실시간 기능 테스트'
     ];
 
-    console.log('\\n🎯 테스트 권장사항:');
     recommendations.forEach((rec, index) => {
-      console.log(`${index + 1}. ${rec}`);
     });
 
     expect(recommendations.length).toBeGreaterThan(0);

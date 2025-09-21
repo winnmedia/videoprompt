@@ -240,7 +240,6 @@ beforeEach(() => {
 afterEach(() => {
   server.resetHandlers();
   vi.clearAllMocks();
-  console.log(productionTracker.getReport());
 });
 
 describe('🔥 실제 프로덕션 오류 시나리오 재현', () => {
@@ -262,7 +261,6 @@ describe('🔥 실제 프로덕션 오류 시나리오 재현', () => {
 
       // Then: 무한 루프 감지
       const report = productionTracker.getReport();
-      console.log('🚨 무한 루프 분석:', report);
 
       const infiniteLoops = productionTracker.getInfiniteLoops();
       expect(infiniteLoops.length).toBeGreaterThan(0);
@@ -317,9 +315,7 @@ describe('🔥 실제 프로덕션 오류 시나리오 재현', () => {
       // When: API 호출 → 401 → refresh 시도 → 401
       try {
         const response = await apiClient.get('/api/auth/me');
-        console.log('예상치 못한 성공:', response);
       } catch (error) {
-        console.log('예상된 에러:', error);
       }
 
       // When: refresh token 직접 호출
@@ -488,7 +484,6 @@ describe('🔥 실제 프로덕션 오류 시나리오 재현', () => {
       }
 
       const report = productionTracker.getReport();
-      console.log('API 호출 패턴:', report);
 
       // 401과 400에 대해 다른 처리 패턴을 보여야 함
       expect(report.totalCalls).toBeGreaterThan(0);

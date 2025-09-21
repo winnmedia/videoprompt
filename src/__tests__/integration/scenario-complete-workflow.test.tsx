@@ -79,7 +79,6 @@ const ScenarioWorkflowDemo: React.FC = () => {
 
     try {
       const result = await fullWorkflow.executeWorkflow(storySteps);
-      console.log('전체 워크플로우 완료:', result);
     } catch (error) {
       console.error('워크플로우 실행 실패:', error);
     }
@@ -408,7 +407,6 @@ describe('완전한 시나리오 워크플로우 통합 테스트', () => {
     // 메모리 사용량 체크 (대략적)
     const memoryUsage = (performance as any).memory?.usedJSHeapSize;
     if (memoryUsage) {
-      console.log(`메모리 사용량: ${(memoryUsage / 1024 / 1024).toFixed(2)} MB`);
       // 50MB 이내 (대략적 기준)
       expect(memoryUsage).toBeLessThan(50 * 1024 * 1024);
     }

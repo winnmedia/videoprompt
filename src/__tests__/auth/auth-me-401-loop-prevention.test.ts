@@ -43,7 +43,6 @@ class AuthLoopDetector {
     const cost = recentCalls.length * this.API_COST_PER_REQUEST;
     this.costs.set(key, cost);
 
-    console.log(`📞 [${endpoint}] 호출 #${recentCalls.length} (${sessionId}) | 비용: $${cost.toFixed(6)}`);
 
     // 위험도 평가
     if (recentCalls.length >= this.CRITICAL_THRESHOLD) {
@@ -67,7 +66,6 @@ class AuthLoopDetector {
     const recentAttempts = attempts.filter(time => now - time <= 300000);
     this.refreshAttempts.set(sessionId, recentAttempts);
 
-    console.log(`🔄 토큰 갱신 시도 #${recentAttempts.length} (${sessionId})`);
 
     // 5분 내 10회 초과 시 차단
     if (recentAttempts.length > 10) {
@@ -367,7 +365,6 @@ async function simulateInfiniteLoop(endpoint: string, scenario: string, maxCalls
 
       // 429 응답 시 루프 차단됨
       if (response.status === 429) {
-        console.log(`🛑 루프 차단됨 at call ${i + 1}`);
         break;
       }
     } catch (error) {
@@ -457,7 +454,6 @@ describe('🚨 /api/auth/me 401 무한 루프 회귀 방지 테스트', () => {
       const { results, sessionId } = await simulateInfiniteLoop('/api/auth/me', 'no-token', 200);
 
       // Then: 루프 차단 확인
-      console.log(loopDetector.getReport(sessionId));
 
       const consecutiveFailures = results.filter(r => r.status === 401).length;
       const rateLimitHit = results.some(r => r.status === 429);
@@ -467,7 +463,6 @@ describe('🚨 /api/auth/me 401 무한 루프 회귀 방지 테스트', () => {
       expect(loopDetector.isCritical('/api/auth/me', sessionId)).toBe(true);
 
       const totalCost = loopDetector.getTotalCost(sessionId);
-      console.log(`💰 예상 비용: $${totalCost.toFixed(6)}`);
       expect(totalCost).toBeGreaterThan(0.0001); // 최소 비용 발생
     });
 
@@ -479,7 +474,6 @@ describe('🚨 /api/auth/me 401 무한 루프 회귀 방지 테스트', () => {
       const { results, sessionId } = await simulateInfiniteLoop('/api/auth/me', 'null-token', 150);
 
       // Then: 빠른 루프 차단
-      console.log(loopDetector.getReport(sessionId));
 
       const totalCalls = results.length;
       const rateLimitHit = results.some(r => r.status === 429);
@@ -510,7 +504,6 @@ describe('🚨 /api/auth/me 401 무한 루프 회귀 방지 테스트', () => {
       }
 
       // Then: 무한 루프 방지 메커니즘 작동
-      console.log(loopDetector.getReport());
 
       const authMeCalls = loopDetector.getCallCount('/api/auth/me');
       expect(authMeCalls).toBeGreaterThan(50);
@@ -531,7 +524,6 @@ describe('🚨 /api/auth/me 401 무한 루프 회귀 방지 테스트', () => {
       const body = await response.json();
       expect(body.code).toBe('NULL_TOKEN');
 
-      console.log('❌ 현재 문제: null 토큰 시 즉시 401 → 토큰 갱신 시도 없음');
     });
 
     test('✅ [GREEN] 이상적 구현: null 토큰 → 갱신 시도 → 성공/실패 처리', async () => {
@@ -577,7 +569,6 @@ describe('🚨 /api/auth/me 401 무한 루프 회귀 방지 테스트', () => {
       // Then: 성공적인 인증
       expect(retryResponse.status).toBe(200);
 
-      console.log('✅ 이상적 구현: 토큰 갱신 → 재시도 → 성공');
     });
 
     test('✅ [GREEN] Guest 모드 전환: 갱신 실패 시 401 대신 200 응답', async () => {
@@ -599,7 +590,6 @@ describe('🚨 /api/auth/me 401 무한 루프 회귀 방지 테스트', () => {
       expect(body.data.isGuest).toBe(true);
       expect(body.data.permissions).toContain('read:public');
 
-      console.log('✅ Guest 모드: 401 무한 루프 대신 제한된 권한으로 서비스 계속');
     });
   });
 
@@ -627,7 +617,6 @@ describe('🚨 /api/auth/me 401 무한 루프 회귀 방지 테스트', () => {
       }
 
       // Then: 50회 근처에서 차단
-      console.log(loopDetector.getReport('rate-limit-test'));
 
       const lastCall = results[results.length - 1];
       expect(lastCall.status).toBe(429);
@@ -644,8 +633,6 @@ describe('🚨 /api/auth/me 401 무한 루프 회귀 방지 테스트', () => {
       const totalCalls = loopDetector.getCallCount('/api/auth/me', sessionId);
 
       // Then: 비용 임계값 확인
-      console.log(loopDetector.getReport(sessionId));
-      console.log(`💰 총 ${totalCalls}회 호출로 예상 비용: $${totalCost.toFixed(6)}`);
 
       // 2000회 호출 시 약 $0.007 예상
       expect(totalCost).toBeGreaterThan(0.001);
@@ -670,7 +657,6 @@ describe('🚨 /api/auth/me 401 무한 루프 회귀 방지 테스트', () => {
       expect(response.status).toBe(401); // 429가 아닌 401
 
       const totalCalls = loopDetector.getCallCount('/api/auth/me', 'time-window-test');
-      console.log(`⏱️ 시간 윈도우 리셋 후 총 호출: ${totalCalls}회`);
     });
   });
 
@@ -686,7 +672,6 @@ describe('🚨 /api/auth/me 401 무한 루프 회귀 방지 테스트', () => {
       const { results } = await simulateInfiniteLoop('/api/auth/me', 'null-token', 80);
 
       // Then: Supabase 관련 무한 루프 차단
-      console.log(loopDetector.getReport('supabase-test'));
 
       const rateLimitHit = results.some(r => r.status === 429);
       expect(rateLimitHit).toBe(true);
@@ -704,7 +689,6 @@ describe('🚨 /api/auth/me 401 무한 루프 회귀 방지 테스트', () => {
       // 사용자에게 적절한 에러 메시지 제공
       expect(body.error).toContain('Supabase client is null');
 
-      console.log('✅ Supabase 에러 시 graceful degradation');
     });
   });
 
@@ -723,7 +707,6 @@ describe('🚨 /api/auth/me 401 무한 루프 회귀 방지 테스트', () => {
       // Then: 각 탭별로 독립적인 Rate Limiting
       results.forEach((result, index) => {
         const sessionId = result.sessionId;
-        console.log(`탭 ${index + 1}: ${loopDetector.getReport(sessionId)}`);
 
         const callCount = loopDetector.getCallCount('/api/auth/me', sessionId);
         expect(callCount).toBeGreaterThan(20);
@@ -732,7 +715,6 @@ describe('🚨 /api/auth/me 401 무한 루프 회귀 방지 테스트', () => {
       // 전체 비용 계산
       const totalCost = sessions.reduce((sum, sessionId) =>
         sum + loopDetector.getTotalCost(sessionId), 0);
-      console.log(`💰 다중 탭 총 비용: $${totalCost.toFixed(6)}`);
     });
 
     test('✅ [GREEN] 정상 인증 플로우는 영향받지 않음', async () => {
@@ -752,7 +734,6 @@ describe('🚨 /api/auth/me 401 무한 루프 회귀 방지 테스트', () => {
       expect(callCount).toBe(1);
       expect(loopDetector.isInDanger('/api/auth/me', 'normal-test')).toBe(false);
 
-      console.log('✅ 정상 인증은 Rate Limiting 영향 없음');
     });
 
     test('🔄 [복구] 무한 루프 차단 후 정상 토큰으로 복구', async () => {
@@ -770,7 +751,6 @@ describe('🚨 /api/auth/me 401 무한 루프 회귀 방지 테스트', () => {
       // Then: 정상 복구됨
       expect(recoveryResponse.status).toBe(200);
 
-      console.log('🔄 Rate Limit 해제 후 정상 복구 확인');
     });
   });
 
@@ -791,8 +771,6 @@ describe('🚨 /api/auth/me 401 무한 루프 회귀 방지 테스트', () => {
       const report = loopDetector.getReport();
 
       // Then: 상세한 분석 정보 제공
-      console.log('📊 전체 무한 루프 분석 리포트:');
-      console.log(report);
 
       expect(report).toContain('/api/auth/me');
       expect(report).toContain('CRITICAL');

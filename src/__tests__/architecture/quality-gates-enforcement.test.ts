@@ -66,7 +66,6 @@ describe('아키텍처 리팩토링 품질 게이트', () => {
       }
 
       expect(hasTypeErrors).toBe(false);
-      console.log('✅ TypeScript 컴파일 성공');
     });
 
     test('implicit any 사용이 제한되어야 함', () => {
@@ -91,7 +90,6 @@ describe('아키텍처 리팩토링 품질 게이트', () => {
         console.warn('⚠️  발견된 any 사용:', anyUsageLines.length);
         anyUsageLines.forEach(line => console.warn(`   ${line}`));
       } else {
-        console.log('✅ implicit any 사용 없음');
       }
     });
   });
@@ -118,13 +116,11 @@ describe('아키텍처 리팩토링 품질 게이트', () => {
       const errorCount = errorMatches ? parseInt(errorMatches[1]) : 0;
       const warningCount = warningMatches ? parseInt(warningMatches[1]) : 0;
 
-      console.log(`ESLint 결과: ${errorCount}개 에러, ${warningCount}개 경고`);
 
       expect(errorCount).toBeLessThanOrEqual(QUALITY_THRESHOLDS.eslintErrors);
       expect(warningCount).toBeLessThanOrEqual(QUALITY_THRESHOLDS.eslintWarnings);
 
       if (errorCount === 0 && warningCount <= QUALITY_THRESHOLDS.eslintWarnings) {
-        console.log('✅ ESLint 품질 검증 통과');
       }
     });
 
@@ -148,7 +144,6 @@ describe('아키텍처 리팩토링 품질 게이트', () => {
       }
 
       expect(hasFormatIssues).toBe(false);
-      console.log('✅ Prettier 포맷팅 검증 통과');
     });
   });
 
@@ -160,7 +155,6 @@ describe('아키텍처 리팩토링 품질 게이트', () => {
       expect(fsdViolations.length).toBe(0);
 
       if (fsdViolations.length === 0) {
-        console.log('✅ FSD 아키텍처 경계 준수');
       } else {
         console.error('❌ FSD 위반 사항:', fsdViolations);
       }
@@ -188,7 +182,6 @@ describe('아키텍처 리팩토링 품질 게이트', () => {
       expect(circularCount).toBeLessThanOrEqual(QUALITY_THRESHOLDS.circularDeps);
 
       if (circularCount === 0) {
-        console.log('✅ 순환 의존성 없음');
       } else {
         console.warn(`⚠️ 순환 의존성 발견: ${circularCount}개`);
       }
@@ -201,7 +194,6 @@ describe('아키텍처 리팩토링 품질 게이트', () => {
       expect(directImportViolations.length).toBeLessThanOrEqual(5); // 최대 5개까지 허용
 
       if (directImportViolations.length === 0) {
-        console.log('✅ Public API 사용 규칙 준수');
       } else {
         console.warn(`⚠️ 직접 import 발견: ${directImportViolations.length}개`);
       }
@@ -236,7 +228,6 @@ describe('아키텍처 리팩토링 품질 게이트', () => {
         expect(functions.pct).toBeGreaterThanOrEqual(QUALITY_THRESHOLDS.testCoverage.functions);
         expect(lines.pct).toBeGreaterThanOrEqual(QUALITY_THRESHOLDS.testCoverage.lines);
 
-        console.log(`✅ 테스트 커버리지: ${statements.pct}% 구문, ${branches.pct}% 분기, ${functions.pct}% 함수, ${lines.pct}% 라인`);
       } else {
         console.warn('⚠️ 커버리지 데이터를 찾을 수 없음');
       }
@@ -261,7 +252,6 @@ describe('아키텍처 리팩토링 품질 게이트', () => {
       expect(missingTests).toBeLessThanOrEqual(1); // 최대 1개까지 누락 허용
 
       if (missingTests === 0) {
-        console.log('✅ 모든 중요 테스트 파일 존재');
       }
     });
   });
@@ -272,7 +262,6 @@ describe('아키텍처 리팩토링 품질 게이트', () => {
 
       expect(buildDuration).toBeLessThan(QUALITY_THRESHOLDS.maxBuildTime);
 
-      console.log(`✅ 빌드 시간: ${Math.round(buildDuration / 1000)}초 (최대: ${QUALITY_THRESHOLDS.maxBuildTime / 1000}초)`);
     });
 
     test('보안 취약점이 없어야 함', () => {
@@ -297,7 +286,6 @@ describe('아키텍처 리팩토링 품질 게이트', () => {
       expect(securityIssues).toBe(0);
 
       if (securityIssues === 0) {
-        console.log('✅ 보안 검증 통과');
       }
     });
 
@@ -312,7 +300,6 @@ describe('아키텍처 리팩토링 품질 게이트', () => {
         expect(budget).toHaveProperty('cls');
         expect(budget).toHaveProperty('bundleSize');
 
-        console.log('✅ 성능 예산 설정 확인');
       } else {
         console.warn('⚠️ 성능 예산 파일이 없음');
       }

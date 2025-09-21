@@ -240,7 +240,6 @@ describe('🎯 핵심 기능 5가지 백엔드 연동 통합 테스트', () => {
       // 모든 핵심 엔드포인트가 접근 가능해야 함
       results.forEach(({ endpoint, status, ok }) => {
         expect(status).toBeOneOf([200, 401]); // 200 (성공) 또는 401 (인증 필요)
-        console.log(`✅ ${endpoint}: ${status}`);
       });
     });
   });
@@ -268,11 +267,9 @@ describe('📊 백엔드 마이그레이션 현황 리포트', () => {
       };
     }
 
-    console.log('\\n📋 백엔드 마이그레이션 현황:');
     Object.entries(report).forEach(([name, status]: [string, any]) => {
       const icon = status.supabaseMigrated ? '✅' : '🔄';
       const backend = status.supabaseMigrated ? 'Supabase' : 'Prisma/Local';
-      console.log(`${icon} ${name}: ${backend} (Status: ${status.status})`);
     });
 
     // 최소 1개 이상의 기능이 Supabase로 마이그레이션되어야 함

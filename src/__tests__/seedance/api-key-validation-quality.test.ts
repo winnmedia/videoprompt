@@ -230,7 +230,6 @@ describe('Seedance API 키 검증 품질 테스트', () => {
       const logApiKeyUsage = (key: string, action: string) => {
         // 안전한 로깅: 키를 마스킹
         const maskedKey = key ? `${key.slice(0, 6)}...${key.slice(-4)}` : 'none';
-        console.log(`API 사용: ${action} with key ${maskedKey}`);
         return maskedKey;
       };
 
@@ -321,7 +320,6 @@ describe('Seedance API 키 검증 품질 테스트', () => {
       expect(REQUEST_TIMEOUT).toBeGreaterThan(1000); // 최소 1초
       expect(REQUEST_TIMEOUT).toBeLessThan(60000);   // 최대 60초
 
-      console.log(`✅ API 타임아웃 설정이 적절함: ${REQUEST_TIMEOUT}ms`);
     });
   });
 

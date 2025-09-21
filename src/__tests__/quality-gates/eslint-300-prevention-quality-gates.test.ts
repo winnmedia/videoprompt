@@ -307,18 +307,8 @@ describe('$300 사건 방지 품질 게이트', () => {
       expect(f1Score).toBeGreaterThan(0.97);                   // F1 Score 97% 이상
 
       // 품질 보고서 출력
-      console.log('🏆 $300 사건 방지 품질 보고서');
-      console.log(`📊 Total Tests: ${totalTests}`);
-      console.log(`✅ True Positives: ${qualityMetrics.truePositives}`);
-      console.log(`❌ False Negatives: ${qualityMetrics.falseNegatives}`);
-      console.log(`⚠️ False Positives: ${qualityMetrics.falsePositives}`);
-      console.log(`✅ True Negatives: ${qualityMetrics.trueNegatives}`);
-      console.log(`🎯 Precision: ${(precision * 100).toFixed(2)}%`);
-      console.log(`🎯 Recall: ${(recall * 100).toFixed(2)}%`);
-      console.log(`🎯 F1 Score: ${(f1Score * 100).toFixed(2)}%`);
 
       if (qualityMetrics.falseNegatives === 0 && precision > 0.95 && recall === 1.0) {
-        console.log('🎉 배포 승인: 모든 품질 게이트 통과');
       } else {
         console.error('🚫 배포 차단: 품질 기준 미달');
       }

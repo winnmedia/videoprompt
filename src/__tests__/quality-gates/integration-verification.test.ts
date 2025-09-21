@@ -17,7 +17,6 @@ describe('Grace QA Lead 품질 게이트 시스템 통합 검증', () => {
   const projectRoot = process.cwd();
 
   beforeAll(() => {
-    console.log('🛡️ Grace QA Lead 품질 게이트 시스템 검증 시작');
   });
 
   describe('$300 사건 방지 시스템 검증', () => {
@@ -68,7 +67,6 @@ describe('Grace QA Lead 품질 게이트 시스템 통합 검증', () => {
     it('should pass safe patterns through', async () => {
       const safeCode = `
         useEffect(() => {
-          console.log('Safe operation');
         }, []);
       `;
 
@@ -279,8 +277,5 @@ describe('Grace QA Lead 품질 게이트 시스템 통합 검증', () => {
   });
 
   afterAll(() => {
-    console.log('✅ Grace QA Lead 품질 게이트 시스템 통합 검증 완료');
-    console.log('🛡️ $300 사건 재발 방지 시스템 정상 작동');
-    console.log('🏆 무관용 품질 정책 적용 완료');
   });
 });

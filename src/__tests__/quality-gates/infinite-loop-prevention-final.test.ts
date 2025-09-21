@@ -145,7 +145,6 @@ describe('$300 사건 재발 방지 - 최종 검증', () => {
 
       const startPolling = () => {
         const timer = setInterval(() => {
-          console.log('polling...');
         }, 1000);
         timers.add(timer);
         return timer;
@@ -268,14 +267,12 @@ describe('$300 사건 재발 방지 - 최종 검증', () => {
         expect(['safe', 'active', 'working', 'enforced', 'configured']).toContain(status);
       });
 
-      console.log('✅ $300 사건 재발 방지 시스템 정상 작동 확인');
 
       // 최종 검증: 경고나 에러가 발생하지 않았다면 시스템이 정상
       const hasWarnings = consoleWarnSpy.mock.calls.length > 0;
       const hasErrors = consoleErrorSpy.mock.calls.length > 0;
 
       if (!hasWarnings && !hasErrors) {
-        console.log('🎉 모든 안전장치가 정상 작동 중 - 배포 안전');
       }
     });
   });

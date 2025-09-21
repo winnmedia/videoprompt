@@ -96,7 +96,6 @@ class EnvironmentTracker {
     };
 
     this.environmentStates.push(state);
-    console.log(`📊 환경 상태 캡처 (${environment}):`, this.formatValidationSummary(validation));
 
     return state;
   }
@@ -189,7 +188,6 @@ class EnvironmentTracker {
         error
       });
 
-      console.log(`🔗 API 호출: ${endpoint} - ${success ? '✅' : '❌'} ${fallbackUsed ? '[FALLBACK]' : ''}`);
     }
   }
 
@@ -536,7 +534,6 @@ describe('🌍 환경변수 시나리오별 테스트', () => {
       const healthData = await healthResponse.json();
       expect(healthData.fallback).toBe('Using mock data');
 
-      console.log(envTracker.getDetailedReport());
     });
 
     test('❌ [RED] Supabase URL만 누락', async () => {
@@ -553,7 +550,6 @@ describe('🌍 환경변수 시나리오별 테스트', () => {
       expect(state.validation.missingRequired).toContain('NEXT_PUBLIC_SUPABASE_URL');
       expect(state.validation.missingRequired).not.toContain('NEXT_PUBLIC_SUPABASE_ANON_KEY');
 
-      console.log('❌ Supabase URL 누락:', envTracker.getDetailedReport());
     });
 
     test('❌ [RED] Supabase Anon Key만 누락', async () => {
@@ -570,7 +566,6 @@ describe('🌍 환경변수 시나리오별 테스트', () => {
       expect(state.validation.missingRequired).toContain('NEXT_PUBLIC_SUPABASE_ANON_KEY');
       expect(state.validation.missingRequired).not.toContain('NEXT_PUBLIC_SUPABASE_URL');
 
-      console.log('❌ Supabase Anon Key 누락:', envTracker.getDetailedReport());
     });
   });
 
@@ -603,7 +598,6 @@ describe('🌍 환경변수 시나리오별 테스트', () => {
         const healthResponse = await callHealthCheck('/api/supabase/health');
         expect(healthResponse.status).toBe(400);
 
-        console.log(`❌ 잘못된 URL 형식: ${invalidUrl}`);
 
         envTracker.reset();
         clearAllEnvVars();
@@ -633,7 +627,6 @@ describe('🌍 환경변수 시나리오별 테스트', () => {
         expect(state.validation.isValid).toBe(false);
         expect(state.validation.invalidFormats.some(f => f.key === 'NEXT_PUBLIC_SUPABASE_ANON_KEY')).toBe(true);
 
-        console.log(`❌ 잘못된 JWT 형식: ${invalidToken.substring(0, 20)}...`);
 
         envTracker.reset();
         clearAllEnvVars();
@@ -668,7 +661,6 @@ describe('🌍 환경변수 시나리오별 테스트', () => {
         const healthResponse = await callHealthCheck('/api/seedance/health');
         expect(healthResponse.status).toBe(400);
 
-        console.log(`❌ 잘못된 Seedance API 키: ${invalidKey}`);
 
         envTracker.reset();
         clearAllEnvVars();
@@ -698,7 +690,6 @@ describe('🌍 환경변수 시나리오별 테스트', () => {
       const healthResponse = await callHealthCheck('/api/health');
       expect(healthResponse.status).toBe(200);
 
-      console.log('✅ 개발환경 정상 설정:', envTracker.getDetailedReport());
     });
 
     test('⚠️ [WARNING] 개발환경에서 라이브 API 키 사용', async () => {
@@ -724,7 +715,6 @@ describe('🌍 환경변수 시나리오별 테스트', () => {
       expect(seedanceData.status).toBe('warning');
       expect(seedanceData.warning).toContain('Consider using test key');
 
-      console.log('⚠️ 개발환경 라이브 키 경고:', envTracker.getDetailedReport());
     });
 
     test('❌ [RED] 프로덕션환경에서 테스트 API 키 사용', async () => {
@@ -749,7 +739,6 @@ describe('🌍 환경변수 시나리오별 테스트', () => {
       const seedanceData = await seedanceResponse.json();
       expect(seedanceData.message).toContain('Test API key should not be used in production');
 
-      console.log('❌ 프로덕션환경 테스트 키 오류:', envTracker.getDetailedReport());
     });
 
     test('❌ [RED] 프로덕션환경에서 Seedance API 키 누락', async () => {
@@ -774,7 +763,6 @@ describe('🌍 환경변수 시나리오별 테스트', () => {
       const seedanceData = await seedanceResponse.json();
       expect(seedanceData.fallback).toBe('Service degraded');
 
-      console.log('❌ 프로덕션환경 API 키 누락:', envTracker.getDetailedReport());
     });
   });
 
@@ -808,7 +796,6 @@ describe('🌍 환경변수 시나리오별 테스트', () => {
       expect(healthData.services.supabase.status).toBe('healthy');
       expect(healthData.services.seedance.status).toBe('healthy');
 
-      console.log('✅ 완벽한 환경 설정:', envTracker.getDetailedReport());
     });
 
     test('🔄 [전환] 환경간 설정 전환 시나리오', async () => {
@@ -852,8 +839,6 @@ describe('🌍 환경변수 시나리오별 테스트', () => {
       expect(stagingStates).toHaveLength(1);
       expect(prodStates).toHaveLength(1);
 
-      console.log('🔄 환경 전환 완료:');
-      console.log(envTracker.getDetailedReport());
     });
   });
 
@@ -881,7 +866,6 @@ describe('🌍 환경변수 시나리오별 테스트', () => {
       expect(updatedState.variables['SEEDANCE_API_KEY']).toBe('sd_test_1234567890abcdef1234567890abcdef12');
       expect(updatedState.timestamp).toBeGreaterThan(initialState.timestamp);
 
-      console.log('🔄 런타임 변경 감지 완료');
     });
 
     test('⚠️ [감지] 중요 환경변수 제거 감지', async () => {
@@ -908,7 +892,6 @@ describe('🌍 환경변수 시나리오별 테스트', () => {
       const healthResponse = await callHealthCheck('/api/supabase/health');
       expect(healthResponse.status).toBe(503);
 
-      console.log('⚠️ 중요 환경변수 제거 감지:', envTracker.getDetailedReport());
     });
   });
 
@@ -934,7 +917,6 @@ describe('🌍 환경변수 시나리오별 테스트', () => {
       expect(validateData.invalidFormats).toHaveLength(0);
       expect(validateData.environment).toBe('api-test');
 
-      console.log('✅ 환경변수 검증 API 정상 동작');
     });
 
     test('❌ [API] 환경변수 검증 API 오류 보고', async () => {
@@ -958,7 +940,6 @@ describe('🌍 환경변수 시나리오별 테스트', () => {
       expect(validateData.missingRequired.length).toBeGreaterThan(0);
       expect(validateData.invalidFormats.length).toBeGreaterThan(0);
 
-      console.log('❌ 환경변수 검증 API 오류 보고:', validateData);
     });
   });
 });

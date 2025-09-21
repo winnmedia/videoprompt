@@ -114,7 +114,6 @@ describe('🚨 /api/auth/me 무한 루프 방지 - $300 사건 재발 차단', (
       expect(result.data.isGuest).toBe(true);
       expect(result.data.serviceMode).toBe('guest');
 
-      console.log('✅ guest 모드로 graceful degradation 성공');
     });
 
     test('인증된 사용자 + refresh token 없음 → guest 모드 즉시 전환', async () => {
@@ -137,7 +136,6 @@ describe('🚨 /api/auth/me 무한 루프 방지 - $300 사건 재발 차단', (
       expect(result.data.isGuest).toBe(true);
       expect(result.data.serviceMode).toBe('guest');
 
-      console.log('✅ refresh token 없음 - guest 모드 즉시 전환');
     });
 
     test('토큰 갱신 성공 → 새 토큰으로 인증 상태 유지', async () => {
@@ -178,7 +176,6 @@ describe('🚨 /api/auth/me 무한 루프 방지 - $300 사건 재발 차단', (
       expect(result.data.isGuest).toBe(false);
       expect(result.data.serviceMode).toBe('full');
 
-      console.log('✅ 토큰 갱신 성공 - 인증 상태 유지');
     });
   });
 
@@ -203,7 +200,6 @@ describe('🚨 /api/auth/me 무한 루프 방지 - $300 사건 재발 차단', (
       expect(response.headers.get('X-Client-Action')).toBe('continue-as-guest');
       expect(response.headers.get('X-Retry-Policy')).toBe('no-retry');
 
-      console.log('✅ 무한 루프 방지 헤더 모두 설정됨');
     });
 
     test('캐싱 헤더로 비용 절약', async () => {
@@ -221,7 +217,6 @@ describe('🚨 /api/auth/me 무한 루프 방지 - $300 사건 재발 차단', (
       expect(response.status).toBe(304);
       expect(response.headers.get('Cache-Control')).toBe('public, max-age=60');
 
-      console.log('✅ 304 Not Modified로 API 호출 비용 절약');
     });
 
     test('일시적 에러는 401 반환 (재시도 허용)', async () => {
@@ -251,7 +246,6 @@ describe('🚨 /api/auth/me 무한 루프 방지 - $300 사건 재발 차단', (
       expect(response.status).toBe(401);
       expect(result.error.code).toBe('TOKEN_REFRESH_FAILED');
 
-      console.log('✅ 일시적 에러는 401 반환하여 재시도 허용');
     });
   });
 
@@ -283,7 +277,6 @@ describe('🚨 /api/auth/me 무한 루프 방지 - $300 사건 재발 차단', (
       // Assert: setSession 1회만 호출됨
       expect(supabase.auth.setSession).toHaveBeenCalledTimes(1);
 
-      console.log('✅ 토큰 갱신 최대 1회만 시도');
     });
 
     test('비용 안전 헤더 확인', async () => {
@@ -297,7 +290,6 @@ describe('🚨 /api/auth/me 무한 루프 방지 - $300 사건 재발 차단', (
       expect(response.headers.get('X-Cost-Safety')).toBe('enforced');
       expect(response.headers.get('X-Rate-Limit-Policy')).toBe('active');
 
-      console.log('✅ 비용 안전 헤더 설정됨');
     });
   });
 
@@ -332,7 +324,6 @@ describe('🚨 /api/auth/me 무한 루프 방지 - $300 사건 재발 차단', (
       // Cleanup
       process.env.NODE_ENV = originalEnv;
 
-      console.log('✅ 개발환경 디버깅 정보 포함됨');
     });
   });
 });

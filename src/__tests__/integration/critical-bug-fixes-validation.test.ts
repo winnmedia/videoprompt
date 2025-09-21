@@ -22,7 +22,6 @@ class BugFixValidationTracker {
 
   markBugFix(bugId: string, status: 'pass' | 'fail', details: string) {
     this.results.set(bugId, { status, details });
-    console.log(`🔍 [${bugId}] ${status.toUpperCase()}: ${details}`);
   }
 
   getValidationReport(): string {
@@ -251,7 +250,6 @@ afterEach(() => {
 
 afterAll(() => {
   server.close();
-  console.log('\n' + tracker.getValidationReport());
 });
 
 describe('🔍 핵심 버그 수정 사항 통합 검증', () => {

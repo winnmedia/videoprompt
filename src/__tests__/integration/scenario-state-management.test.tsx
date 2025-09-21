@@ -442,7 +442,6 @@ describe('시나리오 상태 관리 통합 테스트', () => {
       const averageTime = totalTime / requests.length;
       expect(averageTime).toBeLessThan(1000); // 평균 1초 이내
 
-      console.log(`연속 요청 테스트 완료: 총 ${totalTime.toFixed(2)}ms, 평균 ${averageTime.toFixed(2)}ms`);
     });
   });
 

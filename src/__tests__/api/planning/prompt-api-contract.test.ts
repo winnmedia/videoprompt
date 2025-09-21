@@ -245,7 +245,6 @@ describe('Planning Prompt API Contract Tests', () => {
           const validation = PromptSaveResponseSchema.safeParse(body);
 
           if (!validation.success) {
-            console.log('Response validation errors:', validation.error.errors);
           }
 
           expect(validation.success).toBe(true);
@@ -255,12 +254,10 @@ describe('Planning Prompt API Contract Tests', () => {
           expect(body.message).toContain('성공');
         } else {
           // 저장 실패는 인프라 문제로 인한 것일 수 있음
-          console.log(`Response status: ${response.status}`);
           expect([201, 500, 503]).toContain(response.status);
         }
       } catch (error) {
         // 테스트 환경에서 데이터베이스 연결 실패는 예상됨
-        console.log('Database connection expected to fail in test environment');
         expect(true).toBe(true);
       }
     });

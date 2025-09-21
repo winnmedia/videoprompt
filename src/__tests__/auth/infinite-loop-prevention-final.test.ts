@@ -261,12 +261,10 @@ describe('🚨 무한 루프 방지 아키텍처 최종 검증', () => {
 
         // 10회마다 로그 출력
         if (i % 100 === 0) {
-          console.log(`✅ Call ${i}: Status ${response.status}, no 401 errors`);
         }
       }
 
       const duration = Date.now() - startTime;
-      console.log(`✅ 1000 calls completed in ${duration}ms without any 401 errors`);
 
       // 모든 호출이 성공했음을 확인
       expect(mockHandler).toHaveBeenCalledTimes(1000);

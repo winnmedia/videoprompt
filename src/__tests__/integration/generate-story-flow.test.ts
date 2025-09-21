@@ -15,7 +15,6 @@ const server = setupServer(
   // 성공 케이스: 서버가 올바른 형식의 데이터를 받았을 때
   http.post('/api/ai/generate-story', async ({ request }) => {
     const body = await request.json();
-    console.log('🔍 Mock 서버가 받은 데이터:', body);
 
     // 🚨 핵심: toneAndManner가 문자열인지 검증
     if (typeof body.toneAndManner !== 'string') {
@@ -108,7 +107,6 @@ describe('Generate-story API 통합 테스트', () => {
     server.use(
       http.post('/api/ai/generate-story', async ({ request }) => {
         capturedRequest = await request.json();
-        console.log('🔍 실제 API 요청 데이터:', capturedRequest);
 
         return HttpResponse.json({
           success: true,
@@ -217,12 +215,10 @@ describe('Generate-story API 통합 테스트', () => {
       await generateStorySteps({
         storyInput: mockInput,
         onError: (error, type) => {
-          console.log('예상된 에러 발생:', error, type);
           errorCaptured = true;
         }
       });
     } catch (error) {
-      console.log('예상된 예외 발생:', error);
       errorCaptured = true;
     }
 

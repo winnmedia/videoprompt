@@ -23,7 +23,6 @@ export function setupMSW() {
         onUnhandledRequest: 'warn', // 처리되지 않은 요청에 대해 경고
       });
       serverStarted = true;
-      console.log('🔧 MSW server started for testing');
     }
   });
 
@@ -38,7 +37,6 @@ export function setupMSW() {
     if (serverStarted) {
       server.close();
       serverStarted = false;
-      console.log('🔧 MSW server closed');
     }
   });
 }

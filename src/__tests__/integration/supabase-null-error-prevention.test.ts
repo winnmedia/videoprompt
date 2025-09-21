@@ -42,8 +42,6 @@ class SupabaseErrorTracker {
     this.errors.push(error);
     this.environmentStates.set(`${errorType}-${now}`, environmentState);
 
-    console.log(`🔥 [${endpoint}] Supabase 에러: ${errorType}`);
-    console.log(`📊 환경 상태:`, JSON.stringify(environmentState, null, 2));
 
     // 긴급 상황 체크
     const recentErrors = this.getRecentErrors();
@@ -226,7 +224,6 @@ const server = setupServer(
 
       case 'fallback-mode':
         // Fallback 모드 (로컬 데이터)
-        console.log('📦 Fallback 모드: 로컬 데이터 사용');
         return HttpResponse.json({
           ok: true,
           data: {
@@ -455,7 +452,6 @@ describe('🔥 Supabase null 에러 회귀 방지 테스트', () => {
       expect(body.details.required).toContain('NEXT_PUBLIC_SUPABASE_URL');
       expect(body.details.missing).toContain('NEXT_PUBLIC_SUPABASE_URL');
 
-      console.log(supabaseTracker.getDetailedReport());
       expect(supabaseTracker.getErrorsByType('MISSING_ENV_VARS')).toHaveLength(1);
     });
 
@@ -474,7 +470,6 @@ describe('🔥 Supabase null 에러 회귀 방지 테스트', () => {
       expect(body.code).toBe('SUPABASE_CLIENT_NULL');
       expect(body.details.service).toBe('planning');
 
-      console.log(supabaseTracker.getDetailedReport());
       expect(supabaseTracker.getErrorsByType('SUPABASE_CLIENT_NULL')).toHaveLength(1);
     });
 
@@ -493,7 +488,6 @@ describe('🔥 Supabase null 에러 회귀 방지 테스트', () => {
       expect(body.code).toBe('INVALID_SUPABASE_URL');
       expect(body.details.expectedFormat).toContain('supabase.co');
 
-      console.log(supabaseTracker.getDetailedReport());
     });
 
     test('❌ [RED] Supabase 연결 실패', async () => {
@@ -511,7 +505,6 @@ describe('🔥 Supabase null 에러 회귀 방지 테스트', () => {
       expect(body.code).toBe('SUPABASE_CONNECTION_FAILED');
       expect(body.details.retryAfter).toBe(30);
 
-      console.log(supabaseTracker.getDetailedReport());
     });
   });
 
@@ -530,7 +523,6 @@ describe('🔥 Supabase null 에러 회귀 방지 테스트', () => {
       expect(body.details.table).toBe('plans');
       expect(body.details.postgresError).toContain('does not exist');
 
-      console.log(supabaseTracker.getDetailedReport());
       expect(supabaseTracker.getErrorsByType('DATABASE_ERROR')).toHaveLength(1);
     });
 
@@ -547,7 +539,6 @@ describe('🔥 Supabase null 에러 회귀 방지 테스트', () => {
       expect(body.details.operation).toBe('INSERT');
       expect(body.details.rollback).toBe(true);
 
-      console.log(supabaseTracker.getDetailedReport());
     });
 
     test('❌ [RED] Supabase 인증 에러', async () => {
@@ -562,7 +553,6 @@ describe('🔥 Supabase null 에러 회귀 방지 테스트', () => {
       expect(body.code).toBe('SUPABASE_AUTH_ERROR');
       expect(body.details.supabaseError).toContain('JWT');
 
-      console.log(supabaseTracker.getDetailedReport());
     });
   });
 
@@ -581,7 +571,6 @@ describe('🔥 Supabase null 에러 회귀 방지 테스트', () => {
       expect(body.data.meta.source).toBe('fallback');
       expect(body.warnings).toContain('Using fallback data due to Supabase unavailability');
 
-      console.log('✅ Fallback 모드로 서비스 지속');
     });
 
     test('✅ [GREEN] 서비스 상태 모니터링', async () => {
@@ -597,7 +586,6 @@ describe('🔥 Supabase null 에러 회귀 방지 테스트', () => {
       expect(health.services.api).toBe('healthy');
       expect(health.details.supabase.error).toContain('Connection timeout');
 
-      console.log('✅ 서비스 상태 정확한 모니터링');
     });
 
     test('✅ [GREEN] 에러 복구 후 정상 서비스', async () => {
@@ -619,7 +607,6 @@ describe('🔥 Supabase null 에러 회귀 방지 테스트', () => {
       expect(body.data.plans).toHaveLength(1);
       expect(body.data.meta.source).toBe('supabase');
 
-      console.log('✅ 에러 복구 후 정상 서비스');
     });
   });
 
@@ -643,7 +630,6 @@ describe('🔥 Supabase null 에러 회귀 방지 테스트', () => {
       }
 
       // Then: 긴급 상태 감지
-      console.log(supabaseTracker.getDetailedReport());
 
       expect(supabaseTracker.isCriticalState()).toBe(true);
       expect(supabaseTracker.getRecentErrors().length).toBe(10);
@@ -682,8 +668,6 @@ describe('🔥 Supabase null 에러 회귀 방지 테스트', () => {
 
       // Then: 상세한 환경 분석 리포트
       const report = supabaseTracker.getDetailedReport();
-      console.log('📊 환경별 에러 분석:');
-      console.log(report);
 
       expect(report).toContain('환경 상태: URL=');
       expect(report).toContain('KEY=');
@@ -709,8 +693,6 @@ describe('🔥 Supabase null 에러 회귀 방지 테스트', () => {
       expect(recentErrors[0].errorType).toBe('DATABASE_ERROR');
       expect(recentErrors[1].errorType).toBe('CONNECTION_FAILED');
 
-      console.log('⏱️ 시간 윈도우 기반 에러 분석');
-      console.log(supabaseTracker.getDetailedReport());
     });
   });
 
@@ -800,8 +782,6 @@ describe('🔥 Supabase null 에러 회귀 방지 테스트', () => {
       expect(failures).toBe(3);
       expect(successes).toBe(2);
 
-      console.log('🔄 간헐적 장애 패턴:', results);
-      console.log(supabaseTracker.getDetailedReport());
     });
 
     test('⚡ [성능] 에러 추적 시스템 오버헤드 최소화', async () => {
@@ -826,9 +806,6 @@ describe('🔥 Supabase null 에러 회귀 방지 테스트', () => {
       const duration = endTime - startTime;
       const memoryIncrease = endMemory - startMemory;
 
-      console.log(`⚡ 100개 에러 추적 성능:`);
-      console.log(`  시간: ${duration.toFixed(2)}ms`);
-      console.log(`  메모리 증가: ${(memoryIncrease / 1024).toFixed(2)}KB`);
 
       expect(duration).toBeLessThan(500); // 0.5초 이하
       expect(memoryIncrease).toBeLessThan(1024 * 1024); // 1MB 이하

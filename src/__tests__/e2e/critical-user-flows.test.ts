@@ -78,7 +78,6 @@ describe('중요 사용자 플로우 E2E 테스트', () => {
       expect(meResult.ok).toBe(true);
       expect(meResult.data.email).toBe(userData.email);
 
-      console.log(`✅ User auth flow completed for ${userData.email}`);
     });
   });
 
@@ -146,7 +145,6 @@ describe('중요 사용자 플로우 E2E 테스트', () => {
       const searchedStory = searchResult.stories.find((story: any) => story.id === userSession.storyId);
       expect(searchedStory).toBeDefined();
 
-      console.log(`✅ Story management flow completed for story: ${userSession.storyId}`);
     });
   });
 
@@ -209,7 +207,6 @@ describe('중요 사용자 플로우 E2E 테스트', () => {
       const calculatedDuration = shots.reduce((sum: number, shot: any) => sum + shot.duration, 0);
       expect(totalEstimatedDuration).toBe(calculatedDuration);
 
-      console.log(`✅ Scenario development completed: ${shots.length} shots, ${totalEstimatedDuration}s total duration`);
     });
   });
 
@@ -273,7 +270,6 @@ describe('중요 사용자 플로우 E2E 테스트', () => {
       expect(fileSizeKB).toBeLessThan(500); // 500KB 이하
       expect(fileSizeKB).toBeGreaterThan(0.1); // 100B 이상
 
-      console.log(`✅ PDF generation completed: ${fileSizeKB.toFixed(2)}KB file generated`);
     });
 
     it('대용량 컨텐츠 PDF 생성 제한이 올바르게 작동해야 함', async () => {
@@ -299,7 +295,6 @@ describe('중요 사용자 플로우 E2E 테스트', () => {
       expect(pdfResponse.status).toBe(413); // Payload Too Large
       expect(result.error).toBe('컨텐츠가 너무 큽니다. 메모리 부족으로 처리할 수 없습니다.');
 
-      console.log('✅ Large content PDF generation properly rejected');
     });
   });
 
@@ -335,7 +330,6 @@ describe('중요 사용자 플로우 E2E 테스트', () => {
       const timeDiff = now.getTime() - uploadTime.getTime();
       expect(timeDiff).toBeLessThan(60000); // 1분 이내
 
-      console.log(`✅ Video upload completed: ${uploadResult.data.id}`);
     });
 
     it('이미지 파일 업로드 및 썸네일 생성 플로우가 완료되어야 함', async () => {
@@ -361,13 +355,11 @@ describe('중요 사용자 플로우 E2E 테스트', () => {
       expect(uploadResult.data.url).toContain('test-image.jpg');
       expect(uploadResult.data.thumbnailUrl).toContain('thumb/test-image.jpg');
 
-      console.log(`✅ Image upload with thumbnail completed: ${uploadResult.data.id}`);
     });
   });
 
   describe('전체 통합 워크플로우', () => {
     it('회원가입 → 스토리 생성 → 시나리오 개발 → PDF 생성 전체 플로우', async () => {
-      console.log('\n🚀 Starting complete user workflow test...\n');
 
       // Phase 1: 사용자 가입 및 인증
       const timestamp = Date.now();
@@ -386,7 +378,6 @@ describe('중요 사용자 플로우 E2E 테스트', () => {
       
       expect(signupResponse.status).toBe(200);
       userSession.userId = signupResult.data.id;
-      console.log(`✅ Phase 1: User registered - ${userData.email}`);
 
       // Phase 2: 스토리 기획
       const storyData = {
@@ -406,7 +397,6 @@ describe('중요 사용자 플로우 E2E 테스트', () => {
       
       expect(storyResponse.status).toBe(201);
       userSession.storyId = storyResult.id;
-      console.log(`✅ Phase 2: Story created - ${userSession.storyId}`);
 
       // Phase 3: 시나리오 개발
       const scenarioData = {
@@ -427,7 +417,6 @@ describe('중요 사용자 플로우 E2E 테스트', () => {
       
       expect(scenarioResponse.status).toBe(200);
       expect(scenarioResult.data.shots.length).toBeGreaterThan(0);
-      console.log(`✅ Phase 3: Scenario developed - ${scenarioResult.data.shots.length} shots`);
 
       // Phase 4: PDF 생성
       const pdfContent = `
@@ -458,20 +447,11 @@ describe('중요 사용자 플로우 E2E 테스트', () => {
 
       expect(pdfResponse.status).toBe(200);
       expect(pdfResponse.headers.get('content-type')).toBe('application/pdf');
-      console.log(`✅ Phase 4: PDF generated successfully`);
 
       // 최종 검증
       const pdfBuffer = await pdfResponse.arrayBuffer();
       const pdfSize = pdfBuffer.byteLength / 1024; // KB
       
-      console.log(`\n🎉 Complete workflow test passed!`);
-      console.log(`📊 Summary:`);
-      console.log(`   - User: ${userData.email}`);
-      console.log(`   - Story: ${userSession.storyId}`);
-      console.log(`   - Shots: ${scenarioResult.data.shots.length}`);
-      console.log(`   - Duration: ${scenarioResult.data.estimatedDuration}s`);
-      console.log(`   - PDF Size: ${pdfSize.toFixed(2)}KB`);
-      console.log(`\n`);
 
       expect(pdfSize).toBeGreaterThan(0.5); // 최소 PDF 크기
       expect(pdfSize).toBeLessThan(200); // 최대 PDF 크기

@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     // Prisma user 조회 비활성화
     const user = null;
-    logger.info('✅ User lookup skipped (Prisma disabled):', email);
+    logger.info('✅ User lookup skipped (Prisma disabled)', { email });
 
     if (!user) {
       // Don't reveal if user exists or not for security

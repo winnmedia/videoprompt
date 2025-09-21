@@ -23,7 +23,7 @@ export const dynamic = 'force-dynamic';
 const getHandler = async (request: NextRequest, { user, authContext }: { user: { id: string | null }, authContext: any }) => {
   try {
     const userId = user.id;
-    logger.info('✅ Planning scenarios 인증 성공:', userId);
+    logger.info('✅ Planning scenarios 인증 성공', { userId });
 
     // 🔄 Planning Repository를 통한 듀얼 저장소 조회
     const repository = getPlanningRepository();

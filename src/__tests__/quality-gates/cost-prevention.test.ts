@@ -57,7 +57,6 @@ describe('$300 사건 방지 시스템 (TDD)', () => {
     it('should allow safe patterns with primitive dependencies', () => {
       const safeCode = `
         useEffect(() => {
-          console.log('User ID:', userId);
         }, [userId]);
       `;
 
@@ -190,7 +189,6 @@ describe('$300 사건 방지 시스템 (TDD)', () => {
     it('should pass safe code through quality gates', () => {
       const safeCode = `
         useEffect(() => {
-          console.log('Safe operation');
         }, []);
       `;
 

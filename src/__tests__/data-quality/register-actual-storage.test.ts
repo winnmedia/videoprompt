@@ -51,7 +51,6 @@ describe('Register API 실제 저장 검증', () => {
 
     const result = await response.json()
 
-    console.log('API Response:', { status: response.status, result })
 
     expect(response.status).toBe(201)
     expect(result.success).toBe(true)

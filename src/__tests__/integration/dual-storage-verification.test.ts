@@ -65,7 +65,6 @@ const server = setupServer(
   // Supabase scenarios 테이블 모킹
   http.post('*/rest/v1/scenarios', async ({ request }) => {
     const data = await request.json();
-    console.log('🔄 MSW Scenarios 저장 요청:', data);
 
     // 필수 필드 검증
     if (!data.id || !data.title || !data.content) {
@@ -85,7 +84,6 @@ const server = setupServer(
   // Supabase prompts 테이블 모킹
   http.post('*/rest/v1/prompts', async ({ request }) => {
     const data = await request.json();
-    console.log('🔄 MSW Prompts 저장 요청:', data);
 
     // 필수 필드 검증
     if (!data.id || !data.title || !data.final_prompt) {
@@ -105,7 +103,6 @@ const server = setupServer(
   // Supabase video_assets 테이블 모킹
   http.post('*/rest/v1/video_assets', async ({ request }) => {
     const data = await request.json();
-    console.log('🔄 MSW Video Assets 저장 요청:', data);
 
     return HttpResponse.json([{
       ...data,
@@ -117,7 +114,6 @@ const server = setupServer(
   // Supabase stories 테이블 모킹 (Story 타입용)
   http.post('*/rest/v1/stories', async ({ request }) => {
     const data = await request.json();
-    console.log('🔄 MSW Stories 저장 요청:', data);
 
     return HttpResponse.json([{
       ...data,
@@ -129,7 +125,6 @@ const server = setupServer(
   // Prisma 모킹 (실제로는 다른 포트지만 MSW로 처리)
   http.post('*/api/internal/prisma-upsert', async ({ request }) => {
     const data = await request.json();
-    console.log('🔄 MSW Prisma 저장 요청:', data);
 
     return HttpResponse.json({
       id: data.id || 'test-project-id',
@@ -234,7 +229,6 @@ describe('DualStorageEngine - 완전한 이중 저장 검증', () => {
   });
 
   test('시나리오 이중 저장: Prisma + Supabase scenarios 테이블', async () => {
-    console.log('🧪 시나리오 이중 저장 테스트 시작');
 
     // MSW를 통한 이중 저장 실행
     const result = await dualStorage.saveDualStorage(mockScenarioItem, mockUser);
@@ -254,11 +248,9 @@ describe('DualStorageEngine - 완전한 이중 저장 검증', () => {
       videoGeneration: false,
     });
 
-    console.log('✅ 시나리오 이중 저장 성공:', result);
   });
 
   test('프롬프트 이중 저장: Prisma + Supabase prompts 테이블', async () => {
-    console.log('🧪 프롬프트 이중 저장 테스트 시작');
 
     const result = await dualStorage.saveDualStorage(mockPromptItem, mockUser);
 
@@ -277,11 +269,9 @@ describe('DualStorageEngine - 완전한 이중 저장 검증', () => {
       videoGeneration: false,
     });
 
-    console.log('✅ 프롬프트 이중 저장 성공:', result);
   });
 
   test('영상 이중 저장: Prisma + Supabase video_assets 테이블', async () => {
-    console.log('🧪 영상 이중 저장 테스트 시작');
 
     const result = await dualStorage.saveDualStorage(mockVideoItem, mockUser);
 
@@ -300,11 +290,9 @@ describe('DualStorageEngine - 완전한 이중 저장 검증', () => {
       videoGeneration: true,  // video_assets 테이블에 저장됨
     });
 
-    console.log('✅ 영상 이중 저장 성공:', result);
   });
 
   test('Supabase 저장 실패 시 Prisma 롤백 (dual_storage_required 모드)', async () => {
-    console.log('🧪 Supabase 실패 롤백 테스트 시작');
 
     // Supabase 에러 시뮬레이션
     server.use(
@@ -325,11 +313,9 @@ describe('DualStorageEngine - 완전한 이중 저장 검증', () => {
 
     // 환경별 전략에 따른 처리 확인
     // development 환경에서는 fallback이므로 Prisma 저장은 유지될 수 있음
-    console.log('🔙 롤백 테스트 완료:', result);
   });
 
   test('데이터 변환 검증: 각 타입별 필드 매핑 정확성', async () => {
-    console.log('🧪 데이터 변환 검증 테스트 시작');
 
     // Scenario 변환 검증
     const scenarioResult = await dualStorage.saveDualStorage(mockScenarioItem, mockUser);
@@ -343,11 +329,9 @@ describe('DualStorageEngine - 완전한 이중 저장 검증', () => {
     const videoResult = await dualStorage.saveDualStorage(mockVideoItem, mockUser);
     expect(videoResult.success).toBe(true);
 
-    console.log('✅ 모든 타입 변환 검증 완료');
   });
 
   test('동시 저장 성능 및 트랜잭션 무결성', async () => {
-    console.log('🧪 동시 저장 성능 테스트 시작');
 
     const startTime = Date.now();
 
@@ -364,12 +348,10 @@ describe('DualStorageEngine - 완전한 이중 저장 검증', () => {
     // 모든 저장 성공 확인
     results.forEach((result, index) => {
       expect(result.success).toBe(true);
-      console.log(`✅ 동시 저장 ${index + 1} 성공:`, result.latencyMs + 'ms');
     });
 
     // 성능 검증 (5초 이내)
     expect(duration).toBeLessThan(5000);
-    console.log(`⏱️ 전체 동시 저장 소요시간: ${duration}ms`);
   });
 });
 

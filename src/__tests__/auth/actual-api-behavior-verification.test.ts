@@ -49,7 +49,6 @@ describe('🔍 실제 API 동작 검증 - auth/me 무한루프 방지', () => {
       const status = response.status;
       const data = await response.json();
 
-      console.log('🔍 토큰 없는 auth/me 응답:', { status, data });
 
       // 예상: 게스트 모드로 200 응답 (Grace의 예상)
       // 실제: 401 에러가 날 가능성 높음 (실제 문제)
@@ -74,7 +73,6 @@ describe('🔍 실제 API 동작 검증 - auth/me 무한루프 방지', () => {
       const status = response.status;
       const data = await response.json();
 
-      console.log('🔍 토큰 없는 refresh 응답:', { status, data });
 
       // 예상: 400 Bad Request (무한루프 방지)
       // 실제: 500 에러나 다른 예외가 날 가능성
@@ -101,7 +99,6 @@ describe('🔍 실제 API 동작 검증 - auth/me 무한루프 방지', () => {
       const status = response.status;
       const data = await response.json();
 
-      console.log('🔍 만료된 토큰 auth/me 응답:', { status, data });
 
       // 예상: 게스트 모드로 graceful degradation
       // 실제: 401 에러나 서버 에러가 날 가능성
@@ -148,7 +145,6 @@ describe('🔍 실제 API 동작 검증 - auth/me 무한루프 방지', () => {
       try {
         const { supabase } = await import('@/lib/supabase');
         expect(supabase).toBeDefined();
-        console.log('✅ Supabase 클라이언트 초기화 성공');
       } catch (error) {
         supabaseInitError = error;
         console.error('❌ Supabase 클라이언트 초기화 실패:', error);
@@ -184,7 +180,6 @@ describe('🔍 실제 API 동작 검증 - auth/me 무한루프 방지', () => {
         await Promise.allSettled(promises);
 
         // THEN: 실제 API 호출은 1번만 발생해야 함
-        console.log(`🔍 실제 API 호출 횟수: ${actualApiCallCount}`);
 
         // $300 사건 방지: 중복 호출이 실제로 방지되어야 함
         expect(actualApiCallCount).toBeLessThanOrEqual(1);
@@ -206,7 +201,6 @@ describe('🔍 실제 API 동작 검증 - auth/me 무한루프 방지', () => {
       const responseTime = Date.now() - startTime;
 
       // THEN: 두 번째 요청은 캐시에서 즉시 반환되어야 함 (< 100ms)
-      console.log(`🔍 두 번째 요청 응답 시간: ${responseTime}ms`);
 
       expect(responseTime).toBeLessThan(100); // 캐시 히트는 매우 빨라야 함
       expect(secondResponse).toEqual(firstResponse); // 응답이 동일해야 함
@@ -245,7 +239,6 @@ describe('🔍 실제 API 동작 검증 - auth/me 무한루프 방지', () => {
           log.includes('refresh') && log.includes('infinite')
         );
 
-        console.log('🔍 에러 로그 패턴:', refreshErrors);
 
         // 무한루프 경고가 있다면 차단 메커니즘이 작동한 것
         expect(refreshErrors.length).toBeLessThan(10); // 과도한 재시도 없어야 함

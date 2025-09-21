@@ -114,7 +114,6 @@ describe('Planning API 통합 테스트', () => {
         expect(responseData.storageStatus).toHaveProperty('supabase');
       }
 
-      console.log('✅ GET /api/planning/stories 응답 구조 검증 완료');
     });
 
     it('POST /api/planning/stories - 스토리 생성 계약 검증', async () => {
@@ -191,13 +190,11 @@ describe('Planning API 통합 테스트', () => {
         expect(typeof responseData.data.id).toBe('string');
         expect(responseData.data.id.length).toBeGreaterThan(0);
 
-        console.log('✅ POST /api/planning/stories 생성 성공:', responseData.data.id);
       } else {
         // 실패 응답 검증
         expect(responseData).toHaveProperty('warnings');
         expect(Array.isArray(responseData.warnings)).toBe(true);
 
-        console.log('⚠️ POST /api/planning/stories 생성 실패 (예상된 상황):', responseData.warnings);
       }
     });
 
@@ -221,7 +218,6 @@ describe('Planning API 통합 테스트', () => {
         expect(responseData.data.limit).toBe(5);
       }
 
-      console.log('✅ Stories API 쿼리 파라미터 검증 완료');
     });
   });
 
@@ -262,7 +258,6 @@ describe('Planning API 통합 테스트', () => {
         });
       }
 
-      console.log('✅ GET /api/planning/scenarios 응답 구조 검증 완료');
     });
   });
 
@@ -290,7 +285,6 @@ describe('Planning API 통합 테스트', () => {
       expect(responseData.success).toBe(false);
       expect(responseData).toHaveProperty('errors');
 
-      console.log('✅ 잘못된 요청 데이터 에러 처리 검증 완료');
     });
 
     it('인증 없는 요청 처리', async () => {
@@ -309,7 +303,6 @@ describe('Planning API 통합 테스트', () => {
       const responseData = await response.json();
       expect(responseData).toHaveProperty('success');
 
-      console.log('✅ 인증 없는 요청 처리 검증 완료');
     });
   });
 
@@ -331,7 +324,6 @@ describe('Planning API 통합 테스트', () => {
         expect(responseData.data.stories.length).toBeLessThanOrEqual(100);
       }
 
-      console.log(`💾 대량 데이터 조회 성능: ${endTime - startTime}ms`);
     });
 
     it('연속 요청 처리 성능', async () => {
@@ -353,7 +345,6 @@ describe('Planning API 통합 테스트', () => {
         expect([200, 500]).toContain(response.status); // 에러 상황 허용
       });
 
-      console.log(`🔄 연속 요청 처리 성능: ${endTime - startTime}ms (5개 요청)`);
     });
   });
 
@@ -393,9 +384,7 @@ describe('Planning API 통합 테스트', () => {
 
           if (foundStory) {
             expect(foundStory.title).toBe(storyData.title);
-            console.log('✅ 생성 후 즉시 조회 일관성 확인됨');
           } else {
-            console.log('⚠️ 생성된 스토리가 목록에서 발견되지 않음 (지연 동기화 가능성)');
           }
         }
       }
@@ -421,7 +410,6 @@ describe('Planning API 통합 테스트', () => {
         expect(validation.data.title).toBe('Schema Test Scenario');
       }
 
-      console.log('✅ Planning Content 스키마 검증 완료');
     });
 
     it('잘못된 데이터의 스키마 위반 감지', () => {
@@ -440,7 +428,6 @@ describe('Planning API 통합 테스트', () => {
       expect(validation.error).toBeDefined();
       expect(validation.data).toBeUndefined();
 
-      console.log('✅ 스키마 위반 감지 완료:', validation.error);
     });
 
     it('DualStorageResult 스키마 검증', () => {
@@ -477,7 +464,6 @@ describe('Planning API 통합 테스트', () => {
         expect(validation.data.details?.supabase.success).toBe(false);
       }
 
-      console.log('✅ DualStorageResult 스키마 검증 완료');
     });
   });
 
@@ -500,7 +486,6 @@ describe('Planning API 통합 테스트', () => {
         expect(Array.isArray(responseData.warnings)).toBe(true);
       }
 
-      console.log('✅ Service Role 키 없는 환경 동작 검증 완료');
     });
 
     it('네트워크 지연 시뮬레이션', async () => {
@@ -519,10 +504,8 @@ describe('Planning API 통합 테스트', () => {
         ]);
 
         expect(response).toBeDefined();
-        console.log('✅ 네트워크 지연 상황 처리 완료');
       } catch (error) {
         if (error instanceof Error && error.message === 'Request timeout') {
-          console.log('⚠️ 요청 타임아웃 (예상된 상황)');
         } else {
           throw error;
         }
@@ -561,7 +544,6 @@ describe('운영 환경 계약 위반 모니터링', () => {
       }
     }
 
-    console.log('✅ 모든 API 엔드포인트 표준 구조 준수 확인');
   });
 
   it('중요 계약 지표 모니터링', async () => {
@@ -609,6 +591,5 @@ describe('운영 환경 계약 위반 모니터링', () => {
     expect(metricsCollector.contractViolations).toBe(0); // 계약 위반 금지
     expect(metricsCollector.avgResponseTime).toBeLessThan(5000); // 평균 응답 시간 5초 이내
 
-    console.log('📊 계약 지표 모니터링 결과:', metricsCollector);
   });
 });

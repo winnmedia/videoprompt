@@ -43,7 +43,6 @@ describe('정적 페이지 생성 회귀 방지', () => {
 
     // 빌드 성능 검증 (5분 이내)
     expect(buildDuration).toBeLessThan(300000); // 5분 = 300,000ms
-    console.log(`✅ 빌드 성능: ${Math.round(buildDuration)}ms`);
   });
 
   describe('빌드 산출물 검증', () => {
@@ -90,7 +89,6 @@ describe('정적 페이지 생성 회귀 방지', () => {
       const totalBundleSize = getTotalSize(STATIC_OUTPUT_DIR);
 
       expect(totalBundleSize).toBeLessThanOrEqual(PERFORMANCE_BUDGET.bundleSize.total);
-      console.log(`✅ 번들 크기: ${Math.round(totalBundleSize / 1024)}KB (한계: ${Math.round(PERFORMANCE_BUDGET.bundleSize.total / 1024)}KB)`);
     });
 
     test('JavaScript 번들 크기가 임계값을 초과하지 않아야 함', () => {
@@ -111,7 +109,6 @@ describe('정적 페이지 생성 회귀 방지', () => {
       }
 
       expect(totalJsSize).toBeLessThanOrEqual(PERFORMANCE_BUDGET.bundleSize.javascript);
-      console.log(`✅ JS 번들 크기: ${Math.round(totalJsSize / 1024)}KB`);
     });
   });
 
@@ -127,10 +124,8 @@ describe('정적 페이지 생성 회귀 방지', () => {
       expect(hasAppRouter || hasPagesRouter).toBe(true);
 
       if (hasAppRouter) {
-        console.log('✅ App Router 정적 페이지 생성 확인');
       }
       if (hasPagesRouter) {
-        console.log('✅ Pages Router 정적 페이지 생성 확인');
       }
     });
 
@@ -158,7 +153,6 @@ describe('정적 페이지 생성 회귀 방지', () => {
 
         if (existsSync(appRouterPath) || existsSync(pagesRouterPath)) {
           generatedPagesCount++;
-          console.log(`✅ ${page} 페이지 생성 확인`);
         }
       }
 
@@ -186,7 +180,6 @@ describe('정적 페이지 생성 회귀 방지', () => {
 
       // 힙 메모리 사용량 500MB 이내
       expect(heapUsedMB).toBeLessThan(500);
-      console.log(`✅ 메모리 사용량: ${heapUsedMB}MB`);
     });
   });
 
@@ -204,7 +197,6 @@ describe('정적 페이지 생성 회귀 방지', () => {
 
       // 페이지 수가 급격히 감소하지 않았는지 확인 (최소 3개 이상)
       expect(pageCount).toBeGreaterThanOrEqual(3);
-      console.log(`✅ 생성된 페이지 수: ${pageCount}개`);
     });
 
     test('중요 자산 파일이 누락되지 않았는지 확인', () => {
@@ -217,7 +209,6 @@ describe('정적 페이지 생성 회귀 방지', () => {
       if (hasRoutes) {
         const routesManifest = JSON.parse(readFileSync(routesManifestPath, 'utf-8'));
         expect(routesManifest).toHaveProperty('version');
-        console.log('✅ 라우트 매니페스트 확인');
       }
     });
   });

@@ -157,7 +157,6 @@ import { useLayoutEffect } from 'react';
 
 const Component = () => {
   const handleResize = () => {
-    console.log('resize');
   };
 
   // useLayoutEffect도 동일하게 위험함
@@ -288,7 +287,6 @@ const Component = ({ user, config, settings }) => {
   }, [user]); // 안전: 객체
 
   useEffect(() => {
-    console.log(config.apiUrl);
   }, [config]); // 안전: 설정 객체
 
   useEffect(() => {
@@ -380,7 +378,6 @@ const Component = () => {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      console.log('tick');
     }, 1000);
 
     return () => clearInterval(timer);
@@ -444,7 +441,6 @@ const Component = () => {
 
   // 4개 의존성 (3개 초과)
   useEffect(() => {
-    console.log(a, b, c, d);
   }, [a, b, c, d]);
 
   return <div>Component</div>;
@@ -475,7 +471,6 @@ const Component = () => {
   const [state${i}, setState${i}] = useState(${i});
 
   useEffect(() => {
-    console.log(state${i});
   }, [state${i}]);
   `).join('\n')}
 

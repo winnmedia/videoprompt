@@ -13,7 +13,6 @@ import { useAuthStore } from '@/shared/store/useAuthStore';
 // 테스트용 Mock API 클라이언트
  const mockApiClient = {
    async json<T = any>(url: string): Promise<T> {
-     console.log('🧪 MOCK API 호출:', url);
      
      if (url.includes('/api/auth/me')) {
        const token = localStorage.getItem('token');
@@ -43,7 +42,6 @@ import { useAuthStore } from '@/shared/store/useAuthStore';
    },
    
    async post<T = any>(url: string, data?: unknown): Promise<T> {
-     console.log('🧪 MOCK API POST 호출:', url, data);
      
      if (url.includes('/api/auth/login')) {
        const body = data as any;
@@ -72,7 +70,6 @@ import { useAuthStore } from '@/shared/store/useAuthStore';
 const server = setupServer(
   // 성공적인 auth/me 응답 - 절대 URL 패턴 사용 (계약 준수)
   http.get('http://localhost:3000/api/auth/me', ({ request }) => {
-    console.log('🔥 MSW: /api/auth/me 핸들러 호출됨', request.headers.get('Authorization'));
     const auth = request.headers.get('Authorization');
     
     if (!auth || !auth.startsWith('Bearer ')) {
@@ -93,7 +90,6 @@ const server = setupServer(
         traceId: 'test-trace-id'
       };
       
-      console.log('🔥 MSW: 응답 전송:', JSON.stringify(response, null, 2));
       return HttpResponse.json(response);
     }
     
@@ -102,7 +98,6 @@ const server = setupServer(
   
   // 상대 경로도 지원하도록 추가 핸들러
   http.get('/api/auth/me', ({ request }) => {
-    console.log('🔥 MSW: 상대경로 /api/auth/me 핸들러 호출됨', request.headers.get('Authorization'));
     const auth = request.headers.get('Authorization');
     
     if (!auth || !auth.startsWith('Bearer ')) {
@@ -123,7 +118,6 @@ const server = setupServer(
         traceId: 'test-trace-id'
       };
       
-      console.log('🔥 MSW: 응답 전송:', JSON.stringify(response, null, 2));
       return HttpResponse.json(response);
     }
     
@@ -132,7 +126,6 @@ const server = setupServer(
   
   // 로그인 응답 - 절대 URL (결정론적 토큰)
   http.post('http://localhost:3000/api/auth/login', async ({ request }) => {
-    console.log('🔥 MSW: /api/auth/login 핸들러 호출됨');
     const body = await request.json() as any;
     
     if (body.email === 'test@example.com' && body.password === 'password123') {
@@ -164,7 +157,6 @@ const server = setupServer(
   
   // 상대 경로도 지원하도록 추가 핸들러  
   http.post('/api/auth/login', async ({ request }) => {
-    console.log('🔥 MSW: 상대경로 /api/auth/login 핸들러 호출됨');
     const body = await request.json() as any;
     
     if (body.email === 'test@example.com' && body.password === 'password123') {
@@ -209,7 +201,6 @@ beforeEach(() => {
   process.env.NODE_ENV = 'test';
   
   // 콘솔에서 MSW 활성화 확인
-  console.log('🔧 MSW handlers:', server.listHandlers().map(h => h.info.method + ' ' + h.info.path));
   
   // JSDOM 환경에서 절대 URL 환경 구축
   Object.defineProperty(window, 'location', {
@@ -280,7 +271,6 @@ describe('🔥 Bearer Token 인증 테스트 (401 오류 해결)', () => {
       const response = await mockApiClient.json('http://localhost:3000/api/auth/me');
       
       // Debug: MOCK API 응답 구조 확인
-      console.log('🔍 MOCK API 응답:', JSON.stringify(response, null, 2));
       
       // Then: 성공적인 응답 반환
       expect(response.ok).toBe(true);
@@ -355,7 +345,6 @@ describe('🔥 Bearer Token 인증 테스트 (401 오류 해결)', () => {
       
       // When: 직접 API 호출로 raw 응답 확인
       const rawResponse = await apiClient.json('http://localhost:3000/api/auth/me');
-      console.log('🔍 RAW API 응답 (계약 전):', JSON.stringify(rawResponse, null, 2));
       
       // When: checkAuth 호출
       const { checkAuth } = useAuthStore.getState();
@@ -363,7 +352,6 @@ describe('🔥 Bearer Token 인증 테스트 (401 오류 해결)', () => {
       
       // Then: 인증 상태 업데이트 확인 (실패할 수 있음 - 예상됨)
       const state = useAuthStore.getState();
-      console.log('🔍 useAuthStore 상태:', state);
       // expect(state.isAuthenticated).toBe(true); // 임시 비활성화
       // expect(state.user?.email).toBe('test@example.com'); // 임시 비활성화
       // expect(localStorage.setItem).toHaveBeenCalledWith('token', 'refreshed-token'); // 임시 비활성화
@@ -393,7 +381,6 @@ describe('🔥 Bearer Token 인증 테스트 (401 오류 해결)', () => {
       const response = await mockApiClient.json('http://localhost:3000/api/auth/me');
       
       // Debug: 데이터 계약 검증 전 응답 구조 확인
-      console.log('🔍 Mock API 응답:', JSON.stringify(response, null, 2));
       
       // Then: 응답 구조 검증 - Mock API와 일치하는 구조로 수정
       expect(response).toMatchObject({

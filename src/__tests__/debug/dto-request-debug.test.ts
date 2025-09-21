@@ -22,16 +22,9 @@ describe('DTO 요청 데이터 디버깅', () => {
       developmentIntensity: '보통'
     };
 
-    console.log('🔍 입력 데이터 (StoryInput):');
-    console.log(JSON.stringify(testInput, null, 2));
-    console.log('toneAndManner 타입:', typeof testInput.toneAndManner, Array.isArray(testInput.toneAndManner));
 
     const transformedRequest = transformStoryInputToApiRequest(testInput);
 
-    console.log('🔍 변환된 요청 데이터 (API Request):');
-    console.log(JSON.stringify(transformedRequest, null, 2));
-    console.log('toneAndManner 타입:', typeof transformedRequest.toneAndManner);
-    console.log('toneAndManner 값:', transformedRequest.toneAndManner);
 
     // 서버 스키마와 일치하는지 상세 검증
     const requiredFields = [
@@ -39,13 +32,11 @@ describe('DTO 요청 데이터 디버깅', () => {
       'duration', 'format', 'tempo', 'developmentMethod', 'developmentIntensity'
     ];
 
-    console.log('🔍 필수 필드 검증:');
     requiredFields.forEach(field => {
       const value = transformedRequest[field];
       const type = typeof value;
       const isEmpty = !value || (typeof value === 'string' && value.trim() === '');
 
-      console.log(`  ${field}: ${type} = "${value}" (empty: ${isEmpty})`);
 
       expect(type).toBe('string');
       expect(isEmpty).toBe(false);
@@ -71,8 +62,6 @@ describe('DTO 요청 데이터 디버깅', () => {
 
     const transformedRequest = transformStoryInputToApiRequest(testInput);
 
-    console.log('🔍 특수문자 테스트 결과:');
-    console.log('toneAndManner:', transformedRequest.toneAndManner);
 
     expect(typeof transformedRequest.toneAndManner).toBe('string');
     expect(transformedRequest.toneAndManner).toBe('유머러스 & 재미있는, 감성적... 따뜻한, 친근한!');
@@ -94,8 +83,6 @@ describe('DTO 요청 데이터 디버깅', () => {
 
     const transformedRequest = transformStoryInputToApiRequest(testInput);
 
-    console.log('🔍 다국어 테스트 결과:');
-    console.log('toneAndManner:', transformedRequest.toneAndManner);
 
     expect(typeof transformedRequest.toneAndManner).toBe('string');
     expect(transformedRequest.toneAndManner).toBe('friendly, 친근한, ユーモラス');
@@ -117,8 +104,6 @@ describe('DTO 요청 데이터 디버깅', () => {
 
     const transformedRequest = transformStoryInputToApiRequest(testInput);
 
-    console.log('🔍 빈 값 처리 결과:');
-    console.log(JSON.stringify(transformedRequest, null, 2));
 
     // 모든 필드가 기본값으로 설정되어야 함
     expect(transformedRequest.title).toBe('영상 시나리오');
@@ -154,10 +139,6 @@ describe('DTO 요청 데이터 디버깅', () => {
     const jsonString = JSON.stringify(transformedRequest);
     const parsedBack = JSON.parse(jsonString);
 
-    console.log('🔍 JSON 직렬화/역직렬화 결과:');
-    console.log('원본:', transformedRequest);
-    console.log('JSON 문자열:', jsonString);
-    console.log('파싱 후:', parsedBack);
 
     // 직렬화 후에도 모든 값이 유지되는지 확인
     expect(parsedBack.toneAndManner).toBe('유머러스, 감성적');

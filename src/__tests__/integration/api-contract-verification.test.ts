@@ -40,7 +40,6 @@ describe('🔗 API 계약 검증 - 실제 동작 테스트', () => {
 
       // THEN: 캐시에서 동일한 데이터를 반환해야 함
       expect(cachedData).toEqual(testData);
-      console.log('✅ 캐시 저장/조회 메커니즘 정상 작동');
 
       // TTL 만료 후 테스트
       await new Promise(resolve => setTimeout(resolve, cacheTTL + 100));
@@ -49,7 +48,6 @@ describe('🔗 API 계약 검증 - 실제 동작 테스트', () => {
       const expiredData = apiClient.getFromCache(testCacheKey);
 
       expect(expiredData).toBeNull();
-      console.log('✅ 캐시 TTL 만료 후 정상 삭제됨');
     });
 
     it('🔄 중복 요청 방지 맵 직접 테스트', async () => {
@@ -75,7 +73,6 @@ describe('🔗 API 계약 검증 - 실제 동작 테스트', () => {
 
       // THEN: 진행 중인 요청이 감지되어야 함
       expect(hasPendingRequest).toBe(true);
-      console.log('✅ 중복 요청 방지 맵 정상 작동');
 
       // Promise 완료 후 정리
       await mockPromise;
@@ -87,7 +84,6 @@ describe('🔗 API 계약 검증 - 실제 동작 테스트', () => {
       const afterCleanup = apiClient.pendingApiRequests.has(testRequestKey);
 
       expect(afterCleanup).toBe(false);
-      console.log('✅ 요청 완료 후 맵에서 정상 제거됨');
     });
 
     it('🧮 요청 키 생성 로직 테스트', async () => {
@@ -102,13 +98,11 @@ describe('🔗 API 계약 검증 - 실제 동작 테스트', () => {
       // @ts-ignore - 테스트를 위한 private 메서드 접근
       const key3 = apiClient.generateRequestKey('/api/auth/me', 'POST', { data: 'test' });
 
-      console.log('생성된 키들:', { key1, key2, key3 });
 
       // THEN: 동일한 요청은 동일한 키, 다른 요청은 다른 키
       expect(key1).toBe(key2); // 동일한 GET 요청
       expect(key1).not.toBe(key3); // 다른 메서드/바디
 
-      console.log('✅ 요청 키 생성 로직 정상 작동');
     });
 
   });
@@ -128,7 +122,6 @@ describe('🔗 API 계약 검증 - 실제 동작 테스트', () => {
       // @ts-ignore - 테스트를 위한 private 메서드 접근
       apiClient.setCache(validKey, { data: 'valid' }, 10000); // 10초 유효
 
-      console.log('만료된 캐시와 유효한 캐시 생성 완료');
 
       // WHEN: 캐시 정리 실행
       apiClient.performMaintenanceCleanup();
@@ -142,7 +135,6 @@ describe('🔗 API 계약 검증 - 실제 동작 테스트', () => {
       expect(expiredData).toBeNull();
       expect(validData).toEqual({ data: 'valid' });
 
-      console.log('✅ 캐시 정리 메커니즘 정상 작동');
     });
 
     it('📊 API 호출 카운터 및 통계 검증', async () => {
@@ -155,7 +147,6 @@ describe('🔗 API 계약 검증 - 실제 동작 테스트', () => {
       // @ts-ignore - 테스트를 위한 private 속성 접근
       const initialCacheHitCount = apiClient.cacheHitCount;
 
-      console.log('초기 카운터:', { initialApiCallCount, initialCacheHitCount });
 
       // WHEN: 캐시 히트 시뮬레이션
       // @ts-ignore - 테스트를 위한 private 속성 접근
@@ -167,7 +158,6 @@ describe('🔗 API 계약 검증 - 실제 동작 테스트', () => {
 
       expect(newCacheHitCount).toBe(initialCacheHitCount + 1);
 
-      console.log('✅ API 호출 통계 카운터 정상 작동');
     });
 
   });
@@ -203,7 +193,6 @@ describe('🔗 API 계약 검증 - 실제 동작 테스트', () => {
       const hasRequest = apiClient.pendingApiRequests.has(testKey);
 
       expect(hasRequest).toBe(false);
-      console.log('✅ 에러 발생 시 진행 중인 요청 정리됨');
     });
 
     it('⏱️ 타임아웃 처리 메커니즘 검증', async () => {
@@ -229,7 +218,6 @@ describe('🔗 API 계약 검증 - 실제 동작 테스트', () => {
       expect(timeoutError.message).toContain('timed out');
       expect(duration).toBeLessThan(100); // 100ms 미만
 
-      console.log(`✅ 타임아웃 처리 메커니즘 정상 작동 (${duration}ms)`);
     });
 
   });
@@ -262,7 +250,6 @@ describe('🔗 API 계약 검증 - 실제 동작 테스트', () => {
         const afterRequest = apiLimiter.getRemainingRequests();
 
         expect(afterRequest).toBeLessThan(initialRequests);
-        console.log(`✅ Rate Limiting 정상 작동 (${initialRequests} → ${afterRequest})`);
       }
     });
 
@@ -282,7 +269,6 @@ describe('🔗 API 계약 검증 - 실제 동작 테스트', () => {
       expectedEndpoints.forEach(endpoint => {
         // 엔드포인트 형식 검증
         expect(endpoint).toMatch(/^\/api\/\w+/);
-        console.log(`✅ 엔드포인트 형식 검증: ${endpoint}`);
       });
 
       // THEN: 모든 엔드포인트가 예상 형식을 따라야 함
@@ -317,7 +303,6 @@ describe('🔗 API 계약 검증 - 실제 동작 테스트', () => {
         // 응답 타입 검증
         expect(['json', 'text', 'blob']).toContain(contract.responseType);
 
-        console.log(`✅ API 계약 검증 완료: ${endpoint}`);
       });
 
       // THEN: 모든 계약이 유효해야 함

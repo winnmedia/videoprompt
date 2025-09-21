@@ -394,7 +394,6 @@ describe('Grace QA: $300 사건 재발률 0% 완전 차단 시스템', () => {
               const [data, setData] = useState(null);
 
               useEffect(() => {
-                console.log('Component mounted');
               }, []); // 안전한 빈 의존성 배열
 
               return <div>{data}</div>;
@@ -561,7 +560,6 @@ describe('Grace QA: $300 사건 재발률 0% 완전 차단 시스템', () => {
     it('should maintain deployment velocity with safe code', () => {
       const safeBulkCode = Array.from({ length: 100 }, (_, i) => `
         useEffect(() => {
-          console.log('Component ${i} mounted');
         }, []);
       `).join('\n');
 
