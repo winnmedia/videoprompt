@@ -5,7 +5,7 @@ import { Button } from '@/shared/ui/button';
 import { Modal } from '@/shared/ui/Modal';
 import { Camera, MessageSquare, Share2, Repeat, Upload } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
-import { useProjectStore } from '@/entities/project';
+import { useProjectStore } from '@/app/store';
 import { safeFetch } from '@/shared/lib/api-retry';
 
 interface VideoVersionMeta {

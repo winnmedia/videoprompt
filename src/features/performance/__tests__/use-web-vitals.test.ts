@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useWebVitals } from '../use-web-vitals'
-import { usePerformanceStore } from '@/entities/performance'
+import { usePerformanceStore } from '@/app/store'
 
 // web-vitals 모킹
 vi.mock('web-vitals', () => ({
@@ -13,7 +13,7 @@ vi.mock('web-vitals', () => ({
 }))
 
 // 스토어 모킹
-vi.mock('@/entities/performance', () => ({
+vi.mock('@/app/store', () => ({
   usePerformanceStore: vi.fn()
 }))
 

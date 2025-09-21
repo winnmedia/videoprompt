@@ -1,8 +1,13 @@
+/**
+ * @deprecated This Zustand store has been migrated to Redux (@/app/store)
+ * This file is kept for transition period only. Use usePerformanceStore from @/app/store instead.
+ */
+
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import { 
-  type CoreWebVital, 
-  type APIPerformanceMetric, 
+import {
+  type CoreWebVital,
+  type APIPerformanceMetric,
   type PerformanceMetrics,
   type PerformanceBudget,
   DEFAULT_PERFORMANCE_BUDGET,

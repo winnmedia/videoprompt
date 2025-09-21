@@ -2,12 +2,12 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import ScenarioPage from '../page';
-import { useProjectStore } from '@/entities/project';
+import { useProjectStore } from '@/app/store';
 import * as hooks from '@/shared/lib/hooks/useAutoSave';
 import { ToastProvider } from '@/shared/ui/Toast';
 
 // Mock the project store
-vi.mock('@/entities/project', () => ({
+vi.mock('@/app/store', () => ({
   useProjectStore: vi.fn(),
 }));
 

@@ -13,7 +13,7 @@ import { ErrorBoundary } from '@/shared/ui';
 import { type PromptGenerationState, type VideoPrompt } from '@/shared/types/video-prompt';
 import { type PromptGenerationStateV31 } from '@/shared/types/video-prompt-v3.1';
 import { generateId } from '@/shared/lib/utils';
-import { useProjectStore } from '@/entities/project';
+import { useProjectStore } from '@/app/store';
 import { createEmptyV31Instance, compilePromptSimple, type CineGeniusV31Simple } from '@/lib/schemas/cinegenius-v3.1-simple';
 import { type StoryTemplate } from '@/entities/scenario';
 import { DEFAULT_TEMPLATES } from '@/entities/scenario';

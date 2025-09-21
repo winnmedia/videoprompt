@@ -1,3 +1,8 @@
+/**
+ * @deprecated This Zustand store has been migrated to Redux (@/app/store)
+ * This file is kept for transition period only. Use useProjectStore from @/app/store instead.
+ */
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type {

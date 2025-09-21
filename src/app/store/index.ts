@@ -26,6 +26,7 @@ import { scenarioReducer, storyReducer, storyboardReducer } from '@/entities/sce
 // 통합된 상태 관리 슬라이스들
 import authReducer from './auth-slice';
 import projectReducer from './project-slice';
+import performanceReducer from './performance-slice';
 
 /**
  * Persistence 설정
@@ -65,6 +66,7 @@ const rootReducer = combineReducers({
   project: persistedProjectReducer,
   pipeline: pipelineReducer,
   planning: planningReducer,
+  performance: performanceReducer,
 
   // 기존 스토어들 (점진적 마이그레이션)
   scenario: scenarioReducer,
@@ -192,12 +194,14 @@ export class StoreUtils {
  */
 export { useAuth, useAuthStore } from './hooks/useAuth';
 export { useProject, useProjectStore } from './hooks/useProject';
+export { usePerformance, usePerformanceStore } from './hooks/usePerformance';
 
 /**
  * Redux slice actions export
  */
 export * from './auth-slice';
 export * from './project-slice';
+export * from './performance-slice';
 
 /**
  * RTK Query exports

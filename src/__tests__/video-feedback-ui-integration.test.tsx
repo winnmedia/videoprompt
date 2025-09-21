@@ -35,8 +35,8 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams('?videoId=test-video-123&token=valid-test-token'),
 }));
 
-// Mock zustand store
-vi.mock('@/entities/project', () => ({
+// Mock Redux store
+vi.mock('@/app/store', () => ({
   useProjectStore: () => ({
     video: {
       videoUrl: 'https://example.com/test-video.mp4',

@@ -1,3 +1,9 @@
+/**
+ * @deprecated This test is for the legacy Zustand performance store
+ * The performance store has been migrated to Redux (@/app/store)
+ * This test is kept for legacy compatibility during transition period
+ */
+
 import { describe, it, expect, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { usePerformanceStore } from '../performance-store'

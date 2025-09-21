@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback, useMemo } from 'react';
-import { useProjectStore } from '@/entities/project';
+import { useProjectStore } from '@/app/store';
 import { apiClient } from '@/shared/lib/api-client';
 import { logger } from '@/shared/lib/logger';
 
