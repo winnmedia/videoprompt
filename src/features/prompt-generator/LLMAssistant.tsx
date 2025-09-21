@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/shared/lib/logger';
 import { Button } from '@/shared/ui/button';
 import { Copy, Check, Sparkles, Download, Eye, EyeOff } from 'lucide-react';
 import {
@@ -57,7 +58,7 @@ export const LLMAssistant: React.FC<LLMAssistantProps> = ({
 
       setAiSuggestions(suggestions);
     } catch (error) {
-      console.error('AI 추천 생성 실패:', error);
+      logger.error('AI 추천 생성 실패:', error instanceof Error ? error : new Error(String(error)));
       
       // 실패 시 기본 추천값 제공
       const fallbackSuggestions: AIResponse = {
@@ -140,7 +141,7 @@ export const LLMAssistant: React.FC<LLMAssistantProps> = ({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      console.error('클립보드 복사 실패:', error);
+      logger.error('클립보드 복사 실패:', error instanceof Error ? error : new Error(String(error)));
     }
   };
 
@@ -156,7 +157,7 @@ export const LLMAssistant: React.FC<LLMAssistantProps> = ({
       link.download = `${state.metadata.prompt_name || 'video-prompt'}.json`;
       link.click();
     } catch (error) {
-      console.error('JSON 다운로드 실패:', error);
+      logger.error('JSON 다운로드 실패:', error instanceof Error ? error : new Error(String(error)));
     }
   };
 

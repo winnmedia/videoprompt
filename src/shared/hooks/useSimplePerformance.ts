@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useCallback } from 'react';
+import { logger } from '@/shared/lib/logger';
 import { trackMetric, trackApi } from '@/shared/lib/monitoring/simple-monitor';
 
 /**
@@ -29,7 +30,7 @@ export function useWebVitalsTracking() {
       try {
         observer.observe({ entryTypes: ['largest-contentful-paint'] });
       } catch (error) {
-        console.warn('LCP tracking not supported');
+        logger.debug('LCP tracking not supported');
       }
     };
 
@@ -50,7 +51,7 @@ export function useWebVitalsTracking() {
       try {
         observer.observe({ entryTypes: ['layout-shift'] });
       } catch (error) {
-        console.warn('CLS tracking not supported');
+        logger.debug('CLS tracking not supported');
       }
     };
 

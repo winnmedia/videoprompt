@@ -28,7 +28,7 @@ export async function GET() {
     `${modelarkBase.replace(/\/$/, '')}/modelark/video_generation/tasks/{id}`;
   const hasKey = Boolean(process.env.SEEDANCE_API_KEY || process.env.MODELARK_API_KEY);
   const region =
-    process.env.RAILWAY_REGION || process.env.FLY_REGION || process.env.VERCEL_REGION || 'unknown';
+    process.env.FLY_REGION || process.env.VERCEL_REGION || 'unknown';
 
   // Egress IP
   const ipify = await fetchWithTimeout('https://api.ipify.org?format=json');

@@ -11,6 +11,7 @@
  */
 
 import { z } from 'zod';
+import { logger } from '@/shared/lib/logger';
 
 // ============================================================================
 // Core Domain Types (불변 계약)
@@ -302,7 +303,7 @@ export const AUTH_CONSTANTS = {
           LEGACY_REFRESH: 'refresh_token'
         };
       } catch (error) {
-        console.warn('Failed to parse SUPABASE_URL for cookie names');
+        logger.debug('Failed to parse SUPABASE_URL for cookie names');
       }
     }
     // 기본값
@@ -507,7 +508,7 @@ export function validateResponse<T>(
         `${err.path.join('.')}: ${err.message}`
       ).join(', ');
       
-      console.error(`스키마 검증 실패 ${context ? `(${context})` : ''}:`, {
+      logger.debug(`스키마 검증 실패 ${context ? `(${context})` : ''}:`, {
         errors: error.issues,
         received: response
       });

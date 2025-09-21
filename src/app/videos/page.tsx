@@ -6,6 +6,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/shared/lib/logger';
 import { Button } from '@/shared/ui';
 import { getPendingJobs, updateJobStatus, removeJobFromLocal } from '@/shared/hooks/useVideoPolling';
 
@@ -30,7 +31,7 @@ export default function VideosPage() {
         const jobs = getPendingJobs();
         setVideos(jobs);
       } catch (error) {
-        console.error('Failed to load videos:', error);
+        logger.error('Failed to load videos:', error instanceof Error ? error : new Error(String(error)));
       } finally {
         setLoading(false);
       }
@@ -87,7 +88,7 @@ export default function VideosPage() {
         );
       }
     } catch (error) {
-      console.error('Failed to refresh status:', error);
+      logger.error('Failed to refresh status:', error instanceof Error ? error : new Error(String(error)));
     }
   };
 

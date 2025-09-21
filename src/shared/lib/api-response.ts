@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 
 export type ApiSuccess<T> = { 
   ok: true; 
@@ -80,7 +81,7 @@ export function failure(
   };
 
   // 에러 로깅
-  console.error(`🚨 API Error [${code}]:`, {
+  logger.debug(`🚨 API Error [${code}]:`, {
     error,
     details,
     status,

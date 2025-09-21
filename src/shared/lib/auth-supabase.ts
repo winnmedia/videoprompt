@@ -113,14 +113,14 @@ export async function getSupabaseUserFromToken(token: string): Promise<User | nu
     const { data: { user }, error } = await supabase.auth.getUser(token);
 
     if (error || !user) {
-      console.warn('🚨 Supabase token verification failed:', error?.message);
+      logger.debug('🚨 Supabase token verification failed:', error?.message);
       return null;
     }
 
     logger.info(`🔑 Supabase authentication successful: ${user.id}`);
     return user;
   } catch (error) {
-    console.error('🚨 Supabase token parsing error:', error);
+    logger.error('🚨 Supabase token parsing error:', error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }
@@ -164,7 +164,7 @@ export async function getSupabaseUser(req: NextRequest): Promise<AuthUser | null
 
     return authUser;
   } catch (error) {
-    console.error('Failed to fetch user profile:', error);
+    logger.error('Failed to fetch user profile:', error instanceof Error ? error : new Error(String(error)));
 
     // 기본 정보만으로라도 반환
     return {
@@ -190,7 +190,7 @@ export async function getUserSupabase(req: NextRequest): Promise<AuthUser | null
 export async function requireSupabaseAuthentication(req: NextRequest): Promise<string | null> {
   const userId = await getUserIdFromRequestSupabase(req);
   if (!userId) {
-    console.warn('🚨 Supabase 인증 실패 - 토큰 없음 또는 유효하지 않음');
+    logger.debug('🚨 Supabase 인증 실패 - 토큰 없음 또는 유효하지 않음');
     return null;
   }
 
@@ -289,13 +289,13 @@ export async function getSupabaseUserByIdAdmin(userId: string): Promise<User | n
     const { data: { user }, error } = await supabaseAdmin.auth.admin.getUserById(userId);
 
     if (error || !user) {
-      console.warn('Failed to get user by ID:', error?.message);
+      logger.debug('Failed to get user by ID:', error?.message);
       return null;
     }
 
     return user;
   } catch (error) {
-    console.error('Error getting user by ID:', error);
+    logger.error('Error getting user by ID:', error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }

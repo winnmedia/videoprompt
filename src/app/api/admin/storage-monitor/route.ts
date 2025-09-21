@@ -110,7 +110,7 @@ export async function GET(req: NextRequest) {
         lastSyncTime: new Date().toISOString()
       };
     } catch (error) {
-      console.warn('일관성 체크 실패:', error);
+      logger.error('일관성 체크 실패:', error instanceof Error ? error : new Error(String(error)));
     }
 
     // 6. 시스템 전체 상태 평가
@@ -172,7 +172,7 @@ export async function GET(req: NextRequest) {
     );
 
   } catch (error) {
-    console.error('❌ 저장소 모니터링 API 오류:', error);
+    logger.error('❌ 저장소 모니터링 API 오류:', error instanceof Error ? error : new Error(String(error)));
 
     return NextResponse.json(
       createErrorResponse(

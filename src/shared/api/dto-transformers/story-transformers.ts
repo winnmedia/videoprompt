@@ -5,6 +5,7 @@
  */
 
 import { StoryInput, StoryStep } from '@/entities/scenario';
+import { logger } from '@/shared/lib/logger';
 import { CreateStoryRequestSchema, StorySchema } from '@/shared/schemas/story.schema';
 import { z } from 'zod';
 
@@ -153,7 +154,7 @@ export function transformApiResponseToStorySteps(
 
     // 권장 단계 수 검증 (4단계)
     if (steps.length !== 4) {
-      console.warn(`권장되는 4단계와 다른 ${steps.length}단계가 생성되었습니다`);
+      logger.debug(`권장되는 4단계와 다른 ${steps.length}단계가 생성되었습니다`);
     }
 
     return steps;

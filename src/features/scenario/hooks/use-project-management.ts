@@ -111,7 +111,7 @@ export function useUpdateProject() {
     try {
       // 현재 파이프라인 ProjectID와 일치하는지 확인
       if (currentProjectId && data.id !== currentProjectId) {
-        console.warn('⚠️ ProjectID 불일치:', {
+        logger.debug('⚠️ ProjectID 불일치:', {
           requestId: data.id,
           currentId: currentProjectId
         });
@@ -221,7 +221,7 @@ export function useAutoSaveProject(
           }
         });
       } catch (error) {
-        console.error('Auto-save failed:', error);
+        logger.error('Auto-save failed:', error instanceof Error ? error : new Error(String(error)));
       }
     }, 30 * 1000);
 

@@ -17,7 +17,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/app/store/hooks/useAuth';
+// TODO: Move useAuth to shared layer to fix FSD violation
+// import { useAuth } from '@/app/store/hooks/useAuth';
 import { Button, VisuallyHidden } from '@/shared/ui';
 import { logger } from '@/shared/lib/logger';
 

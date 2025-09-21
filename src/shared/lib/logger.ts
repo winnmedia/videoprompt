@@ -1,3 +1,5 @@
+import { logger } from '@/shared/lib/logger';
+
 /**
  * 강화된 구조화 로깅 시스템
  *
@@ -49,10 +51,19 @@ export interface LogMetadata {
 
 class Logger {
   private currentLevel: LogLevel;
+  private context: Record<string, unknown> = {};
 
   constructor() {
     // 환경별 로그 레벨 설정
     this.currentLevel = this.getLogLevel();
+  }
+
+  setContext(context: Record<string, unknown>): void {
+    this.context = { ...this.context, ...context };
+  }
+
+  clearContext(): void {
+    this.context = {};
   }
 
   private getLogLevel(): LogLevel {
@@ -72,11 +83,12 @@ class Logger {
     return nodeEnv === 'production' ? LogLevel.WARN : LogLevel.DEBUG;
   }
 
-  private formatMessage(level: LogLevel, message: string, metadata: Partial<LogMetadata> = {}): string {
+  private formatMessage(level: LogLevel, message: string, metadata: Record<string, unknown> = {}): string {
     const baseMetadata: LogMetadata = {
       timestamp: new Date().toISOString(),
       level,
       service: 'videoprompt-api',
+      ...this.context,
       ...metadata
     };
 
@@ -103,24 +115,25 @@ class Logger {
     return level >= this.currentLevel;
   }
 
-  debug(message: string, metadata: Partial<LogMetadata> = {}): void {
+  debug(message: string, metadata: Record<string, unknown> = {}): void {
     if (this.shouldLog(LogLevel.DEBUG)) {
-      console.debug(this.formatMessage(LogLevel.DEBUG, message, metadata));
+      logger.debug(this.formatMessage(LogLevel.DEBUG, message, metadata));
     }
   }
 
-  info(message: string, metadata: Partial<LogMetadata> = {}): void {
+  info(message: string, metadata: Record<string, unknown> = {}): void {
     if (this.shouldLog(LogLevel.INFO)) {
+      logger.info(this.formatMessage(LogLevel.INFO, message, metadata));
     }
   }
 
-  warn(message: string, metadata: Partial<LogMetadata> = {}): void {
+  warn(message: string, metadata: Record<string, unknown> = {}): void {
     if (this.shouldLog(LogLevel.WARN)) {
-      console.warn(this.formatMessage(LogLevel.WARN, message, metadata));
+      logger.warn(this.formatMessage(LogLevel.WARN, message, metadata));
     }
   }
 
-  error(message: string, error?: Error, metadata: Partial<LogMetadata> = {}): void {
+  error(message: string, error?: Error, metadata: Record<string, unknown> = {}): void {
     if (this.shouldLog(LogLevel.ERROR)) {
       const errorMetadata = error ? {
         error: {
@@ -141,7 +154,7 @@ class Logger {
   /**
    * API 요청 시작 로깅
    */
-  apiStart(operation: string, metadata: Partial<LogMetadata> = {}): string {
+  apiStart(operation: string, metadata: Record<string, unknown> = {}): string {
     const requestId = generateRequestId();
 
     this.info(`API request started: ${operation}`, {
@@ -161,7 +174,7 @@ class Logger {
     requestId: string,
     startTime: number,
     statusCode: number,
-    metadata: Partial<LogMetadata> = {}
+    metadata: Record<string, unknown> = {}
   ): void {
     const duration = Date.now() - startTime;
     const level = statusCode >= 400 ? LogLevel.ERROR : LogLevel.INFO;
@@ -192,7 +205,7 @@ class Logger {
   geminiCall(
     model: string,
     operation: string,
-    metadata: Partial<LogMetadata> = {}
+    metadata: Record<string, unknown> = {}
   ): void {
     this.info(`Gemini API call: ${operation}`, {
       operation: `gemini-${operation}`,
@@ -210,7 +223,7 @@ class Logger {
   performance(
     operation: string,
     timing: { [key: string]: number },
-    metadata: Partial<LogMetadata> = {}
+    metadata: Record<string, unknown> = {}
   ): void {
     this.info(`Performance metrics: ${operation}`, {
       operation,
@@ -248,7 +261,7 @@ class Logger {
   security(
     event: string,
     severity: 'low' | 'medium' | 'high' | 'critical',
-    metadata: Partial<LogMetadata> = {}
+    metadata: Record<string, unknown> = {}
   ): void {
     const level = severity === 'critical' || severity === 'high' ? LogLevel.ERROR : LogLevel.WARN;
     const message = `Security event: ${event}`;
@@ -275,8 +288,8 @@ class Logger {
   }
 
   // Legacy 호환성을 위한 기존 메서드들
-  apiError(endpoint: string, error: any): void {
-    this.error(`API 호출 실패: ${endpoint}`, error);
+  apiError(endpoint: string, error: Error | unknown): void {
+    this.error(`API 호출 실패: ${endpoint}`, error instanceof Error ? error : new Error(String(error)));
   }
 
   userAction(action: string, data?: Record<string, unknown>): void {
@@ -296,7 +309,7 @@ function generateRequestId(): string {
 /**
  * 민감 정보 마스킹
  */
-function maskSensitiveData(data: any): any {
+function maskSensitiveData(data: unknown): unknown {
   if (typeof data !== 'object' || data === null) {
     return data;
   }
@@ -348,11 +361,11 @@ export class PerformanceTimer {
 export const logger = new Logger();
 
 // 전역 에러 핸들러 (Next.js API 라우트용)
-export function withErrorLogging<T extends (...args: any[]) => any>(
+export function withErrorLogging<T extends (...args: unknown[]) => unknown>(
   handler: T,
   operation: string
 ): T {
-  return (async (...args: any[]) => {
+  return (async (...args: unknown[]) => {
     const startTime = Date.now();
     const requestId = logger.apiStart(operation);
 

@@ -63,7 +63,7 @@ export class SupabaseRepositoryImpl implements SupabaseRepository {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown Supabase error';
-      console.error(`❌ Supabase: 시나리오 저장 실패 - ${data.id}:`, errorMessage);
+      logger.debug(`❌ Supabase: 시나리오 저장 실패 - ${data.id}:`, errorMessage);
       return { success: false, error: errorMessage };
     }
   }
@@ -98,7 +98,7 @@ export class SupabaseRepositoryImpl implements SupabaseRepository {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown Supabase error';
-      console.error(`❌ Supabase: 프롬프트 저장 실패 - ${data.id}:`, errorMessage);
+      logger.debug(`❌ Supabase: 프롬프트 저장 실패 - ${data.id}:`, errorMessage);
       return { success: false, error: errorMessage };
     }
   }
@@ -133,7 +133,7 @@ export class SupabaseRepositoryImpl implements SupabaseRepository {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown Supabase error';
-      console.error(`❌ Supabase: 영상 저장 실패 - ${data.id}:`, errorMessage);
+      logger.debug(`❌ Supabase: 영상 저장 실패 - ${data.id}:`, errorMessage);
       return { success: false, error: errorMessage };
     }
   }
@@ -229,7 +229,7 @@ export class SupabaseRepositoryImpl implements SupabaseRepository {
       return null;
 
     } catch (error) {
-      console.error(`❌ Supabase: ID로 조회 실패 - ${id}:`, error);
+      logger.error(`❌ Supabase: ID로 조회 실패 - ${id}:`, error instanceof Error ? error : new Error(String(error)));
       return null;
     }
   }
@@ -280,7 +280,7 @@ export class SupabaseRepositoryImpl implements SupabaseRepository {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown Supabase error';
-      console.error(`❌ Supabase: 상태 업데이트 실패 - ${id}:`, errorMessage);
+      logger.debug(`❌ Supabase: 상태 업데이트 실패 - ${id}:`, errorMessage);
       return { success: false, error: errorMessage };
     }
   }

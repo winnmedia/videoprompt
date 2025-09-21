@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     try {
       supabase = await getSupabaseClientSafe('anon');
     } catch (error) {
-      console.error('Supabase client initialization failed:', error);
+      logger.error('Supabase client initialization failed:', error instanceof Error ? error : new Error(String(error)));
 
       if (error instanceof ServiceConfigError) {
         const response = failure(
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
 
     // 🚨 무한 루프 방지: MISSING_REFRESH_TOKEN은 반드시 400 에러
     if (!supabaseRefreshToken) {
-      console.warn('🚨 Missing refresh token - preventing infinite loop with 400 status');
+      logger.debug('🚨 Missing refresh token - preventing infinite loop with 400 status');
 
       // 표준 HTTP 에러 핸들러 사용
       const errorResponse = createMissingRefreshTokenError(
@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (error || !data.session) {
-      console.warn('🚨 Supabase session refresh failed:', error?.message);
+      logger.debug('🚨 Supabase session refresh failed:', error?.message);
 
       // 토큰 갱신 실패는 401 에러 (인증 실패)
       const errorResponse = createUnauthorizedError(
@@ -135,7 +135,7 @@ export async function POST(req: NextRequest) {
     const { session, user } = data;
 
     if (!user) {
-      console.warn('🚨 User is null after session refresh');
+      logger.debug('🚨 User is null after session refresh');
 
       const errorResponse = createUnauthorizedError(
         req,
@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
       setToken(session.access_token, 'supabase', expiresAt);
       logger.info('✅ TokenManager updated with new Supabase session');
     } catch (tokenError) {
-      console.warn('⚠️ TokenManager update failed, continuing without backup:', tokenError);
+      logger.debug('⚠️ TokenManager update failed, continuing without backup:', tokenError);
       // TokenManager 실패는 치명적이지 않음 - 쿠키만으로도 동작 가능
     }
 
@@ -192,18 +192,18 @@ export async function POST(req: NextRequest) {
     return addCorsHeaders(response);
 
   } catch (error: any) {
-    console.error('🚨 Refresh token error:', error);
+    logger.error('🚨 Refresh token error:', error instanceof Error ? error : new Error(String(error)));
 
     // Supabase 환경 변수 관련 에러 감지
     if (error?.message?.includes('SUPABASE_URL') || error?.message?.includes('SUPABASE_ANON_KEY')) {
-      console.error('🚨 Supabase configuration error detected:', error.message);
+      logger.debug('🚨 Supabase configuration error detected:', error.message);
       const response = supabaseErrors.configError(traceId, `Supabase config error: ${error.message}`);
       return addCorsHeaders(response);
     }
 
     // 네트워크/연결 에러 (Graceful degradation)
     if (error?.message?.includes('fetch') || error?.message?.includes('network') || error?.message?.includes('ENOTFOUND')) {
-      console.error('🚨 Network error during token refresh:', error.message);
+      logger.debug('🚨 Network error during token refresh:', error.message);
       const response = supabaseErrors.tokenRefreshUnavailable(traceId, `Network error: ${error.message}`);
       return addCorsHeaders(response);
     }

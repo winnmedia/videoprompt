@@ -90,7 +90,7 @@ export class ApiClient {
       if (now - request.timestamp > staleThreshold) {
         this.pendingApiRequests.delete(key);
         if (this.isDebugMode()) {
-          console.warn(`⚠️ [API Client] Cleaned up stale request: ${key}`);
+          logger.debug(`⚠️ [API Client] Cleaned up stale request: ${key}`);
         }
       }
     });
@@ -204,7 +204,7 @@ export class ApiClient {
       }
 
       // 기타 서버 오류 (500, 503 등)
-      console.error(`🚨 Token refresh failed: ${response.status} ${response.statusText}`);
+      logger.debug(`🚨 Token refresh failed: ${response.status} ${response.statusText}`);
       throw new Error(`Token refresh server error: ${response.status}`);
     }
 
@@ -271,7 +271,7 @@ export class ApiClient {
       return retryResponse;
 
     } catch (refreshError) {
-      console.error('Token refresh failed:', refreshError);
+      logger.debug('Token refresh failed:', refreshError);
       this.rejectQueuedRequests(refreshError instanceof Error ? refreshError : new Error('Token refresh failed'));
 
       // 🚨 핵심: 400 vs 401 구분에 따른 명확한 에러 메시지
@@ -380,7 +380,7 @@ export class ApiClient {
         return { Authorization: `Bearer ${refreshedToken}` };
       } catch (error) {
         if (this.isDebugMode()) {
-          console.warn('⚠️ [Auth Headers] Token refresh failed:', error);
+          logger.error('⚠️ [Auth Headers] Token refresh failed:', error instanceof Error ? error : new Error(String(error)));
         }
         return {};
       }

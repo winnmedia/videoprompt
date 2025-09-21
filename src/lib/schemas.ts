@@ -219,7 +219,7 @@ export function testAllSchemas() {
       logger.info('✅ Legacy Schema Test Passed');
       
     } catch (error) {
-      console.error('❌ Schema Test Failed:', error);
+      logger.error('❌ Schema Test Failed:', error);
     }
   }
 }
@@ -362,7 +362,7 @@ export function migrateV2ToV3(v2Data: any) {
     return validateV3Prompt(v3Data);
     
   } catch (error) {
-    console.error('Migration error details:', error);
+    logger.error('Migration error details:', error);
     throw new Error(`Migration failed: ${error}`);
   }
 }

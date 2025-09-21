@@ -118,7 +118,7 @@ export function useWorkflowState() {
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '스토리 저장 실패';
-      console.error('❌ 스토리 저장 실패:', error);
+      logger.error('❌ 스토리 저장 실패:', error instanceof Error ? error : new Error(String(error)));
       setError(errorMessage);
       throw error;
     } finally {
@@ -150,7 +150,7 @@ export function useWorkflowState() {
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '시나리오 생성 실패';
-      console.error('❌ 시나리오 생성 실패:', error);
+      logger.error('❌ 시나리오 생성 실패:', error instanceof Error ? error : new Error(String(error)));
       setError(errorMessage);
       throw error;
     } finally {
@@ -203,7 +203,7 @@ export function useWorkflowState() {
       }));
 
       const errorMessage = error instanceof Error ? error.message : 'AI 프롬프트 생성 실패';
-      console.error('❌ AI 프롬프트 생성 실패 (기본 프롬프트 사용):', error);
+      logger.error('❌ AI 프롬프트 생성 실패 (기본 프롬프트 사용):', error instanceof Error ? error : new Error(String(error)));
       setError(errorMessage);
       throw error;
     } finally {
@@ -263,7 +263,7 @@ export function useWorkflowState() {
           });
           localStorage.setItem('videoJobs', JSON.stringify(jobs));
         } catch (storageError) {
-          console.warn('localStorage 저장 실패:', storageError);
+          logger.debug('localStorage 저장 실패:', storageError);
         }
 
         return { success: true, jobId };
@@ -282,7 +282,7 @@ export function useWorkflowState() {
           error: errorMessage
         }
       });
-      console.error('❌ 영상 생성 실패:', error);
+      logger.error('❌ 영상 생성 실패:', error instanceof Error ? error : new Error(String(error)));
       setError(errorMessage);
       throw error;
     } finally {
@@ -315,7 +315,7 @@ export function useWorkflowState() {
 
       setCurrentStep(prev => Math.min(prev + 1, 4));
     } catch (error) {
-      console.error('단계 진행 실패:', error);
+      logger.error('단계 진행 실패:', error instanceof Error ? error : new Error(String(error)));
       // 에러가 있어도 사용자가 수동으로 다음 단계로 갈 수 있도록 함
     }
   }, [currentStep, saveStory, generateScenario, generatePrompt]);

@@ -111,7 +111,7 @@ export async function createSeedreamImage(
   // API 키 확인
   if (!apiKey) {
     const error = 'SeeDream API 키가 설정되지 않았습니다. 환경변수 SEEDREAM_API_KEY를 설정해주세요.';
-    console.error('DEBUG: SeeDream API 키 설정 오류:', error);
+    logger.error('DEBUG: SeeDream API 키 설정 오류:', error);
     return { ok: false, error };
   }
 
@@ -121,7 +121,7 @@ export async function createSeedreamImage(
 
     if (!requestedModel) {
       const error = 'SeeDream model/endpoint가 설정되지 않았습니다. SEEDREAM_MODEL 환경변수를 설정해주세요.';
-      console.error('DEBUG: SeeDream 모델 설정 오류:', error);
+      logger.error('DEBUG: SeeDream 모델 설정 오류:', error);
       return { ok: false, error };
     }
 
@@ -175,7 +175,7 @@ export async function createSeedreamImage(
 
     if (!response.ok) {
       const errorMessage = `SeeDream API 오류 (${response.status}): ${response.statusText}`;
-      console.error('DEBUG: SeeDream API HTTP 오류:', {
+      logger.error('DEBUG: SeeDream API HTTP 오류:', {
         status: response.status,
         statusText: response.statusText,
         responseText: responseText.slice(0, 500),
@@ -187,7 +187,7 @@ export async function createSeedreamImage(
     try {
       json = JSON.parse(responseText);
     } catch (parseError) {
-      console.error('DEBUG: SeeDream API 응답 파싱 오류:', parseError);
+      logger.error('DEBUG: SeeDream API 응답 파싱 오류:', parseError);
       return { ok: false, error: 'API 응답 파싱 실패', raw: responseText };
     }
 
@@ -210,7 +210,7 @@ export async function createSeedreamImage(
     };
 
   } catch (error) {
-    console.error('DEBUG: SeeDream API 네트워크 오류:', error);
+    logger.error('DEBUG: SeeDream API 네트워크 오류:', error);
     return {
       ok: false,
       error: `SeeDream API 호출 실패: ${(error as Error).message}`,
@@ -249,7 +249,7 @@ export async function getSeedreamStatus(jobId: string): Promise<SeedreamStatusRe
     const responseText = await response.text();
 
     if (!response.ok) {
-      console.error('DEBUG: SeeDream 상태 확인 HTTP 오류:', {
+      logger.error('DEBUG: SeeDream 상태 확인 HTTP 오류:', {
         status: response.status,
         statusText: response.statusText,
         responseText: responseText.slice(0, 500),
@@ -293,7 +293,7 @@ export async function getSeedreamStatus(jobId: string): Promise<SeedreamStatusRe
     };
 
   } catch (error) {
-    console.error('DEBUG: SeeDream 상태 확인 네트워크 오류:', error);
+    logger.error('DEBUG: SeeDream 상태 확인 네트워크 오류:', error);
     return {
       ok: false,
       status: 'failed',

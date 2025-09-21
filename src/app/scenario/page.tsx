@@ -106,7 +106,7 @@ export default function ScenarioPage() {
           targetAudience: enrichedWorkflowState.storyInput.target
         });
       } catch (error) {
-        console.error('스토리 제출 실패:', error);
+        logger.error('스토리 제출 실패:', error instanceof Error ? error : new Error(String(error)));
       }
     },
     handleStoryUpdate: async (updatedStory: Partial<typeof enrichedWorkflowState.storyInput>) => {
@@ -123,7 +123,7 @@ export default function ScenarioPage() {
 
         logger.info('스토리 업데이트 완료:', updatedStory);
       } catch (error) {
-        console.error('스토리 업데이트 실패:', error);
+        logger.error('스토리 업데이트 실패:', error instanceof Error ? error : new Error(String(error)));
       }
     },
     handleShotsGeneration: async () => {
@@ -135,7 +135,7 @@ export default function ScenarioPage() {
           target: enrichedWorkflowState.storyInput.target || 'General Audience'
         });
       } catch (error) {
-        console.error('시나리오 생성 실패:', error);
+        logger.error('시나리오 생성 실패:', error instanceof Error ? error : new Error(String(error)));
       }
     },
     handleExport: async () => {
@@ -144,7 +144,7 @@ export default function ScenarioPage() {
         await pipeline.checkPipelineStatus();
         logger.info('📊 프로젝트 내보내기 완료:', pipeline.projectId);
       } catch (error) {
-        console.error('내보내기 실패:', error);
+        logger.error('내보내기 실패:', error instanceof Error ? error : new Error(String(error)));
       }
     },
     handlePdfExport: async () => {
@@ -153,7 +153,7 @@ export default function ScenarioPage() {
         // TODO: PDF 생성 API 호출
         alert('PDF 내보내기 기능은 준비 중입니다.');
       } catch (error) {
-        console.error('PDF 내보내기 실패:', error);
+        logger.error('PDF 내보내기 실패:', error instanceof Error ? error : new Error(String(error)));
       }
     },
     handleExcelExport: async () => {
@@ -162,7 +162,7 @@ export default function ScenarioPage() {
         // TODO: Excel 생성 API 호출
         alert('Excel 내보내기 기능은 준비 중입니다.');
       } catch (error) {
-        console.error('Excel 내보내기 실패:', error);
+        logger.error('Excel 내보내기 실패:', error instanceof Error ? error : new Error(String(error)));
       }
     },
     handleProjectSave: async () => {
@@ -172,7 +172,7 @@ export default function ScenarioPage() {
         await pipeline.checkPipelineStatus();
         alert(`프로젝트 ${pipeline.projectId}가 저장되었습니다. URL을 북마크하여 나중에 편집할 수 있습니다.`);
       } catch (error) {
-        console.error('프로젝트 저장 실패:', error);
+        logger.error('프로젝트 저장 실패:', error instanceof Error ? error : new Error(String(error)));
       }
     },
     setCurrentStep: (step: WorkflowStep) => {
@@ -210,7 +210,7 @@ export default function ScenarioPage() {
           currentStep: WORKFLOW_STEPS.STORY_REVIEW
         }));
       } catch (error) {
-        console.error('스토리 생성 실패:', error);
+        logger.error('스토리 생성 실패:', error instanceof Error ? error : new Error(String(error)));
         // 에러는 이미 useStoryGeneration 훅에서 처리됨
       }
     },
@@ -249,7 +249,7 @@ export default function ScenarioPage() {
         });
         setWorkflowState(prev => ({ ...prev, currentStep: WORKFLOW_STEPS.SHOTS_GENERATION }));
       } catch (error) {
-        console.error('숏트 생성 실패:', error);
+        logger.error('숏트 생성 실패:', error instanceof Error ? error : new Error(String(error)));
       }
     },
     goToPreviousStep: () => {
@@ -334,7 +334,7 @@ export default function ScenarioPage() {
 
       alert(`템플릿 "${templateData.name}"이 저장되었습니다!`);
     } catch (error) {
-      console.error('템플릿 저장 실패:', error);
+      logger.error('템플릿 저장 실패:', error instanceof Error ? error : new Error(String(error)));
       alert('템플릿 저장에 실패했습니다.');
     }
   }, [pipeline.projectId]);
@@ -372,7 +372,7 @@ export default function ScenarioPage() {
       logger.info('✅ 콘티 이미지 생성 완료:', shotId);
 
     } catch (error) {
-      console.error('콘티 생성 실패:', error);
+      logger.error('콘티 생성 실패:', error instanceof Error ? error : new Error(String(error)));
       alert('콘티 이미지 생성에 실패했습니다.');
     } finally {
       setIsGeneratingImage(prev => ({ ...prev, [shotId]: false }));
@@ -403,7 +403,7 @@ export default function ScenarioPage() {
       alert('인서트샷 영상 생성이 요청되었습니다. 처리까지 몇 분이 소요될 수 있습니다.');
 
     } catch (error) {
-      console.error('인서트샷 생성 실패:', error);
+      logger.error('인서트샷 생성 실패:', error instanceof Error ? error : new Error(String(error)));
       alert('인서트샷 생성에 실패했습니다.');
     }
   }, [workflow, pipeline.handleVideoGeneration]);
@@ -499,31 +499,76 @@ export default function ScenarioPage() {
               <p className="text-gray-600 mb-6">
                 완성된 시나리오와 콘티를 다양한 형태로 내보낼 수 있습니다.
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <button
-                  onClick={workflow.handlePdfExport}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-4 h-24 flex flex-col items-center justify-center rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500"
-                >
-                  <span className="font-medium">PDF 다운로드</span>
-                  <span className="text-sm text-gray-500 mt-1">콘티북 형태</span>
-                </button>
-                <button
-                  onClick={workflow.handleExcelExport}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-4 h-24 flex flex-col items-center justify-center rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500"
-                >
-                  <span className="font-medium">Excel 다운로드</span>
-                  <span className="text-sm text-gray-500 mt-1">편집 가능한 표</span>
-                </button>
-                <button
-                  onClick={workflow.handleProjectSave}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-4 h-24 flex flex-col items-center justify-center rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500"
-                >
-                  <span className="font-medium">프로젝트 저장</span>
-                  <span className="text-sm text-gray-500 mt-1">나중에 편집</span>
-                </button>
+
+              {/* Export Actions 컴포넌트 사용 */}
+              <div className="mb-8">
+                <div className="bg-gray-50 p-6 rounded-lg">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">시나리오 내보내기</h3>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-600 text-sm">
+                        현재 시나리오를 PDF 또는 Excel 형식으로 내보낼 수 있습니다.
+                      </p>
+                      <p className="text-gray-500 text-xs mt-1">
+                        총 {workflow.shots.length}개의 샷과 스토리 단계를 포함합니다.
+                      </p>
+                    </div>
+                    <div className="ml-4">
+                      {/* ExportActions 컴포넌트 사용 */}
+                      {React.createElement(
+                        React.lazy(() => import('@/widgets/export').then(m => ({ default: m.ExportActions }))),
+                        {
+                          mode: 'scenario' as const,
+                          variant: 'default' as const,
+                          customData: {
+                            title: workflow.storyInput.title || '시나리오',
+                            description: workflow.storyInput.oneLineStory,
+                            shots: workflow.shots.map((shot: any, index: number) => ({
+                              id: shot.id || `shot-${index}`,
+                              title: shot.title || `샷 ${index + 1}`,
+                              description: shot.description || '',
+                              duration: shot.duration,
+                              location: shot.location,
+                              characters: shot.characters || [],
+                              equipment: shot.equipment || [],
+                              notes: shot.notes
+                            })),
+                            metadata: {
+                              createdAt: new Date().toISOString(),
+                              createdBy: 'User',
+                              projectId: pipeline.projectId,
+                              version: '1.0'
+                            }
+                          }
+                        }
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="mt-6 pt-6 border-t flex justify-between">
+              {/* 프로젝트 저장 */}
+              <div className="bg-blue-50 p-6 rounded-lg mb-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">프로젝트 저장</h3>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 text-sm">
+                      현재 작업 중인 프로젝트를 저장하여 나중에 계속 편집할 수 있습니다.
+                    </p>
+                    <p className="text-blue-600 text-xs mt-1 font-medium">
+                      프로젝트 ID: {pipeline.projectId}
+                    </p>
+                  </div>
+                  <button
+                    onClick={workflow.handleProjectSave}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    프로젝트 저장
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-6 border-t flex justify-between">
                 <button
                   onClick={workflow.goToPreviousStep}
                   className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500"

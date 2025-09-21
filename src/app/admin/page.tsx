@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { logger } from '@/shared/lib/logger';
 import { AdminClient } from './AdminClient';
 import { StatCard } from '@/shared/ui/stat-card';
 import { AdminTablesClient } from './AdminTablesClient';
@@ -18,7 +19,7 @@ type Overview = {
 async function getOverview(): Promise<Overview> {
   try {
     // TODO: Supabase 통계 구현 필요
-    console.warn('📊 Admin overview - Supabase 통계 구현 대기 중');
+    logger.debug('📊 Admin overview - Supabase 통계 구현 대기 중');
 
     return {
       usersCount: 0,
@@ -51,7 +52,7 @@ type Recent = {
 async function getRecent(): Promise<Recent> {
   try {
     // TODO: Supabase 최근 데이터 조회 구현 필요
-    console.warn('📊 Admin recent data - Supabase 구현 대기 중');
+    logger.debug('📊 Admin recent data - Supabase 구현 대기 중');
 
     return {
       recentProjects: [],

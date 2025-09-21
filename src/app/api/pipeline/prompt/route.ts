@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 
 /**
  * 프롬프트 생성 - Planning API로 프록시
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Pipeline prompt proxy error:', error);
+    logger.error('Pipeline prompt proxy error:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({
       success: false,
       error: '프롬프트 처리 중 오류가 발생했습니다.'

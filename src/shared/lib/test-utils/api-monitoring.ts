@@ -176,7 +176,7 @@ class APIMonitor {
 
     // 실시간 위험 감지
     if (this.detectImmediateRisk(call)) {
-      console.warn(`🚨 API Risk Detected in ${this.testName}:`, {
+      logger.debug(`🚨 API Risk Detected in ${this.testName}:`, {
         pattern: 'immediate_risk',
         call,
         recommendation: 'Check for infinite loops or rapid API calls'
@@ -464,8 +464,8 @@ export const createAPIMonitoringPlugin = () => {
 
         // 위험한 패턴 감지 시 경고
         if (stats.costRisk === 'critical') {
-          console.warn(`🚨 CRITICAL: Test "${test.name}" has high API cost risk!`);
-          console.warn(apiMonitoring.generateReport());
+          logger.debug(`🚨 CRITICAL: Test "${test.name}" has high API cost risk!`);
+          logger.debug(apiMonitoring.generateReport());
         }
 
         // 테스트 실패 시 API 패턴 분석

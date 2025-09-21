@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
-import { logger, LogCategory } from '@/shared/lib/structured-logger';
+import { logger } from '@/shared/lib/logger';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { z } from 'zod';
 
@@ -56,7 +56,7 @@ async function getFeedbackFiles(feedbackId: string, traceId: string): Promise<Fe
       .order('created_at', { ascending: false });
 
     if (error) {
-      logger.error(LogCategory.DATABASE, 'Failed to fetch feedback files', error, {
+      logger.error('DATABASE: Failed to fetch feedback files', error, {
         feedbackId,
         traceId
       });
@@ -66,7 +66,7 @@ async function getFeedbackFiles(feedbackId: string, traceId: string): Promise<Fe
     // 응답 스키마 검증
     const validatedData = FeedbackFilesResponseSchema.parse(data || []);
 
-    logger.info(LogCategory.DATABASE, 'Feedback files fetched successfully', {
+    logger.info('DATABASE: Feedback files fetched successfully', {
       feedbackId,
       filesCount: validatedData.length,
       traceId
@@ -75,14 +75,14 @@ async function getFeedbackFiles(feedbackId: string, traceId: string): Promise<Fe
     return validatedData;
   } catch (error) {
     if (error instanceof z.ZodError) {
-      logger.error(LogCategory.DATABASE, 'Invalid feedback files data structure', error, {
+      logger.error('DATABASE: Invalid feedback files data structure', error, {
         feedbackId,
         traceId
       });
       throw new Error('피드백 파일 데이터 구조가 올바르지 않습니다.');
     }
 
-    logger.error(LogCategory.DATABASE, 'Get feedback files failed', error as Error, {
+    logger.error('DATABASE: Get feedback files failed', error as Error, {
       feedbackId,
       traceId
     });
@@ -129,14 +129,14 @@ export async function GET(
       userAgent: request.headers.get('user-agent') || undefined,
     });
 
-    logger.info(LogCategory.API, 'Feedback files fetch request started', {
+    logger.info('API: Feedback files fetch request started', {
       feedbackId,
       traceId
     });
 
     // 피드백 ID 검증
     if (!feedbackId || feedbackId.trim().length === 0) {
-      logger.warn(LogCategory.API, 'Invalid feedback ID provided', {
+      logger.warn('API: Invalid feedback ID provided', {
         feedbackId,
         traceId
       });
@@ -189,7 +189,7 @@ export async function GET(
       totalSizeFormatted: formatFileSize(files.reduce((sum, f) => sum + f.file_size, 0))
     };
 
-    logger.info(LogCategory.API, 'Feedback files fetched successfully', {
+    logger.info('API: Feedback files fetched successfully', {
       feedbackId,
       filesCount: files.length,
       stats,
@@ -216,7 +216,7 @@ export async function GET(
 
   } catch (error: any) {
     const traceId = getTraceId(request);
-    logger.error(LogCategory.API, 'Feedback files fetch request failed', error, {
+    logger.error('API: Feedback files fetch request failed', error, {
       traceId,
       errorMessage: error.message
     });
@@ -265,7 +265,7 @@ export async function POST(
       userAgent: request.headers.get('user-agent') || undefined,
     });
 
-    logger.info(LogCategory.API, 'Batch feedback files upload request started', {
+    logger.info('API: Batch feedback files upload request started', {
       feedbackId,
       traceId
     });
@@ -314,7 +314,7 @@ export async function POST(
       );
     }
 
-    logger.info(LogCategory.API, 'Processing batch file upload', {
+    logger.info('API: Processing batch file upload', {
       feedbackId,
       filesCount: files.length,
       userId,
@@ -372,7 +372,7 @@ export async function POST(
     const successCount = uploadResults.length;
     const errorCount = errors.length;
 
-    logger.info(LogCategory.API, 'Batch upload completed', {
+    logger.info('API: Batch upload completed', {
       feedbackId,
       totalFiles: files.length,
       successCount,
@@ -414,7 +414,7 @@ export async function POST(
 
   } catch (error: any) {
     const traceId = getTraceId(request);
-    logger.error(LogCategory.API, 'Batch feedback files upload failed', error, {
+    logger.error('API: Batch feedback files upload failed', error, {
       traceId,
       errorMessage: error.message
     });

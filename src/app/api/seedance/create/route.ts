@@ -78,7 +78,7 @@ const postHandler = async (request: NextRequest, { user, authContext }: { user: 
       });
     } catch (error) {
       if (error instanceof ServiceConfigError) {
-        console.error('🚨 Seedance 설정 검증 실패:', {
+        logger.debug('🚨 Seedance 설정 검증 실패:', {
           code: error.errorCode,
           message: error.message
         });
@@ -124,7 +124,7 @@ const postHandler = async (request: NextRequest, { user, authContext }: { user: 
       }));
 
       const primaryError = errorDetails[0];
-      console.error('DEBUG: SeeDance 입력 검증 실패:', errorDetails);
+      logger.debug('DEBUG: SeeDance 입력 검증 실패:', errorDetails);
       return NextResponse.json(
         createErrorResponse('VALIDATION_ERROR', primaryError ? primaryError.message : '입력 데이터가 올바르지 않습니다'),
         { status: 400, headers: corsHeaders }
@@ -161,7 +161,7 @@ const postHandler = async (request: NextRequest, { user, authContext }: { user: 
     try {
       result = await seedanceService.createVideo(payload);
     } catch (error: any) {
-      console.error('❌ Seedance 영상 생성 중 예외 발생:', error);
+      logger.error('❌ Seedance 영상 생성 중 예외 발생:', error instanceof Error ? error : new Error(String(error)));
 
       // 환경별 맞춤 에러 메시지 생성
       const userFriendlyError = createUserFriendlyError(error);
@@ -200,7 +200,7 @@ const postHandler = async (request: NextRequest, { user, authContext }: { user: 
     }
 
     if (!result.ok) {
-      console.error('DEBUG: SeeDance API 호출 실패:', result.error);
+      logger.debug('DEBUG: SeeDance API 호출 실패:', result.error);
 
       // 결과 에러도 환경별 맞춤 메시지로 처리
       const userFriendlyError = createUserFriendlyError(result.error || 'Unknown error');
@@ -230,7 +230,7 @@ const postHandler = async (request: NextRequest, { user, authContext }: { user: 
 
     // 폴백 사용 시 사용자에게 알림
     if (result.fallbackReason) {
-      console.warn('⚠️ Graceful degradation 작동:', result.fallbackReason);
+      logger.debug('⚠️ Graceful degradation 작동:', result.fallbackReason);
     }
 
     // 성공 응답
@@ -260,7 +260,7 @@ const postHandler = async (request: NextRequest, { user, authContext }: { user: 
     return NextResponse.json(response, { headers: corsHeaders });
 
   } catch (error) {
-    console.error('DEBUG: SeeDance API 라우트 예상치 못한 오류:', error);
+    logger.error('DEBUG: SeeDance API 라우트 예상치 못한 오류:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       createErrorResponse(
         'INTERNAL_SERVER_ERROR',
@@ -333,7 +333,6 @@ export const GET = withErrorHandling(async () => {
             title: '⚙️ 환경변수 설정',
             platforms: {
               vercel: 'Vercel → Settings → Environment Variables → SEEDANCE_API_KEY 추가',
-              railway: 'Railway → Variables → New Variable → SEEDANCE_API_KEY 추가',
               local: '.env.local 파일에 SEEDANCE_API_KEY=ark_your_key_here 추가'
             }
           }
@@ -345,7 +344,7 @@ export const GET = withErrorHandling(async () => {
     return NextResponse.json(status, { headers: corsHeaders });
 
   } catch (error) {
-    console.error('SeeDance 상태 확인 오류:', error);
+    logger.error('SeeDance 상태 확인 오류:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({
       service: 'SeeDance Video Generation',
       status: 'error',

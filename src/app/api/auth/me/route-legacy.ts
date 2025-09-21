@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     // 🚫 Rate Limiting: auth/me API 보호 (중간 수준 제한)
     const rateLimitResult = checkRateLimit(req, 'authMe', RATE_LIMITS.authMe);
     if (!rateLimitResult.allowed) {
-      console.warn(`🚫 Rate limit exceeded for auth/me from IP: ${req.headers.get('x-forwarded-for') || '127.0.0.1'}`);
+      logger.debug(`🚫 Rate limit exceeded for auth/me from IP: ${req.headers.get('x-forwarded-for') || '127.0.0.1'}`);
 
       const response = NextResponse.json(
         failure(
@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
         };
       }
     } catch (error) {
-      console.warn('Supabase user lookup failed:', error);
+      logger.error('Supabase user lookup failed:', error instanceof Error ? error : new Error(String(error)));
     }
 
     if (!user) {

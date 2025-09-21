@@ -11,7 +11,7 @@ const ALLOWED_ORIGINS = [
   'https://videoprompt.vridge.kr',
   'https://www.vridge.kr',
   'https://vridge.kr',
-  // Railway URL 제거: Supabase 기반 시스템으로 완전 전환
+  // Supabase 기반 시스템으로 완전 전환
 ];
 
 // 개발 환경에서 허용할 localhost 패턴

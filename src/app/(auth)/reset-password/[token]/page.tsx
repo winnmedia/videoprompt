@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/shared/lib/logger';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Logo, Button } from '@/shared/ui';
@@ -43,7 +44,7 @@ export default function ResetPasswordPage() {
           setTokenError(data.message || '유효하지 않거나 만료된 토큰입니다.');
         }
       } catch (error) {
-        console.error('Token validation error:', error);
+        logger.error('Token validation error:', error instanceof Error ? error : new Error(String(error)));
         setTokenValid(false);
         setTokenError('토큰 검증 중 오류가 발생했습니다.');
       }
@@ -114,7 +115,7 @@ export default function ResetPasswordPage() {
         setError(data.message || '비밀번호 재설정에 실패했습니다.');
       }
     } catch (error) {
-      console.error('Reset password error:', error);
+      logger.error('Reset password error:', error instanceof Error ? error : new Error(String(error)));
       setError('서버 오류가 발생했습니다.');
     } finally {
       setLoading(false);

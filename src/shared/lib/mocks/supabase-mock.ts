@@ -9,6 +9,7 @@
  */
 
 import { vi } from 'vitest';
+import { logger } from '@/shared/lib/logger';
 
 // 테스트 시나리오별 사용자 데이터
 export const TEST_USERS = {
@@ -75,7 +76,7 @@ function trackAPICall(method: string): void {
   if (mockState.callCount[key] > 10) {
     const timeDiff = now - (mockState.lastCallTimestamp[key] || 0);
     if (timeDiff < 1000) {
-      console.error(`🚨 INFINITE LOOP DETECTED: ${method} called ${mockState.callCount[key]} times in ${timeDiff}ms`);
+      logger.debug(`🚨 INFINITE LOOP DETECTED: ${method} called ${mockState.callCount[key]} times in ${timeDiff}ms`);
       throw new Error(`INFINITE_LOOP_DETECTED: ${method} - This would cost $300+`);
     }
   }

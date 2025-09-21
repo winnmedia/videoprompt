@@ -132,7 +132,7 @@ export async function saveStory(input: CreateStoryInput): Promise<StorageResult<
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('❌ 스토리 저장 실패:', errorMessage);
+    logger.debug('❌ 스토리 저장 실패:', errorMessage);
 
     return {
       success: false,
@@ -187,7 +187,7 @@ export async function saveScenario(input: CreateScenarioInput): Promise<StorageR
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('❌ 시나리오 저장 실패:', errorMessage);
+    logger.debug('❌ 시나리오 저장 실패:', errorMessage);
 
     return {
       success: false,
@@ -244,7 +244,7 @@ export async function savePrompt(input: CreatePromptInput): Promise<StorageResul
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('❌ 프롬프트 저장 실패:', errorMessage);
+    logger.debug('❌ 프롬프트 저장 실패:', errorMessage);
 
     return {
       success: false,
@@ -301,7 +301,7 @@ export async function saveVideo(input: CreateVideoInput): Promise<StorageResult<
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('❌ 영상 메타데이터 저장 실패:', errorMessage);
+    logger.debug('❌ 영상 메타데이터 저장 실패:', errorMessage);
 
     return {
       success: false,
@@ -353,7 +353,7 @@ export async function updateStory(input: UpdateStoryInput): Promise<StorageResul
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('❌ 스토리 업데이트 실패:', errorMessage);
+    logger.debug('❌ 스토리 업데이트 실패:', errorMessage);
 
     return {
       success: false,
@@ -390,7 +390,7 @@ export async function getStoryById(id: string): Promise<StorageResult<any>> {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('❌ 스토리 조회 실패:', errorMessage);
+    logger.debug('❌ 스토리 조회 실패:', errorMessage);
 
     return {
       success: false,
@@ -427,7 +427,7 @@ export async function getScenarioById(id: string): Promise<StorageResult<any>> {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('❌ 시나리오 조회 실패:', errorMessage);
+    logger.debug('❌ 시나리오 조회 실패:', errorMessage);
 
     return {
       success: false,
@@ -464,7 +464,7 @@ export async function getPromptById(id: string): Promise<StorageResult<any>> {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('❌ 프롬프트 조회 실패:', errorMessage);
+    logger.debug('❌ 프롬프트 조회 실패:', errorMessage);
 
     return {
       success: false,
@@ -537,7 +537,7 @@ export async function getPipelineStatus(projectId: string): Promise<{
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('❌ 파이프라인 상태 조회 실패:', errorMessage);
+    logger.debug('❌ 파이프라인 상태 조회 실패:', errorMessage);
     return null;
   }
 }

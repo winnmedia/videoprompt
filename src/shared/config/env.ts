@@ -62,7 +62,7 @@ const EnvSchema = z.object({
   DEFAULT_FROM_EMAIL: z.string().optional(),
   
   // 백엔드 URL - Supabase 기반으로 완전 전환
-  // RAILWAY_BACKEND_URL 제거: 더 이상 사용하지 않음
+  // Legacy Railway 백엔드 URL 제거됨
   NEXT_PUBLIC_API_BASE: z.string().url().optional(),
   
   // Vercel 환경
@@ -107,8 +107,8 @@ export function getEnv(): Readonly<Env> {
 
     // 클라이언트 사이드에서는 경고만 출력
     if (isClientSide) {
-      console.warn('⚠️ CLIENT: Environment validation failed, using fallback values');
-      console.warn(errorMessage);
+      logger.debug('⚠️ CLIENT: Environment validation failed, using fallback values');
+      logger.debug(errorMessage);
 
       // 클라이언트용 기본값으로 구성
       cachedEnv = Object.freeze({
@@ -124,8 +124,8 @@ export function getEnv(): Readonly<Env> {
 
     // 테스트 환경에서는 경고만 출력하고 계속 진행
     if (process.env.NODE_ENV === 'test') {
-      console.warn('⚠️ TEST: Environment validation failed, continuing anyway');
-      console.warn(errorMessage);
+      logger.debug('⚠️ TEST: Environment validation failed, continuing anyway');
+      logger.debug(errorMessage);
 
       // 테스트용 기본값으로 최소한의 환경 구성
       cachedEnv = Object.freeze({
@@ -140,12 +140,12 @@ export function getEnv(): Readonly<Env> {
     }
 
     // 환경 차단선: 즉시 실패 시스템 (서버사이드만)
-    console.error('🚨 CRITICAL: Environment validation failed');
-    console.error('━'.repeat(70));
-    console.error(errorMessage);
-    console.error('━'.repeat(70));
-    console.error('💡 해결방법: 누락된 환경변수를 .env 파일에 추가하세요');
-    console.error('📖 상세 가이드: README.md 또는 env.example 참조');
+    logger.debug('🚨 CRITICAL: Environment validation failed');
+    logger.debug('━'.repeat(70));
+    logger.debug(errorMessage);
+    logger.debug('━'.repeat(70));
+    logger.debug('💡 해결방법: 누락된 환경변수를 .env 파일에 추가하세요');
+    logger.debug('📖 상세 가이드: README.md 또는 env.example 참조');
 
     // 브라우저 환경에서는 process.exit() 불가능 - 에러만 throw
     // 서버 환경에서만 프로세스 종료 시도
@@ -168,7 +168,7 @@ export function assertEnvInitialized() {
     getEnv();
     logger.info('✅ 환경변수 검증 완료 - 앱 시작 허용');
   } catch (error) {
-    console.error('❌ 환경변수 검증 실패 - 앱 시작 차단');
+    logger.debug('❌ 환경변수 검증 실패 - 앱 시작 차단');
     throw error;
   }
 }
@@ -269,7 +269,7 @@ export function initializeEnvironment(): void {
 
     logger.info(`✅ Environment validation completed for ${env.NODE_ENV} mode`);
   } catch (error) {
-    console.error('🚨 Environment initialization failed:', error instanceof Error ? error.message : 'Unknown error');
+    logger.debug('🚨 Environment initialization failed:', error instanceof Error ? error.message : 'Unknown error');
 
     // 브라우저 환경에서는 process.exit() 불가능
     // 서버 환경에서만 프로세스 종료 시도
@@ -313,7 +313,7 @@ export const getAIApiKeys = () => {
 export const getServiceUrls = () => {
   const env = getEnv();
   return {
-    // Railway 완전 제거 - Supabase 기반 통합 아키텍처
+    // Supabase 기반 통합 아키텍처
     seedanceApi: env.SEEDANCE_API_BASE,
     seedreamApi: env.SEEDREAM_API_BASE,
     modelarkApi: env.MODELARK_API_BASE,
@@ -362,7 +362,7 @@ export function validateProductionEnv(): void {
   }
   // 프로덕션에서 SEEDANCE_API_KEY 필수 체크 (비디오 생성 서비스)
   if (!env.SEEDANCE_API_KEY) {
-    console.warn('⚠️ SEEDANCE_API_KEY not set in production - video generation will be disabled');
+    logger.debug('⚠️ SEEDANCE_API_KEY not set in production - video generation will be disabled');
   }
 
   // JWT_SECRET 길이 검증 (설정된 경우만)
@@ -402,7 +402,7 @@ export function validateDevelopmentEnv(): void {
   }
 
   if (warnings.length > 0 && typeof console !== 'undefined') {
-    console.warn('Development environment warnings:', warnings.join(', '));
+    logger.debug('Development environment warnings:', warnings.join(', '));
   }
 
   // 개발환경에서는 에러를 발생시키지 않음

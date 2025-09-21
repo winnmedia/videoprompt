@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 export const runtime = 'nodejs';
 // import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
       // PRISMA_DISABLED: awaitprisma.$queryRaw`SELECT 1`;
       dbStatus = 'connected';
     } catch (dbError) {
-      console.error('Database connection test failed:', dbError);
+      logger.debug('Database connection test failed:', dbError);
       dbStatus = 'error: ' + (dbError instanceof Error ? dbError.message : 'unknown error');
     }
     
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
       database: dbStatus
     });
   } catch (error) {
-    console.error('Test API Error:', error);
+    logger.error('Test API Error:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({
       ok: false,
       message: 'Test API failed',

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useState, useRef } from 'react';
+import { logger } from '@/shared/lib/logger';
 import { Upload, X, File, Image, Video, FileText, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
@@ -358,7 +359,7 @@ export default function FileUploadDropzone({
         try {
           await uploadFile(file);
         } catch (error) {
-          console.error(`File upload failed: ${file.file.name}`, error);
+          logger.error(`File upload failed: ${file.file.name}`, error instanceof Error ? error : new Error(String(error)));
           // 개별 파일 실패는 전체 프로세스를 중단하지 않음
         }
       }
@@ -386,7 +387,7 @@ export default function FileUploadDropzone({
       try {
         await uploadFile(file);
       } catch (error) {
-        console.error(`Retry failed: ${file.file.name}`, error);
+        logger.error(`Retry failed: ${file.file.name}`, error instanceof Error ? error : new Error(String(error)));
       }
     }
   }, [files, uploadFile]);

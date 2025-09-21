@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 
 interface InsertRequest {
   shotTitle: string;
@@ -114,7 +115,7 @@ export async function POST(request: NextRequest) {
               const parsedResponse = JSON.parse(generatedText);
               return NextResponse.json(parsedResponse);
             } catch (parseError) {
-              console.error('JSON 파싱 실패:', parseError);
+              logger.error('JSON 파싱 실패', parseError instanceof Error ? parseError : new Error(String(parseError)));
               // 파싱 실패 시 기본 인서트 샷 반환
               return NextResponse.json({
                 insertShots: generateDefaultInsertShots(shotTitle, shotDescription)
@@ -123,7 +124,7 @@ export async function POST(request: NextRequest) {
           }
         }
       } catch (apiError) {
-        console.error('Gemini API 호출 실패:', apiError);
+        logger.error('Gemini API 호출 실패', apiError instanceof Error ? apiError : new Error(String(apiError)));
       }
     }
 
@@ -133,7 +134,7 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('인서트 샷 생성 오류:', error);
+    logger.error('인서트 샷 생성 오류:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({ error: '인서트 샷 생성 중 오류가 발생했습니다.' }, { status: 500 });
   }
 }

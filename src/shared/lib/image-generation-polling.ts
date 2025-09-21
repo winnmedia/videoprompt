@@ -4,6 +4,7 @@
  */
 
 import { safeFetch } from '@/shared/lib/api-retry';
+import { logger } from '@/shared/lib/logger';
 
 interface ImageGenerationRequest {
   prompt: string;
@@ -294,7 +295,7 @@ export async function generateImage(
   
   // Null 체크와 fallback 처리 추가
   if (!result || !result.imageUrl) {
-    console.warn('No image URL received, using fallback');
+    logger.debug('No image URL received, using fallback');
     // 간단한 fallback URL 반환 (플레이스홀더)
     return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIwIiBoZWlnaHQ9IjE4MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+CiAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY2NzA4NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+7J2066mV IOyDnOyEsSDsm5A8L3RleHQ+Cjwvc3ZnPg==';
   }
@@ -314,7 +315,7 @@ export function createManagedBlobUrl(blob: Blob): { url: string; revoke: () => v
       try {
         URL.revokeObjectURL(url);
       } catch (error) {
-        console.warn('Failed to revoke blob URL:', error);
+        logger.error('Failed to revoke blob URL:', error instanceof Error ? error : new Error(String(error)));
       }
     }
   };
@@ -331,7 +332,7 @@ export function createAutoCleanupBlobUrl(blob: Blob, timeoutMs = 300000): string
     try {
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.warn('Failed to auto-cleanup blob URL:', error);
+      logger.error('Failed to auto-cleanup blob URL:', error instanceof Error ? error : new Error(String(error)));
     }
   }, timeoutMs);
   

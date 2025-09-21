@@ -168,7 +168,7 @@ async function generateStoryWithGemini(data: NormalizedStoryGenerationRequest): 
     };
 
   } catch (error) {
-    console.error('DEBUG: Gemini 스토리 생성 실패:', error);
+    logger.error('DEBUG: Gemini 스토리 생성 실패:', error instanceof Error ? error : new Error(String(error)));
     throw error;
   }
 }
@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
       }));
 
       const primaryError = errorDetails[0];
-      console.error('DEBUG: 스토리 생성 입력 검증 실패:', errorDetails);
+      logger.debug('DEBUG: 스토리 생성 입력 검증 실패:', errorDetails);
       return NextResponse.json(
         createErrorResponse('VALIDATION_ERROR', primaryError ? primaryError.message : '입력 데이터가 올바르지 않습니다'),
         { status: 400 }
@@ -234,7 +234,7 @@ export async function POST(request: NextRequest) {
       // }
     } else {
       // 인증 오류
-      console.warn(`DEBUG: 스토리 생성 - 인증 오류: ${authResult.message}`);
+      logger.debug(`DEBUG: 스토리 생성 - 인증 오류: ${authResult.message}`);
       return NextResponse.json(
         createErrorResponse(
           authResult.code,
@@ -285,7 +285,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(response);
       }
     } catch (geminiError) {
-      console.warn('DEBUG: Gemini 실패, OpenAI로 폴백:', geminiError);
+      logger.debug('DEBUG: Gemini 실패, OpenAI로 폴백:', geminiError);
     }
 
     // 2단계: OpenAI 폴백 시도 + 캐싱
@@ -371,7 +371,7 @@ export async function POST(request: NextRequest) {
       throw new Error(openaiResult.error || 'OpenAI 스토리 생성 실패');
 
     } catch (openaiError) {
-      console.error('DEBUG: OpenAI 폴백도 실패:', openaiError);
+      logger.debug('DEBUG: OpenAI 폴백도 실패:', openaiError);
     }
 
     // 모든 AI 서비스 실패 시 에러 반환
@@ -384,7 +384,7 @@ export async function POST(request: NextRequest) {
     );
 
   } catch (error) {
-    console.error('DEBUG: 스토리 생성 라우트 예상치 못한 오류:', error);
+    logger.error('DEBUG: 스토리 생성 라우트 예상치 못한 오류:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       createErrorResponse(
         'INTERNAL_SERVER_ERROR',
@@ -438,7 +438,7 @@ export async function GET() {
     return NextResponse.json(status);
 
   } catch (error) {
-    console.error('스토리 생성 상태 확인 오류:', error);
+    logger.error('스토리 생성 상태 확인 오류:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({
       service: 'Story Generation',
       status: 'error',

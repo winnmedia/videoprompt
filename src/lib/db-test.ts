@@ -2,6 +2,7 @@
 // TDD 접근 방식으로 먼저 테스트 작성
 
 import { PrismaClient } from '@prisma/client';
+import { logger } from '@/shared/lib/logger';
 
 export interface DatabaseTestResult {
   isConnected: boolean;
@@ -66,7 +67,7 @@ export const testDatabaseConnection = async (
       try {
         await client.$disconnect();
       } catch (disconnectError) {
-        console.warn('클라이언트 연결 해제 실패:', disconnectError);
+        logger.warn('클라이언트 연결 해제 실패:', disconnectError);
       }
     }
 

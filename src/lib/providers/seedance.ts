@@ -125,7 +125,7 @@ export async function createSeedanceVideo(
     // 프로덕션에서 키가 없거나 잘못된 경우
     const error = 'Seedance API 키가 설정되지 않았거나 올바르지 않습니다. 관리자에게 문의하세요.';
     const status = getApiKeyStatus();
-    console.error('❌ Seedance API key validation failed:', status);
+    logger.error('❌ Seedance API key validation failed:', status);
     throw new Error(error);
   }
 
@@ -148,7 +148,7 @@ export async function createSeedanceVideo(
   if (!apiKey) {
     const error =
       'Seedance API 키가 설정되지 않았습니다. 환경변수 SEEDANCE_API_KEY를 설정해주세요.';
-    console.error('DEBUG: Seedance API 키 설정 오류:', error);
+    logger.error('DEBUG: Seedance API 키 설정 오류:', error);
     return { ok: false, error };
   }
 
@@ -186,7 +186,7 @@ export async function createSeedanceVideo(
     if (!modelId) {
       const error =
         'Seedance model/endpoint is not configured. Set SEEDANCE_MODEL (ep-...) or pass model in request.';
-      console.error('DEBUG: Seedance 모델 설정 오류:', error);
+      logger.error('DEBUG: Seedance 모델 설정 오류:', error);
       return { ok: false, error };
     }
 
@@ -253,7 +253,7 @@ export async function createSeedanceVideo(
 
       // Header overflow 방지: 응답 텍스트 길이 제한 및 검증
       if (responseText.length > 10000) {
-        console.warn(
+        logger.warn(
           'DEBUG: Seedance 응답이 너무 큽니다. 처음 1000자만 처리:',
           responseText.length,
         );
@@ -271,7 +271,7 @@ export async function createSeedanceVideo(
       logger.info('DEBUG: Seedance 응답 텍스트 (처음 500자):', responseText.slice(0, 500));
 
       if (!response.ok) {
-        console.error('DEBUG: Seedance HTTP 에러:', {
+        logger.error('DEBUG: Seedance HTTP 에러:', {
           status: response.status,
           statusText: response.statusText,
         });
@@ -321,7 +321,7 @@ export async function createSeedanceVideo(
       try {
         jsonResponse = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('DEBUG: Seedance JSON 파싱 에러:', parseError);
+        logger.error('DEBUG: Seedance JSON 파싱 에러:', parseError);
         return {
           ok: false,
           error: `Invalid JSON response: ${parseError instanceof Error ? parseError.message : 'Unknown parse error'}`,
@@ -333,7 +333,7 @@ export async function createSeedanceVideo(
 
       const jobId = extractJobId(jsonResponse);
       if (!jobId) {
-        console.error('DEBUG: Seedance jobId 추출 실패:', jsonResponse);
+        logger.error('DEBUG: Seedance jobId 추출 실패:', jsonResponse);
         return {
           ok: false,
           error: 'No job ID found in response',
@@ -351,12 +351,12 @@ export async function createSeedanceVideo(
     } catch (fetchError) {
       clearTimeout(timeout);
       if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-        console.error('DEBUG: Seedance 요청 타임아웃');
+        logger.error('DEBUG: Seedance 요청 타임아웃');
         return { ok: false, error: 'Request timeout after 60 seconds' };
       }
 
       // fetch 실패 원인을 더 구체적으로 파악
-      console.error('DEBUG: Seedance fetch 실패 상세:', {
+      logger.error('DEBUG: Seedance fetch 실패 상세:', {
         name: fetchError instanceof Error ? fetchError.name : 'Unknown',
         message: fetchError instanceof Error ? fetchError.message : String(fetchError),
         cause: fetchError instanceof Error ? fetchError.cause : undefined,
@@ -370,7 +370,7 @@ export async function createSeedanceVideo(
       };
     }
   } catch (error) {
-    console.error('DEBUG: Seedance 예상치 못한 에러:', error);
+    logger.error('DEBUG: Seedance 예상치 못한 에러:', error);
     return {
       ok: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -412,7 +412,7 @@ export async function getSeedanceStatus(jobId: string): Promise<SeedanceStatusRe
   if (!envApiKey || !isValidSeedanceApiKey(envApiKey)) {
     // API 키가 설정되지 않은 경우 에러 반환 (하드코딩 키 제거)
     const status = getApiKeyStatus();
-    console.error('❌ Seedance status check failed - invalid API key:', status);
+    logger.error('❌ Seedance status check failed - invalid API key:', status);
     return {
       ok: false,
       jobId,
@@ -454,13 +454,13 @@ export async function getSeedanceStatus(jobId: string): Promise<SeedanceStatusRe
     try {
       responseText = await res.text();
     } catch (textError) {
-      console.error('DEBUG: Seedance status 응답 텍스트 읽기 실패:', textError);
+      logger.error('DEBUG: Seedance status 응답 텍스트 읽기 실패:', textError);
       return { ok: false, jobId, status: 'error', error: 'Failed to read response text' };
     }
 
     // 응답 크기 검증
     if (responseText.length > 10000) {
-      console.warn('DEBUG: Seedance status 응답이 너무 큽니다:', responseText.length);
+      logger.warn('DEBUG: Seedance status 응답이 너무 큽니다:', responseText.length);
       return {
         ok: false,
         jobId,
@@ -474,7 +474,7 @@ export async function getSeedanceStatus(jobId: string): Promise<SeedanceStatusRe
     try {
       json = JSON.parse(responseText);
     } catch (parseError) {
-      console.error('DEBUG: Seedance status JSON 파싱 실패:', parseError);
+      logger.error('DEBUG: Seedance status JSON 파싱 실패:', parseError);
       return {
         ok: false,
         jobId,

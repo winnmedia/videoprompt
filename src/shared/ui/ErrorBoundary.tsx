@@ -1,6 +1,7 @@
 'use client';
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { logger } from '@/shared/lib/logger';
 import { Button } from './button';
 import { Icon } from './Icon';
 
@@ -33,10 +34,10 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Production 환경에서는 최소한의 로깅만 수행
     if (process.env.NODE_ENV === 'development') {
-      console.error('ErrorBoundary caught an error:', error, errorInfo);
+      logger.debug('ErrorBoundary caught an error:', error, errorInfo);
     } else {
       // Production에서는 에러 ID만 로깅
-      console.error(`Error ${this.state.errorId}:`, error.message);
+      logger.debug(`Error ${this.state.errorId}:`, error.message);
     }
 
     // 사용자 정의 에러 핸들러 호출

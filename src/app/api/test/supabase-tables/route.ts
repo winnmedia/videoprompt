@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
       supabase = await getSupabaseClientSafe('anon');
     } catch (error) {
       const errorMessage = error instanceof ServiceConfigError ? error.message : 'Supabase client initialization failed';
-      console.error(`[Tables Test ${traceId}] ❌ Supabase client error:`, errorMessage);
+      logger.debug(`[Tables Test ${traceId}] ❌ Supabase client error:`, errorMessage);
       return NextResponse.json(
         failure(
           'SUPABASE_CONFIG_ERROR',
@@ -106,7 +106,7 @@ export async function GET(req: NextRequest) {
 
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`[Tables Test ${traceId}] ❌ 테이블 검증 실패:`, errorMessage);
+    logger.debug(`[Tables Test ${traceId}] ❌ 테이블 검증 실패:`, errorMessage);
 
     return NextResponse.json(
       failure(

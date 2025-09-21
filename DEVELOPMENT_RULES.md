@@ -24,7 +24,7 @@ Testing: Jest, React Testing Library, Cypress(E2E)
 
 Build: Webpack 5, SWC Compiler
 
-Deployment: Vercel(Frontend), Railway(Backend)
+Deployment: Vercel(Frontend), Supabase(Backend)
 
 CI 게이트(필수): tsc --noEmit, ESLint, Jest, Cypress 스모크, SAST
 
@@ -187,7 +187,7 @@ z-index 관리 규칙: 모든 z-index는 shared/styles/zIndex.scss 파일에 정
 Ⅺ. 배포·버전 관리
 Vercel Preview → 승인 → Production(버전 태그 필수)
 
-Railway 배포: 마이그레이션→헬스체크 통과 후 프런트 승격
+Supabase 배포: 마이그레이션→헬스체크 통과 후 프런트 승격
 
 배포 체크리스트: 환경변수 검증, 마이그레이션 여부, 스모크 통과, 롤백 플랜
 

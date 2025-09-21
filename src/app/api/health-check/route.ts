@@ -37,7 +37,7 @@ async function checkDatabaseHealth(): Promise<HealthCheckResult> {
 
     if (!supabaseResult.client || !supabaseResult.canProceed) {
       const latency = Date.now() - startTime;
-      console.warn('⚠️ Supabase 클라이언트 생성 실패:', supabaseResult.error);
+      logger.debug('⚠️ Supabase 클라이언트 생성 실패:', supabaseResult.error);
 
       return {
         service: 'database',
@@ -65,7 +65,7 @@ async function checkDatabaseHealth(): Promise<HealthCheckResult> {
           existingTables++;
         }
       } catch (tableError) {
-        console.warn(`⚠️ 테이블 ${tableName} 확인 실패:`, tableError);
+        logger.debug(`⚠️ 테이블 ${tableName} 확인 실패:`, tableError);
       }
     }
 
@@ -101,7 +101,7 @@ async function checkDatabaseHealth(): Promise<HealthCheckResult> {
     }
   } catch (error) {
     const latency = Date.now() - startTime;
-    console.error('❌ Supabase 연결 실패:', error);
+    logger.error('❌ Supabase 연결 실패:', error instanceof Error ? error : new Error(String(error)));
 
     return {
       service: 'database',

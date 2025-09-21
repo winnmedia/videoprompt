@@ -26,7 +26,7 @@ function isValidJwtToken(token: string): boolean {
 /**
  * 사용자 인터페이스
  */
-interface User {
+export interface User {
   id: string;
   email: string;
   username: string;
@@ -91,7 +91,7 @@ export const checkAuth = createAsyncThunk(
 
     // $300 사건 방지: 이미 로딩 중이면 스킵
     if (state.auth.isLoading) {
-      console.warn('Auth check already in progress, skipping');
+      logger.debug('Auth check already in progress, skipping');
       return rejectWithValue('Auth check already in progress');
     }
 
@@ -106,13 +106,13 @@ export const checkAuth = createAsyncThunk(
         // 🚨 CRITICAL FIX: guest-token 저장 방지로 무한 루프 차단
         if (validatedData.data.token && typeof window !== 'undefined') {
           if (validatedData.data.token === 'guest-token') {
-            console.warn('🚨 Blocked guest-token from being stored');
+            logger.debug('🚨 Blocked guest-token from being stored');
             localStorage.removeItem('token');
             localStorage.removeItem('accessToken');
           } else if (isValidJwtToken(validatedData.data.token)) {
             localStorage.setItem('token', validatedData.data.token);
           } else {
-            console.warn('🚨 Invalid token format detected, not storing');
+            logger.debug('🚨 Invalid token format detected, not storing');
             localStorage.removeItem('token');
             localStorage.removeItem('accessToken');
           }
@@ -133,7 +133,7 @@ export const checkAuth = createAsyncThunk(
         return { user: null, isAuthenticated: false };
       }
     } catch (error) {
-      console.error('❌ checkAuth error:', error);
+      logger.error('❌ checkAuth error:', error instanceof Error ? error : new Error(String(error)));
 
       // 🚨 게스트 모드 전환: 인증 실패 시 토큰 정리
       if (typeof window !== 'undefined') {
@@ -172,7 +172,7 @@ export const refreshAccessToken = createAsyncThunk(
       });
 
       if (!response.ok) {
-        console.error('Token refresh failed:', response.status);
+        logger.debug('Token refresh failed:', response.status);
         throw new Error(`Token refresh failed: ${response.status}`);
       }
 
@@ -180,7 +180,7 @@ export const refreshAccessToken = createAsyncThunk(
       const newToken = data.data?.accessToken;
 
       if (!newToken) {
-        console.error('No access token in refresh response');
+        logger.debug('No access token in refresh response');
         throw new Error('No access token in refresh response');
       }
 
@@ -193,7 +193,7 @@ export const refreshAccessToken = createAsyncThunk(
       return newToken;
 
     } catch (error) {
-      console.error('Token refresh error:', error);
+      logger.error('Token refresh error:', error instanceof Error ? error : new Error(String(error)));
       return rejectWithValue(error instanceof Error ? error.message : 'Token refresh failed');
     }
   }
@@ -211,7 +211,7 @@ export const logout = createAsyncThunk(
         method: 'POST',
       });
     } catch (error) {
-      console.error('Logout error:', error);
+      logger.error('Logout error:', error instanceof Error ? error : new Error(String(error)));
     } finally {
       // 토큰 완전 제거
       if (typeof window !== 'undefined') {

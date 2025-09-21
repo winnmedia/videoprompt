@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 
 /**
  * 파이프라인 상태 조회 - Planning Dashboard API로 프록시
@@ -83,7 +84,7 @@ export async function GET(
     }
 
   } catch (error) {
-    console.error('Pipeline status proxy error:', error);
+    logger.error('Pipeline status proxy error:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({
       success: false,
       error: '파이프라인 상태 조회 중 오류가 발생했습니다.'

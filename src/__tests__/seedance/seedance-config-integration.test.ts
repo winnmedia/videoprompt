@@ -64,7 +64,7 @@ describe('Seedance 설정 강화 - 통합 테스트', () => {
         }
       });
 
-      it('프로덕션 환경에서는 Vercel/Railway 설정 가이드를 제공해야 함', () => {
+      it('프로덕션 환경에서는 Vercel 설정 가이드를 제공해야 함', () => {
         process.env.NODE_ENV = 'production';
 
         try {
@@ -72,7 +72,7 @@ describe('Seedance 설정 강화 - 통합 테스트', () => {
         } catch (error) {
           const configError = error as ServiceConfigError;
           expect(configError.setupGuide?.setupMethods.vercel).toBeDefined();
-          expect(configError.setupGuide?.setupMethods.railway).toBeDefined();
+          expect(configError.setupGuide?.setupMethods.vercel).toBeDefined();
         }
       });
     });

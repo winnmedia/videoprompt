@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     // Request body 안전 파싱
     const parseResult = await safeParseRequestBody(req, VerifyCodeSchema);
     if (!parseResult.success) {
-      console.error(`[VerifyCode ${traceId}] JSON 파싱 실패:`, parseResult.error);
+      logger.debug(`[VerifyCode ${traceId}] JSON 파싱 실패:`, parseResult.error);
       return failure('INVALID_REQUEST', '잘못된 요청 형식입니다.', 400, parseResult.error, traceId);
     }
     
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       verified: true,
     }, 200, traceId);
   } catch (e: any) {
-    console.error(`[VerifyCode ${traceId}] Error:`, e);
+    logger.debug(`[VerifyCode ${traceId}] Error:`, e);
     
     // 커스텀 오류 처리
     if (e.message === 'VERIFY_CODE_DISABLED') {

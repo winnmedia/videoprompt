@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { logger } from '@/shared/lib/logger';
 import { useDispatch } from 'react-redux';
 import { StoryStep, Shot, StoryboardShot } from '@/entities/scenario';
 import {
@@ -243,7 +244,7 @@ export function useAutoSaveStoryboard(
           projectId
         });
       } catch (error) {
-        console.error('Auto-save failed:', error);
+        logger.error('Auto-save failed:', error instanceof Error ? error : new Error(String(error)));
       }
     }, 30 * 1000);
 

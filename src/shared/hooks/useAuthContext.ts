@@ -12,6 +12,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { logger } from '@/shared/lib/logger';
 import { AuthContext } from '@/shared/lib/unified-auth';
 
 interface UseAuthContextReturn {
@@ -88,7 +89,7 @@ export function useAuthContext(): UseAuthContextReturn {
       }
 
     } catch (err) {
-      console.warn('Auth context fetch failed:', err);
+      logger.debug('Auth context fetch failed:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
 
       // 오류 시 게스트 모드로 fallback

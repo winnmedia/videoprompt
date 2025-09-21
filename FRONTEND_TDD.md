@@ -13,7 +13,7 @@ FE 개발지침 — TDD(테스트 주도 개발) 최종본
 - 스타일링: SCSS Modules, Styled Components, Ant Design(래핑 컴포넌트 권장)
 - 테스트: Jest, React Testing Library(RTL), Cypress(E2E)
 - 빌드: Webpack 5, SWC Compiler
-- 배포/환경: Vercel(Frontend), Railway(Backend)
+- 배포/환경: Vercel(Frontend), Supabase(Backend)
 - CI 게이트(필수): tsc --noEmit, ESLint, Jest, Cypress 스모크
 
 ---

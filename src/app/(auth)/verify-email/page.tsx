@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
+import { logger } from '@/shared/lib/logger';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Logo, Button } from '@/shared/ui';
@@ -58,7 +59,7 @@ function VerifyEmailForm() {
         // 코드 초기화는 더 이상 필요하지 않음
       }
     } catch (error) {
-      console.error('Verification error:', error);
+      logger.error('Verification error:', error instanceof Error ? error : new Error(String(error)));
       setError('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setLoading(false);
@@ -82,7 +83,7 @@ function VerifyEmailForm() {
         throw new Error(data.message || '이메일 전송에 실패했습니다.');
       }
     } catch (error) {
-      console.error('Resend error:', error);
+      logger.error('Resend error:', error instanceof Error ? error : new Error(String(error)));
       throw error;
     }
   };

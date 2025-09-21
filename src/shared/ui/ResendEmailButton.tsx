@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/shared/lib/logger';
 import { clsx } from 'clsx';
 
 interface ResendEmailButtonProps {
@@ -54,7 +55,7 @@ export function ResendEmailButton({
       localStorage.setItem('lastEmailResendTime', now.toString());
       setRemainingTime(cooldownSeconds);
     } catch (error) {
-      console.error('Failed to resend email:', error);
+      logger.error('Failed to resend email:', error instanceof Error ? error : new Error(String(error)));
     } finally {
       setIsLoading(false);
     }

@@ -21,7 +21,7 @@ export function isValidSeedanceApiKey(key: string | null | undefined): boolean {
   try {
     // 매우 긴 키로 인한 메모리 문제 방지
     if (key.length > 1000) {
-      console.warn('⚠️ API 키가 비정상적으로 깁니다:', key.length);
+      logger.warn('⚠️ API 키가 비정상적으로 깁니다:', key.length);
       return false;
     }
 
@@ -39,7 +39,7 @@ export function isValidSeedanceApiKey(key: string | null | undefined): boolean {
 
     for (const blockedKey of blockedTestKeys) {
       if (key.toLowerCase().includes(blockedKey.toLowerCase())) {
-        console.warn('🚫 차단된 테스트 키 패턴이 감지되었습니다:', blockedKey);
+        logger.warn('🚫 차단된 테스트 키 패턴이 감지되었습니다:', blockedKey);
         return false;
       }
     }
@@ -62,7 +62,7 @@ export function isValidSeedanceApiKey(key: string | null | undefined): boolean {
 
     return false;
   } catch (error) {
-    console.error('❌ API 키 검증 중 오류:', error);
+    logger.error('❌ API 키 검증 중 오류:', error);
     return false;
   }
 }
@@ -109,13 +109,13 @@ export function shouldUseMockProvider(): boolean {
       const environment = process.env.NODE_ENV || 'development';
 
       if (environment === 'development') {
-        console.warn('🔧 개발 환경에서 유효하지 않은 API 키 감지 - Mock provider 자동 활성화');
-        console.warn('💡 실제 API 키를 사용하려면 SEEDANCE_API_KEY 환경변수를 설정하세요');
+        logger.warn('🔧 개발 환경에서 유효하지 않은 API 키 감지 - Mock provider 자동 활성화');
+        logger.warn('💡 실제 API 키를 사용하려면 SEEDANCE_API_KEY 환경변수를 설정하세요');
         return true;
       }
 
       // 프로덕션에서는 Mock 사용하지 않음 (에러 발생시킴)
-      console.error('❌ 프로덕션 환경에서 유효하지 않은 API 키:', {
+      logger.error('❌ 프로덕션 환경에서 유효하지 않은 API 키:', {
         hasKey: !!apiKey,
         keyFormat: apiKey ? `${apiKey.slice(0, 8)}...` : 'none',
         environment
@@ -126,7 +126,7 @@ export function shouldUseMockProvider(): boolean {
     // 4. 유효한 API 키가 있는 경우 실제 API 사용
     return false;
   } catch (error) {
-    console.error('❌ Mock provider 결정 중 오류:', error);
+    logger.error('❌ Mock provider 결정 중 오류:', error);
     // 안전장치: 오류 발생 시 개발/테스트환경에서는 Mock 사용
     return process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
   }

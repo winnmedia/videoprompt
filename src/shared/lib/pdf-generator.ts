@@ -373,7 +373,7 @@ export async function generatePlanningPDF(data: PdfData): Promise<void> {
     logger.info('PDF가 성공적으로 생성되었습니다:', fileName);
     
   } catch (error) {
-    console.error('PDF 생성 중 오류 발생:', error);
+    logger.error('PDF 생성 중 오류 발생:', error instanceof Error ? error : new Error(String(error)));
     throw new Error('PDF 생성에 실패했습니다. 다시 시도해주세요.');
   }
 }
@@ -497,7 +497,7 @@ export async function generatePlanningPDFWithProgress(
     
   } catch (error) {
     onProgress?.(0);
-    console.error('PDF 생성 중 오류 발생:', error);
+    logger.error('PDF 생성 중 오류 발생:', error instanceof Error ? error : new Error(String(error)));
     throw new Error('PDF 생성에 실패했습니다. 다시 시도해주세요.');
   }
 }

@@ -1,4 +1,5 @@
 import type { PerformanceMetrics, PerformanceBudget, CoreWebVital, APIPerformanceMetric } from '@/entities/performance'
+import { logger } from '@/shared/lib/logger';
 import { checkBudgetViolation } from '@/entities/performance'
 
 export type AlertLevel = 'info' | 'warning' | 'critical'
@@ -182,7 +183,7 @@ export class PerformanceAlertsSystem {
     if (handlers.webhook) {
       alertPromises.push(
         handlers.webhook(payload).catch(error => {
-          console.error('[PerformanceAlerts] Webhook handler failed:', error)
+          logger.error('[PerformanceAlerts] Webhook handler failed:', error instanceof Error ? error : new Error(String(error)))
         })
       )
     }
@@ -190,7 +191,7 @@ export class PerformanceAlertsSystem {
     if (handlers.slack) {
       alertPromises.push(
         handlers.slack(payload).catch(error => {
-          console.error('[PerformanceAlerts] Slack handler failed:', error)
+          logger.error('[PerformanceAlerts] Slack handler failed:', error instanceof Error ? error : new Error(String(error)))
         })
       )
     }
@@ -198,7 +199,7 @@ export class PerformanceAlertsSystem {
     if (handlers.email) {
       alertPromises.push(
         handlers.email(payload).catch(error => {
-          console.error('[PerformanceAlerts] Email handler failed:', error)
+          logger.error('[PerformanceAlerts] Email handler failed:', error instanceof Error ? error : new Error(String(error)))
         })
       )
     }

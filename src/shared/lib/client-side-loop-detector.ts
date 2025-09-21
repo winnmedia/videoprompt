@@ -118,7 +118,7 @@ class ClientSideLoopDetector {
     const result = this.analyzeApiCallPattern(url);
 
     if (result.isInfiniteLoop) {
-      console.error('🚨 INFINITE LOOP DETECTED!', {
+      logger.debug('🚨 INFINITE LOOP DETECTED!', {
         url,
         pattern: result.pattern,
         callCount: result.callCount,
@@ -285,7 +285,7 @@ class ClientSideLoopDetector {
       .sort(([, a], [, b]) => b - a);
 
     if (highFrequencyApis.length > 0) {
-      console.warn('📊 High frequency API calls in last minute:', {
+      logger.debug('📊 High frequency API calls in last minute:', {
         totalCalls: recentCalls.length,
         highFrequencyApis: Object.fromEntries(highFrequencyApis),
         authMeCalls: urlCounts['/api/auth/me'] || 0
@@ -337,7 +337,7 @@ if (typeof window !== 'undefined') {
     logger.info('🔍 Loop Detection Status:', status);
 
     if (status.authMeCalls > 10) {
-      console.warn('⚠️ High /api/auth/me call frequency detected:', status.authMeCalls);
+      logger.debug('⚠️ High /api/auth/me call frequency detected:', status.authMeCalls);
     }
 
     return status;

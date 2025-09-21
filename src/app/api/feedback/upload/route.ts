@@ -3,7 +3,7 @@ import { randomUUID } from 'crypto';
 import { checkRateLimit, RATE_LIMITS } from '@/shared/lib/rate-limiter';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
-import { logger, LogCategory } from '@/shared/lib/structured-logger';
+import { logger } from '@/shared/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -255,7 +255,7 @@ async function saveFeedbackFileMetadata(
       .single();
 
     if (error) {
-      logger.error(LogCategory.DATABASE, 'Failed to save feedback file metadata', error, {
+      logger.error('DATABASE: Failed to save feedback file metadata', error, {
         feedbackId,
         filename: fileData.filename,
         traceId
@@ -263,7 +263,7 @@ async function saveFeedbackFileMetadata(
       throw new Error(`메타데이터 저장 실패: ${error.message}`);
     }
 
-    logger.info(LogCategory.DATABASE, 'Feedback file metadata saved successfully', {
+    logger.info('DATABASE: Feedback file metadata saved successfully', {
       fileId: data.id,
       feedbackId,
       filename: fileData.filename,
@@ -273,7 +273,7 @@ async function saveFeedbackFileMetadata(
 
     return { id: data.id };
   } catch (error) {
-    logger.error(LogCategory.DATABASE, 'Save feedback file metadata failed', error as Error, {
+    logger.error('DATABASE: Save feedback file metadata failed', error as Error, {
       feedbackId,
       filename: fileData.filename,
       traceId
@@ -309,7 +309,7 @@ async function uploadFeedbackToSupabase(
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const filePath = `feedback/${feedbackId}/${category}/${year}/${month}/${fileName}`;
 
-  logger.debug(LogCategory.API, 'Uploading feedback file to Supabase Storage', {
+  logger.debug('API: Uploading feedback file to Supabase Storage', {
     fileName,
     filePath,
     fileSize: file.size,
@@ -335,7 +335,7 @@ async function uploadFeedbackToSupabase(
       });
 
     if (error) {
-      logger.error(LogCategory.DATABASE, 'Supabase Storage upload failed', error, {
+      logger.error('DATABASE: Supabase Storage upload failed', error, {
         filePath,
         fileName,
         fileSize: file.size,
@@ -354,7 +354,7 @@ async function uploadFeedbackToSupabase(
       throw new Error('Supabase Storage 공개 URL 생성 실패');
     }
 
-    logger.info(LogCategory.DATABASE, 'Supabase Storage upload successful', {
+    logger.info('DATABASE: Supabase Storage upload successful', {
       filePath: data.path,
       publicUrl: publicUrlData.publicUrl,
       fileSize: file.size,
@@ -396,7 +396,7 @@ async function uploadFeedbackToSupabase(
       }
     };
   } catch (uploadError: any) {
-    logger.error(LogCategory.DATABASE, 'Feedback file upload to Supabase failed', uploadError, {
+    logger.error('DATABASE: Feedback file upload to Supabase failed', uploadError, {
       fileName,
       filePath,
       feedbackId,
@@ -418,12 +418,12 @@ export async function POST(request: NextRequest) {
       userAgent: request.headers.get('user-agent') || undefined,
     });
 
-    logger.info(LogCategory.API, 'Feedback file upload request started', { traceId });
+    logger.info('API: Feedback file upload request started', { traceId });
 
     // Rate Limiting
     const rateLimitResult = checkRateLimit(request, 'upload', RATE_LIMITS.upload);
     if (!rateLimitResult.allowed) {
-      logger.warn(LogCategory.API, 'Rate limit exceeded for feedback upload', {
+      logger.warn('API: Rate limit exceeded for feedback upload', {
         ip: request.headers.get('x-forwarded-for') || '127.0.0.1',
         retryAfter: rateLimitResult.retryAfter,
         traceId
@@ -453,7 +453,7 @@ export async function POST(request: NextRequest) {
     const userId = formData.get('userId') as string | null;
 
     if (!file) {
-      logger.warn(LogCategory.API, 'Missing file in feedback upload request', { traceId });
+      logger.warn('API: Missing file in feedback upload request', { traceId });
       return NextResponse.json(
         failure('FILE_MISSING', '업로드할 파일이 필요합니다.', 400, undefined, traceId),
         { status: 400 }
@@ -461,7 +461,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!feedbackId) {
-      logger.warn(LogCategory.API, 'Missing feedbackId in upload request', { traceId });
+      logger.warn('API: Missing feedbackId in upload request', { traceId });
       return NextResponse.json(
         failure('FEEDBACK_ID_MISSING', '피드백 ID가 필요합니다.', 400, undefined, traceId),
         { status: 400 }
@@ -470,7 +470,7 @@ export async function POST(request: NextRequest) {
 
     // 기본 파일 타입 검증
     if (!ALL_ALLOWED_TYPES.includes(file.type)) {
-      logger.warn(LogCategory.API, 'Invalid file type for feedback upload', {
+      logger.warn('API: Invalid file type for feedback upload', {
         fileType: file.type,
         allowedTypes: ALL_ALLOWED_TYPES,
         traceId
@@ -491,7 +491,7 @@ export async function POST(request: NextRequest) {
     // 고급 보안 검증
     const securityValidation = validateFileSecurity(file);
     if (!securityValidation.isValid) {
-      logger.warn(LogCategory.API, 'File security validation failed for feedback upload', {
+      logger.warn('API: File security validation failed for feedback upload', {
         fileName: file.name,
         fileType: file.type,
         fileSize: file.size,
@@ -514,7 +514,7 @@ export async function POST(request: NextRequest) {
     // 파일 헤더 검증 (Magic Number)
     const headerValidation = await validateFileHeader(file);
     if (!headerValidation.isValid) {
-      logger.warn(LogCategory.API, 'File header validation failed for feedback upload', {
+      logger.warn('API: File header validation failed for feedback upload', {
         fileName: file.name,
         fileType: file.type,
         fileSize: file.size,
@@ -536,7 +536,7 @@ export async function POST(request: NextRequest) {
 
     // 파일 크기 검증
     if (file.size > FEEDBACK_FILE_SIZE_LIMIT) {
-      logger.warn(LogCategory.API, 'File too large for feedback upload', {
+      logger.warn('API: File too large for feedback upload', {
         fileSize: file.size,
         limit: FEEDBACK_FILE_SIZE_LIMIT,
         fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
@@ -557,7 +557,7 @@ export async function POST(request: NextRequest) {
 
     const fileCategory = getFileCategory(file.type);
 
-    logger.info(LogCategory.API, 'File validation passed, starting feedback upload', {
+    logger.info('API: File validation passed, starting feedback upload', {
       fileName: file.name,
       fileSize: file.size,
       fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
@@ -572,7 +572,7 @@ export async function POST(request: NextRequest) {
     try {
       const uploadResult = await uploadFeedbackToSupabase(file, feedbackId, userId, traceId);
 
-      logger.info(LogCategory.API, 'Feedback file upload completed successfully', {
+      logger.info('API: Feedback file upload completed successfully', {
         url: uploadResult.url,
         path: uploadResult.path,
         category: fileCategory,
@@ -603,7 +603,7 @@ export async function POST(request: NextRequest) {
         { status: 200 }
       );
     } catch (uploadError: any) {
-      logger.error(LogCategory.API, 'Feedback file upload failed', uploadError, {
+      logger.error('API: Feedback file upload failed', uploadError, {
         fileName: file.name,
         fileSize: file.size,
         feedbackId,
@@ -624,7 +624,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     const traceId = getTraceId(request);
-    logger.error(LogCategory.API, 'Feedback file upload request failed', error, {
+    logger.error('API: Feedback file upload request failed', error, {
       traceId,
       errorMessage: error.message
     });

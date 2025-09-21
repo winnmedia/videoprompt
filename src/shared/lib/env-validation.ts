@@ -111,23 +111,23 @@ function handleValidationFailure(
 ): EnvValidationResult {
 
   if (logErrors) {
-    console.error('❌ Environment validation failed:', errors)
+    logger.debug('❌ Environment validation failed:', errors)
 
     if (process.env.NODE_ENV === 'development') {
-      console.warn('💡 Development mode - check your .env.local file')
-      console.warn('📖 Required environment variables:', [
+      logger.debug('💡 Development mode - check your .env.local file')
+      logger.debug('📖 Required environment variables:', [
         'SUPABASE_URL',
         'SUPABASE_ANON_KEY',
         'SUPABASE_SERVICE_ROLE_KEY (optional)'
       ])
     } else {
-      console.error('🚨 Production environment variables missing')
+      logger.debug('🚨 Production environment variables missing')
     }
   }
 
   // Fail-Fast 모드 - 즉시 프로세스 종료
   if (failFast) {
-    console.error('🛑 FAIL-FAST: Environment validation failed, terminating process')
+    logger.debug('🛑 FAIL-FAST: Environment validation failed, terminating process')
     process.exit(1)
   }
 

@@ -97,7 +97,7 @@ describe('VideoPlanet System Integration', () => {
       const integrations = [
         { id: 'openai', name: 'OpenAI', status: 'connected' },
         { id: 'gemini', name: 'Gemini', status: 'connected' },
-        { id: 'railway', name: 'Railway', status: 'connected' },
+        { id: 'supabase', name: 'Supabase', status: 'connected' },
       ];
 
       // When: 서비스 상태 확인
@@ -110,7 +110,7 @@ describe('VideoPlanet System Integration', () => {
       // Then: 모든 서비스가 정상 작동
       expect(serviceStatuses[0]).toBe(true); // OpenAI
       expect(serviceStatuses[1]).toBe(true); // Gemini
-      expect(serviceStatuses[2].id).toBeDefined(); // Railway-backed auth stub
+      expect(serviceStatuses[2].id).toBeDefined(); // Supabase-backed auth
     });
 
     it('should handle service degradation gracefully', async () => {

@@ -5,6 +5,7 @@
  */
 
 import { http, HttpResponse, delay } from 'msw';
+import { logger } from '@/shared/lib/logger';
 import { StoryStep, Shot, StoryboardShot, StoryInput } from '@/entities/scenario';
 
 // =============================================================================
@@ -196,7 +197,7 @@ export const scenarioHandlers = [
       });
 
     } catch (error) {
-      console.error('[MSW] Story generation error:', error);
+      logger.error('[MSW] Story generation error:', error instanceof Error ? error : new Error(String(error)));
       return HttpResponse.json({
         success: false,
         message: '스토리 생성 중 오류가 발생했습니다',
@@ -266,7 +267,7 @@ export const scenarioHandlers = [
       });
 
     } catch (error) {
-      console.error('[MSW] Shots generation error:', error);
+      logger.error('[MSW] Shots generation error:', error instanceof Error ? error : new Error(String(error)));
       return HttpResponse.json({
         success: false,
         message: '샷 분해 중 오류가 발생했습니다',
@@ -360,7 +361,7 @@ export const scenarioHandlers = [
       });
 
     } catch (error) {
-      console.error('[MSW] Storyboard generation error:', error);
+      logger.error('[MSW] Storyboard generation error:', error instanceof Error ? error : new Error(String(error)));
       return HttpResponse.json({
         success: false,
         message: '스토리보드 생성 중 오류가 발생했습니다',
@@ -419,7 +420,7 @@ export const scenarioHandlers = [
       });
 
     } catch (error) {
-      console.error('[MSW] Project save error:', error);
+      logger.error('[MSW] Project save error:', error instanceof Error ? error : new Error(String(error)));
       return HttpResponse.json({
         success: false,
         message: '프로젝트 저장 중 오류가 발생했습니다',
@@ -486,7 +487,7 @@ export const scenarioHandlers = [
       });
 
     } catch (error) {
-      console.error('[MSW] Project load error:', error);
+      logger.error('[MSW] Project load error:', error instanceof Error ? error : new Error(String(error)));
       return HttpResponse.json({
         success: false,
         message: '프로젝트 불러오기 중 오류가 발생했습니다',

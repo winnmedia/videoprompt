@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/shared/lib/logger';
 import { Button } from '@/shared/ui';
 import { Icon } from '@/shared/ui';
 import { safeFetch } from '@/shared/lib/api-retry';
@@ -54,7 +55,7 @@ export default function QueuePage() {
         }
       }
     } catch (error) {
-      console.error('Queue data load error:', error);
+      logger.error('Queue data load error:', error instanceof Error ? error : new Error(String(error)));
     } finally {
       setLoading(false);
     }
@@ -71,7 +72,7 @@ export default function QueuePage() {
         loadQueueData(); // 데이터 새로고침
       }
     } catch (error) {
-      console.error('Retry error:', error);
+      logger.error('Retry error:', error instanceof Error ? error : new Error(String(error)));
     }
   };
 
@@ -88,7 +89,7 @@ export default function QueuePage() {
         loadQueueData(); // 데이터 새로고침
       }
     } catch (error) {
-      console.error('Cancel error:', error);
+      logger.error('Cancel error:', error instanceof Error ? error : new Error(String(error)));
     }
   };
 

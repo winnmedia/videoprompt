@@ -71,7 +71,6 @@ describe('환경변수 시스템 테스트', () => {
         NODE_ENV: 'test',
         GOOGLE_GEMINI_API_KEY: 'test-gemini-key',
         SEEDANCE_API_KEY: 'test-seedance-key',
-        RAILWAY_BACKEND_URL: 'https://test-backend.railway.app',
         E2E_FAST_PREVIEW: '1',
       });
     });
@@ -126,7 +125,6 @@ describe('환경변수 시스템 테스트', () => {
       const { getServiceUrls } = await import('@/shared/config/env');
       
       const urls = getServiceUrls();
-      expect(urls.railwayBackend).toBe('https://test-backend.railway.app');
       expect(urls.appUrl).toBe('http://localhost:3000'); // 기본값
     });
   });
@@ -145,18 +143,6 @@ describe('환경변수 시스템 테스트', () => {
       expect(env.NODE_ENV).toBe('development');
     });
 
-    test('RAILWAY_BACKEND_URL 기본값이 설정되어야 함', async () => {
-      restoreEnv = mockEnv({
-        DATABASE_URL: 'postgresql://localhost:5432/test',
-        JWT_SECRET: 'test-jwt-secret-with-32-characters',
-        NODE_ENV: 'test',
-      });
-
-      const { getEnv } = await import('@/shared/config/env');
-      
-      const env = getEnv();
-      expect(env.RAILWAY_BACKEND_URL).toBe('https://videoprompt-production.up.railway.app');
-    });
 
     test('GOOGLE_IMAGE_MODEL 기본값이 설정되어야 함', async () => {
       restoreEnv = mockEnv({

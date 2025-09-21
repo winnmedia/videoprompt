@@ -102,7 +102,7 @@ export async function authenticateRequest(
         duration: Date.now() - startTime
       });
     } else {
-      console.warn(`🚨 Authentication failed`, {
+      logger.debug(`🚨 Authentication failed`, {
         requestId,
         error: authResult.error.code,
         message: authResult.error.message,
@@ -113,7 +113,7 @@ export async function authenticateRequest(
     return authResult;
 
   } catch (error) {
-    console.error(`🚨 Authentication service error`, {
+    logger.debug(`🚨 Authentication service error`, {
       requestId,
       error: error instanceof Error ? error.message : String(error),
       duration: Date.now() - startTime
@@ -201,7 +201,7 @@ async function checkRateLimit(req: NextRequest, options: AuthOptions): Promise<R
   if (clientData.count > limits.maxPerMinute) {
     const retryAfter = Math.ceil((clientData.windowStart + windowDuration - now) / 1000);
 
-    console.error(`🚨 Rate limit exceeded for ${clientKey}`, {
+    logger.debug(`🚨 Rate limit exceeded for ${clientKey}`, {
       endpoint,
       count: clientData.count,
       limit: limits.maxPerMinute,
@@ -230,7 +230,7 @@ async function checkRateLimit(req: NextRequest, options: AuthOptions): Promise<R
   }
 
   if (hourlyCost > RATE_LIMITS.COST_LIMIT_PER_HOUR) {
-    console.error(`🚨 Cost limit exceeded: $${hourlyCost.toFixed(3)} > $${RATE_LIMITS.COST_LIMIT_PER_HOUR}`, {
+    logger.debug(`🚨 Cost limit exceeded: $${hourlyCost.toFixed(3)} > $${RATE_LIMITS.COST_LIMIT_PER_HOUR}`, {
       endpoint,
       clientKey,
       hourlyCost
@@ -251,7 +251,7 @@ async function checkRateLimit(req: NextRequest, options: AuthOptions): Promise<R
     warningLevel = hourlyCost > RATE_LIMITS.COST_LIMIT_PER_HOUR * 0.8 ? 'high' : 'medium';
 
     if (clientData.warnings < 3) { // 경고 스팸 방지
-      console.warn(`⚠️ Cost warning (${warningLevel}): $${hourlyCost.toFixed(3)}`, {
+      logger.debug(`⚠️ Cost warning (${warningLevel}): $${hourlyCost.toFixed(3)}`, {
         endpoint,
         clientKey,
         threshold: RATE_LIMITS.WARNING_THRESHOLD
@@ -265,7 +265,7 @@ async function checkRateLimit(req: NextRequest, options: AuthOptions): Promise<R
   const isTestEnvironment = process.env.NODE_ENV === 'test' || process.env.DISABLE_RATE_LIMITING === 'true';
 
   if (!isTestEnvironment && clientData.count >= 5 && (now - clientData.windowStart) < 1000) {
-    console.error(`🚨 Potential infinite loop detected for ${clientKey}`, {
+    logger.debug(`🚨 Potential infinite loop detected for ${clientKey}`, {
       count: clientData.count,
       timeWindow: now - clientData.windowStart,
       endpoint
@@ -379,7 +379,7 @@ async function performAuthentication(
   }
 
   // 모든 인증 방법 실패 - 명확한 401 반환
-  console.warn(`🚨 All authentication methods failed - returning 401`, {
+  logger.debug(`🚨 All authentication methods failed - returning 401`, {
     requestId,
     allowGuest: options.allowGuest,
     degradationMode
@@ -486,7 +486,7 @@ async function authenticateWithSupabase(
     }
 
     // 명확한 401 반환
-    console.warn(`🚨 Supabase auth failed - returning 401`, {
+    logger.debug(`🚨 Supabase auth failed - returning 401`, {
       requestId,
       allowGuest: options.allowGuest
     });
@@ -503,10 +503,10 @@ async function authenticateWithSupabase(
     );
 
   } catch (error) {
-    console.error('Supabase authentication error:', error);
+    logger.error('Supabase authentication error:', error instanceof Error ? error : new Error(String(error)));
 
     // 서비스 오류는 게스트 모드로 숨기지 않고 명시적으로 실패
-    console.error(`🚨 Supabase service error - not masking as guest mode`, {
+    logger.debug(`🚨 Supabase service error - not masking as guest mode`, {
       requestId,
       error: error instanceof Error ? error.message : 'unknown'
     });
@@ -587,7 +587,7 @@ async function authenticateWithLegacyJWT(
     }
 
     // 명확한 401 반환
-    console.warn(`🚨 Legacy JWT auth failed - returning 401`, {
+    logger.debug(`🚨 Legacy JWT auth failed - returning 401`, {
       requestId,
       allowGuest: options.allowGuest
     });
@@ -604,7 +604,7 @@ async function authenticateWithLegacyJWT(
     );
 
   } catch (error) {
-    console.error('Legacy JWT authentication error:', error);
+    logger.error('Legacy JWT authentication error:', error instanceof Error ? error : new Error(String(error)));
 
     // allowGuest 옵션이 명시적으로 true인 경우에만 게스트 반환
     if (options.allowGuest === true) {
@@ -616,7 +616,7 @@ async function authenticateWithLegacyJWT(
     }
 
     // 명확한 401 반환
-    console.warn(`🚨 Legacy JWT error - returning 401`, {
+    logger.debug(`🚨 Legacy JWT error - returning 401`, {
       requestId,
       allowGuest: options.allowGuest,
       error: error instanceof Error ? error.message : 'unknown'
@@ -688,7 +688,7 @@ function verifyLegacyToken(token: string, secret: string): any | null {
     const decoded = jwt.verify(token, secret);
     return decoded;
   } catch (error) {
-    console.warn('Legacy JWT verification failed:', error);
+    logger.error('Legacy JWT verification failed:', error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }

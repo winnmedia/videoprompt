@@ -59,7 +59,7 @@ export function saveStoryData(data: StoryData): void {
     sessionStorage.setItem(STORY_STORAGE_KEY, JSON.stringify(storyWithTimestamp));
     logger.info('Story data saved to sessionStorage:', storyWithTimestamp.id);
   } catch (error) {
-    console.warn('Failed to save story data to sessionStorage:', error);
+    logger.error('Failed to save story data to sessionStorage:', error instanceof Error ? error : new Error(String(error)));
   }
 }
 
@@ -77,7 +77,7 @@ export function loadStoryData(): StoryData | null {
     logger.info('Story data loaded from sessionStorage:', data.id);
     return data;
   } catch (error) {
-    console.warn('Failed to load story data from sessionStorage:', error);
+    logger.error('Failed to load story data from sessionStorage:', error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }
@@ -90,7 +90,7 @@ export function clearStoryData(): void {
     sessionStorage.removeItem(STORY_STORAGE_KEY);
     logger.info('Story data cleared from sessionStorage');
   } catch (error) {
-    console.warn('Failed to clear story data from sessionStorage:', error);
+    logger.error('Failed to clear story data from sessionStorage:', error instanceof Error ? error : new Error(String(error)));
   }
 }
 

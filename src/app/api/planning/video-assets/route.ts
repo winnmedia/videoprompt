@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 
 export const runtime = 'nodejs';
@@ -51,7 +52,7 @@ export async function GET(_req: NextRequest) {
     return NextResponse.json({ ok: true, data: list } as ApiSuccess<typeof list>);
 
   } catch (e: any) {
-    console.error('Video assets fetch error:', e);
+    logger.debug('Video assets fetch error:', e);
 
     // Supabase 관련 에러 처리
     if (e.message?.includes('connection')) {

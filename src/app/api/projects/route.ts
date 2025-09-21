@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
     return success(response, 201, traceId);
 
   } catch (error: any) {
-    console.error(`[Projects ${traceId}] ❌ 프로젝트 생성 실패:`, error);
+    logger.error(`[Projects ${traceId}] ❌ 프로젝트 생성 실패:`, error instanceof Error ? error : new Error(String(error)));
 
     if (error instanceof z.ZodError) {
       return failure('VALIDATION_ERROR', '입력 데이터가 올바르지 않습니다.', 400, JSON.stringify({ errors: error.issues }), traceId);
@@ -195,7 +195,7 @@ export async function GET(req: NextRequest) {
     return success(response, 200, traceId);
 
   } catch (error: any) {
-    console.error(`[Projects ${traceId}] ❌ 프로젝트 조회 실패:`, error);
+    logger.error(`[Projects ${traceId}] ❌ 프로젝트 조회 실패:`, error instanceof Error ? error : new Error(String(error)));
     return failure('INTERNAL_ERROR', '프로젝트 조회 중 오류가 발생했습니다.', 500, undefined, traceId);
   }
 }

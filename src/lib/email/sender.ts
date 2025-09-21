@@ -261,7 +261,7 @@ export async function sendEmail(request: SendEmailRequest): Promise<SendEmailRes
       ? error 
       : parseSendGridError(error);
     
-    console.error('[Email] Send failed', emailError.toJSON());
+    logger.error('[Email] Send failed', emailError.toJSON());
     throw emailError;
   }
 }
@@ -355,7 +355,7 @@ export async function sendBatchEmails(request: BatchEmailRequest): Promise<Batch
       ? error 
       : parseSendGridError(error);
     
-    console.error('[Email] Batch send failed', emailError.toJSON());
+    logger.error('[Email] Batch send failed', emailError.toJSON());
     throw emailError;
   }
 }
@@ -492,7 +492,7 @@ export async function validateEmailConfiguration(): Promise<boolean> {
     logger.info('[Email] Configuration validated successfully');
     return true;
   } catch (error) {
-    console.error('[Email] Configuration validation failed:', error);
+    logger.error('[Email] Configuration validation failed:', error);
     return false;
   }
 }

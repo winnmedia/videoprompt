@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     // Request body 안전 파싱
     const parseResult = await safeParseRequestBody(req, SendVerificationSchema);
     if (!parseResult.success) {
-      console.error(`[SendVerification ${traceId}] JSON 파싱 실패:`, parseResult.error);
+      logger.debug(`[SendVerification ${traceId}] JSON 파싱 실패:`, parseResult.error);
       return failure('INVALID_REQUEST', '잘못된 요청 형식입니다.', 400, parseResult.error, traceId);
     }
     
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
       
       logger.info(`[SendVerification ${traceId}] Verification email sent successfully`);
     } catch (emailError) {
-      console.error(`[SendVerification ${traceId}] Failed to send verification email:`, emailError);
+      logger.debug(`[SendVerification ${traceId}] Failed to send verification email:`, emailError);
       // 이메일 발송 실패해도 토큰은 생성되었으므로 부분 성공으로 처리
       return success({
         ok: true,
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
       emailSent: true,
     }, 200, traceId);
   } catch (e: any) {
-    console.error(`[SendVerification ${traceId}] Error:`, e);
+    logger.debug(`[SendVerification ${traceId}] Error:`, e);
     
     // 커스텀 오류 처리
     if (e.message === 'EMAIL_ALREADY_VERIFIED') {

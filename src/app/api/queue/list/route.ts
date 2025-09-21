@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { success, failure, getTraceId, supabaseErrors } from '@/shared/lib/api-response';
 import { withAuth } from '@/shared/lib/auth-middleware-v2';
 import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
-import { logger, LogCategory } from '@/shared/lib/structured-logger';
+import { logger } from '@/shared/lib/logger';
 import type { VideoMetadata } from '@/shared/types/metadata';
 
 export const runtime = 'nodejs';
@@ -87,13 +87,13 @@ export const GET = withAuth(async (req, { user, authContext }) => {
       userAgent: req.headers.get('user-agent') || undefined,
     });
 
-    logger.info(LogCategory.API, 'Queue list request started (withAuth v2)', {
+    logger.info('API: Queue list request started (withAuth v2)', {
       traceId,
       userId: user.id,
       tokenType: user.tokenType
     });
 
-    logger.debug(LogCategory.SECURITY, 'User authentication successful', {
+    logger.debug('SECURITY: User authentication successful', {
       userId: user.id,
       userEmail: user.email,
       tokenType: user.tokenType,
@@ -106,14 +106,14 @@ export const GET = withAuth(async (req, { user, authContext }) => {
       supabase = await getSupabaseClientSafe('anon');
     } catch (error) {
       if (error instanceof ServiceConfigError) {
-        logger.error(LogCategory.DATABASE, 'Supabase client initialization failed', error, {
+        logger.error('DATABASE: Supabase client initialization failed', error, {
           userId: user.id,
           traceId
         });
         return supabaseErrors.configError(traceId, error.message);
       }
 
-      logger.error(LogCategory.DATABASE, 'Unexpected Supabase client error', error as Error, {
+      logger.error('DATABASE: Unexpected Supabase client error', error as Error, {
         userId: user.id,
         traceId
       });
@@ -152,7 +152,7 @@ export const GET = withAuth(async (req, { user, authContext }) => {
       .limit(50);
 
     if (error) {
-      logger.error(LogCategory.DATABASE, 'Supabase video_assets query failed', error, {
+      logger.error('DATABASE: Supabase video_assets query failed', error, {
         userId: user.id,
         traceId
       });
@@ -166,7 +166,7 @@ export const GET = withAuth(async (req, { user, authContext }) => {
       );
     }
 
-    logger.debug(LogCategory.DATABASE, 'Successfully fetched video assets', {
+    logger.debug('DATABASE: Successfully fetched video assets', {
       count: videoAssets?.length || 0,
       userId: user.id,
       traceId
@@ -223,7 +223,7 @@ export const GET = withAuth(async (req, { user, authContext }) => {
       failed: queueItems.filter(item => item.status === 'failed').length,
     };
 
-    logger.info(LogCategory.API, 'Queue list request completed successfully', {
+    logger.info('API: Queue list request completed successfully', {
       totalItems: queueItems.length,
       stats,
       userId: user.id,
@@ -246,7 +246,7 @@ export const GET = withAuth(async (req, { user, authContext }) => {
 
   } catch (error: any) {
     const traceId = getTraceId(req);
-    logger.error(LogCategory.API, 'Queue list request failed', error, {
+    logger.error('API: Queue list request failed', error, {
       traceId,
       errorMessage: error.message
     });

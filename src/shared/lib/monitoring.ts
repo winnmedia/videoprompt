@@ -1,3 +1,5 @@
+import { logger } from '@/shared/lib/logger';
+
 /**
  * 운영 모니터링 및 성능 추적 시스템
  * CLAUDE.md Part 4.5 옵저버빌리티 원칙 준수
@@ -48,10 +50,10 @@ class MonitoringService {
     
     // 임계값 초과 시 경고
     if (this.isPerformanceCritical(name, value)) {
-      console.warn(`🚨 성능 임계값 초과: ${name} = ${value}ms`);
+      logger.debug(`🚨 성능 임계값 초과: ${name} = ${value}ms`);
       
       if (name === 'api_response_time' && value > 10000) {
-        console.error('💥 API 응답시간 10초 초과 - 잠재적 무한루프 감지!');
+        logger.debug('💥 API 응답시간 10초 초과 - 잠재적 무한루프 감지!');
       }
     }
   }
@@ -71,9 +73,9 @@ class MonitoringService {
     
     // 심각도별 로깅
     if (severity === 'critical') {
-      console.error('🔥 CRITICAL ERROR:', errorMetric);
+      logger.debug('🔥 CRITICAL ERROR:', errorMetric);
     } else if (severity === 'high') {
-      console.error('⚠️ HIGH SEVERITY:', errorMetric);
+      logger.debug('⚠️ HIGH SEVERITY:', errorMetric);
     }
   }
   
@@ -93,8 +95,8 @@ class MonitoringService {
     
     // $300 사건 방지: 동일 API 연속 호출 감지
     if (this.detectSuspiciousApiPattern(endpoint)) {
-      console.error('💸 의심스러운 API 호출 패턴 감지! 비용 폭탄 위험!');
-      console.error(`📊 최근 1분간 ${endpoint} 호출 횟수: ${this.getRecentApiCallCount(endpoint, 60000)}`);
+      logger.debug('💸 의심스러운 API 호출 패턴 감지! 비용 폭탄 위험!');
+      logger.debug(`📊 최근 1분간 ${endpoint} 호출 횟수: ${this.getRecentApiCallCount(endpoint, 60000)}`);
     }
   }
   

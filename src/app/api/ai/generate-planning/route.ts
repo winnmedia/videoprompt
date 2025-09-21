@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 import { withAICache } from '@/shared/lib/ai-cache';
 
 interface PlanningRequest {
@@ -121,7 +122,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(geminiResult);
       } catch (apiError) {
-        console.warn('Gemini API 호출 실패, 기본 기획안으로 폴백:', apiError);
+        logger.debug('Gemini API 호출 실패, 기본 기획안으로 폴백:', apiError);
       }
     }
 

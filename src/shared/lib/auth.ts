@@ -20,7 +20,7 @@ const getSecret = (): string => {
   if (!secret) {
     // 🚨 보안 긴급 수정: 프로덕션에서 JWT_SECRET 필수
     const error = new Error('JWT_SECRET environment variable is required. Set it in your .env file or Vercel dashboard.');
-    console.error('❌ CRITICAL SECURITY ERROR:', error.message);
+    logger.debug('❌ CRITICAL SECURITY ERROR:', error.message);
     throw error;
   }
   return secret;
@@ -62,11 +62,11 @@ export function getUserIdFromRequest(req: NextRequest): string | undefined {
           return tokenPayload.sub;
         }
       } catch (e) {
-        console.warn('🚨 Supabase cookie token parsing failed:', e);
+        logger.debug('🚨 Supabase cookie token parsing failed:', e);
       }
     }
   } catch (error) {
-    console.error('🚨 Supabase cookie parsing error:', error);
+    logger.error('🚨 Supabase cookie parsing error:', error instanceof Error ? error : new Error(String(error)));
   }
 
   // 2) Authorization 헤더 확인
@@ -95,11 +95,11 @@ export function getUserIdFromRequest(req: NextRequest): string | undefined {
         logger.info(`🔑 Legacy Bearer token authentication successful: ${p.sub}`);
         return p.sub;
       } else {
-        console.warn('🚨 Bearer token verification failed');
+        logger.debug('🚨 Bearer token verification failed');
       }
     }
   } catch (error) {
-    console.error('🚨 Bearer token parsing error:', error);
+    logger.error('🚨 Bearer token parsing error:', error instanceof Error ? error : new Error(String(error)));
   }
 
   // 3) 레거시 Cookie 차선
@@ -111,11 +111,11 @@ export function getUserIdFromRequest(req: NextRequest): string | undefined {
         logger.info(`🔑 Legacy Cookie authentication successful: ${p.sub}`);
         return p.sub;
       } else {
-        console.warn('🚨 Cookie token verification failed');
+        logger.debug('🚨 Cookie token verification failed');
       }
     }
   } catch (error) {
-    console.error('🚨 Cookie token parsing error:', error);
+    logger.error('🚨 Cookie token parsing error:', error instanceof Error ? error : new Error(String(error)));
   }
 
   // 4) 테스트 헤더(개발/테스트 환경만)
@@ -128,7 +128,7 @@ export function getUserIdFromRequest(req: NextRequest): string | undefined {
     }
   }
 
-  console.warn('🚨 No valid authentication found');
+  logger.debug('🚨 No valid authentication found');
   return undefined;
 }
 
@@ -161,16 +161,16 @@ export async function getUser(req: NextRequest) {
 
           logger.info('✅ 자동 동기화 성공:', userId, syncResult.operation);
         } else {
-          console.warn('⚠️ 자동 동기화 실패:', userId, syncResult.errors);
+          logger.debug('⚠️ 자동 동기화 실패:', userId, syncResult.errors);
         }
       } catch (syncError) {
-        console.error('❌ 동기화 서비스 오류:', syncError);
+        logger.debug('❌ 동기화 서비스 오류:', syncError);
       }
     }
 
     return user;
   } catch (error) {
-    console.error('Failed to fetch user:', error);
+    logger.error('Failed to fetch user:', error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }
@@ -183,7 +183,7 @@ export async function getUser(req: NextRequest) {
 export function requireAuthentication(req: NextRequest): string | null {
   const userId = getUserIdFromRequest(req);
   if (!userId) {
-    console.warn('🚨 인증 실패 - getUserIdFromRequest 반환값 없음');
+    logger.debug('🚨 인증 실패 - getUserIdFromRequest 반환값 없음');
     return null;
   }
 

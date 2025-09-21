@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useRef, useState, useEffect } from 'react';
+import { logger } from '@/shared/lib/logger';
 import { Button } from '@/shared/ui/button';
 import { Modal } from '@/shared/ui/Modal';
 import { Camera, MessageSquare, Share2, Repeat, Upload, FileUp } from 'lucide-react';
@@ -199,7 +200,7 @@ export default function FeedbackPage() {
         throw new Error(result.error || '업로드 중 오류가 발생했습니다.');
       }
     } catch (error: any) {
-      console.error('비디오 업로드 오류:', error);
+      logger.error('비디오 업로드 오류:', error instanceof Error ? error : new Error(String(error)));
       
       // 오류 타입별 상세 메시지
       let errorMessage = '비디오 업로드에 실패했습니다.';
@@ -251,7 +252,7 @@ export default function FeedbackPage() {
           await handleVideoUpload(slotIndex);
           uploadCount++;
         } catch (error) {
-          console.error(`슬롯 ${slotIndex + 1} 업로드 실패:`, error);
+          logger.error(`슬롯 ${slotIndex + 1} 업로드 실패:`, error instanceof Error ? error : new Error(String(error)));
           // 개별 슬롯 실패 시에도 계속 진행
         }
       }
@@ -599,7 +600,7 @@ export default function FeedbackPage() {
                     });
                     setComment('');
                   } catch (e) {
-                    console.error(e);
+                    logger.debug(e);
                   }
                 }}
               >
@@ -736,7 +737,7 @@ export default function FeedbackPage() {
                     alert('링크 발급 실패');
                   }
                 } catch (e) {
-                  console.error(e);
+                  logger.debug(e);
                   alert('링크 발급 중 오류');
                 }
               }}
@@ -845,7 +846,7 @@ export default function FeedbackPage() {
             feedbackId={activeVersionId} // 현재 버전을 피드백 ID로 사용
             userId={tokenInfo?.nickname || undefined}
             onUploadComplete={(files) => {
-              console.log('Upload completed:', files);
+              logger.debug('Upload completed:', files);
               // 업로드 완료 후 파일 목록 새로고침
               setFilesListKey(prev => prev + 1);
               // 성공 메시지 표시
@@ -854,7 +855,7 @@ export default function FeedbackPage() {
               }
             }}
             onUploadError={(error) => {
-              console.error('Upload error:', error);
+              logger.error('Upload error:', error instanceof Error ? error : new Error(String(error)));
               alert(`업로드 오류: ${error}`);
             }}
             maxFiles={10}

@@ -856,7 +856,7 @@ export const handlers = [
           });
       }
     } catch (error) {
-      console.error('[MSW] Video upload handler error:', error);
+      logger.error('[MSW] Video upload handler error:', error instanceof Error ? error : new Error(String(error)));
       return HttpResponse.json(
         { error: 'Internal server error during file processing' },
         { status: 500 }
@@ -907,7 +907,7 @@ export const handlers = [
           });
       }
     } catch (error) {
-      console.error('[MSW] Image upload handler error:', error);
+      logger.error('[MSW] Image upload handler error:', error instanceof Error ? error : new Error(String(error)));
       return HttpResponse.json(
         { error: 'Internal server error during file processing' },
         { status: 500 }

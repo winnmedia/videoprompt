@@ -73,7 +73,7 @@ export async function createSeedanceVideoWithFallback(
     }
 
     // 실제 API가 실패한 경우 Mock으로 폴백
-    console.warn('⚠️ 실제 API 실패, Mock으로 폴백:', realResult.error);
+    logger.warn('⚠️ 실제 API 실패, Mock으로 폴백:', realResult.error);
     const mockResult = await createMockVideo(payload);
 
     if (mockResult.ok) {
@@ -93,7 +93,7 @@ export async function createSeedanceVideoWithFallback(
   } catch (error) {
     // 네트워크 에러 등 예외 상황
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('❌ 실제 API 호출 중 예외 발생, Mock으로 폴백:', errorMessage);
+    logger.error('❌ 실제 API 호출 중 예외 발생, Mock으로 폴백:', errorMessage);
 
     try {
       const mockResult = await createMockVideo(payload);
@@ -151,7 +151,7 @@ export async function getSeedanceStatusWithFallback(
     }
 
     // 실제 API가 실패한 경우 Mock으로 폴백
-    console.warn('⚠️ 실제 API 상태 확인 실패, Mock으로 폴백:', realResult.error);
+    logger.warn('⚠️ 실제 API 상태 확인 실패, Mock으로 폴백:', realResult.error);
     const mockResult = await getMockStatus(jobId);
 
     return {
@@ -161,7 +161,7 @@ export async function getSeedanceStatusWithFallback(
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('❌ 실제 API 상태 확인 중 예외 발생, Mock으로 폴백:', errorMessage);
+    logger.error('❌ 실제 API 상태 확인 중 예외 발생, Mock으로 폴백:', errorMessage);
 
     const mockResult = await getMockStatus(jobId);
     return {
@@ -234,7 +234,7 @@ export class SeedanceService {
       } catch (error) {
         if (error instanceof ServiceConfigError) {
           validationError = error;
-          console.warn('⚠️ Seedance 설정 검증 실패:', {
+          logger.warn('⚠️ Seedance 설정 검증 실패:', {
             code: error.errorCode,
             message: error.message
           });
@@ -274,7 +274,7 @@ export class SeedanceService {
 
       // 5. 설정 에러가 있으면 로깅 (하지만 서비스는 계속 동작)
       if (validationError) {
-        console.warn('⚠️ 설정 문제 감지됨 (Graceful Degradation 적용):', {
+        logger.warn('⚠️ 설정 문제 감지됨 (Graceful Degradation 적용):', {
           errorCode: validationError.errorCode,
           fallbackMode: mode,
           setupGuideAvailable: !!validationError.setupGuide
@@ -283,7 +283,7 @@ export class SeedanceService {
 
       return healthStatus;
     } catch (error) {
-      console.error('❌ 헬스체크 실패:', error);
+      logger.error('❌ 헬스체크 실패:', error);
       return {
         isHealthy: false,
         lastCheck: new Date().toISOString(),
@@ -344,7 +344,7 @@ export class SeedanceService {
       // 임계값 도달 시 Circuit Breaker 열기
       if (this.consecutiveFailures >= this.failureThreshold) {
         this.circuitBreakerOpen = true;
-        console.warn(
+        logger.warn(
           `⚠️ Circuit Breaker 작동: ${this.consecutiveFailures}번 연속 실패 (임계값: ${this.failureThreshold})`
         );
       }

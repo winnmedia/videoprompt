@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '@/app/store';
+import { useAppDispatch, useAppSelector } from '@/shared/lib/redux-hooks';
 import { logger } from '@/shared/lib/logger';
 import {
 
@@ -85,11 +85,11 @@ export function useSeedanceProvider() {
           message: 'Seedance API 키가 설정되지 않았거나 유효하지 않습니다',
           increaseRetryCount: false,
         }));
-        console.error('❌ Seedance Provider 초기화 실패');
+        logger.debug('❌ Seedance Provider 초기화 실패');
       }
 
     } catch (error) {
-      console.error('❌ Seedance Provider 초기화 중 오류:', error);
+      logger.error('❌ Seedance Provider 초기화 중 오류:', error instanceof Error ? error : new Error(String(error)));
       dispatch(setProviderError({
         message: `초기화 실패: ${error instanceof Error ? error.message : 'Unknown error'}`,
         increaseRetryCount: false,

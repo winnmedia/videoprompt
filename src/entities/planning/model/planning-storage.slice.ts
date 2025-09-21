@@ -88,7 +88,7 @@ export const submitDualStorage = createAsyncThunk<
 
       return result.data.dualStorage as DualStorageResult;
     } catch (error) {
-      console.error('❌ 이중 저장 실패:', error);
+      logger.error('❌ 이중 저장 실패:', error instanceof Error ? error : new Error(String(error)));
       return rejectWithValue(
         error instanceof Error ? error.message : '알 수 없는 오류'
       );
@@ -131,7 +131,7 @@ export const retryFailedStorage = createAsyncThunk<
 
       return successfulResults;
     } catch (error) {
-      console.error('❌ 재시도 실패:', error);
+      logger.error('❌ 재시도 실패:', error instanceof Error ? error : new Error(String(error)));
       return rejectWithValue(
         error instanceof Error ? error.message : '재시도 실패'
       );
@@ -268,7 +268,7 @@ export const planningStorageSlice = createSlice({
         state.lastError = error;
         state.status = state.activeRequests.size > 0 ? 'loading' : 'error';
 
-        console.error('❌ Redux: 이중 저장 실패 처리 완료', {
+        logger.debug('❌ Redux: 이중 저장 실패 처리 완료', {
           projectId: request.projectId,
           error,
           retryQueueSize: state.retryQueue.length,
@@ -309,7 +309,7 @@ export const planningStorageSlice = createSlice({
         state.lastError = action.payload || '재시도 실패';
         state.status = 'error';
 
-        console.error('❌ Redux: 재시도 실패', action.payload);
+        logger.debug('❌ Redux: 재시도 실패', action.payload);
       });
   },
 });

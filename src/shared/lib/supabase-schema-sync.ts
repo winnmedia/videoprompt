@@ -154,7 +154,7 @@ export async function createMissingTables(): Promise<SchemaSyncResult> {
     });
 
     if (triggerError) {
-      console.warn('⚠️ 트리거 함수 생성 실패 (이미 존재할 수 있음):', triggerError.message);
+      logger.debug('⚠️ 트리거 함수 생성 실패 (이미 존재할 수 있음):', triggerError.message);
     } else {
       logger.info('✅ 트리거 함수 생성 성공');
     }
@@ -167,7 +167,7 @@ export async function createMissingTables(): Promise<SchemaSyncResult> {
 
     if (storyError) {
       result.errors.push(`Story 테이블 생성 실패: ${storyError.message}`);
-      console.error('❌ Story 테이블 생성 실패:', storyError);
+      logger.debug('❌ Story 테이블 생성 실패:', storyError);
     } else {
       result.tablesCreated.push('Story');
       logger.info('✅ Story 테이블 생성 성공');
@@ -186,7 +186,7 @@ export async function createMissingTables(): Promise<SchemaSyncResult> {
       });
 
       if (storyTriggerError) {
-        console.warn('⚠️ Story 트리거 생성 실패:', storyTriggerError.message);
+        logger.debug('⚠️ Story 트리거 생성 실패:', storyTriggerError.message);
       } else {
         logger.info('✅ Story 트리거 생성 성공');
       }
@@ -200,7 +200,7 @@ export async function createMissingTables(): Promise<SchemaSyncResult> {
 
     if (scenarioError) {
       result.errors.push(`Scenario 테이블 생성 실패: ${scenarioError.message}`);
-      console.error('❌ Scenario 테이블 생성 실패:', scenarioError);
+      logger.debug('❌ Scenario 테이블 생성 실패:', scenarioError);
     } else {
       result.tablesCreated.push('Scenario');
       logger.info('✅ Scenario 테이블 생성 성공');
@@ -219,7 +219,7 @@ export async function createMissingTables(): Promise<SchemaSyncResult> {
       });
 
       if (scenarioTriggerError) {
-        console.warn('⚠️ Scenario 트리거 생성 실패:', scenarioTriggerError.message);
+        logger.debug('⚠️ Scenario 트리거 생성 실패:', scenarioTriggerError.message);
       } else {
         logger.info('✅ Scenario 트리거 생성 성공');
       }
@@ -229,7 +229,7 @@ export async function createMissingTables(): Promise<SchemaSyncResult> {
     const errorMessage = error instanceof Error ? error.message : String(error);
     result.success = false;
     result.errors.push(`스키마 동기화 중 예외 발생: ${errorMessage}`);
-    console.error('❌ 스키마 동기화 예외:', error);
+    logger.error('❌ 스키마 동기화 예외:', error instanceof Error ? error : new Error(String(error)));
   }
 
   // 최종 결과

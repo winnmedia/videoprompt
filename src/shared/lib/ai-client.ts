@@ -1,4 +1,5 @@
 import { ScenePrompt, Scene } from '@/shared/types/api';
+import { logger } from '@/shared/lib/logger';
 import { z } from 'zod';
 
 // Utility: fetch with timeout (ms)
@@ -141,7 +142,7 @@ class OpenAIClient {
         },
       };
     } catch (error) {
-      console.error('OpenAI API error:', error);
+      logger.error('OpenAI API error:', error instanceof Error ? error : new Error(String(error)));
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -189,7 +190,7 @@ class OpenAIClient {
         },
       };
     } catch (error) {
-      console.error('OpenAI API error:', error);
+      logger.error('OpenAI API error:', error instanceof Error ? error : new Error(String(error)));
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -281,7 +282,7 @@ class GeminiClient {
         },
       };
     } catch (error) {
-      console.error('Gemini API error:', error);
+      logger.error('Gemini API error:', error instanceof Error ? error : new Error(String(error)));
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -335,7 +336,7 @@ class GeminiClient {
         },
       };
     } catch (error) {
-      console.error('Gemini API error:', error);
+      logger.error('Gemini API error:', error instanceof Error ? error : new Error(String(error)));
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

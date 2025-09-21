@@ -1,3 +1,5 @@
+import { logger } from '@/shared/lib/logger';
+
 /**
  * Runway 영상 생성 클라이언트 (스텁)
  * FSD 아키텍처: shared/lib 레이어
@@ -25,7 +27,7 @@ export interface RunwayVideoResponse {
 class RunwayClient {
   async createVideo(request: RunwayVideoRequest): Promise<RunwayVideoResponse> {
     // TODO: 실제 Runway API 호출 구현
-    console.warn('Runway 클라이언트 스텁 사용 중 - 실제 구현 필요');
+    logger.debug('Runway 클라이언트 스텁 사용 중 - 실제 구현 필요');
 
     return {
       success: true,

@@ -5,6 +5,7 @@
  */
 
 import { Shot, StoryboardShot, InsertShot } from '@/entities/scenario';
+import { logger } from '@/shared/lib/logger';
 import { z } from 'zod';
 
 // API 요청/응답 타입 정의
@@ -273,7 +274,7 @@ export function transformApiResponseToShots(
 
     // 권장 샷 수 검증 (12샷)
     if (shots.length !== 12) {
-      console.warn(`권장되는 12샷과 다른 ${shots.length}개 샷이 생성되었습니다`);
+      logger.debug(`권장되는 12샷과 다른 ${shots.length}개 샷이 생성되었습니다`);
     }
 
     return shots;

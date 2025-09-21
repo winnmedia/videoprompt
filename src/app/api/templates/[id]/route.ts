@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import { z } from 'zod';
 // import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
@@ -37,7 +38,7 @@ export async function GET(
       { status: 503 }
     );
   } catch (error) {
-    console.error('[Template API] GET error:', error);
+    logger.error('[Template API] GET error:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: '템플릿 조회에 실패했습니다' },
       { status: 500 }
@@ -70,7 +71,7 @@ export async function PUT(
       { status: 503 }
     );
   } catch (error) {
-    console.error('[Template API] PUT error:', error);
+    logger.error('[Template API] PUT error:', error instanceof Error ? error : new Error(String(error)));
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -111,7 +112,7 @@ export async function DELETE(
       { status: 503 }
     );
   } catch (error) {
-    console.error('[Template API] DELETE error:', error);
+    logger.error('[Template API] DELETE error:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: '템플릿 삭제에 실패했습니다' },
       { status: 500 }

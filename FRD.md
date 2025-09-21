@@ -109,7 +109,7 @@
 - `IMAGEN_PROVIDER`, `IMAGEN_LLM_MODEL`: Imagen Provider/모델 지정
 - `VEO_PROVIDER`, `VEO_MODEL`: Veo3 활성화/모델 지정
 - `SEEDANCE_API_KEY`, `SEEDANCE_API_BASE`, `SEEDANCE_MODEL`: Seedance/ModelArk 설정
-  참고: 세부 가이드는 `ENVIRONMENT_VARIABLES.md` 참조. 프로덕션은 Railway 대시보드에 설정.
+  참고: 세부 가이드는 `ENVIRONMENT_VARIABLES.md` 참조. 프로덕션은 Vercel 대시보드에 설정.
 
 ## 📋 기능별 상세 명세
 

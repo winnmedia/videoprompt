@@ -220,7 +220,7 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`[Health Check ${traceId}] ❌ Supabase 헬스체크 실패:`, errorMessage);
+    logger.debug(`[Health Check ${traceId}] ❌ Supabase 헬스체크 실패:`, errorMessage);
 
     return NextResponse.json(
       failure(
@@ -327,7 +327,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`[Health Check ${traceId}] ❌ 상세 진단 실패:`, errorMessage);
+    logger.debug(`[Health Check ${traceId}] ❌ 상세 진단 실패:`, errorMessage);
 
     return NextResponse.json(
       failure(

@@ -390,7 +390,7 @@ export default function SceneWizardPage() {
       }
     } catch (err) {
       setError('오류가 발생했습니다. 다시 시도해주세요.');
-      console.error('Generation error:', err);
+      logger.debug('Generation error:', err);
     } finally {
       setIsGenerating(false);
     }
@@ -491,7 +491,7 @@ export default function SceneWizardPage() {
       setStatusKind('success');
       setStatusMsg('프롬프트 복사 완료');
     } catch (e) {
-      console.error('copy failed', e);
+      logger.debug('copy failed', e);
       setError('클립보드 복사에 실패했습니다.');
     }
   };
@@ -517,7 +517,7 @@ export default function SceneWizardPage() {
                 style: selectedStyle,
               });
             } catch (e) {
-              console.warn('LLM 비디오 프롬프트 변환 실패, 원본 사용:', e);
+              logger.debug('LLM 비디오 프롬프트 변환 실패, 원본 사용:', e);
             }
 
             const english = await translateToEnglish(optimizedPrompt);
@@ -590,7 +590,7 @@ export default function SceneWizardPage() {
           style: selectedStyle,
         });
       } catch (e) {
-        console.warn('LLM 비디오 프롬프트 변환 실패, 원본 사용:', e);
+        logger.debug('LLM 비디오 프롬프트 변환 실패, 원본 사용:', e);
       }
 
       const english = await translateToEnglish(optimizedPrompt);
@@ -610,7 +610,7 @@ export default function SceneWizardPage() {
         setStatusMsg('Seedance 영상 생성이 시작되었습니다.');
       }
     } catch (e) {
-      console.error('Seedance create failed', e);
+      logger.debug('Seedance create failed', e);
       const errorMessage = e instanceof Error ? e.message : 'Seedance 영상 생성 실패';
       setError(errorMessage);
       setStatusKind('error');
@@ -619,7 +619,7 @@ export default function SceneWizardPage() {
       // 사용자에게 환경변수 설정 안내
       if (errorMessage.includes('model/endpoint') || errorMessage.includes('SEEDANCE_MODEL')) {
         setError(
-          `${errorMessage}\n\n해결 방법:\n1. Railway 대시보드에서 환경변수 설정\n2. SEEDANCE_API_KEY 설정\n3. SEEDANCE_MODEL 설정 (ep-... 형식)`,
+          `${errorMessage}\n\n해결 방법:\n1. Vercel 대시보드에서 환경변수 설정\n2. SEEDANCE_API_KEY 설정\n3. SEEDANCE_MODEL 설정 (ep-... 형식)`,
         );
       }
     }
@@ -647,7 +647,7 @@ export default function SceneWizardPage() {
           style: selectedStyle,
         });
       } catch (e) {
-        console.warn('LLM Veo 프롬프트 변환 실패, 원본 사용:', e);
+        logger.debug('LLM Veo 프롬프트 변환 실패, 원본 사용:', e);
       }
 
       const english = await translateToEnglish(optimizedPrompt);
@@ -673,7 +673,7 @@ export default function SceneWizardPage() {
         // 구체적인 오류 메시지 처리
         if (json.error?.includes('GOOGLE_GEMINI_API_KEY')) {
           throw new Error(
-            'Google Gemini API 키가 설정되지 않았습니다. Railway 환경변수를 확인해주세요.',
+            'Google Gemini API 키가 설정되지 않았습니다. Vercel 환경변수를 확인해주세요.',
           );
         } else if (json.error?.includes('VEO_PROVIDER')) {
           throw new Error('Veo 제공자가 비활성화되었습니다. VEO_PROVIDER 환경변수를 확인해주세요.');
@@ -693,7 +693,7 @@ export default function SceneWizardPage() {
         logger.info('Veo operation started:', json.operationId);
       }
     } catch (e) {
-      console.error('Veo create failed', e);
+      logger.debug('Veo create failed', e);
       const errorMessage = e instanceof Error ? e.message : 'Google Veo 동영상 생성 실패';
       setError(errorMessage);
       setStatusKind('error');
@@ -702,7 +702,7 @@ export default function SceneWizardPage() {
       // 사용자에게 환경변수 설정 안내
       if (errorMessage.includes('API 키') || errorMessage.includes('환경변수')) {
         setError(
-          `${errorMessage}\n\n해결 방법:\n1. Railway 대시보드에서 환경변수 설정\n2. GOOGLE_GEMINI_API_KEY 설정\n3. VEO_PROVIDER=google 설정`,
+          `${errorMessage}\n\n해결 방법:\n1. Vercel 대시보드에서 환경변수 설정\n2. GOOGLE_GEMINI_API_KEY 설정\n3. VEO_PROVIDER=google 설정`,
         );
       }
     }
@@ -716,7 +716,7 @@ export default function SceneWizardPage() {
       setStatusMsg('프롬프트 저장 완료');
     } catch (err) {
       setError('저장에 실패했습니다.');
-      console.error('Save error:', err);
+      logger.debug('Save error:', err);
     }
   };
 
@@ -727,7 +727,7 @@ export default function SceneWizardPage() {
       const id = `${Date.now()}`;
       router.push(`/editor/${id}?from=wizard`);
     } catch (e) {
-      console.error('Failed to open editor:', e);
+      logger.debug('Failed to open editor:', e);
     }
   };
 
@@ -737,7 +737,7 @@ export default function SceneWizardPage() {
       const id = `${Date.now()}`;
       router.push(`/editor/${id}?from=wizard`);
     } catch (e) {
-      console.error('Failed to open editor:', e);
+      logger.debug('Failed to open editor:', e);
     }
   };
 
@@ -822,7 +822,7 @@ export default function SceneWizardPage() {
           quality: 'high',
         });
       } catch (e) {
-        console.warn('LLM 이미지 프롬프트 변환 실패, 원본 사용:', e);
+        logger.debug('LLM 이미지 프롬프트 변환 실패, 원본 사용:', e);
       }
 
       // 영어 변환
@@ -830,7 +830,7 @@ export default function SceneWizardPage() {
       try {
         english = await translateToEnglish(optimizedPrompt);
       } catch (e) {
-        console.warn('영어 변환 실패, 원본 사용:', e);
+        logger.debug('영어 변환 실패, 원본 사용:', e);
       }
 
       // 이미지 생성 API 호출 (환경별 분기)
@@ -876,7 +876,7 @@ export default function SceneWizardPage() {
       setStatusKind('success');
       setStatusMsg('이미지 미리보기가 생성되었습니다.');
     } catch (e) {
-      console.error('이미지 미리보기 실패:', e);
+      logger.debug('이미지 미리보기 실패:', e);
       const errorMessage = e instanceof Error ? e.message : '이미지 프리뷰 생성 실패';
       setError(errorMessage);
       setStatusKind('error');
@@ -905,7 +905,7 @@ export default function SceneWizardPage() {
           quality: 'high',
         });
       } catch (e) {
-        console.warn('LLM 이미지 프롬프트 변환 실패, 원본 사용:', e);
+        logger.debug('LLM 이미지 프롬프트 변환 실패, 원본 사용:', e);
       }
 
       const english = await translateToEnglish(optimizedPrompt);
@@ -927,7 +927,7 @@ export default function SceneWizardPage() {
       setStatusKind('success');
       setStatusMsg('자동 이미지 미리보기가 생성되었습니다.');
     } catch (e) {
-      console.error('auto imagen preview failed', e);
+      logger.debug('auto imagen preview failed', e);
       setStatusKind('error');
       setStatusMsg('이미지 미리보기 생성 실패');
     } finally {
@@ -2250,7 +2250,7 @@ export default function SceneWizardPage() {
                                 alt="preview-0"
                                 className="absolute inset-0 h-full w-full object-contain"
                                 onError={(e) => {
-                                  console.error('이미지 로드 실패:', imagePreviews[0]);
+                                  logger.debug('이미지 로드 실패:', imagePreviews[0]);
                                   e.currentTarget.style.display = 'none';
                                 }}
                               />

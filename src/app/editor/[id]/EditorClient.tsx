@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { logger } from '@/shared/lib/logger';
 import { useSeedancePolling } from '@/features/seedance/status';
 import { Button } from '@/shared/ui';
 import { Icon } from '@/shared/ui';
@@ -51,7 +52,7 @@ export default function EditorClient({ id }: EditorClientProps) {
       await navigator.clipboard.writeText(english);
       alert('Veo3용 프롬프트를 복사했습니다.');
     } catch (e) {
-      console.error('copy failed', e);
+      logger.debug('copy failed', e);
     }
   };
 

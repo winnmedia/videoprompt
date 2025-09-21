@@ -4,6 +4,7 @@
  */
 
 import type { ProjectPipelineState, ScenarioData, PromptData, VideoData } from '@/shared/types/project';
+import { logger } from '@/shared/lib/logger';
 import { safeFetch } from '@/shared/lib/api-retry';
 
 // ===============================================
@@ -130,7 +131,7 @@ export async function registerScenarioContent(
       };
     }
   } catch (error) {
-    console.error('시나리오 등록 오류:', error);
+    logger.error('시나리오 등록 오류:', error instanceof Error ? error : new Error(String(error)));
     return {
       success: false,
       error: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'
@@ -219,7 +220,7 @@ export async function registerPromptContent(
       };
     }
   } catch (error) {
-    console.error('프롬프트 등록 오류:', error);
+    logger.error('프롬프트 등록 오류:', error instanceof Error ? error : new Error(String(error)));
 
     // 네트워크 vs 시스템 오류 구분
     let userFriendlyError = '알 수 없는 오류가 발생했습니다.';
@@ -297,7 +298,7 @@ export async function registerVideoContent(
       };
     }
   } catch (error) {
-    console.error('영상 등록 오류:', error);
+    logger.error('영상 등록 오류:', error instanceof Error ? error : new Error(String(error)));
     return {
       success: false,
       error: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'
@@ -370,7 +371,7 @@ export async function registerFullProject(
     };
 
   } catch (error) {
-    console.error('전체 프로젝트 등록 오류:', error);
+    logger.error('전체 프로젝트 등록 오류:', error instanceof Error ? error : new Error(String(error)));
     return {
       success: false,
       error: error instanceof Error ? error.message : '전체 프로젝트 등록 중 오류가 발생했습니다.'

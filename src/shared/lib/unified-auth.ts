@@ -10,6 +10,7 @@
  */
 
 import { NextRequest } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { supabase, supabaseAdmin, supabaseConfig } from '@/lib/supabase';
@@ -174,7 +175,7 @@ export async function unifiedAuth(
     };
 
   } catch (error) {
-    console.error('🚨 Unified auth error:', error);
+    logger.error('🚨 Unified auth error:', error instanceof Error ? error : new Error(String(error)));
 
     return {
       error: {
@@ -201,7 +202,7 @@ async function authenticateWithSupabase(
     const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      console.warn('⚠️ Supabase environment variables not available, falling back to degraded mode');
+      logger.debug('⚠️ Supabase environment variables not available, falling back to degraded mode');
       return { success: false, reason: 'Supabase environment not configured' };
     }
 
@@ -260,7 +261,7 @@ async function authenticateWithSupabase(
               return { success: true, user, adminAccess: false };
             }
           } catch (parseError) {
-            console.warn('Token parsing failed in degraded mode:', parseError);
+            logger.debug('Token parsing failed in degraded mode:', parseError);
             return { success: false, reason: 'Token parsing failed' };
           }
         } else {
@@ -303,7 +304,7 @@ async function authenticateWithSupabase(
     };
 
   } catch (error) {
-    console.warn('⚠️ Supabase authentication failed:', error);
+    logger.error('⚠️ Supabase authentication failed:', error instanceof Error ? error : new Error(String(error)));
     return { success: false, reason: 'Supabase authentication error' };
   }
 }
@@ -358,7 +359,7 @@ async function authenticateWithLegacyJWT(
     return { success: false, reason: 'No valid legacy token' };
 
   } catch (error) {
-    console.warn('⚠️ Legacy JWT authentication failed:', error);
+    logger.error('⚠️ Legacy JWT authentication failed:', error instanceof Error ? error : new Error(String(error)));
     return { success: false, reason: 'Legacy JWT authentication error' };
   }
 }

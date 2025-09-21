@@ -51,7 +51,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       );
     }
   } catch (error) {
-    console.error('Unified video status check error:', error);
+    logger.error('Unified video status check error:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       {
         ok: false,

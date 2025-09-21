@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
         message: '인증 이메일을 다시 전송했습니다. 이메일을 확인해주세요.',
       }, 200, traceId);
     } catch (emailError) {
-      console.error('[ResendVerification] Failed to send email:', emailError);
+      logger.debug('[ResendVerification] Failed to send email:', emailError);
       
       // Prisma verification 레코드 롤백 비활성화
       logger.info('✅ Verification record rollback skipped (Prisma disabled)');
@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
     if (e instanceof z.ZodError) {
       return failure('INVALID_INPUT_FIELDS', e.message, 400);
     }
-    console.error('[ResendVerification] Error:', e);
+    logger.debug('[ResendVerification] Error:', e);
     return failure('UNKNOWN', e?.message || 'Server error', 500);
   }
 }

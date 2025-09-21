@@ -1,3 +1,5 @@
+import { logger } from '@/shared/lib/logger';
+
 /**
  * 안전한 Base64 인코딩 유틸리티
  * btoa의 Latin1 범위 제한을 해결하기 위한 함수
@@ -22,7 +24,7 @@ export function safeBase64Encode(str: string): string {
       const binaryString = String.fromCharCode(...data);
       return btoa(binaryString);
     } catch (error) {
-      console.error('Base64 encoding failed:', error);
+      logger.error('Base64 encoding failed:', error instanceof Error ? error : new Error(String(error)));
       // 폴백: 영문자만 포함된 기본 메시지
       return btoa('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="90"><rect width="100%" height="100%" fill="#f0f0f0"/><text x="80" y="45" text-anchor="middle" fill="#666">Error</text></svg>');
     }

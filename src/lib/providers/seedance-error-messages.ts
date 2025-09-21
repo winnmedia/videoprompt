@@ -95,7 +95,7 @@ export const errorMessageMatrix: Record<Environment, Record<ErrorContext, ErrorD
       developerMessage: '프로덕션 환경에서 SEEDANCE_API_KEY가 설정되지 않았거나 유효하지 않습니다. 즉시 조치가 필요합니다.',
       actionRequired: [
         '즉시 운영팀에 알림',
-        'Vercel/Railway 환경변수에 SEEDANCE_API_KEY 설정',
+        'Vercel 환경변수에 SEEDANCE_API_KEY 설정',
         'API 키 유효성 및 권한 확인',
         '모니터링 시스템 알림 설정'
       ],

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 
 /**
  * ✅ Vercel 배포 검증 엔드포인트
@@ -138,7 +139,7 @@ export async function POST() {
           }
         }
       } catch (error) {
-        console.warn('Cannot scan API routes:', error);
+        logger.error('Cannot scan API routes:', error instanceof Error ? error : new Error(String(error)));
       }
       return count;
     }

@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { prisma as db } from '@/lib/db';
 
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('[Videos Save API] Error:', error);
+    logger.error('[Videos Save API] Error:', error instanceof Error ? error : new Error(String(error)));
 
     // Prisma 에러 처리
     if (error instanceof Error) {
@@ -178,7 +179,7 @@ export async function PUT(request: NextRequest) {
     }, 200, traceId);
 
   } catch (error) {
-    console.error('[Videos Update API] Error:', error);
+    logger.error('[Videos Update API] Error:', error instanceof Error ? error : new Error(String(error)));
     return failure('VIDEOS_UPDATE_ERROR', '영상 상태 업데이트 중 오류가 발생했습니다.', 500, undefined, traceId);
   }
 }
@@ -212,7 +213,7 @@ export async function DELETE(request: NextRequest) {
     }, 200, traceId);
 
   } catch (error) {
-    console.error('[Videos Delete API] Error:', error);
+    logger.error('[Videos Delete API] Error:', error instanceof Error ? error : new Error(String(error)));
 
     if (error instanceof Error && error.message.includes('Record to delete does not exist')) {
       return failure('VIDEO_NOT_FOUND', '삭제할 영상을 찾을 수 없습니다.', 404, undefined, traceId);

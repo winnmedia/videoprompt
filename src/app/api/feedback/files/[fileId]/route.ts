@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
-import { logger, LogCategory } from '@/shared/lib/structured-logger';
+import { logger } from '@/shared/lib/logger';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { z } from 'zod';
 
@@ -57,14 +57,14 @@ async function getFeedbackFileById(fileId: string, traceId: string): Promise<Fee
 
     if (error) {
       if (error.code === 'PGRST116') { // Not found
-        logger.info(LogCategory.DATABASE, 'Feedback file not found', {
+        logger.info('DATABASE: Feedback file not found', {
           fileId,
           traceId
         });
         return null;
       }
 
-      logger.error(LogCategory.DATABASE, 'Failed to fetch feedback file', error, {
+      logger.error('DATABASE: Failed to fetch feedback file', error, {
         fileId,
         traceId
       });
@@ -74,7 +74,7 @@ async function getFeedbackFileById(fileId: string, traceId: string): Promise<Fee
     // 응답 스키마 검증
     const validatedData = FeedbackFileSchema.parse(data);
 
-    logger.info(LogCategory.DATABASE, 'Feedback file fetched successfully', {
+    logger.info('DATABASE: Feedback file fetched successfully', {
       fileId,
       filename: validatedData.filename,
       feedbackId: validatedData.feedback_id,
@@ -84,14 +84,14 @@ async function getFeedbackFileById(fileId: string, traceId: string): Promise<Fee
     return validatedData;
   } catch (error) {
     if (error instanceof z.ZodError) {
-      logger.error(LogCategory.DATABASE, 'Invalid feedback file data structure', error, {
+      logger.error('DATABASE: Invalid feedback file data structure', error, {
         fileId,
         traceId
       });
       throw new Error('피드백 파일 데이터 구조가 올바르지 않습니다.');
     }
 
-    logger.error(LogCategory.DATABASE, 'Get feedback file failed', error as Error, {
+    logger.error('DATABASE: Get feedback file failed', error as Error, {
       fileId,
       traceId
     });
@@ -111,19 +111,19 @@ async function deleteFileFromStorage(storagePath: string, traceId: string): Prom
       .remove([storagePath]);
 
     if (error) {
-      logger.error(LogCategory.DATABASE, 'Failed to delete file from storage', error, {
+      logger.error('DATABASE: Failed to delete file from storage', error, {
         storagePath,
         traceId
       });
       throw new Error(`스토리지 파일 삭제 실패: ${error.message}`);
     }
 
-    logger.info(LogCategory.DATABASE, 'File deleted from storage successfully', {
+    logger.info('DATABASE: File deleted from storage successfully', {
       storagePath,
       traceId
     });
   } catch (error) {
-    logger.error(LogCategory.DATABASE, 'Delete file from storage failed', error as Error, {
+    logger.error('DATABASE: Delete file from storage failed', error as Error, {
       storagePath,
       traceId
     });
@@ -144,19 +144,19 @@ async function deleteFileMetadata(fileId: string, traceId: string): Promise<void
       .eq('id', fileId);
 
     if (error) {
-      logger.error(LogCategory.DATABASE, 'Failed to delete file metadata', error, {
+      logger.error('DATABASE: Failed to delete file metadata', error, {
         fileId,
         traceId
       });
       throw new Error(`파일 메타데이터 삭제 실패: ${error.message}`);
     }
 
-    logger.info(LogCategory.DATABASE, 'File metadata deleted successfully', {
+    logger.info('DATABASE: File metadata deleted successfully', {
       fileId,
       traceId
     });
   } catch (error) {
-    logger.error(LogCategory.DATABASE, 'Delete file metadata failed', error as Error, {
+    logger.error('DATABASE: Delete file metadata failed', error as Error, {
       fileId,
       traceId
     });
@@ -180,14 +180,14 @@ export async function GET(
       userAgent: request.headers.get('user-agent') || undefined,
     });
 
-    logger.info(LogCategory.API, 'Feedback file fetch request started', {
+    logger.info('API: Feedback file fetch request started', {
       fileId,
       traceId
     });
 
     // 파일 ID 검증
     if (!fileId || fileId.trim().length === 0) {
-      logger.warn(LogCategory.API, 'Invalid file ID provided', {
+      logger.warn('API: Invalid file ID provided', {
         fileId,
         traceId
       });
@@ -208,7 +208,7 @@ export async function GET(
     const file = await getFeedbackFileById(fileId, traceId);
 
     if (!file) {
-      logger.warn(LogCategory.API, 'Feedback file not found', {
+      logger.warn('API: Feedback file not found', {
         fileId,
         traceId
       });
@@ -245,7 +245,7 @@ export async function GET(
       downloadUrl: file.upload_status === 'completed' ? file.public_url : null
     };
 
-    logger.info(LogCategory.API, 'Feedback file fetched successfully', {
+    logger.info('API: Feedback file fetched successfully', {
       fileId,
       filename: file.filename,
       traceId
@@ -262,7 +262,7 @@ export async function GET(
 
   } catch (error: any) {
     const traceId = getTraceId(request);
-    logger.error(LogCategory.API, 'Feedback file fetch request failed', error, {
+    logger.error('API: Feedback file fetch request failed', error, {
       traceId,
       errorMessage: error.message
     });
@@ -311,14 +311,14 @@ export async function DELETE(
       userAgent: request.headers.get('user-agent') || undefined,
     });
 
-    logger.info(LogCategory.API, 'Feedback file delete request started', {
+    logger.info('API: Feedback file delete request started', {
       fileId,
       traceId
     });
 
     // 파일 ID 검증
     if (!fileId || fileId.trim().length === 0) {
-      logger.warn(LogCategory.API, 'Invalid file ID provided for deletion', {
+      logger.warn('API: Invalid file ID provided for deletion', {
         fileId,
         traceId
       });
@@ -339,7 +339,7 @@ export async function DELETE(
     const file = await getFeedbackFileById(fileId, traceId);
 
     if (!file) {
-      logger.warn(LogCategory.API, 'File not found for deletion', {
+      logger.warn('API: File not found for deletion', {
         fileId,
         traceId
       });
@@ -356,7 +356,7 @@ export async function DELETE(
       );
     }
 
-    logger.info(LogCategory.API, 'Starting file deletion process', {
+    logger.info('API: Starting file deletion process', {
       fileId,
       filename: file.filename,
       storagePath: file.storage_path,
@@ -369,7 +369,7 @@ export async function DELETE(
       await deleteFileFromStorage(file.storage_path, traceId);
     } catch (storageError) {
       // 스토리지 삭제 실패해도 메타데이터는 삭제하여 정리
-      logger.warn(LogCategory.DATABASE, 'Storage deletion failed but continuing with metadata deletion', {
+      logger.warn('DATABASE: Storage deletion failed but continuing with metadata deletion', {
         fileId,
         storagePath: file.storage_path,
         error: storageError instanceof Error ? storageError.message : String(storageError),
@@ -380,7 +380,7 @@ export async function DELETE(
     // 2. 데이터베이스에서 메타데이터 삭제
     await deleteFileMetadata(fileId, traceId);
 
-    logger.info(LogCategory.API, 'Feedback file deleted successfully', {
+    logger.info('API: Feedback file deleted successfully', {
       fileId,
       filename: file.filename,
       feedbackId: file.feedback_id,
@@ -406,7 +406,7 @@ export async function DELETE(
 
   } catch (error: any) {
     const traceId = getTraceId(request);
-    logger.error(LogCategory.API, 'Feedback file delete request failed', error, {
+    logger.error('API: Feedback file delete request failed', error, {
       traceId,
       errorMessage: error.message
     });

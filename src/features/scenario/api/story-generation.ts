@@ -42,7 +42,7 @@ function getCacheKey(storyInput: StoryInput): string {
 // 레거시 함수 - DTO 변환 계층으로 대체됨
 // @deprecated - transformApiResponseToStorySteps 사용 권장
 function convertStructureToSteps(structure: any): StoryStep[] {
-  console.warn('convertStructureToSteps는 deprecated됨. transformApiResponseToStorySteps 사용 권장');
+  logger.debug('convertStructureToSteps는 deprecated됨. transformApiResponseToStorySteps 사용 권장');
   return transformApiResponseToStorySteps(structure, 'Legacy convertStructureToSteps');
 }
 
@@ -107,7 +107,7 @@ export async function generateStorySteps({
     return steps;
   } catch (error) {
     const errorMessage = transformApiError(error, 'Story Generation API');
-    console.error('AI API 호출 실패:', errorMessage);
+    logger.debug('AI API 호출 실패:', errorMessage);
     
     // 네트워크 에러 처리
     if (errorMessage.includes('fetch') || errorMessage.includes('network')) {

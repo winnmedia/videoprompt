@@ -241,7 +241,7 @@ export async function POST(request: NextRequest) {
 
           if (error) {
             // execute_sql 함수가 없을 경우, 대안 시도
-            console.warn(`[Migration ${traceId}] execute_sql 실패, 대안 시도:`, error.message);
+            logger.debug(`[Migration ${traceId}] execute_sql 실패, 대안 시도:`, error.message);
 
             // 간단한 테이블 존재 확인으로 대체
             const { data: checkData, error: checkError } = await supabaseAdmin
@@ -268,7 +268,7 @@ export async function POST(request: NextRequest) {
 
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
-          console.error(`[Migration ${traceId}] ❌ 테이블 ${tableName} 생성 실패:`, errorMessage);
+          logger.debug(`[Migration ${traceId}] ❌ 테이블 ${tableName} 생성 실패:`, errorMessage);
 
           results.push({
             step: `create_table_${tableName}`,
@@ -347,7 +347,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`[Migration ${traceId}] ❌ 마이그레이션 실패:`, errorMessage);
+    logger.debug(`[Migration ${traceId}] ❌ 마이그레이션 실패:`, errorMessage);
 
     return NextResponse.json(
       failure(
@@ -434,7 +434,7 @@ async function validateMigration(traceId: string): Promise<MigrationResult[]> {
     }
 
   } catch (error) {
-    console.error(`[Migration ${traceId}] 검증 중 오류:`, error);
+    logger.error(`[Migration ${traceId}] 검증 중 오류:`, error instanceof Error ? error : new Error(String(error)));
   }
 
   return results;

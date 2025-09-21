@@ -11,7 +11,7 @@
 
 import React from 'react';
 import { useSelector } from 'react-redux';
-import { RootState } from '@/app/store';
+import type { RootState } from '@/shared/lib/redux-hooks';
 import {
   selectPipelineState,
   selectCurrentStep,

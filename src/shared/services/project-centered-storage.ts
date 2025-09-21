@@ -11,6 +11,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from '@/shared/lib/logger';
 import { dualStorageService } from '@/shared/lib/planning-storage.service';
 import {
   StoryData,
@@ -265,7 +266,7 @@ export class ProjectCenteredStorage {
       };
 
     } catch (error) {
-      console.error('프로젝트 생성 실패:', error);
+      logger.error('프로젝트 생성 실패:', error instanceof Error ? error : new Error(String(error)));
       return {
         success: false,
         error: `프로젝트 생성 실패: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -283,7 +284,7 @@ export class ProjectCenteredStorage {
       if (cached) {
         // 마지막 접근 시간 업데이트 (백그라운드)
         this.updateLastAccessed(projectId).catch(error => {
-          console.warn('마지막 접근 시간 업데이트 실패:', error);
+          logger.error('마지막 접근 시간 업데이트 실패:', error instanceof Error ? error : new Error(String(error)));
         });
 
         return {
@@ -317,7 +318,7 @@ export class ProjectCenteredStorage {
       };
 
     } catch (error) {
-      console.error('프로젝트 워크스페이스 조회 실패:', error);
+      logger.error('프로젝트 워크스페이스 조회 실패:', error instanceof Error ? error : new Error(String(error)));
       return {
         success: false,
         error: `프로젝트 조회 실패: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -355,7 +356,7 @@ export class ProjectCenteredStorage {
       };
 
     } catch (error) {
-      console.error('프로젝트 업데이트 실패:', error);
+      logger.error('프로젝트 업데이트 실패:', error instanceof Error ? error : new Error(String(error)));
       return {
         success: false,
         error: `프로젝트 업데이트 실패: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -422,7 +423,7 @@ export class ProjectCenteredStorage {
       };
 
     } catch (error) {
-      console.error('사용자 프로젝트 목록 조회 실패:', error);
+      logger.error('사용자 프로젝트 목록 조회 실패:', error instanceof Error ? error : new Error(String(error)));
       return {
         success: false,
         error: `프로젝트 목록 조회 실패: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -474,7 +475,7 @@ export class ProjectCenteredStorage {
       };
 
     } catch (error) {
-      console.error('스토리 저장 실패:', error);
+      logger.error('스토리 저장 실패:', error instanceof Error ? error : new Error(String(error)));
       return {
         success: false,
         error: `스토리 저장 실패: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -524,7 +525,7 @@ export class ProjectCenteredStorage {
       };
 
     } catch (error) {
-      console.error('시나리오 저장 실패:', error);
+      logger.error('시나리오 저장 실패:', error instanceof Error ? error : new Error(String(error)));
       return {
         success: false,
         error: `시나리오 저장 실패: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -576,7 +577,7 @@ export class ProjectCenteredStorage {
       };
 
     } catch (error) {
-      console.error('프롬프트 저장 실패:', error);
+      logger.error('프롬프트 저장 실패:', error instanceof Error ? error : new Error(String(error)));
       return {
         success: false,
         error: `프롬프트 저장 실패: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -629,7 +630,7 @@ export class ProjectCenteredStorage {
       };
 
     } catch (error) {
-      console.error('영상 저장 실패:', error);
+      logger.error('영상 저장 실패:', error instanceof Error ? error : new Error(String(error)));
       return {
         success: false,
         error: `영상 저장 실패: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -687,13 +688,13 @@ export class ProjectCenteredStorage {
       };
 
     } catch (error) {
-      console.error('파이프라인 트랜잭션 실패:', error);
+      logger.error('파이프라인 트랜잭션 실패:', error instanceof Error ? error : new Error(String(error)));
 
       // 부분 데이터 롤백 시도
       try {
         await this.rollbackPartialTransaction(transactionId);
       } catch (rollbackError) {
-        console.error('롤백 실패:', rollbackError);
+        logger.debug('롤백 실패:', rollbackError);
       }
 
       return {
@@ -721,7 +722,7 @@ export class ProjectCenteredStorage {
       };
 
     } catch (error) {
-      console.error('트랜잭션 복구 실패:', error);
+      logger.error('트랜잭션 복구 실패:', error instanceof Error ? error : new Error(String(error)));
       return {
         success: false,
         error: `트랜잭션 복구 실패: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -773,7 +774,7 @@ export class ProjectCenteredStorage {
       };
 
     } catch (error) {
-      console.error('협업자 추가 실패:', error);
+      logger.error('협업자 추가 실패:', error instanceof Error ? error : new Error(String(error)));
       return {
         success: false,
         error: `협업자 추가 실패: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -822,7 +823,7 @@ export class ProjectCenteredStorage {
       };
 
     } catch (error) {
-      console.error('공유 링크 생성 실패:', error);
+      logger.error('공유 링크 생성 실패:', error instanceof Error ? error : new Error(String(error)));
       return {
         success: false,
         error: `공유 링크 생성 실패: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -890,7 +891,7 @@ export class ProjectCenteredStorage {
       };
 
     } catch (error) {
-      console.error('버전 생성 실패:', error);
+      logger.error('버전 생성 실패:', error instanceof Error ? error : new Error(String(error)));
       return {
         success: false,
         error: `버전 생성 실패: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -921,7 +922,7 @@ export class ProjectCenteredStorage {
       };
 
     } catch (error) {
-      console.error('데이터 일관성 검사 실패:', error);
+      logger.error('데이터 일관성 검사 실패:', error instanceof Error ? error : new Error(String(error)));
       return {
         success: false,
         error: `데이터 일관성 검사 실패: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -951,7 +952,7 @@ export class ProjectCenteredStorage {
       };
 
     } catch (error) {
-      console.error('데이터 불일치 수정 실패:', error);
+      logger.error('데이터 불일치 수정 실패:', error instanceof Error ? error : new Error(String(error)));
       return {
         success: false,
         error: `데이터 불일치 수정 실패: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -998,7 +999,7 @@ export class ProjectCenteredStorage {
       });
     } catch (error) {
       // 마지막 접근 시간 업데이트 실패는 치명적이지 않음
-      console.warn('마지막 접근 시간 업데이트 실패:', error);
+      logger.error('마지막 접근 시간 업데이트 실패:', error instanceof Error ? error : new Error(String(error)));
     }
   }
 
@@ -1009,7 +1010,7 @@ export class ProjectCenteredStorage {
     try {
       await dualStorageService.rollbackTransaction(transactionId);
     } catch (error) {
-      console.error('트랜잭션 롤백 실패:', error);
+      logger.error('트랜잭션 롤백 실패:', error instanceof Error ? error : new Error(String(error)));
       throw error;
     }
   }

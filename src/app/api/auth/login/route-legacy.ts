@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
@@ -96,7 +97,7 @@ export async function POST(req: NextRequest) {
     // 🚫 Rate Limiting: 로그인 API 보호
     const rateLimitResult = checkRateLimit(req, 'login', RATE_LIMITS.login);
     if (!rateLimitResult.allowed) {
-      console.warn(`🚫 Rate limit exceeded for login from IP: ${req.headers.get('x-forwarded-for') || '127.0.0.1'}`);
+      logger.debug(`🚫 Rate limit exceeded for login from IP: ${req.headers.get('x-forwarded-for') || '127.0.0.1'}`);
 
       const response = NextResponse.json(
         failure(
@@ -149,7 +150,7 @@ export async function POST(req: NextRequest) {
         };
       }
     } catch (error) {
-      console.warn('Supabase user lookup failed:', error);
+      logger.error('Supabase user lookup failed:', error instanceof Error ? error : new Error(String(error)));
     }
     if (!user) {
       const response = failure('NOT_FOUND', '사용자를 찾을 수 없습니다.', 404, undefined, traceId);
@@ -186,7 +187,7 @@ export async function POST(req: NextRequest) {
         .eq('user_agent', userAgent)
         .eq('ip_address', ipAddress);
     } catch (error) {
-      console.warn('Refresh token cleanup failed:', error);
+      logger.error('Refresh token cleanup failed:', error instanceof Error ? error : new Error(String(error)));
     }
 
     // 새 refresh token 저장 - Supabase 구현
@@ -202,7 +203,7 @@ export async function POST(req: NextRequest) {
           expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
         });
     } catch (error) {
-      console.warn('Refresh token storage failed:', error);
+      logger.error('Refresh token storage failed:', error instanceof Error ? error : new Error(String(error)));
     }
 
     // 기존 세션 쿠키도 유지 (하위 호환성)

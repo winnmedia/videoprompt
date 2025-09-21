@@ -4,6 +4,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { logger } from '@/shared/lib/logger';
 import { z } from 'zod';
 
 // ============================================
@@ -219,7 +220,7 @@ export class DatabaseValidator {
     // 스키마 검증으로 건강 상태 확인
     const validationResult = DatabaseHealthSchema.safeParse(health);
     if (!validationResult.success) {
-      console.error('데이터베이스 건강 상태 스키마 검증 실패:', validationResult.error);
+      logger.debug('데이터베이스 건강 상태 스키마 검증 실패:', validationResult.error);
     }
 
     return health;
@@ -299,7 +300,7 @@ export class DTOTransformer {
 
       return transformed;
     } catch (error) {
-      console.error('Project to Story 변환 실패:', error);
+      logger.error('Project to Story 변환 실패:', error instanceof Error ? error : new Error(String(error)));
       throw new Error(`DTO 변환 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
     }
   }
@@ -498,7 +499,7 @@ export async function withDatabaseValidation<T>(
   try {
     return await operation(client);
   } catch (error) {
-    console.error('데이터베이스 연산 실패:', error);
+    logger.error('데이터베이스 연산 실패:', error instanceof Error ? error : new Error(String(error)));
     throw error;
   }
 }

@@ -262,7 +262,7 @@ export class GeminiClient {
 
       } catch (error) {
         if (enableLogging) {
-          console.error(`[Gemini] Attempt ${attempt + 1} failed:`, error);
+          logger.error(`[Gemini] Attempt ${attempt + 1} failed:`, error instanceof Error ? error : new Error(String(error)));
         }
         lastError = error as GeminiError;
       }

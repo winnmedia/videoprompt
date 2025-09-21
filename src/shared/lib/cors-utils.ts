@@ -37,7 +37,7 @@ export function addCorsHeaders(response: NextResponse): NextResponse {
 export function methodNotAllowed(allowedMethods: string[], req: NextRequest) {
   const traceId = getTraceId(req);
   
-  console.error(`[${traceId}] Method not allowed: ${req.method} on ${req.url}`);
+  logger.debug(`[${traceId}] Method not allowed: ${req.method} on ${req.url}`);
   
   const response = failure(
     'METHOD_NOT_ALLOWED',

@@ -74,7 +74,7 @@ class ProductionMonitor {
     );
 
     if (isCritical) {
-      console.error('🚨 CRITICAL ERROR DETECTED - Immediate reporting:', report);
+      logger.debug('🚨 CRITICAL ERROR DETECTED - Immediate reporting:', report);
       await this.sendErrorReport(report);
     } else {
       // 일반 에러는 큐에 추가 후 배치 처리
@@ -99,7 +99,7 @@ class ProductionMonitor {
       });
     } catch (error) {
       // 모니터링 자체의 에러는 조용히 처리
-      console.warn('Monitoring tracking failed:', error);
+      logger.error('Monitoring tracking failed:', error instanceof Error ? error : new Error(String(error)));
     }
   }
 
@@ -159,7 +159,7 @@ class ProductionMonitor {
         }
       };
 
-      console.error('🚨 INFINITE LOOP DETECTED:', report);
+      logger.debug('🚨 INFINITE LOOP DETECTED:', report);
       this.reportError(report);
     }
   }
@@ -173,7 +173,7 @@ class ProductionMonitor {
       const data = await response.json();
       return data.data;
     } catch (error) {
-      console.error('Failed to fetch system status:', error);
+      logger.error('Failed to fetch system status:', error instanceof Error ? error : new Error(String(error)));
       return null;
     }
   }
@@ -187,7 +187,7 @@ class ProductionMonitor {
       const data = await response.json();
       return data.data;
     } catch (error) {
-      console.error('Failed to fetch recent errors:', error);
+      logger.error('Failed to fetch recent errors:', error instanceof Error ? error : new Error(String(error)));
       return null;
     }
   }
@@ -206,11 +206,11 @@ class ProductionMonitor {
         }
 
         if (attempt === this.config.maxRetries - 1) {
-          console.error('Failed to report error after all retries:', report);
+          logger.debug('Failed to report error after all retries:', report);
         }
       } catch (error) {
         if (attempt === this.config.maxRetries - 1) {
-          console.error('Error reporting completely failed:', error);
+          logger.error('Error reporting completely failed:', error instanceof Error ? error : new Error(String(error)));
         }
       }
 

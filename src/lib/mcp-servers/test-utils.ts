@@ -182,7 +182,7 @@ export class BrowserTestManager {
       // MCP 서버 연결 로직 (실제 구현 필요)
       logger.info('Playwright MCP 서버 초기화 중...');
     } catch (error) {
-      console.error('Playwright MCP 서버 초기화 실패:', error);
+      logger.error('Playwright MCP 서버 초기화 실패:', error);
     }
   }
 
@@ -240,7 +240,7 @@ export class BrowserTestManager {
 
       return true;
     } catch (error) {
-      console.error('폼 자동화 테스트 실패:', error);
+      logger.error('폼 자동화 테스트 실패:', error);
       return false;
     }
   }

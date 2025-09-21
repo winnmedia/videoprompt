@@ -1,3 +1,5 @@
+import { logger } from '@/shared/lib/logger';
+
 /**
  * Stable Video 영상 생성 클라이언트 (스텁)
  * FSD 아키텍처: shared/lib 레이어
@@ -25,7 +27,7 @@ export interface StableVideoResponse {
 class StableVideoClient {
   async createVideo(request: StableVideoRequest): Promise<StableVideoResponse> {
     // TODO: 실제 Stable Video API 호출 구현
-    console.warn('Stable Video 클라이언트 스텁 사용 중 - 실제 구현 필요');
+    logger.debug('Stable Video 클라이언트 스텁 사용 중 - 실제 구현 필요');
 
     return {
       success: true,

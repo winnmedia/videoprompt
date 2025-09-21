@@ -164,7 +164,7 @@ export const useWebVitals = (config: WebVitalsConfig = {}): WebVitalsHook => {
       }
     } catch (error) {
       if (mergedConfig.debug) {
-        console.error('[Web Vitals] Failed to send metrics:', error)
+        logger.error('[Web Vitals] Failed to send metrics:', error instanceof Error ? error : new Error(String(error)))
       }
       
       // 실패한 메트릭을 다시 배치에 추가 (재시도)
@@ -233,7 +233,7 @@ export const useWebVitals = (config: WebVitalsConfig = {}): WebVitalsHook => {
           }
         } catch (error) {
           if (mergedConfig.debug) {
-            console.error('[Web Vitals] Failed to send metrics on unload:', error)
+            logger.error('[Web Vitals] Failed to send metrics on unload:', error instanceof Error ? error : new Error(String(error)))
           }
         }
       }
@@ -283,7 +283,7 @@ export const useWebVitals = (config: WebVitalsConfig = {}): WebVitalsHook => {
       }
     } catch (error) {
       if (mergedConfig.debug) {
-        console.error('[Web Vitals] Failed to send metrics:', error)
+        logger.error('[Web Vitals] Failed to send metrics:', error instanceof Error ? error : new Error(String(error)))
       }
       throw error
     }

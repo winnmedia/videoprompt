@@ -205,7 +205,7 @@ export async function POST(req: NextRequest) {
     try {
       supabaseAdmin = await getSupabaseClientSafe('admin');
     } catch (envError) {
-      console.error(`[Seed Templates ${traceId}] ❌ Supabase 클라이언트 초기화 실패:`, envError);
+      logger.debug(`[Seed Templates ${traceId}] ❌ Supabase 클라이언트 초기화 실패:`, envError);
       return failure('SUPABASE_CONFIG_ERROR', 'Supabase 설정이 올바르지 않습니다.', 500, envError instanceof Error ? envError.message : 'Supabase configuration error', traceId);
     }
 
@@ -224,7 +224,7 @@ export async function POST(req: NextRequest) {
           .select('id, title, category');
 
         if (error) {
-          console.error(`[Seed Templates ${traceId}] ❌ "${template.title}" 삽입 실패:`, error.message);
+          logger.debug(`[Seed Templates ${traceId}] ❌ "${template.title}" 삽입 실패:`, error.message);
           // Continue with next template instead of failing completely
           continue;
         }
@@ -236,7 +236,7 @@ export async function POST(req: NextRequest) {
         }
 
       } catch (templateError) {
-        console.error(`[Seed Templates ${traceId}] ❌ 템플릿 "${template.title}" 삽입 중 오류:`, templateError);
+        logger.debug(`[Seed Templates ${traceId}] ❌ 템플릿 "${template.title}" 삽입 중 오류:`, templateError);
         continue;
       }
     }
@@ -251,7 +251,7 @@ export async function POST(req: NextRequest) {
         .select('*', { count: 'exact', head: true });
       totalCount = count || 0;
     } catch (countError) {
-      console.warn(`[Seed Templates ${traceId}] ⚠️ 카운트 조회 실패:`, countError);
+      logger.debug(`[Seed Templates ${traceId}] ⚠️ 카운트 조회 실패:`, countError);
       totalCount = successCount; // fallback to inserted count
     }
 
@@ -263,7 +263,7 @@ export async function POST(req: NextRequest) {
     }, 200, traceId);
 
   } catch (error) {
-    console.error(`[Seed Templates ${traceId}] 💥 시드 데이터 삽입 중 오류:`, error);
+    logger.error(`[Seed Templates ${traceId}] 💥 시드 데이터 삽입 중 오류:`, error instanceof Error ? error : new Error(String(error)));
     return failure('INTERNAL_ERROR', '시드 데이터 삽입 중 오류가 발생했습니다.', 500, error instanceof Error ? error.message : 'Unknown error', traceId);
   }
 }
@@ -278,7 +278,7 @@ export async function GET(req: NextRequest) {
     try {
       supabaseAdmin = await getSupabaseClientSafe('admin');
     } catch (envError) {
-      console.error(`[Seed Templates ${traceId}] ❌ Supabase 클라이언트 초기화 실패:`, envError);
+      logger.debug(`[Seed Templates ${traceId}] ❌ Supabase 클라이언트 초기화 실패:`, envError);
       return failure('SUPABASE_CONFIG_ERROR', 'Supabase 설정이 올바르지 않습니다.', 500, envError instanceof Error ? envError.message : 'Supabase configuration error', traceId);
     }
 
@@ -287,7 +287,7 @@ export async function GET(req: NextRequest) {
       .select('*', { count: 'exact', head: true });
 
     if (error) {
-      console.error(`[Seed Templates ${traceId}] ❌ 템플릿 수 조회 실패:`, error);
+      logger.error(`[Seed Templates ${traceId}] ❌ 템플릿 수 조회 실패:`, error instanceof Error ? error : new Error(String(error)));
       return failure('DATABASE_QUERY_FAILED', '템플릿 현황 조회에 실패했습니다.', 500, error.message, traceId);
     }
 
@@ -297,7 +297,7 @@ export async function GET(req: NextRequest) {
     }, 200, traceId);
 
   } catch (error) {
-    console.error(`[Seed Templates ${traceId}] 💥 템플릿 현황 확인 중 오류:`, error);
+    logger.error(`[Seed Templates ${traceId}] 💥 템플릿 현황 확인 중 오류:`, error instanceof Error ? error : new Error(String(error)));
     return failure('INTERNAL_ERROR', '현황 확인 중 오류가 발생했습니다.', 500, error instanceof Error ? error.message : 'Unknown error', traceId);
   }
 }

@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
+import { logger } from '@/shared/lib/logger';
 import {
   StoryInput,
   StoryStep,
@@ -138,7 +139,7 @@ export function useScenarioWorkflow(): UseScenarioWorkflowReturn {
 
     } catch (err) {
       // 에러는 이미 onError 콜백에서 처리됨
-      console.error('스토리 생성 실패:', err);
+      logger.debug('스토리 생성 실패:', err);
     } finally {
       setLoading(false);
       setLoadingMessage('');
@@ -190,7 +191,7 @@ export function useScenarioWorkflow(): UseScenarioWorkflowReturn {
       setLastAction(() => generateShotsFromSteps);
 
     } catch (err) {
-      console.error('숏트 생성 실패:', err);
+      logger.debug('숏트 생성 실패:', err);
     } finally {
       setLoading(false);
       setLoadingMessage('');

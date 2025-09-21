@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
           seedance: 'API 호출 실패 또는 응답 오류',
           veo3: 'API 호출 실패 또는 응답 오류',
         },
-        suggestion: 'Railway 백엔드의 API 키 설정을 확인하거나 잠시 후 다시 시도해주세요.',
+        suggestion: '서버의 API 키 설정을 확인하거나 잠시 후 다시 시도해주세요.',
       },
       {
         status: 503,

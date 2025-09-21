@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 import { z } from 'zod';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
   // 🚨 $300 방지: Rate limiting 적용
   const rateLimitResult = checkRateLimit(request, 'check-user', RATE_LIMITS.register);
   if (!rateLimitResult.allowed) {
-    console.warn(`🚫 Rate limit exceeded for check-user from IP: ${request.headers.get('x-forwarded-for') || '127.0.0.1'}`);
+    logger.debug(`🚫 Rate limit exceeded for check-user from IP: ${request.headers.get('x-forwarded-for') || '127.0.0.1'}`);
     return failure('RATE_LIMIT_EXCEEDED', '너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요.', 429, undefined, traceId);
   }
 
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error && error.code !== 'PGRST116') { // PGRST116 = No rows found
-      console.error('❌ 사용자 조회 실패:', error);
+      logger.error('❌ 사용자 조회 실패:', error instanceof Error ? error : new Error(String(error)));
       return failure('DATABASE_ERROR', '사용자 조회 중 오류가 발생했습니다.', 500, error.message, traceId);
     }
 
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
     return success(responseData, 200, traceId);
 
   } catch (error) {
-    console.error('❌ Check user exists error:', error);
+    logger.error('❌ Check user exists error:', error instanceof Error ? error : new Error(String(error)));
     return failure('UNKNOWN_ERROR', '서버 오류가 발생했습니다.', 500, String(error), traceId);
   }
 }
@@ -99,7 +100,7 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (error && error.code !== 'PGRST116') { // PGRST116 = No rows found
-      console.error('❌ 사용자 조회 실패:', error);
+      logger.error('❌ 사용자 조회 실패:', error instanceof Error ? error : new Error(String(error)));
       return failure('DATABASE_ERROR', '사용자 조회 중 오류가 발생했습니다.', 500, error.message, traceId);
     }
 
@@ -111,7 +112,7 @@ export async function GET(request: NextRequest) {
     return success(responseData, 200, traceId);
 
   } catch (error) {
-    console.error('❌ Check user exists error:', error);
+    logger.error('❌ Check user exists error:', error instanceof Error ? error : new Error(String(error)));
     return failure('UNKNOWN_ERROR', '서버 오류가 발생했습니다.', 500, String(error), traceId);
   }
 }

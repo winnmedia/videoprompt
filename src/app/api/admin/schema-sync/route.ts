@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     );
 
   } catch (error) {
-    console.error('❌ 스키마 동기화 API 오류:', error);
+    logger.error('❌ 스키마 동기화 API 오류:', error instanceof Error ? error : new Error(String(error)));
 
     return NextResponse.json(
       createErrorResponse(
@@ -99,7 +99,7 @@ export async function GET(req: NextRequest) {
     );
 
   } catch (error) {
-    console.error('❌ 테이블 상태 조회 오류:', error);
+    logger.error('❌ 테이블 상태 조회 오류:', error instanceof Error ? error : new Error(String(error)));
 
     return NextResponse.json(
       createErrorResponse(

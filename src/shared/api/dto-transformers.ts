@@ -48,7 +48,7 @@ import {
 export function createFallbackStorySteps(
   context: string = 'Fallback Story Steps'
 ): StoryStep[] {
-  console.warn(`⚠️ ${context}: 기본 스토리 템플릿을 사용합니다.`);
+  logger.debug(`⚠️ ${context}: 기본 스토리 템플릿을 사용합니다.`);
 
   const templates = [
     {
@@ -118,7 +118,7 @@ export function transformStoryStructureToSteps(
   try {
     validatedResponse = validateStoryResponse(response, context);
   } catch (error) {
-    console.error(`DTO 변환 실패 - ${context}:`, error);
+    logger.error(`DTO 변환 실패 - ${context}:`, error instanceof Error ? error : new Error(String(error)));
 
     // 검증 실패 시 기본 템플릿으로 대체 (graceful degradation)
     return createFallbackStorySteps(`${context} validation failed`);
@@ -139,7 +139,7 @@ export function transformLegacyArrayToSteps(
   context: string = 'Legacy Structure'
 ): StoryStep[] {
   if (!Array.isArray(legacyStructure)) {
-    console.warn(`Legacy 구조 변환 실패 - 배열이 아님 (${context})`);
+    logger.debug(`Legacy 구조 변환 실패 - 배열이 아님 (${context})`);
     return createFallbackStorySteps(`${context} legacy structure invalid`);
   }
 
@@ -163,7 +163,7 @@ export function transformApiResponseToStorySteps(
   context: string = 'API Response'
 ): StoryStep[] {
   if (!apiResponse || typeof apiResponse !== 'object') {
-    console.error(`DTO 변환 실패 - 잘못된 응답 형식 (${context}):`, apiResponse);
+    logger.debug(`DTO 변환 실패 - 잘못된 응답 형식 (${context}):`, apiResponse);
     return [];
   }
 
@@ -201,7 +201,7 @@ export function transformApiResponseToStorySteps(
     return transformLegacyArrayToSteps(response.acts, context);
   }
 
-  console.warn(`알 수 없는 응답 구조 (${context}):`, apiResponse);
+  logger.debug(`알 수 없는 응답 구조 (${context}):`, apiResponse);
   return createFallbackStorySteps(`${context} unknown structure`);
 }
 
@@ -288,7 +288,7 @@ export function validateAndTransformSupabaseUser(
     const error = new Error(
       `${context} 데이터 계약 위반: ${validationResult.error.message}`
     );
-    console.error('❌ Supabase User DTO 검증 실패:', {
+    logger.debug('❌ Supabase User DTO 검증 실패:', {
       context,
       errors: validationResult.error.issues,
       receivedData: rawUserData,
@@ -312,7 +312,7 @@ export function validatePrismaUser(
     const error = new Error(
       `${context} 도메인 모델 계약 위반: ${validationResult.error.message}`
     );
-    console.error('❌ Prisma User 도메인 검증 실패:', {
+    logger.debug('❌ Prisma User 도메인 검증 실패:', {
       context,
       errors: validationResult.error.issues,
       receivedData: userData,
@@ -347,7 +347,7 @@ export function safeTransformUserToPrisma(
     return prismaUserData;
 
   } catch (error) {
-    console.error(`❌ 사용자 DTO 변환 실패 (${context}):`, {
+    logger.debug(`❌ 사용자 DTO 변환 실패 (${context}):`, {
       error: error instanceof Error ? error.message : String(error),
       inputData: supabaseUserData,
     });
@@ -442,7 +442,7 @@ export function transformStoryGenerationResponse(
         isEditing: false,
       }));
     } else {
-      console.warn(`⚠️ ${context} Zod 검증 실패, 레거시 변환으로 fallback:`,
+      logger.debug(`⚠️ ${context} Zod 검증 실패, 레거시 변환으로 fallback:`,
         validationResult.error?.message);
 
       // Fallback: 기존 변환 함수 사용
@@ -450,7 +450,7 @@ export function transformStoryGenerationResponse(
     }
 
   } catch (error) {
-    console.error(`❌ ${context} 변환 중 예외:`, error);
+    logger.error(`❌ ${context} 변환 중 예외:`, error instanceof Error ? error : new Error(String(error)));
 
     // Graceful degradation: 기본 템플릿 반환
     return createFallbackStorySteps(`${context} exception fallback`);
@@ -474,13 +474,13 @@ export function transformProjectResponse(
     if (validationResult.success) {
       return validationResult.data.data;
     } else {
-      console.error(`❌ ${context} 프로젝트 데이터 검증 실패:`,
+      logger.debug(`❌ ${context} 프로젝트 데이터 검증 실패:`,
         validationResult.error?.message);
       return null;
     }
 
   } catch (error) {
-    console.error(`❌ ${context} 프로젝트 변환 중 예외:`, error);
+    logger.error(`❌ ${context} 프로젝트 변환 중 예외:`, error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }
@@ -502,13 +502,13 @@ export function transformShotsResponse(
     if (validationResult.success) {
       return validationResult.data.data.shots;
     } else {
-      console.error(`❌ ${context} 샷 데이터 검증 실패:`,
+      logger.debug(`❌ ${context} 샷 데이터 검증 실패:`,
         validationResult.error?.message);
       return [];
     }
 
   } catch (error) {
-    console.error(`❌ ${context} 샷 변환 중 예외:`, error);
+    logger.error(`❌ ${context} 샷 변환 중 예외:`, error instanceof Error ? error : new Error(String(error)));
     return [];
   }
 }
@@ -530,13 +530,13 @@ export function transformStoryboardResponse(
     if (validationResult.success) {
       return validationResult.data.data.storyboardShots;
     } else {
-      console.error(`❌ ${context} 스토리보드 데이터 검증 실패:`,
+      logger.debug(`❌ ${context} 스토리보드 데이터 검증 실패:`,
         validationResult.error?.message);
       return [];
     }
 
   } catch (error) {
-    console.error(`❌ ${context} 스토리보드 변환 중 예외:`, error);
+    logger.error(`❌ ${context} 스토리보드 변환 중 예외:`, error instanceof Error ? error : new Error(String(error)));
     return [];
   }
 }
@@ -554,13 +554,13 @@ export function validateAndTransformStoryInput(
     if (validationResult.success) {
       return validationResult.data;
     } else {
-      console.error(`❌ ${context} 입력 데이터 검증 실패:`,
+      logger.debug(`❌ ${context} 입력 데이터 검증 실패:`,
         validationResult.error.issues);
       return null;
     }
 
   } catch (error) {
-    console.error(`❌ ${context} 입력 검증 중 예외:`, error);
+    logger.error(`❌ ${context} 입력 검증 중 예외:`, error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }
@@ -583,13 +583,13 @@ export function transformApiResponseSafely<T>(
     if (validationResult.success) {
       return validationResult.data as T;
     } else {
-      console.error(`❌ ${endpointName} 응답 변환 실패:`,
+      logger.debug(`❌ ${endpointName} 응답 변환 실패:`,
         validationResult.error?.message);
       return null;
     }
 
   } catch (error) {
-    console.error(`❌ ${endpointName} 변환 중 예외:`, error);
+    logger.error(`❌ ${endpointName} 변환 중 예외:`, error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }

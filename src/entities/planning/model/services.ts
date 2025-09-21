@@ -172,12 +172,12 @@ async function performDualStorage<T extends PlanningContent>(
       if (supabaseResult.success) {
         logger.info(`✅ Supabase save successful for ${content.id}`);
       } else {
-        console.error(`❌ Supabase save failed for ${content.id}:`, supabaseResult.error);
+        logger.debug(`❌ Supabase save failed for ${content.id}:`, supabaseResult.error);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown Supabase error';
       results.supabase = { success: false, error: errorMessage };
-      console.error(`❌ Supabase save exception for ${content.id}:`, errorMessage);
+      logger.debug(`❌ Supabase save exception for ${content.id}:`, errorMessage);
     }
   }
 
@@ -215,7 +215,7 @@ function analyzeStorageResults(
   //   const failedStorage = !prisma.success ? 'Prisma' : 'Supabase';
   //
   //   if (config.requireBoth) {
-  //     console.error(`❌ Partial storage not acceptable for ${contentId} (requireBoth=true)`);
+  //     logger.debug(`❌ Partial storage not acceptable for ${contentId} (requireBoth=true)`);
   //     return {
   //       success: false,
   //       contentId,
@@ -227,7 +227,7 @@ function analyzeStorageResults(
   //
   //   // Prisma 우선 정책 적용
   //   if (config.fallbackToPrisma && prisma.success) {
-  //     console.warn(`⚠️ Partial consistency for ${contentId}: Prisma saved, Supabase failed`);
+  //     logger.debug(`⚠️ Partial consistency for ${contentId}: Prisma saved, Supabase failed`);
   //     return {
   //       success: true,
   //       contentId,
@@ -238,7 +238,7 @@ function analyzeStorageResults(
   //   }
   //
   //   if (supabase.success && !prisma.success) {
-  //     console.warn(`⚠️ Partial consistency for ${contentId}: Supabase saved, Prisma failed`);
+  //     logger.debug(`⚠️ Partial consistency for ${contentId}: Supabase saved, Prisma failed`);
   //     return {
   //       success: true,
   //       contentId,
@@ -250,7 +250,7 @@ function analyzeStorageResults(
   // }
 
   // Supabase 실패
-  console.error(`❌ Supabase storage failure for ${contentId}:`, supabase.error);
+  logger.debug(`❌ Supabase storage failure for ${contentId}:`, supabase.error);
   return {
     success: false,
     contentId,

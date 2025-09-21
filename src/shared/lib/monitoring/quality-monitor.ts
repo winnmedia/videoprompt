@@ -113,7 +113,7 @@ export class QualityMonitor {
         entryTypes: ['navigation', 'resource', 'measure', 'paint']
       });
     } catch (error) {
-      console.warn('Performance Observer setup failed:', error);
+      logger.error('Performance Observer setup failed:', error instanceof Error ? error : new Error(String(error)));
     }
   }
 
@@ -373,14 +373,14 @@ export class QualityMonitor {
 
     // 콘솔 출력
     const emoji = alert.severity === 'critical' ? '🚨' : alert.severity === 'high' ? '⚠️' : 'ℹ️';
-    console.warn(`${emoji} Quality Alert [${alert.severity.toUpperCase()}]:`, alert.message, alert.data);
+    logger.debug(`${emoji} Quality Alert [${alert.severity.toUpperCase()}]:`, alert.message, alert.data);
 
     // 등록된 콜백 실행
     this.alertCallbacks.forEach(callback => {
       try {
         callback(alert);
       } catch (error) {
-        console.error('Alert callback error:', error);
+        logger.error('Alert callback error:', error instanceof Error ? error : new Error(String(error)));
       }
     });
 
@@ -397,7 +397,7 @@ export class QualityMonitor {
     // 실제로는 Slack, 이메일, 모니터링 서비스로 전송
     if (typeof window !== 'undefined' && 'navigator' in window && 'serviceWorker' in navigator) {
       // Service Worker를 통한 푸시 알림 (실제 구현 시)
-      console.error('🚨 CRITICAL QUALITY ALERT:', alert.message);
+      logger.debug('🚨 CRITICAL QUALITY ALERT:', alert.message);
     }
   }
 

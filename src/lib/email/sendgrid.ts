@@ -94,7 +94,7 @@ class SendGridClient {
     try {
       // 개발 환경에서는 더 유연하게 처리
       if (process.env.NODE_ENV === 'development' && !process.env.SENDGRID_API_KEY) {
-        console.warn('[SendGrid] 🚧 개발 환경: SendGrid API 키가 없습니다. 이메일 전송이 시뮬레이션됩니다.');
+        logger.warn('[SendGrid] 🚧 개발 환경: SendGrid API 키가 없습니다. 이메일 전송이 시뮬레이션됩니다.');
         logger.info('[SendGrid] 📧 실제 이메일을 보내려면 .env.local에 SENDGRID_API_KEY를 설정하세요.');
         return {
           SENDGRID_API_KEY: 'development-placeholder-key',
@@ -113,11 +113,11 @@ class SendGridClient {
         NODE_ENV: process.env.NODE_ENV as 'development' | 'production' | 'test' | undefined,
       });
     } catch (error) {
-      console.error('[SendGrid] Environment validation failed:', error);
-      console.error('[SendGrid] Please ensure SENDGRID_API_KEY is set in your environment variables');
+      logger.error('[SendGrid] Environment validation failed:', error);
+      logger.error('[SendGrid] Please ensure SENDGRID_API_KEY is set in your environment variables');
       
       // Production에서도 임시로 placeholder 사용 (환경 변수 설정 후 재배포 필요)
-      console.warn('[SendGrid] ⚠️  PRODUCTION: Using placeholder API key - ENVIRONMENT VARIABLES REQUIRED');
+      logger.warn('[SendGrid] ⚠️  PRODUCTION: Using placeholder API key - ENVIRONMENT VARIABLES REQUIRED');
       // if (process.env.NODE_ENV === 'production') {
       //   throw new Error('SendGrid configuration error: Missing SENDGRID_API_KEY');
       // }
@@ -163,7 +163,7 @@ class SendGridClient {
     try {
       // Production에서 placeholder key 사용 시 경고만 표시하고 계속 진행
       if (this.config.apiKey === 'development-placeholder-key') {
-        console.warn('[SendGrid] ⚠️  Using placeholder API key - email functionality will be simulated');
+        logger.warn('[SendGrid] ⚠️  Using placeholder API key - email functionality will be simulated');
       }
       
       sgMail.setApiKey(this.config.apiKey);
@@ -179,8 +179,8 @@ class SendGridClient {
         usingPlaceholder: this.config.apiKey === 'development-placeholder-key',
       });
     } catch (error) {
-      console.error('[SendGrid] Client initialization failed:', error);
-      console.warn('[SendGrid] ⚠️  Continuing without email functionality');
+      logger.error('[SendGrid] Client initialization failed:', error);
+      logger.warn('[SendGrid] ⚠️  Continuing without email functionality');
       
       // 초기화 실패해도 서버는 계속 동작하도록 함
       this.initialized = true;

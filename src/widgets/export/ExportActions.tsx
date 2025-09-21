@@ -6,6 +6,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { logger } from '@/shared/lib/logger';
 import {
   ExportButton,
   ExportProgressModal,
@@ -14,8 +15,10 @@ import {
   type ScenarioExportData,
   type PromptExportData
 } from '@/features/export';
-import { useProject } from '@/app/store/hooks/useProject';
-import { useAuth } from '@/app/store/hooks/useAuth';
+import type { Shot } from '@/entities/scenario/types';
+// TODO: Move these hooks to shared layer to fix FSD violation
+// import { useProject } from '@/app/store/hooks/useProject';
+// import { useAuth } from '@/app/store/hooks/useAuth';
 
 interface ExportActionsProps {
   mode: 'scenario' | 'prompt';
@@ -40,10 +43,10 @@ export function ExportActions({
   const { exportState, exportScenario, exportPrompts, resetState } = useExport({
     onSuccess: (result) => {
       setFileName(result.fileName);
-      console.log('Export successful:', result);
+      logger.debug('Export successful:', result);
     },
     onError: (error) => {
-      console.error('Export failed:', error);
+      logger.error('Export failed:', error instanceof Error ? error : new Error(String(error)));
     }
   });
 
@@ -58,7 +61,7 @@ export function ExportActions({
     return {
       title: scenario?.title || '시나리오',
       description: scenario?.description,
-      shots: shots.map((shot: any, index: number) => ({
+      shots: shots.map((shot: Shot, index: number) => ({
         id: shot.id || `shot-${index}`,
         title: shot.title || `샷 ${index + 1}`,
         description: shot.description || '',
@@ -125,7 +128,7 @@ export function ExportActions({
         await exportPrompts(promptData);
       }
     } catch (error) {
-      console.error('Export error:', error);
+      logger.error('Export error:', error instanceof Error ? error : new Error(String(error)));
     }
   }, [mode, prepareScenarioData, preparePromptData, exportScenario, exportPrompts, resetState]);
 

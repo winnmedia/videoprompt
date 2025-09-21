@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 
 /**
  * 스토리 제출 - Planning API로 프록시
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Pipeline story proxy error:', error);
+    logger.error('Pipeline story proxy error:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({
       success: false,
       error: '스토리 처리 중 오류가 발생했습니다.'

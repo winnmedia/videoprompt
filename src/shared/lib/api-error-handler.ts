@@ -62,7 +62,7 @@ export function createApiErrorHandler(context: Partial<ApiErrorContext> = {}) {
       const degradationMode = getDegradationMode();
       const traceId = crypto.randomUUID();
 
-      console.error(`🚨 Service Unavailable`, {
+      logger.debug(`🚨 Service Unavailable`, {
         ...context,
         degradationMode,
         message,
@@ -107,7 +107,7 @@ export function createApiErrorHandler(context: Partial<ApiErrorContext> = {}) {
       const degradationMode = getDegradationMode();
       const traceId = crypto.randomUUID();
 
-      console.warn(`⚠️ Feature Not Implemented (Degraded Mode)`, {
+      logger.debug(`⚠️ Feature Not Implemented (Degraded Mode)`, {
         ...context,
         degradationMode,
         message,
@@ -151,7 +151,7 @@ export function createApiErrorHandler(context: Partial<ApiErrorContext> = {}) {
     ): NextResponse {
       const traceId = crypto.randomUUID();
 
-      console.error(`🚨 Internal Server Error`, {
+      logger.debug(`🚨 Internal Server Error`, {
         ...context,
         message,
         details,
@@ -209,7 +209,7 @@ export function createApiErrorHandler(context: Partial<ApiErrorContext> = {}) {
         recommendation = '관리자에게 문의하세요.';
       }
 
-      console.error(`🚨 Environment Error`, {
+      logger.debug(`🚨 Environment Error`, {
         ...context,
         envError,
         statusCode,
@@ -281,7 +281,7 @@ export function withErrorHandling<T extends any[]>(
         });
 
         if (!supabaseResult.canProceed) {
-          console.warn(`🚨 Supabase pre-check failed for ${context.endpoint}`, {
+          logger.debug(`🚨 Supabase pre-check failed for ${context.endpoint}`, {
             error: supabaseResult.error,
             degradationMode: supabaseResult.degradationMode
           });
@@ -314,7 +314,7 @@ export function withErrorHandling<T extends any[]>(
 
     } catch (error) {
       // 예상치 못한 에러 처리
-      console.error(`🚨 Unhandled error in API route`, {
+      logger.debug(`🚨 Unhandled error in API route`, {
         ...context,
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined
@@ -389,9 +389,9 @@ export function logApiError(
   };
 
   if (error.statusCode >= 500) {
-    console.error(`🚨 API Error (${error.statusCode})`, logData);
+    logger.debug(`🚨 API Error (${error.statusCode})`, logData);
   } else if (error.statusCode >= 400) {
-    console.warn(`⚠️ API Warning (${error.statusCode})`, logData);
+    logger.debug(`⚠️ API Warning (${error.statusCode})`, logData);
   } else {
     logger.info(`ℹ️ API Info (${error.statusCode})`, logData);
   }

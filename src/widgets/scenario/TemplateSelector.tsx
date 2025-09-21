@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/shared/lib/logger';
 import { StoryTemplate, StoryInput } from '@/entities/scenario';
 import { DEFAULT_TEMPLATES } from '@/entities/scenario';
 import { Button } from '@/shared/ui';
@@ -43,7 +44,7 @@ export function TemplateSelector({
         setUserTemplates(data.templates || []);
       }
     } catch (error) {
-      console.error('템플릿 불러오기 실패:', error);
+      logger.error('템플릿 불러오기 실패:', error instanceof Error ? error : new Error(String(error)));
     } finally {
       setLoading(false);
     }
@@ -99,7 +100,7 @@ export function TemplateSelector({
       alert(`"${templateName.trim()}" 템플릿이 성공적으로 저장되었습니다! 🎉`);
       onClose();
     } catch (error) {
-      console.error('템플릿 저장 실패:', error);
+      logger.error('템플릿 저장 실패:', error instanceof Error ? error : new Error(String(error)));
       alert('템플릿 저장에 실패했습니다. 네트워크 연결을 확인해주세요.');
     } finally {
       setLoading(false);
@@ -125,7 +126,7 @@ export function TemplateSelector({
         throw new Error('삭제 실패');
       }
     } catch (error) {
-      console.error('템플릿 삭제 실패:', error);
+      logger.error('템플릿 삭제 실패:', error instanceof Error ? error : new Error(String(error)));
       alert('템플릿 삭제에 실패했습니다. 다시 시도해주세요.');
     } finally {
       setLoading(false);

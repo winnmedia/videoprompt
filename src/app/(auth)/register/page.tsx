@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/shared/lib/logger';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Logo, Button, FormError, Input } from '@/shared/ui';
@@ -143,7 +144,7 @@ export default function RegisterPage() {
         setError(data.error || data.message || '회원가입에 실패했습니다.');
       }
     } catch (error) {
-      console.error('Register error:', error);
+      logger.error('Register error:', error instanceof Error ? error : new Error(String(error)));
       setError('서버 오류가 발생했습니다.');
     } finally {
       setLoading(false);

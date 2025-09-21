@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 import { z } from 'zod';
 
 /**
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Expire verification code error:', error);
+    logger.error('Expire verification code error:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({ 
       ok: false, 
       message: 'Internal server error' 

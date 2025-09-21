@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!result.success) {
-      console.error('❌ 시나리오 생성 실패:', result.error);
+      logger.debug('❌ 시나리오 생성 실패:', result.error);
 
       return json({
           ok: false,
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     return json(createSuccessResponse(result.data, '시나리오 저장 성공'));
 
   } catch (e: any) {
-    console.error('❌ 시나리오 API 예상치 못한 오류:', e);
+    logger.debug('❌ 시나리오 API 예상치 못한 오류:', e);
     return json({ ok: false, code: 'UNKNOWN', error: e?.message || 'Server error' }, 500);
   }
 }

@@ -68,7 +68,7 @@ function updateCircuitBreaker(key: string, success: boolean): boolean {
     state.isOpen = true;
     state.nextRetryAt = now + CIRCUIT_BREAKER_CONFIG.TIMEOUT_MS;
 
-    console.error(`🚨 Circuit breaker OPEN for ${key}`, {
+    logger.debug(`🚨 Circuit breaker OPEN for ${key}`, {
       failures: state.failures,
       nextRetryAt: new Date(state.nextRetryAt).toISOString()
     });
@@ -160,7 +160,7 @@ export async function getSupabaseClient(
       const retryIn = Math.ceil((state.nextRetryAt - Date.now()) / 1000);
       const error = `Supabase 서비스가 일시적으로 차단되었습니다. ${retryIn}초 후 재시도하세요.`;
 
-      console.warn(`⚡ Circuit breaker blocking ${circuitKey}`, { retryIn });
+      logger.debug(`⚡ Circuit breaker blocking ${circuitKey}`, { retryIn });
 
       if (throwOnError) {
         throw new Error(error);
@@ -233,7 +233,7 @@ export async function getSupabaseClient(
       };
 
     } catch (clientError) {
-      console.error(`🚨 Supabase client creation failed`, {
+      logger.debug(`🚨 Supabase client creation failed`, {
         serviceName,
         error: clientError instanceof Error ? clientError.message : String(clientError)
       });
@@ -255,7 +255,7 @@ export async function getSupabaseClient(
     }
 
   } catch (error) {
-    console.error(`🚨 getSupabaseClient error`, {
+    logger.debug(`🚨 getSupabaseClient error`, {
       serviceName,
       error: error instanceof Error ? error.message : String(error)
     });
@@ -350,7 +350,7 @@ export async function getSupabaseServerClient(
     };
 
   } catch (error) {
-    console.error(`🚨 getSupabaseServerClient error`, {
+    logger.debug(`🚨 getSupabaseServerClient error`, {
       serviceName,
       error: error instanceof Error ? error.message : String(error)
     });
@@ -442,7 +442,7 @@ export async function getSupabaseAdminClient(
     };
 
   } catch (error) {
-    console.error(`🚨 getSupabaseAdminClient error`, {
+    logger.debug(`🚨 getSupabaseAdminClient error`, {
       serviceName,
       error: error instanceof Error ? error.message : String(error)
     });

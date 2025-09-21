@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     // Rate Limiting 유지
     const rateLimitResult = checkRateLimit(req, 'login', RATE_LIMITS.login);
     if (!rateLimitResult.allowed) {
-      console.warn(`🚫 Rate limit exceeded for login from IP: ${req.headers.get('x-forwarded-for') || '127.0.0.1'}`);
+      logger.debug(`🚫 Rate limit exceeded for login from IP: ${req.headers.get('x-forwarded-for') || '127.0.0.1'}`);
 
       const response = NextResponse.json(
         failure(
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     const { user, session, error } = await signInWithSupabase(email, password);
 
     if (error || !user || !session) {
-      console.warn(`❌ Login failed for ${email}:`, (error as any)?.originalMessage || (error as any)?.message);
+      logger.debug(`❌ Login failed for ${email}:`, (error as any)?.originalMessage || (error as any)?.message);
 
       // 이미 한국어로 변환된 에러 메시지 사용
       const errorMessage = (error as any)?.message || '로그인 중 오류가 발생했습니다.';
@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
     return addCorsHeaders(response);
   } catch (e: any) {
     const traceId = getTraceId(req);
-    console.error('Login error:', e);
+    logger.debug('Login error:', e);
 
     const response = e instanceof z.ZodError
       ? failure('INVALID_INPUT_FIELDS', e.message, 400, undefined, traceId)

@@ -251,7 +251,7 @@ export class PipelineManager {
       timestamp: new Date().toISOString()
     };
 
-    console.error(`❌ 파이프라인 에러 (${step}):`, {
+    logger.debug(`❌ 파이프라인 에러 (${step}):`, {
       projectId,
       error: error.message,
       stack: error.stack

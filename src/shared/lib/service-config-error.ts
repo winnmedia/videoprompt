@@ -17,7 +17,6 @@ export interface EnvironmentSetupGuide {
   setupMethods: {
     local?: LocalSetupMethod;
     vercel?: VercelSetupMethod;
-    railway?: RailwaySetupMethod;
   };
   troubleshooting: Record<string, string>;
   helpUrl: string;
@@ -47,16 +46,6 @@ export interface VercelSetupMethod {
   deploymentSteps: string[];
 }
 
-export interface RailwaySetupMethod {
-  title: string;
-  description: string;
-  steps: string[];
-  environmentVariables: {
-    name: string;
-    value: string;
-  }[];
-  deploymentNote: string;
-}
 
 /**
  * API 키 분석 정보
@@ -203,27 +192,10 @@ export const createServiceConfigError = {
             'Redeploy 실행'
           ]
         } : undefined,
-        railway: environment === 'production' ? {
-          title: '🚂 Railway 환경변수 설정',
-          description: 'Railway 대시보드에서 환경변수 설정',
-          steps: [
-            'Railway 대시보드에서 프로젝트 선택',
-            'Variables 탭 클릭',
-            '환경변수 추가'
-          ],
-          environmentVariables: [
-            {
-              name: 'SEEDANCE_API_KEY',
-              value: '<YOUR_API_KEY_HERE>'
-            }
-          ],
-          deploymentNote: 'Railway는 환경변수 변경 시 자동으로 재배포됩니다.'
-        } : undefined
       },
       troubleshooting: {
         'env_not_loaded': '환경변수가 로드되지 않는 경우 서버 재시작 필요',
         'vercel_not_applied': 'Vercel에서 환경변수 설정 후 재배포 필요',
-        'railway_sync_delay': 'Railway 환경변수 동기화에 1-2분 소요될 수 있음'
       },
       helpUrl: 'https://docs.bytedance.com/modelark/api',
       supportContact: 'BytePlus 고객지원: https://www.volcengine.com/support'

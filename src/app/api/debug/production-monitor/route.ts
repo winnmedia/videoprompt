@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 import { createSuccessResponse, createErrorResponse } from '@/shared/schemas/api.schema';
 
 export const runtime = 'nodejs';
@@ -101,7 +102,7 @@ export async function GET(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Production monitor error:', error);
+    logger.error('Production monitor error:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       createErrorResponse('MONITOR_ERROR', 'Failed to fetch monitoring data'),
       { status: 500 }
@@ -172,7 +173,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (isCritical) {
-      console.error('🚨 CRITICAL PATTERN DETECTED:', {
+      logger.debug('🚨 CRITICAL PATTERN DETECTED:', {
         errorType,
         message,
         endpoint,
@@ -189,7 +190,7 @@ export async function POST(request: NextRequest) {
     }));
 
   } catch (error) {
-    console.error('Error reporting failed:', error);
+    logger.error('Error reporting failed:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       createErrorResponse('REPORT_ERROR', 'Failed to report error'),
       { status: 500 }

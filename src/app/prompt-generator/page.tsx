@@ -109,7 +109,7 @@ const PromptGeneratorPage: React.FC = () => {
         setStories(data.stories || []);
       }
     } catch (error) {
-      console.error('스토리 로드 실패:', error);
+      logger.error('스토리 로드 실패:', error instanceof Error ? error : new Error(String(error)));
     } finally {
       setStoriesLoading(false);
     }
@@ -302,7 +302,7 @@ const PromptGeneratorPage: React.FC = () => {
         handleRegistrationError(result.error || '등록에 실패했습니다.', currentRetryCount);
       }
     } catch (error) {
-      console.error('Registration error:', error);
+      logger.error('Registration error:', error instanceof Error ? error : new Error(String(error)));
       const errorMessage = error instanceof Error ? error.message : '등록 중 오류가 발생했습니다.';
 
       setRegistrationStatus({
@@ -380,7 +380,7 @@ const PromptGeneratorPage: React.FC = () => {
     try {
       if (v31Mode) {
         // CineGenius v3.1 방식으로 프롬프트 생성
-        // Railway 백엔드 API 호출 방식으로 수정
+        // API 호출 방식으로 수정
         const apiRequest = {
           story: v31State.userInput?.directPrompt || '영상 제작 프로젝트',
           scenario: {
@@ -399,7 +399,7 @@ const PromptGeneratorPage: React.FC = () => {
           target_audience: 'adults'
         };
 
-        logger.info('🚀 Railway API 요청:', apiRequest);
+        logger.info('🚀 API 요청:', apiRequest);
 
         const response = await fetch('/api/ai/generate-prompt', {
           method: 'POST',
@@ -414,7 +414,7 @@ const PromptGeneratorPage: React.FC = () => {
         }
 
         const result = await response.json();
-        logger.info('✅ Railway API 응답:', result);
+        logger.info('✅ API 응답:', result);
 
         // API 응답을 가상의 compilationResult 형태로 변환
         const compilationResult = {
@@ -441,7 +441,7 @@ const PromptGeneratorPage: React.FC = () => {
             registerPromptToManagement();
           }, 1000);
         } else {
-          console.error('Railway API 프롬프트 검증 실패:', compilationResult.validation.errors);
+          logger.debug('API 프롬프트 검증 실패:', compilationResult.validation.errors);
           alert(`❌ 프롬프트 생성 실패:\n${compilationResult.validation.errors.join('\n')}`);
           setState((prev) => ({ ...prev, isGenerating: false }));
         }
@@ -498,13 +498,13 @@ const PromptGeneratorPage: React.FC = () => {
         }, 1000);
       }
     } catch (error) {
-      console.error('Railway API 프롬프트 생성 실패:', error);
+      logger.error('API 프롬프트 생성 실패:', error instanceof Error ? error : new Error(String(error)));
 
       // 에러 타입별 메시지 설정
       let errorMessage = '프롬프트 생성에 실패했습니다.';
       if (error instanceof Error) {
         if (error.message.includes('fetch')) {
-          errorMessage = '네트워크 연결을 확인해주세요. Railway 백엔드 서버에 접근할 수 없습니다.';
+          errorMessage = '네트워크 연결을 확인해주세요. 서버에 접근할 수 없습니다.';
         } else if (error.message.includes('404')) {
           errorMessage = 'API 엔드포인트를 찾을 수 없습니다. 백엔드 배포 상태를 확인해주세요.';
         } else if (error.message.includes('500')) {

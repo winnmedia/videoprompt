@@ -11,7 +11,37 @@ import { Button } from '@/shared/ui';
 import { getStatusColor, getStatusText, getProviderIcon, formatDate } from '@/shared/lib/planning-utils';
 
 // Redux Store imports
-import { useAppSelector, useAppDispatch } from '@/app/store';
+import { useAppSelector, useAppDispatch } from '@/shared/lib/redux-hooks';
+
+// Planning types
+import type { ScenarioItem, PromptItem, VideoItem, ImageAsset } from '@/entities/planning/model/types';
+
+// Extended metadata interfaces for dashboard items
+interface ScenarioMetadata {
+  version?: string;
+  author?: string;
+  hasFourStep?: boolean;
+  hasTwelveShot?: boolean;
+  pdfUrl?: string;
+}
+
+interface DashboardScenarioItem extends Omit<ScenarioItem, 'metadata'> {
+  metadata?: ScenarioMetadata;
+}
+
+interface DashboardVideoItem extends VideoItem {
+  provider: string; // Make provider required for dashboard
+}
+
+interface QueryErrorData {
+  message?: string;
+}
+
+interface PlanningQueryError {
+  data?: QueryErrorData;
+}
+
+type TabId = 'scenario' | 'prompt' | 'video' | 'image';
 import {
   selectActiveTab,
   selectLoading,
@@ -64,27 +94,27 @@ export function PlanningDashboard() {
     // 네트워크 재연결시 refetch
     refetchOnReconnect: true,
     // 5분보다 오래된 데이터만 refetch
-    skip: !shouldRefreshData({ planning: { lastLoadTime } } as any),
+    skip: !shouldRefreshData({ planning: { lastLoadTime } }),
   });
 
   // Dashboard 데이터가 로드되면 Redux store 업데이트
   useEffect(() => {
     if (dashboardData) {
       // ScenarioItem 타입으로 변환
-      dispatch(setScenarios(dashboardData.scenarios.map(s => ({
-        id: s.id,
-        title: s.title,
-        version: s.metadata?.version || s.version || 'V1',
-        author: s.metadata?.author || s.author || 'AI Generated',
-        updatedAt: s.updatedAt,
-        hasFourStep: s.metadata?.hasFourStep || false,
-        hasTwelveShot: s.metadata?.hasTwelveShot || false,
-        pdfUrl: s.metadata?.pdfUrl
-      }) as any)));
+      dispatch(setScenarios(dashboardData.scenarios.map((s): DashboardScenarioItem => ({
+        ...s,
+        metadata: {
+          version: s.metadata?.version || s.version || 'V1',
+          author: s.metadata?.author || s.author || 'AI Generated',
+          hasFourStep: s.metadata?.hasFourStep || false,
+          hasTwelveShot: s.metadata?.hasTwelveShot || false,
+          pdfUrl: s.metadata?.pdfUrl
+        }
+      }))));
 
       // PromptItem 타입으로 변환
-      dispatch(setPrompts(dashboardData.prompts.map(p => ({
-        id: p.id,
+      dispatch(setPrompts(dashboardData.prompts.map((p): PromptItem => ({
+        ...p,
         scenarioTitle: p.scenarioTitle,
         version: p.version,
         keywordCount: p.keywordCount,
@@ -92,11 +122,11 @@ export function PlanningDashboard() {
         quality: p.quality,
         createdAt: p.createdAt,
         jsonUrl: p.jsonUrl
-      }) as any)));
+      }))));
 
       // VideoItem 타입으로 변환
-      dispatch(setVideos(dashboardData.videos.map(v => ({
-        id: v.id,
+      dispatch(setVideos(dashboardData.videos.map((v): DashboardVideoItem => ({
+        ...v,
         title: v.title || 'Untitled Video',
         prompt: v.prompt || '',
         provider: v.provider || 'unknown',
@@ -108,10 +138,10 @@ export function PlanningDashboard() {
         createdAt: v.createdAt,
         completedAt: v.completedAt,
         jobId: v.jobId
-      }) as any)));
+      }))));
 
       // ImageAsset 타입으로 변환
-      dispatch(setImages((dashboardData.images || []).map(i => ({
+      dispatch(setImages((dashboardData.images || []).map((i): ImageAsset => ({
         id: i.id,
         title: i.title,
         url: i.url || '',
@@ -120,7 +150,7 @@ export function PlanningDashboard() {
         fileSize: i.fileSize || 0,
         tags: i.tags || [],
         createdAt: i.createdAt || new Date().toISOString()
-      }) as any)));
+      }))));
 
       dispatch(updateLastLoadTime());
       dispatch(clearError());
@@ -135,14 +165,14 @@ export function PlanningDashboard() {
   useEffect(() => {
     if (isQueryError) {
       const errorMessage = queryError && 'data' in queryError
-        ? (queryError.data as any)?.message || 'Planning 데이터 로딩에 실패했습니다.'
+        ? (queryError as PlanningQueryError)?.data?.message || 'Planning 데이터 로딩에 실패했습니다.'
         : 'Planning 데이터 로딩에 실패했습니다.';
       dispatch(setError(errorMessage));
     }
   }, [isQueryError, queryError, dispatch]);
 
   // 탭 변경 핸들러
-  const handleTabChange = (newTab: 'scenario' | 'prompt' | 'video' | 'image') => {
+  const handleTabChange = (newTab: TabId) => {
     dispatch(setActiveTab(newTab));
   };
 
@@ -180,21 +210,21 @@ export function PlanningDashboard() {
                 <div key={item.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between mb-2">
                     <h4 className="font-medium text-gray-900 truncate">{item.title}</h4>
-                    <span className="text-xs text-gray-500 ml-2">{(item.metadata as any)?.version || 'v1'}</span>
+                    <span className="text-xs text-gray-500 ml-2">{item.metadata?.version || 'v1'}</span>
                   </div>
-                  <p className="text-sm text-gray-600 mb-2">{(item.metadata as any)?.author || '작성자 미상'}</p>
+                  <p className="text-sm text-gray-600 mb-2">{item.metadata?.author || '작성자 미상'}</p>
                   <div className="flex items-center justify-between text-xs text-gray-500">
                     <span>{formatDate(item.updatedAt)}</span>
                     <div className="flex gap-1">
-                      {(item.metadata as any)?.hasFourStep && <span className="bg-blue-100 text-blue-800 px-1 rounded">4단계</span>}
-                      {(item.metadata as any)?.hasTwelveShot && <span className="bg-green-100 text-green-800 px-1 rounded">12샷</span>}
+                      {item.metadata?.hasFourStep && <span className="bg-blue-100 text-blue-800 px-1 rounded">4단계</span>}
+                      {item.metadata?.hasTwelveShot && <span className="bg-green-100 text-green-800 px-1 rounded">12샷</span>}
                     </div>
                   </div>
-                  {(item.metadata as any)?.pdfUrl && (
+                  {item.metadata?.pdfUrl && (
                     <Button
                       size="sm"
                       className="mt-2 w-full"
-                      onClick={() => window.open((item.metadata as any)?.pdfUrl, '_blank')}
+                      onClick={() => window.open(item.metadata?.pdfUrl, '_blank')}
                     >
                       PDF 다운로드
                     </Button>
@@ -327,7 +357,7 @@ export function PlanningDashboard() {
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => handleTabChange(tab.id as any)}
+              onClick={() => handleTabChange(tab.id as TabId)}
               className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-600'

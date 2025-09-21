@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     // Rate Limiting 유지
     const rateLimitResult = checkRateLimit(req, 'register', RATE_LIMITS.register);
     if (!rateLimitResult.allowed) {
-      console.warn(`🚫 Rate limit exceeded for register from IP: ${req.headers.get('x-forwarded-for') || '127.0.0.1'}`);
+      logger.debug(`🚫 Rate limit exceeded for register from IP: ${req.headers.get('x-forwarded-for') || '127.0.0.1'}`);
 
       const response = failure(
         'RATE_LIMIT_EXCEEDED',
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (error) {
-      console.warn(`❌ Registration failed for ${email}:`, (error as any)?.originalMessage || (error as any)?.message);
+      logger.debug(`❌ Registration failed for ${email}:`, (error as any)?.originalMessage || (error as any)?.message);
 
       // 이미 한국어로 변환된 에러 메시지 사용
       const errorMessage = (error as any)?.message || '회원가입 중 오류가 발생했습니다.';
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     try {
       supabaseClient = await getSupabaseClientSafe('anon');
     } catch (error) {
-      console.error('❌ Supabase 클라이언트 접근 실패:', error);
+      logger.error('❌ Supabase 클라이언트 접근 실패:', error instanceof Error ? error : new Error(String(error)));
 
       if (error instanceof ServiceConfigError) {
         return supabaseErrors.configError(traceId, error.message);
@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
         .single();
 
       if (insertError) {
-        console.error('❌ users 테이블 저장 실패:', insertError);
+        logger.debug('❌ users 테이블 저장 실패:', insertError);
 
         // 🔄 롤백: Supabase Auth에서 생성된 사용자 삭제
         try {
@@ -130,12 +130,12 @@ export async function POST(req: NextRequest) {
           const { error: deleteError } = await adminClient.auth.admin.deleteUser(user.id);
 
           if (deleteError) {
-            console.error('❌ 사용자 롤백 실패:', deleteError);
+            logger.debug('❌ 사용자 롤백 실패:', deleteError);
           } else {
             logger.info(`✅ 사용자 롤백 완료: ${user.id}`);
           }
         } catch (rollbackError) {
-          console.error('❌ 롤백 중 예외 발생:', rollbackError);
+          logger.debug('❌ 롤백 중 예외 발생:', rollbackError);
           // 롤백 실패는 로그만 남기고 원래 에러를 반환
         }
 
@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
 
       logger.info(`✅ User data saved to users table:`, insertedUser);
     } catch (tableError) {
-      console.error('❌ 테이블 저장 중 예외 발생:', tableError);
+      logger.debug('❌ 테이블 저장 중 예외 발생:', tableError);
 
       // 🔄 롤백: Supabase Auth에서 생성된 사용자 삭제
       try {
@@ -159,12 +159,12 @@ export async function POST(req: NextRequest) {
         const { error: deleteError } = await adminClient.auth.admin.deleteUser(user.id);
 
         if (deleteError) {
-          console.error('❌ 예외 시 사용자 롤백 실패:', deleteError);
+          logger.debug('❌ 예외 시 사용자 롤백 실패:', deleteError);
         } else {
           logger.info(`✅ 예외 시 사용자 롤백 완료: ${user.id}`);
         }
       } catch (rollbackError) {
-        console.error('❌ 예외 시 롤백 중 에러:', rollbackError);
+        logger.debug('❌ 예외 시 롤백 중 에러:', rollbackError);
         // 롤백 실패는 로그만 남기고 원래 에러를 반환
       }
 
@@ -198,10 +198,10 @@ export async function POST(req: NextRequest) {
             .update({ email_verified: true, verified_at: new Date().toISOString() })
             .eq('id', user.id);
         } else {
-          console.warn(`⚠️ 개발 환경: 이메일 자동 확인 실패:`, confirmError.message);
+          logger.debug(`⚠️ 개발 환경: 이메일 자동 확인 실패:`, confirmError.message);
         }
       } catch (autoConfirmError) {
-        console.warn(`⚠️ 개발 환경: Admin 클라이언트 사용 불가 또는 이메일 자동 확인 중 오류:`, autoConfirmError);
+        logger.debug(`⚠️ 개발 환경: Admin 클라이언트 사용 불가 또는 이메일 자동 확인 중 오류:`, autoConfirmError);
       }
     }
 
@@ -246,7 +246,7 @@ export async function POST(req: NextRequest) {
     return response;
 
   } catch (e: any) {
-    console.error('Registration error:', e);
+    logger.debug('Registration error:', e);
 
     return e instanceof z.ZodError
       ? failure('INVALID_INPUT_FIELDS', '요청이 올바르지 않습니다. 입력 내용을 확인해주세요.', 400, e.message, traceId)

@@ -382,12 +382,12 @@ class QualityMonitor {
       try {
         await this.sendToChannel(channel, alertData);
       } catch (error) {
-        console.error(`Failed to send alert to ${channel}:`, error);
+        logger.error(`Failed to send alert to ${channel}:`, error instanceof Error ? error : new Error(String(error)));
       }
     }
 
-    console.warn(`🚨 Quality Alert [${alert.severity.toUpperCase()}]: ${alert.name}`);
-    console.warn(`Metric: ${metric.metric} = ${metric.value} (threshold: ${alert.threshold})`);
+    logger.debug(`🚨 Quality Alert [${alert.severity.toUpperCase()}]: ${alert.name}`);
+    logger.debug(`Metric: ${metric.metric} = ${metric.value} (threshold: ${alert.threshold})`);
   }
 
   /**
@@ -549,7 +549,7 @@ class QualityMonitor {
       try {
         callback(data);
       } catch (error) {
-        console.error(`Error in subscriber callback for ${event}:`, error);
+        logger.error(`Error in subscriber callback for ${event}:`, error instanceof Error ? error : new Error(String(error)));
       }
     });
   }
@@ -626,13 +626,13 @@ export const qualityMonitor = new QualityMonitor();
 if (process.env.NODE_ENV === 'development') {
   qualityMonitor.subscribe('metric', (metric: QualityMetric) => {
     if (metric.status !== 'normal') {
-      console.warn(`📊 Quality Metric Alert: ${metric.metric} = ${metric.value}`);
+      logger.debug(`📊 Quality Metric Alert: ${metric.metric} = ${metric.value}`);
     }
   });
 
   qualityMonitor.subscribe('test-event', (event: TestExecutionEvent) => {
     if (event.type === 'fail') {
-      console.error(`❌ Test Failed: ${event.testName}`);
+      logger.debug(`❌ Test Failed: ${event.testName}`);
     }
   });
 }

@@ -315,7 +315,7 @@ export class OpenAIClient {
         parsed.act4;
 
       if (!hasValidStructure && !hasDirectActStructure) {
-        console.warn('DEBUG: OpenAI 응답 구조 불완전, 기본값 적용');
+        logger.warn('DEBUG: OpenAI 응답 구조 불완전, 기본값 적용');
         return {
           success: false,
           error: '4막 구조가 불완전합니다',
@@ -348,7 +348,7 @@ export class OpenAIClient {
         data: parsed,
       };
     } catch (parseError) {
-      console.warn('DEBUG: OpenAI 응답 JSON 파싱 실패, 기본 구조 반환:', parseError);
+      logger.warn('DEBUG: OpenAI 응답 JSON 파싱 실패, 기본 구조 반환:', parseError);
       return {
         success: false,
         error: `JSON 파싱 실패: ${(parseError as Error).message}`,

@@ -71,7 +71,7 @@ const getHandler = async (request: NextRequest, { user, authContext }: { user: {
     );
 
   } catch (error) {
-    console.error('시나리오 조회 오류:', error);
+    logger.error('시나리오 조회 오류:', error instanceof Error ? error : new Error(String(error)));
 
     const dualStorageResult = normalizeRepositoryResult(
       {

@@ -53,7 +53,7 @@ const getHandler = async (
       });
     } catch (error) {
       if (error instanceof ServiceConfigError) {
-        console.error('🚨 Seedance 설정 검증 실패 (Status API):', {
+        logger.debug('🚨 Seedance 설정 검증 실패 (Status API):', {
           code: error.errorCode,
           message: error.message
         });
@@ -89,7 +89,7 @@ const getHandler = async (
     const validationResult = JobIdSchema.safeParse(jobId);
     if (!validationResult.success) {
       const errorDetails = validationResult.error.issues[0];
-      console.error('DEBUG: Job ID 검증 실패:', errorDetails);
+      logger.debug('DEBUG: Job ID 검증 실패:', errorDetails);
 
       return NextResponse.json(
         createErrorResponse('INVALID_JOB_ID', errorDetails.message),
@@ -103,7 +103,7 @@ const getHandler = async (
     const result = await seedanceService.getStatus(validatedJobId);
 
     if (!result.ok) {
-      console.error('DEBUG: Seedance 상태 확인 실패:', result.error);
+      logger.debug('DEBUG: Seedance 상태 확인 실패:', result.error);
 
       // 환경별 맞춤 에러 메시지 생성
       const userFriendlyError = createUserFriendlyError(result.error || 'Status check failed');
@@ -132,7 +132,7 @@ const getHandler = async (
 
     // 폴백 사용 시 로그
     if (result.fallbackReason) {
-      console.warn('⚠️ Graceful degradation으로 상태 확인:', result.fallbackReason);
+      logger.debug('⚠️ Graceful degradation으로 상태 확인:', result.fallbackReason);
     }
 
     // 성공 응답
@@ -157,7 +157,7 @@ const getHandler = async (
     return NextResponse.json(response, { headers: corsHeaders });
 
   } catch (error) {
-    console.error('DEBUG: Seedance 상태 확인 API 예상치 못한 오류:', error);
+    logger.error('DEBUG: Seedance 상태 확인 API 예상치 못한 오류:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       createErrorResponse(
         'INTERNAL_SERVER_ERROR',

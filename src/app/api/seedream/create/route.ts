@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       }));
 
       const primaryError = errorDetails[0];
-      console.error('DEBUG: SeeDream 입력 검증 실패:', errorDetails);
+      logger.debug('DEBUG: SeeDream 입력 검증 실패:', errorDetails);
       return NextResponse.json(
         createErrorResponse('VALIDATION_ERROR', primaryError ? primaryError.message : '입력 데이터가 올바르지 않습니다'),
         { status: 400 }
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!result.ok) {
-      console.error('DEBUG: SeeDream API 호출 실패:', result.error);
+      logger.debug('DEBUG: SeeDream API 호출 실패:', result.error);
       return NextResponse.json(
         createErrorResponse('SEEDREAM_GENERATION_ERROR', result.error || 'SeeDream 이미지 생성에 실패했습니다'),
         { status: 503 }
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('DEBUG: SeeDream API 라우트 예상치 못한 오류:', error);
+    logger.error('DEBUG: SeeDream API 라우트 예상치 못한 오류:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       createErrorResponse(
         'INTERNAL_SERVER_ERROR',
@@ -208,7 +208,7 @@ export async function GET() {
     return NextResponse.json(status);
 
   } catch (error) {
-    console.error('SeeDream 상태 확인 오류:', error);
+    logger.error('SeeDream 상태 확인 오류:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({
       service: 'SeeDream 4.0 Image Generation',
       status: 'error',

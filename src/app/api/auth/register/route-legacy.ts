@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
   // 🚫 Rate Limiting: 회원가입 API 보호 (더 엄격한 제한)
   const rateLimitResult = checkRateLimit(req, 'register', RATE_LIMITS.register);
   if (!rateLimitResult.allowed) {
-    console.warn(`🚫 Rate limit exceeded for register from IP: ${req.headers.get('x-forwarded-for') || '127.0.0.1'}`);
+    logger.debug(`🚫 Rate limit exceeded for register from IP: ${req.headers.get('x-forwarded-for') || '127.0.0.1'}`);
 
     const response = NextResponse.json(
       failure(

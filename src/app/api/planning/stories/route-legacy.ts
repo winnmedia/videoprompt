@@ -20,12 +20,7 @@ import {
   DatabaseErrorHandler,
   DatabaseValidator
 } from '@/shared/lib/database-validation';
-import {
-  logger,
-  LogCategory,
-  PerformanceTracker,
-  withPerformanceLogging
-} from '@/shared/lib/structured-logger';
+import { logger } from '@/shared/lib/logger';
 
 export async function GET(request: NextRequest) {
   const requestId = crypto.randomUUID();
@@ -39,7 +34,7 @@ export async function GET(request: NextRequest) {
     userAgent: request.headers.get('user-agent') || undefined,
   });
 
-  logger.info(LogCategory.API, 'Planning stories GET request started', {
+  logger.info('API: Planning stories GET request started', {
     url: request.url,
     requestId,
   });
@@ -49,14 +44,14 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const queryParams = Object.fromEntries(searchParams.entries());
 
-    logger.debug(LogCategory.VALIDATION, 'Validating query parameters', {
+    logger.debug('VALIDATION: Validating query parameters', {
       queryParams,
     });
 
     const queryResult = GetStoriesQuerySchema.safeParse(queryParams);
 
     if (!queryResult.success) {
-      logger.warn(LogCategory.VALIDATION, 'Query parameter validation failed', {
+      logger.warn('VALIDATION: Query parameter validation failed', {
         errors: queryResult.error.issues,
         queryParams,
       });
@@ -72,7 +67,7 @@ export async function GET(request: NextRequest) {
 
     const { page, limit, search, genre, tone, targetAudience, sortBy, sortOrder } = queryResult.data;
 
-    logger.info(LogCategory.VALIDATION, 'Query parameters validated successfully', {
+    logger.info('VALIDATION: Query parameters validated successfully', {
       validatedParams: queryResult.data,
     });
 
@@ -80,7 +75,7 @@ export async function GET(request: NextRequest) {
     const { getUser } = await import('@/shared/lib/auth');
     const user = await getUser(request);
 
-    logger.debug(LogCategory.SECURITY, 'User authentication check completed', {
+    logger.debug('SECURITY: User authentication check completed', {
       isAuthenticated: !!user,
       userId: user?.id,
     });
@@ -137,12 +132,12 @@ export async function GET(request: NextRequest) {
     const [projects, totalCount] = await withDatabaseValidation(
       prisma,
       async (client) => {
-        logger.debug(LogCategory.DATABASE, 'Executing database queries', {
+        logger.debug('DATABASE: Executing database queries', {
           whereCondition: projectWhereCondition,
           pagination: { skip, limit },
         });
 
-        const dbTracker = new PerformanceTracker('database_query');
+        const dbStartTime = Date.now();
 
         const results = await Promise.all([
           client.project.findMany({
@@ -156,21 +151,12 @@ export async function GET(request: NextRequest) {
           }),
         ]);
 
-        dbTracker.end(LogCategory.DATABASE, true, {
+        logger.info('DATABASE: Query completed', {duration: Date.now() - dbStartTime,
           recordsFound: results[0].length,
           totalCount: results[1],
         });
 
-        logger.database(
-          'project_query',
-          true,
-          dbTracker.end(LogCategory.DATABASE),
-          {
-            recordsFound: results[0].length,
-            totalCount: results[1],
-            queryType: 'findMany_and_count',
-          }
-        );
+        // Database operation completed successfully
 
         return results;
       },
@@ -180,44 +166,30 @@ export async function GET(request: NextRequest) {
     const totalPages = Math.ceil(totalCount / limit);
 
     // 데이터 변환 수행 (Project → Story DTO)
-    const transformationTracker = new PerformanceTracker('dto_transformation');
+    const transformStartTime = Date.now();
 
-    const formattedStories = await withPerformanceLogging(
-      'project_to_story_transformation',
-      LogCategory.TRANSFORMATION,
-      async () => {
-        logger.debug(LogCategory.TRANSFORMATION, 'Starting DTO transformation', {
-          recordCount: projects.length,
-        });
+    logger.debug('TRANSFORMATION: Starting DTO transformation', {
+      recordCount: projects.length,
+    });
 
-        const transformed = projects.map((project, index) => {
-          try {
-            return DTOTransformer.transformProjectToStory(project);
-          } catch (error) {
-            logger.error(
-              LogCategory.TRANSFORMATION,
-              `DTO transformation failed for project ${project.id}`,
-              error instanceof Error ? error : new Error(String(error)),
-              { projectIndex: index, projectId: project.id }
-            );
-            throw error;
-          }
-        });
-
-        logger.transformation(
-          'project_to_story',
-          true,
-          transformed.length,
-          transformationTracker.end(LogCategory.TRANSFORMATION),
-          {
-            inputRecords: projects.length,
-            outputRecords: transformed.length,
-          }
+    const formattedStories = projects.map((project, index) => {
+      try {
+        return DTOTransformer.transformProjectToStory(project);
+      } catch (error) {
+        logger.error(
+          'TRANSFORMATION: DTO transformation failed',
+          error instanceof Error ? error : new Error(String(error)),
+          { projectIndex: index, projectId: project.id }
         );
-
-        return transformed;
+        throw error;
       }
-    );
+    });
+
+    logger.info('TRANSFORMATION: DTO transformation completed', {
+      duration: Date.now() - transformStartTime,
+      inputRecords: projects.length,
+      outputRecords: formattedStories.length,
+    });
 
     // 페이지네이션 메타데이터 생성
     const paginationMetadata = DTOTransformer.createPaginationMetadata(
@@ -231,7 +203,7 @@ export async function GET(request: NextRequest) {
       pagination: paginationMetadata,
     };
 
-    logger.debug(LogCategory.API, 'Response data prepared', {
+    logger.debug('API: Response data prepared', {
       storiesCount: formattedStories.length,
       pagination: paginationMetadata,
     });
@@ -241,7 +213,7 @@ export async function GET(request: NextRequest) {
 
     if (!responseResult.success) {
       logger.error(
-        LogCategory.VALIDATION,
+        'VALIDATION:',
         'Response schema validation failed',
         new Error('Response validation error'),
         {
@@ -274,7 +246,7 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    logger.info(LogCategory.API, 'Planning stories GET request completed successfully', {
+    logger.info('API: Planning stories GET request completed successfully', {
       duration: Date.now() - startTime,
       recordsReturned: formattedStories.length,
     });
@@ -283,7 +255,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     // 구조화된 에러 로깅
     logger.error(
-      LogCategory.API,
+      'API:',
       'Planning stories GET request failed',
       error instanceof Error ? error : new Error(String(error)),
       {
@@ -331,7 +303,7 @@ export async function POST(request: NextRequest) {
     userAgent: request.headers.get('user-agent') || undefined,
   });
 
-  logger.info(LogCategory.API, 'Planning stories POST request started', {
+  logger.info('API: Planning stories POST request started', {
     requestId,
   });
 
@@ -339,14 +311,14 @@ export async function POST(request: NextRequest) {
     // 요청 본문 파싱 및 검증
     const body = await request.json();
 
-    logger.debug(LogCategory.VALIDATION, 'Validating request body', {
+    logger.debug('VALIDATION: Validating request body', {
       bodyKeys: Object.keys(body),
     });
 
     const validationResult = CreateStoryRequestSchema.safeParse(body);
 
     if (!validationResult.success) {
-      logger.warn(LogCategory.VALIDATION, 'Request body validation failed', {
+      logger.warn('VALIDATION: Request body validation failed', {
         errors: validationResult.error.issues,
         requestBody: body,
       });
@@ -362,7 +334,7 @@ export async function POST(request: NextRequest) {
 
     const validatedData = validationResult.data;
 
-    logger.info(LogCategory.VALIDATION, 'Request body validated successfully', {
+    logger.info('VALIDATION: Request body validated successfully', {
       validatedData: { ...validatedData, structure: validatedData.structure ? '[STRUCTURE_DATA]' : null },
     });
 
@@ -370,7 +342,7 @@ export async function POST(request: NextRequest) {
     const { getUser } = await import('@/shared/lib/auth');
     const user = await getUser(request);
 
-    logger.debug(LogCategory.SECURITY, 'User authentication check completed', {
+    logger.debug('SECURITY: User authentication check completed', {
       isAuthenticated: !!user,
       userId: user?.id,
     });
@@ -382,13 +354,13 @@ export async function POST(request: NextRequest) {
     const story = await withDatabaseValidation(
       prisma,
       async (client) => {
-        logger.debug(LogCategory.DATABASE, 'Creating new story record', {
+        logger.debug('DATABASE: Creating new story record', {
           title: validatedData.title,
           genre: validatedData.genre,
           userId: user?.id,
         });
 
-        const dbTracker = new PerformanceTracker('story_creation');
+        const dbStartTime = Date.now();
 
         const created = await client.story.create({
           data: {
@@ -402,16 +374,12 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        logger.database(
-          'story_creation',
-          true,
-          dbTracker.end(LogCategory.DATABASE),
-          {
-            storyId: created.id,
-            title: created.title,
-            userId: created.userId,
-          }
-        );
+        logger.info('DATABASE: Story creation completed', {
+          duration: Date.now() - dbStartTime,
+          storyId: created.id,
+          title: created.title,
+          userId: created.userId,
+        });
 
         return created;
       },
@@ -419,34 +387,24 @@ export async function POST(request: NextRequest) {
     );
 
     // 응답 데이터 변환
-    const responseData = await withPerformanceLogging(
-      'story_response_transformation',
-      LogCategory.TRANSFORMATION,
-      async () => {
-        const transformed = {
-          id: story.id,
-          title: story.title,
-          oneLineStory: story.oneLineStory,
-          genre: story.genre,
-          tone: story.tone,
-          targetAudience: story.target,
-          structure: story.structure,
-          userId: story.userId,
-          createdAt: story.createdAt.toISOString(),
-          updatedAt: story.updatedAt.toISOString(),
-        };
+    const responseData = {
+      id: story.id,
+      title: story.title,
+      oneLineStory: story.oneLineStory,
+      genre: story.genre,
+      tone: story.tone,
+      targetAudience: story.target,
+      structure: story.structure,
+      userId: story.userId,
+      createdAt: story.createdAt.toISOString(),
+      updatedAt: story.updatedAt.toISOString(),
+    };
 
-        logger.transformation(
-          'story_response_format',
-          true,
-          1,
-          Date.now() - startTime,
-          { storyId: story.id }
-        );
 
-        return transformed;
-      }
-    );
+    logger.info('TRANSFORMATION: Story response formatted', {
+      duration: Date.now() - startTime,
+      storyId: story.id
+    });
 
     // 응답 데이터 스키마 검증
     const responseValidation = StoryResponseSchema.safeParse(
@@ -455,7 +413,7 @@ export async function POST(request: NextRequest) {
 
     if (!responseValidation.success) {
       logger.error(
-        LogCategory.VALIDATION,
+        'VALIDATION:',
         'Response schema validation failed for story creation',
         new Error('Response validation error'),
         {
@@ -487,7 +445,7 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    logger.info(LogCategory.API, 'Planning stories POST request completed successfully', {
+    logger.info('API: Planning stories POST request completed successfully', {
       duration: Date.now() - startTime,
       storyId: story.id,
     });
@@ -496,7 +454,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     // 구조화된 에러 로깅
     logger.error(
-      LogCategory.API,
+      'API:',
       'Planning stories POST request failed',
       error instanceof Error ? error : new Error(String(error)),
       {

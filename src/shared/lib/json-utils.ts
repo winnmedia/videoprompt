@@ -4,6 +4,7 @@
  */
 
 import { Prisma } from '@prisma/client';
+import { logger } from '@/shared/lib/logger';
 
 /**
  * Record<string, unknown>을 Prisma InputJsonValue로 안전하게 변환
@@ -26,7 +27,7 @@ export function toInputJsonValue(
     // Prisma InputJsonValue 호환성 확인
     return parsed as Prisma.InputJsonValue;
   } catch (error) {
-    console.warn('JSON 변환 실패, 빈 객체 반환:', error);
+    logger.debug('JSON 변환 실패, 빈 객체 반환:', error);
     return {};
   }
 }

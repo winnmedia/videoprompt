@@ -20,7 +20,7 @@ Testing: Jest, MSW, Cypress.
 
 Package Manager: PNPM 사용 강제. (npm, yarn 사용 금지).
 
-Deployment: Vercel (Frontend), Railway (Backend).
+Deployment: Vercel (Frontend), Supabase (Backend).
 
 PART 1: 최상위 원칙 및 개발 생명주기 (Core Principles & Lifecycle)
 1.1. 핵심 원칙 (Core Principles)

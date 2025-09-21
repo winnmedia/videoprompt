@@ -337,7 +337,7 @@ class SupabaseMigrator {
       logger.info('✅ Supabase 마이그레이션 완료');
 
     } catch (error) {
-      console.error('❌ 마이그레이션 실패:', error);
+      logger.error('❌ 마이그레이션 실패:', error);
       throw error;
     }
   }
@@ -371,7 +371,7 @@ class SupabaseMigrator {
           });
 
           if (error && !error.message.includes('already exists')) {
-            console.warn('⚠️ SQL 실행 경고:', error.message);
+            logger.warn('⚠️ SQL 실행 경고:', error.message);
           }
         }
       }
@@ -379,7 +379,7 @@ class SupabaseMigrator {
       logger.info('✅ 테이블 생성 완료');
 
     } catch (error) {
-      console.error('❌ 테이블 생성 실패:', error);
+      logger.error('❌ 테이블 생성 실패:', error);
       throw error;
     }
   }
@@ -417,7 +417,7 @@ class SupabaseMigrator {
           });
 
         if (error) {
-          console.warn(`⚠️ 사용자 ${user.email} 마이그레이션 실패:`, error.message);
+          logger.warn(`⚠️ 사용자 ${user.email} 마이그레이션 실패:`, error.message);
         }
       }
 
@@ -445,14 +445,14 @@ class SupabaseMigrator {
           });
 
         if (error) {
-          console.warn(`⚠️ 프로젝트 ${project.title} 마이그레이션 실패:`, error.message);
+          logger.warn(`⚠️ 프로젝트 ${project.title} 마이그레이션 실패:`, error.message);
         }
       }
 
       logger.info('✅ 데이터 마이그레이션 완료');
 
     } catch (error) {
-      console.error('❌ 데이터 마이그레이션 실패:', error);
+      logger.error('❌ 데이터 마이그레이션 실패:', error);
       throw error;
     }
   }
@@ -484,12 +484,12 @@ class SupabaseMigrator {
               .limit(1);
 
             if (tableError) {
-              console.error(`❌ 테이블 ${tableName} 확인 실패:`, tableError.message);
+              logger.error(`❌ 테이블 ${tableName} 확인 실패:`, tableError.message);
             } else {
               logger.info(`✅ 테이블 ${tableName} 존재 확인`);
             }
           } catch (err) {
-            console.warn(`⚠️ 테이블 ${tableName} 접근 불가`);
+            logger.warn(`⚠️ 테이블 ${tableName} 접근 불가`);
           }
         }
       } else {
@@ -499,7 +499,7 @@ class SupabaseMigrator {
       logger.info('✅ 마이그레이션 검증 완료');
 
     } catch (error) {
-      console.warn('⚠️ 검증 중 경고:', error);
+      logger.warn('⚠️ 검증 중 경고:', error);
     }
   }
 }
@@ -523,7 +523,7 @@ if (require.main === module) {
       process.exit(0);
     })
     .catch((error) => {
-      console.error('💥 마이그레이션 실패:', error);
+      logger.error('💥 마이그레이션 실패:', error);
       process.exit(1);
     });
 }

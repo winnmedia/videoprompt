@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/shared/lib/logger';
 
 export interface VideoPollingResult {
   status: 'idle' | 'queued' | 'processing' | 'completed' | 'failed';
@@ -73,7 +74,7 @@ export const useVideoPolling = ({
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
-      console.error('Video polling error:', errorMessage);
+      logger.debug('Video polling error:', errorMessage);
 
       setResult(prev => ({
         ...prev,
@@ -160,7 +161,7 @@ export const saveJobToLocal = (jobId: string, prompt: string): void => {
     jobs.push(newJob);
     localStorage.setItem('videoJobs', JSON.stringify(jobs));
   } catch (error) {
-    console.error('Failed to save job to localStorage:', error);
+    logger.error('Failed to save job to localStorage:', error instanceof Error ? error : new Error(String(error)));
   }
 };
 
@@ -173,7 +174,7 @@ export const getPendingJobs = (): Array<{
   try {
     return JSON.parse(localStorage.getItem('videoJobs') || '[]');
   } catch (error) {
-    console.error('Failed to get pending jobs from localStorage:', error);
+    logger.error('Failed to get pending jobs from localStorage:', error instanceof Error ? error : new Error(String(error)));
     return [];
   }
 };
@@ -192,7 +193,7 @@ export const updateJobStatus = (jobId: string, status: string, videoUrl?: string
       localStorage.setItem('videoJobs', JSON.stringify(jobs));
     }
   } catch (error) {
-    console.error('Failed to update job status in localStorage:', error);
+    logger.error('Failed to update job status in localStorage:', error instanceof Error ? error : new Error(String(error)));
   }
 };
 
@@ -202,6 +203,6 @@ export const removeJobFromLocal = (jobId: string): void => {
     const filteredJobs = jobs.filter((job: any) => job.jobId !== jobId);
     localStorage.setItem('videoJobs', JSON.stringify(filteredJobs));
   } catch (error) {
-    console.error('Failed to remove job from localStorage:', error);
+    logger.error('Failed to remove job from localStorage:', error instanceof Error ? error : new Error(String(error)));
   }
 };

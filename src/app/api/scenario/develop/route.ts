@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 import { createAIServiceManager } from '@/shared/lib/ai-client';
 
 export async function POST(request: NextRequest) {
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
       data: result,
     });
   } catch (error) {
-    console.error('시나리오 개발 API 오류:', error);
+    logger.error('시나리오 개발 API 오류:', error instanceof Error ? error : new Error(String(error)));
 
     const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
 

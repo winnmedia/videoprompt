@@ -25,15 +25,9 @@ export async function GET(req: NextRequest) {
     const videoId = searchParams.get('videoId');
 
     if (jobId) {
-      // Seedance 작업 ID로 상태 조회
+      // Seedance 작업 ID로 상태 조회 (Legacy - 사용 중단됨)
       try {
-        const railwayBackend = process.env.RAILWAY_BACKEND_URL;
-
-        if (!railwayBackend) {
-          throw new Error('Railway 백엔드가 설정되지 않았습니다.');
-        }
-
-        const res = await fetch(`${railwayBackend}/api/seedance/status/${jobId}`);
+        throw new Error('Legacy Seedance 상태 조회는 사용 중단되었습니다. 새로운 API를 사용하세요.');
 
         if (res.ok) {
           const data = await res.json();

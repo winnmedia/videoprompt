@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
         usingPlaceholder: config.apiKey === 'development-placeholder-key',
       });
     } catch (configError) {
-      console.error(`[TestEmail ${traceId}] SendGrid 설정 오류:`, configError);
+      logger.debug(`[TestEmail ${traceId}] SendGrid 설정 오류:`, configError);
       return failure(
         'EMAIL_CONFIG_ERROR',
         'SendGrid 설정을 불러올 수 없습니다.',
@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
       }, 200, traceId);
       
     } catch (emailError: any) {
-      console.error(`[TestEmail ${traceId}] ❌ 이메일 전송 실패:`, emailError);
+      logger.debug(`[TestEmail ${traceId}] ❌ 이메일 전송 실패:`, emailError);
       
       return failure(
         'EMAIL_SEND_ERROR',
@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
     }
     
   } catch (error: any) {
-    console.error(`[TestEmail ${traceId}] 전체 오류:`, error);
+    logger.error(`[TestEmail ${traceId}] 전체 오류:`, error instanceof Error ? error : new Error(String(error)));
     
     if (error instanceof z.ZodError) {
       return failure(
@@ -188,7 +188,7 @@ export async function GET(req: NextRequest) {
     }, 200, traceId);
     
   } catch (error: any) {
-    console.error(`[TestEmail ${traceId}] GET 오류:`, error);
+    logger.error(`[TestEmail ${traceId}] GET 오류:`, error instanceof Error ? error : new Error(String(error)));
     
     return failure(
       'EMAIL_STATUS_ERROR',

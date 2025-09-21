@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import { logger } from '@/shared/lib/logger';
 
 // ============================================================================
 // 기본 스키마 및 유틸리티
@@ -538,7 +539,7 @@ export function validateSchema<T>(
         data: result.data,
       };
     } else {
-      console.warn(`⚠️ ${context} 스키마 검증 실패:`, result.error.issues);
+      logger.debug(`⚠️ ${context} 스키마 검증 실패:`, result.error.issues);
       return {
         success: false,
         error: {
@@ -548,7 +549,7 @@ export function validateSchema<T>(
       };
     }
   } catch (error) {
-    console.error(`❌ ${context} 스키마 검증 중 예외 발생:`, error);
+    logger.error(`❌ ${context} 스키마 검증 중 예외 발생:`, error instanceof Error ? error : new Error(String(error)));
     return {
       success: false,
       error: {

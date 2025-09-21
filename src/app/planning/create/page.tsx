@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
+import { logger } from '@/shared/lib/logger';
 import { Icon, Loading } from '@/shared/ui';
 import { safeFetch } from '@/shared/lib/api-retry';
 
@@ -208,7 +209,7 @@ export default function PlanningCreatePage() {
         goToNextStep();
       }
     } catch (error) {
-      console.error('기획안 생성 실패:', error);
+      logger.error('기획안 생성 실패:', error instanceof Error ? error : new Error(String(error)));
       // 사용자 입력을 바탕으로 한 기본 기획안 생성
       const customGenreText = planningData.genre === 'other' ? customGenre.trim() : planningData.genre;
       setGeneratedPlan({

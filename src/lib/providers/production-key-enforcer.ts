@@ -85,7 +85,7 @@ export function enforceProductionKeyValidation(
     result.recommendations.push('SEEDANCE_API_KEY 또는 MODELARK_API_KEY 환경변수를 설정하세요');
 
     if (finalConfig.logLevel === 'error') {
-      console.error(error);
+      logger.error(error);
     }
 
     if (isProductionEnvironment && finalConfig.strictMode) {
@@ -105,7 +105,7 @@ export function enforceProductionKeyValidation(
     result.recommendations.push('BytePlus ModelArk에서 유효한 API 키를 발급받아 설정하세요');
 
     if (finalConfig.logLevel === 'error') {
-      console.error(error, {
+      logger.error(error, {
         keyFormat: `${apiKey.slice(0, 8)}...${apiKey.slice(-8)}`,
         keyLength: apiKey.length,
       });
@@ -131,7 +131,7 @@ export function enforceProductionKeyValidation(
       result.recommendations.push('BytePlus 공식 API 키(ark_ 접두사)를 사용하세요');
 
       if (finalConfig.logLevel === 'error') {
-        console.error(error);
+        logger.error(error);
       }
 
       if (finalConfig.strictMode) {
@@ -168,7 +168,7 @@ export function validateKeysOnStartup(): void {
 
     // 경고사항 출력
     if (result.warnings.length > 0) {
-      result.warnings.forEach(warning => console.warn(`⚠️ ${warning}`));
+      result.warnings.forEach(warning => logger.warn(`⚠️ ${warning}`));
     }
 
     // 권장사항 출력
@@ -178,9 +178,9 @@ export function validateKeysOnStartup(): void {
     }
 
   } catch (error) {
-    console.error('🚨 애플리케이션 시작 중 키 검증 실패:', error);
+    logger.error('🚨 애플리케이션 시작 중 키 검증 실패:', error);
     if (process.env.NODE_ENV === 'production') {
-      console.error('💥 프로덕션 환경에서 무효한 API 키로 인해 앱이 종료됩니다');
+      logger.error('💥 프로덕션 환경에서 무효한 API 키로 인해 앱이 종료됩니다');
       process.exit(1); // 프로덕션에서는 앱 종료
     }
   }
@@ -198,7 +198,7 @@ export function validateKeyBeforeApiCall(): boolean {
 
     return result.isValid;
   } catch (error) {
-    console.error('❌ 런타임 키 검증 실패:', error);
+    logger.error('❌ 런타임 키 검증 실패:', error);
     return false;
   }
 }
@@ -213,7 +213,7 @@ export function checkMockApiProhibition(): void {
     // 프로덕션에서 Mock API 명시적 활성화 감지
     if (process.env.NEXT_PUBLIC_ENABLE_MOCK_API === 'true') {
       const error = '🚨 프로덕션 환경에서 Mock API가 명시적으로 활성화되어 있습니다';
-      console.error(error);
+      logger.error(error);
       throw new Error(error);
     }
 
@@ -225,7 +225,7 @@ export function checkMockApiProhibition(): void {
     ).filter(key => key !== 'NODE_ENV'); // NODE_ENV는 제외
 
     if (mockRelatedVars.length > 0) {
-      console.warn('⚠️ 프로덕션 환경에서 Mock 관련 환경변수가 감지되었습니다:', mockRelatedVars);
+      logger.warn('⚠️ 프로덕션 환경에서 Mock 관련 환경변수가 감지되었습니다:', mockRelatedVars);
     }
   }
 }

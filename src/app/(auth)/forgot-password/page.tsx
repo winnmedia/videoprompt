@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { logger } from '@/shared/lib/logger';
 import Link from 'next/link';
 import { Logo, Button, FormError } from '@/shared/ui';
 import { safeFetch } from '@/shared/lib/api-retry';
@@ -40,7 +41,7 @@ export default function ForgotPasswordPage() {
         }
       }
     } catch (error) {
-      console.error('Forgot password error:', error);
+      logger.error('Forgot password error', error instanceof Error ? error : new Error(String(error)));
       setError('서버 오류가 발생했습니다.');
     } finally {
       setLoading(false);

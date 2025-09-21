@@ -72,7 +72,7 @@ export async function getSupabaseClientSafe(kind: 'anon' | 'admin') {
       return result.client;
     }
   } catch (error) {
-    console.error('🚨 getSupabaseClientSafe failed:', {
+    logger.debug('🚨 getSupabaseClientSafe failed:', {
       kind,
       error: error instanceof Error ? error.message : String(error)
     });
@@ -116,7 +116,7 @@ export async function handleSupabaseRequest<T>(
     return await handler(client);
   } catch (error) {
     if (error instanceof ServiceConfigError) {
-      console.error(`🚨 Supabase ${kind} client error:`, {
+      logger.debug(`🚨 Supabase ${kind} client error:`, {
         statusCode: error.statusCode,
         errorCode: error.errorCode,
         message: error.message
@@ -140,7 +140,7 @@ export async function handleSupabaseRequest<T>(
     }
 
     // 예상치 못한 에러는 500으로 처리
-    console.error('🚨 Unexpected error in handleSupabaseRequest:', error);
+    logger.error('🚨 Unexpected error in handleSupabaseRequest:', error instanceof Error ? error : new Error(String(error)));
     return new Response(JSON.stringify({
       error: 'INTERNAL_ERROR',
       message: 'Internal server error',

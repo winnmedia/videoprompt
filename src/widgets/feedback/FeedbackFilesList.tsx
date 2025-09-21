@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { logger } from '@/shared/lib/logger';
 import { File, Image, Video, FileText, Download, Trash2, RefreshCw, AlertCircle } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
@@ -93,7 +94,7 @@ async function handleFileDelete(file: FeedbackFile, onRefresh: () => void) {
       throw new Error(result.message || '삭제 실패');
     }
   } catch (error) {
-    console.error('File delete error:', error);
+    logger.error('File delete error:', error instanceof Error ? error : new Error(String(error)));
     alert(`파일 삭제 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
   }
 }
@@ -126,7 +127,7 @@ export default function FeedbackFilesList({
         throw new Error(result.message || '파일 목록 조회 실패');
       }
     } catch (error) {
-      console.error('Fetch files error:', error);
+      logger.error('Fetch files error:', error instanceof Error ? error : new Error(String(error)));
       setError(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.');
       setFiles([]);
       setStats(null);

@@ -85,11 +85,11 @@ beforeAll(async () => {
       const isAllowed = allowedExternalRequests.some(domain => url.includes(domain));
 
       if (!isAllowed && !process.env.INTEGRATION_TEST) {
-        console.error(`[MSW] 🚨 차단된 외부 요청: ${req.method} ${url}`);
-        console.error('테스트에서는 MSW 핸들러를 사용하여 모킹해야 합니다.');
+        logger.error(`[MSW] 🚨 차단된 외부 요청: ${req.method} ${url}`);
+        logger.error('테스트에서는 MSW 핸들러를 사용하여 모킹해야 합니다.');
         print.warning();
       } else if (process.env.INTEGRATION_TEST) {
-        console.warn(`[MSW] ⚠️ 미처리 요청: ${req.method} ${url}`);
+        logger.warn(`[MSW] ⚠️ 미처리 요청: ${req.method} ${url}`);
         print.warning();
       }
     }

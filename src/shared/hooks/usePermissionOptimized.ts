@@ -13,6 +13,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { logger } from '@/shared/lib/logger';
 import { AuthContext } from '@/shared/lib/unified-auth';
 import { checkPermission, type PermissionState } from '@/shared/lib/permission-guard';
 import { useAuthContext } from './useAuthContext';
@@ -191,7 +192,7 @@ class PermissionWorker {
       const blob = new Blob([workerCode], { type: 'application/javascript' });
       this.worker = new Worker(URL.createObjectURL(blob));
     } catch (error) {
-      console.warn('Failed to initialize permission worker:', error);
+      logger.error('Failed to initialize permission worker:', error instanceof Error ? error : new Error(String(error)));
       this.isSupported = false;
     }
   }

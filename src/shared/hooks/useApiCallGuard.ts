@@ -123,7 +123,7 @@ export function useApiCallGuard(
 
         if (!guardResult.allowed) {
           if (enableLogging) {
-            console.warn(`🚨 API call blocked: ${endpoint}`, {
+            logger.debug(`🚨 API call blocked: ${endpoint}`, {
               reason: guardResult.reason,
               waitTime: guardResult.waitTime
             });
@@ -182,7 +182,7 @@ export function useApiCallGuard(
           callRecord.status = 'error';
 
           if (enableLogging) {
-            console.error(`❌ API call failed: ${endpoint}`, error);
+            logger.error(`❌ API call failed: ${endpoint}`, error instanceof Error ? error : new Error(String(error)));
           }
 
           // 무한 루프 패턴 감지

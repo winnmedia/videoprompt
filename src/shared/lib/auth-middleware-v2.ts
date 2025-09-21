@@ -86,7 +86,7 @@ export function withAuth(
         const { error } = authResult;
 
         if (!skipErrorLogging) {
-          console.warn(`🚨 Auth middleware failed`, {
+          logger.debug(`🚨 Auth middleware failed`, {
             endpoint: endpoint || new URL(req.url).pathname,
             requestId,
             error: error.code,
@@ -129,7 +129,7 @@ export function withAuth(
       throw new Error('Invalid auth result state');
 
     } catch (error) {
-      console.error(`🚨 Auth middleware error`, {
+      logger.debug(`🚨 Auth middleware error`, {
         endpoint: endpoint || new URL(req.url).pathname,
         requestId,
         error: error instanceof Error ? error.message : String(error),
@@ -171,7 +171,7 @@ export function withOptionalAuth(
       if (isAuthError(authResult)) {
         const { error } = authResult;
 
-        console.warn(`🚨 withOptionalAuth: Auth failed - returning error (not converting to guest)`, {
+        logger.debug(`🚨 withOptionalAuth: Auth failed - returning error (not converting to guest)`, {
           endpoint: endpoint || new URL(req.url).pathname,
           requestId,
           error: error.code,
@@ -215,7 +215,7 @@ export function withOptionalAuth(
       throw new Error('Invalid auth result state in withOptionalAuth');
 
     } catch (error) {
-      console.error(`🚨 withOptionalAuth error`, {
+      logger.debug(`🚨 withOptionalAuth error`, {
         endpoint: endpoint || new URL(req.url).pathname,
         requestId,
         error: error instanceof Error ? error.message : String(error),
@@ -309,7 +309,7 @@ export function withGuestOnly(
       throw new Error('Invalid auth result for guest-only middleware');
 
     } catch (error) {
-      console.error(`🚨 Guest-only middleware error`, {
+      logger.debug(`🚨 Guest-only middleware error`, {
         endpoint: endpoint || new URL(req.url).pathname,
         requestId,
         error: error instanceof Error ? error.message : String(error)

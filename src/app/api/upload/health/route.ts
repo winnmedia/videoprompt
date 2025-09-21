@@ -1,63 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 import { createSuccessResponse, createErrorResponse } from '@/shared/schemas/api.schema';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/upload/health
- * Railway 백엔드 업로드 서비스 헬스 체크
+ * 업로드 서비스 헬스 체크 (Legacy - 사용 중단됨)
  */
 export async function GET(request: NextRequest) {
   try {
-    const railwayBackendUrl = process.env.RAILWAY_BACKEND_URL;
-
-    if (!railwayBackendUrl) {
-      return NextResponse.json(
-        createErrorResponse('CONFIG_ERROR', 'Railway 백엔드 URL이 설정되지 않았습니다. Legacy 업로드 서비스는 비활성화되었습니다.'),
-        { status: 503 }
-      );
-    }
-
-    // Railway 백엔드 헬스체크
-    const healthResponse = await fetch(`${railwayBackendUrl}/api/health`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!healthResponse.ok) {
-      throw new Error(`헬스체크 실패: ${healthResponse.status}`);
-    }
-
-    const healthData = await healthResponse.json();
-
-    // 업로드 엔드포인트 확인
-    const uploadCheckResponse = await fetch(`${railwayBackendUrl}/api/upload/status`, {
-      method: 'OPTIONS',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
+    // Legacy Railway 업로드 서비스는 사용 중단됨
     return NextResponse.json(
-      createSuccessResponse({
-        railwayBackend: {
-          url: railwayBackendUrl,
-          health: healthData,
-          healthStatus: healthResponse.status,
-        },
-        uploadService: {
-          available: uploadCheckResponse.ok,
-          status: uploadCheckResponse.status,
-        },
-        timestamp: new Date().toISOString(),
-      }, 'Upload service health check completed'),
-      { status: 200 }
+      createErrorResponse('SERVICE_DEPRECATED', 'Legacy 업로드 서비스는 사용 중단되었습니다. Supabase Storage를 사용하세요.'),
+      { status: 410 }
     );
-
   } catch (error) {
-    console.error('Upload health check failed:', error);
+    logger.error('Upload health check failed:', error instanceof Error ? error : new Error(String(error)));
 
     return NextResponse.json(
       createErrorResponse(

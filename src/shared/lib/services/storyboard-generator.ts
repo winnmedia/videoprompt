@@ -469,7 +469,7 @@ export class StoryboardGeneratorService {
           const result = await this.generateSingleShot(request);
           results.push(result);
         } catch (error) {
-          console.error(`Retry failed for shot ${request.shotId}:`, error);
+          logger.error(`Retry failed for shot ${request.shotId}:`, error instanceof Error ? error : new Error(String(error)));
         }
       }
     }

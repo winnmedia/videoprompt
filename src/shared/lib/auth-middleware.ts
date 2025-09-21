@@ -62,7 +62,7 @@ export function withAuth(
       if (isAuthError(authResult)) {
         const { error } = authResult;
 
-        console.warn(`🚨 Authentication failed: ${error.code}`, {
+        logger.debug(`🚨 Authentication failed: ${error.code}`, {
           endpoint: endpoint || req.url,
           message: error.message,
           statusCode: error.statusCode
@@ -111,7 +111,7 @@ export function withAuth(
       return response;
 
     } catch (error) {
-      console.error('🚨 withAuth middleware error:', error);
+      logger.error('🚨 withAuth middleware error:', error instanceof Error ? error : new Error(String(error)));
 
       return NextResponse.json({
         error: 'INTERNAL_SERVER_ERROR',
@@ -233,7 +233,7 @@ export function withGuestOnly(
       });
 
     } catch (error) {
-      console.error('🚨 withGuestOnly middleware error:', error);
+      logger.error('🚨 withGuestOnly middleware error:', error instanceof Error ? error : new Error(String(error)));
 
       return NextResponse.json({
         error: 'INTERNAL_SERVER_ERROR',

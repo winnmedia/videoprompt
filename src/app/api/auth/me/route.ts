@@ -123,7 +123,7 @@ export const GET = withOptionalAuth(async (req, { user, authContext }) => {
     return response;
 
   } catch (error) {
-    console.error('Error in /api/auth/me:', error);
+    logger.error('Error in /api/auth/me:', error instanceof Error ? error : new Error(String(error)));
 
     // DB 연결 실패 시 graceful degradation
     if (error instanceof Error &&

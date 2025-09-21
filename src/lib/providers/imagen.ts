@@ -139,7 +139,7 @@ export async function generateImagenPreview(
 
       if (!res.ok) {
         const errorText = await res.text();
-        console.error('DEBUG: Vertex AI 응답 오류:', {
+        logger.error('DEBUG: Vertex AI 응답 오류:', {
           status: res.status,
           statusText: res.statusText,
           error: errorText.slice(0, 200),
@@ -160,7 +160,7 @@ export async function generateImagenPreview(
       });
       return images.length > 0 ? images : null;
     } catch (error) {
-      console.error('DEBUG: Vertex AI 에러:', error);
+      logger.error('DEBUG: Vertex AI 에러:', error);
       return null;
     }
   };
@@ -302,7 +302,7 @@ export async function generateImagenPreview(
             return result;
           }
         } catch (error) {
-          logger.info(`DEBUG: ${attempt.description} 시도 중 오류:`, error);
+          logger.error(`DEBUG: ${attempt.description} 시도 중 오류:`, error instanceof Error ? error : new Error(String(error)));
           clearTimeout(t);
           continue;
         }
@@ -311,7 +311,7 @@ export async function generateImagenPreview(
       logger.info('DEBUG: 모든 Google API 시도 실패');
       return null;
     } catch (error) {
-      console.error('DEBUG: Google API 전체 오류:', error);
+      logger.error('DEBUG: Google API 전체 오류:', error);
       return null;
     }
   };
@@ -432,7 +432,7 @@ export async function generateImagenPreview(
   // 강제 LLM 모드인데 이미지가 나오지 않으면 플레이스홀더로 폴백
   if (preferLLM) {
     try {
-      console.warn(
+      logger.warn(
         'Google LLM image generation failed: no images returned. Falling back to placeholder.',
       );
     } catch {}
@@ -444,7 +444,7 @@ export async function generateImagenPreview(
   // 강제 OpenAI 모드인데 이미지가 나오지 않으면 에러 메시지와 함께 플레이스홀더 생성
   if (preferOpenAI) {
     try {
-      console.error(
+      logger.error(
         'OpenAI image generation failed: no images returned. Check OPENAI_API_KEY validity and Images API access.',
       );
     } catch {}

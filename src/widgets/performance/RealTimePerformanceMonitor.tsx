@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { logger } from '@/shared/lib/logger';
 import { clsx } from 'clsx'
 import { usePerformanceStore } from '@/entities/performance'
 import { usePerformanceContext } from '@/shared/lib/performance-provider'
@@ -116,7 +117,7 @@ export const RealTimePerformanceMonitor = ({
           await alertsSystem.processMetrics(metrics)
         }
       } catch (error) {
-        console.error('[RealTimeMonitor] Performance check failed:', error)
+        logger.error('[RealTimeMonitor] Performance check failed:', error instanceof Error ? error : new Error(String(error)))
       } finally {
         setProcessingAlert(false)
       }

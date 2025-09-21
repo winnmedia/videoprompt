@@ -136,7 +136,7 @@ export const useApiMonitoring = (config: ApiMonitoringConfig = {}): ApiMonitorin
       }
     } catch (error) {
       if (mergedConfig.debug) {
-        console.error('[API Monitor] Failed to send metrics:', error)
+        logger.error('[API Monitor] Failed to send metrics:', error instanceof Error ? error : new Error(String(error)))
       }
       
       // 실패한 메트릭을 다시 배치에 추가
@@ -202,7 +202,7 @@ export const useApiMonitoring = (config: ApiMonitoringConfig = {}): ApiMonitorin
         // 느린 요청 감지
         if (responseTime > mergedConfig.slowRequestThreshold!) {
           if (mergedConfig.debug) {
-            console.warn(`[API Monitor] Slow request detected: ${url} (${responseTime}ms)`)
+            logger.debug(`[API Monitor] Slow request detected: ${url} (${responseTime}ms)`)
           }
         }
 
@@ -248,7 +248,7 @@ export const useApiMonitoring = (config: ApiMonitoringConfig = {}): ApiMonitorin
         addApiMetric(metric)
         
         if (mergedConfig.debug) {
-          console.error(`[API Monitor] Network error: ${method} ${url}`, error)
+          logger.error(`[API Monitor] Network error: ${method} ${url}`, error instanceof Error ? error : new Error(String(error)))
         }
 
         throw error
@@ -320,7 +320,7 @@ export const useApiMonitoring = (config: ApiMonitoringConfig = {}): ApiMonitorin
       }
     } catch (error) {
       if (mergedConfig.debug) {
-        console.error('[API Monitor] Failed to send metrics:', error)
+        logger.error('[API Monitor] Failed to send metrics:', error instanceof Error ? error : new Error(String(error)))
       }
       throw error
     }

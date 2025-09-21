@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { logger } from '@/shared/lib/logger';
 import Link from 'next/link';
 
 // Force dynamic rendering to prevent static generation issues
@@ -17,7 +18,7 @@ export default function Error({
   React.useEffect(() => {
     // Log error for debugging
     if (process.env.NODE_ENV === 'development') {
-      console.error('Page error:', error);
+      logger.error('Page error:', error instanceof Error ? error : new Error(String(error)));
     }
   }, [error]);
 

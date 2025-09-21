@@ -151,7 +151,7 @@ export const PerformanceProvider = ({
     } catch (error) {
       const err = error instanceof Error ? error : new Error('Failed to start session')
       onError?.(err)
-      console.error('[Performance] Failed to start session:', err)
+      logger.debug('[Performance] Failed to start session:', err)
     }
   }
 
@@ -174,7 +174,7 @@ export const PerformanceProvider = ({
     } catch (error) {
       const err = error instanceof Error ? error : new Error('Failed to end session')
       onError?.(err)
-      console.error('[Performance] Failed to end session:', err)
+      logger.debug('[Performance] Failed to end session:', err)
     }
   }
 
@@ -192,7 +192,7 @@ export const PerformanceProvider = ({
     } catch (error) {
       const err = error instanceof Error ? error : new Error('Failed to send metrics')
       onError?.(err)
-      console.error('[Performance] Failed to send metrics:', err)
+      logger.debug('[Performance] Failed to send metrics:', err)
       throw err
     }
   }
@@ -261,7 +261,7 @@ export const PerformanceProvider = ({
             navigator.sendBeacon('/api/performance/metrics', payload)
           }
         } catch (error) {
-          console.error('[Performance] Failed to send metrics on unload:', error)
+          logger.error('[Performance] Failed to send metrics on unload:', error instanceof Error ? error : new Error(String(error)))
         }
       }
     }
@@ -270,7 +270,7 @@ export const PerformanceProvider = ({
       if (document.visibilityState === 'hidden' && sessionIdRef.current) {
         // 페이지가 숨겨질 때 메트릭 전송
         sendMetrics().catch(error => {
-          console.error('[Performance] Failed to send metrics on visibility change:', error)
+          logger.error('[Performance] Failed to send metrics on visibility change:', error instanceof Error ? error : new Error(String(error)))
         })
       }
     }

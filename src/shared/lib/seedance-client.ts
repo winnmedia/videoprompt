@@ -1,3 +1,5 @@
+import { logger } from '@/shared/lib/logger';
+
 /**
  * Seedance 영상 생성 클라이언트 (스텁)
  * FSD 아키텍처: shared/lib 레이어
@@ -26,7 +28,7 @@ export interface SeedanceVideoResponse {
 class SeedanceClient {
   async createVideo(request: SeedanceVideoRequest): Promise<SeedanceVideoResponse> {
     // TODO: 실제 Seedance API 호출 구현
-    console.warn('Seedance 클라이언트 스텁 사용 중 - 실제 구현 필요');
+    logger.debug('Seedance 클라이언트 스텁 사용 중 - 실제 구현 필요');
 
     return {
       success: true,

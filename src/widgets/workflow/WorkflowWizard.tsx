@@ -6,10 +6,11 @@
 'use client';
 
 import React, { memo, useEffect, useState } from 'react';
+import { logger } from '@/shared/lib/logger';
 import { Button } from '@/shared/ui';
 import { useWorkflowState } from '@/features/workflow';
 import { useVideoPolling } from '@/shared/hooks/useVideoPolling';
-// import { TemplateSelector } from '@/widgets/scenario/TemplateSelector'; // FSD 위반: widgets 간 의존 금지
+import { TemplateSelectionModal } from '@/features/template-selection';
 import { StoryTemplate } from '@/entities/scenario';
 
 const WorkflowWizardComponent = memo(function WorkflowWizard() {
@@ -431,27 +432,25 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
     return (
       <>
         {renderStartScreen()}
-        {/* FSD 위반 임시 주석 처리: widgets 간 의존 금지 */}
-        {/* {showTemplateSelector && (
-          <TemplateSelector
-            onSelect={handleTemplateSelect}
-            onSaveAsTemplate={() => {}}
-            currentStoryInput={{
-              title: '',
-              oneLineStory: '',
-              genre: '',
-              target: '',
-              toneAndManner: [],
-              duration: '',
-              format: '16:9',
-              tempo: '보통',
-              developmentMethod: '클래식 기승전결',
-              developmentIntensity: '보통'
-            }}
-            isVisible={showTemplateSelector}
-            onClose={() => setShowTemplateSelector(false)}
-          />
-        )} */}
+        {/* 템플릿 선택 모달 - FSD 준수 */}
+        <TemplateSelectionModal
+          isVisible={showTemplateSelector}
+          onSelect={handleTemplateSelect}
+          onClose={() => setShowTemplateSelector(false)}
+          onSaveAsTemplate={() => {}}
+          currentStoryInput={{
+            title: '',
+            oneLineStory: '',
+            genre: '',
+            target: '',
+            toneAndManner: [],
+            duration: '',
+            format: '16:9',
+            tempo: '보통',
+            developmentMethod: '클래식 기승전결',
+            developmentIntensity: '보통'
+          }}
+        />
       </>
     );
   }
@@ -651,7 +650,7 @@ const WorkflowWizardComponent = memo(function WorkflowWizard() {
                   await generateVideo();
                 } catch (error) {
                   // 에러는 이미 useWorkflowState에서 처리됨
-                  console.error('영상 생성 오류:', error);
+                  logger.error('영상 생성 오류:', error instanceof Error ? error : new Error(String(error)));
                 }
               }}
               disabled={isLoading || pollingResult.isPolling || workflowData.video.status === 'processing'}

@@ -70,11 +70,11 @@ export async function GET(req: NextRequest) {
         supabase = await getSupabaseClientSafe('anon');
       } catch (error) {
         if (error instanceof ServiceConfigError) {
-          console.error(`[Templates ${traceId}] ❌ Supabase client initialization failed:`, error.message);
+          logger.debug(`[Templates ${traceId}] ❌ Supabase client initialization failed:`, error.message);
           return supabaseErrors.configError(traceId, error.message);
         }
 
-        console.error(`[Templates ${traceId}] ❌ Unexpected Supabase client error:`, error);
+        logger.error(`[Templates ${traceId}] ❌ Unexpected Supabase client error:`, error instanceof Error ? error : new Error(String(error)));
 
         // 네트워크 관련 오류 감지
         const errorMessage = String(error);
@@ -110,7 +110,7 @@ export async function GET(req: NextRequest) {
 
       if (error) {
         // Supabase 쿼리 실패 시 에러 반환
-        console.error(`[Templates ${traceId}] ❌ Supabase 쿼리 실패:`, error.message);
+        logger.debug(`[Templates ${traceId}] ❌ Supabase 쿼리 실패:`, error.message);
 
         return NextResponse.json(
           failure(
@@ -143,7 +143,7 @@ export async function GET(req: NextRequest) {
 
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error(`[Templates ${traceId}] ❌ Supabase 연결 오류:`, errorMessage);
+      logger.debug(`[Templates ${traceId}] ❌ Supabase 연결 오류:`, errorMessage);
 
       return NextResponse.json(
         failure(
@@ -202,7 +202,7 @@ export async function GET(req: NextRequest) {
     );
 
   } catch (error: unknown) {
-    console.error(`[Templates ${traceId}] ❌ 템플릿 조회 실패:`, error);
+    logger.error(`[Templates ${traceId}] ❌ 템플릿 조회 실패:`, error instanceof Error ? error : new Error(String(error)));
 
     return failure(
       'INTERNAL_ERROR',
@@ -230,7 +230,7 @@ export async function HEAD(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error(`[Templates ${traceId}] ❌ Health check 실패:`, error);
+    logger.error(`[Templates ${traceId}] ❌ Health check 실패:`, error instanceof Error ? error : new Error(String(error)));
     return new NextResponse(null, { status: 503 });
   }
 }

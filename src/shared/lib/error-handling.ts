@@ -5,6 +5,7 @@
  */
 
 import { z } from 'zod';
+import { logger } from '@/shared/lib/logger';
 
 // =============================================================================
 // 에러 타입 정의
@@ -359,10 +360,10 @@ export class ErrorHandler {
     // 콘솔 로그 (개발 환경)
     if (process.env.NODE_ENV === 'development') {
       console.group(`🚨 AppError [${appError.type}] ${appError.code}`);
-      console.error('Message:', appError.message);
-      console.error('Details:', appError.details);
-      console.error('Context:', appError.context);
-      console.error('Original Error:', error);
+      logger.debug('Message:', appError.message);
+      logger.debug('Details:', appError.details);
+      logger.debug('Context:', appError.context);
+      logger.error('Original Error:', error instanceof Error ? error : new Error(String(error)));
       console.groupEnd();
     }
 
@@ -456,7 +457,7 @@ export class ErrorHandler {
   private static logToExternalService(error: AppError, originalError: unknown): void {
     try {
       // 실제 구현에서는 Sentry, LogRocket 등으로 전송
-      console.warn('[Production Error Logged]', {
+      logger.debug('[Production Error Logged]', {
         error,
         originalError: originalError instanceof Error ? {
           name: originalError.name,
@@ -465,7 +466,7 @@ export class ErrorHandler {
         } : originalError,
       });
     } catch (loggingError) {
-      console.error('Failed to log error to external service:', loggingError);
+      logger.debug('Failed to log error to external service:', loggingError);
     }
   }
 }

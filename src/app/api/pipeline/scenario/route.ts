@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 
 /**
  * 시나리오 생성 - Planning API로 프록시
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Pipeline scenario proxy error:', error);
+    logger.error('Pipeline scenario proxy error:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({
       success: false,
       error: '시나리오 처리 중 오류가 발생했습니다.'

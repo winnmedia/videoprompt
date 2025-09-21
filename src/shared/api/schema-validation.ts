@@ -262,7 +262,7 @@ export function createResponseTransformer<T extends EndpointName>(
       );
 
       if (!validationResult.success) {
-        console.error(`❌ ${endpointName} 응답 검증 실패:`, {
+        logger.debug(`❌ ${endpointName} 응답 검증 실패:`, {
           error: validationResult.error?.message,
           issues: validationResult.error?.issues,
           receivedData: response,
@@ -276,7 +276,7 @@ export function createResponseTransformer<T extends EndpointName>(
       return validationResult.data;
 
     } catch (error) {
-      console.error(`❌ ${endpointName} 응답 변환 중 예외:`, error);
+      logger.error(`❌ ${endpointName} 응답 변환 중 예외:`, error instanceof Error ? error : new Error(String(error)));
 
       // 예외 발생 시 원본 데이터 반환
       return response;
@@ -312,7 +312,7 @@ export function transformRTKQueryError(error: any): {
     };
 
   } catch (validationError) {
-    console.error('❌ RTK Query 에러 검증 중 예외:', validationError);
+    logger.debug('❌ RTK Query 에러 검증 중 예외:', validationError);
 
     return {
       isValidated: false,

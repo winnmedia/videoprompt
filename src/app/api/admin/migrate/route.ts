@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!supabaseResult.client || !supabaseResult.canProceed) {
-      console.error('❌ Supabase Admin 클라이언트 생성 실패:', supabaseResult.error);
+      logger.debug('❌ Supabase Admin 클라이언트 생성 실패', { error: supabaseResult.error });
 
       return NextResponse.json({
         success: false,
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
 
 
   } catch (error) {
-    console.error('❌ 마이그레이션 실행 중 오류:', error);
+    logger.error('❌ 마이그레이션 실행 중 오류:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({
       success: false,
       error: `마이그레이션 실행 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`,

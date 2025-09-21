@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       supabase = await getSupabaseClientSafe('anon');
     } catch (error) {
       const errorMessage = error instanceof ServiceConfigError ? error.message : 'Supabase client initialization failed';
-      console.error('❌ Supabase client error:', errorMessage);
+      logger.debug('❌ Supabase client error:', errorMessage);
       return NextResponse.json({
         timestamp: new Date().toISOString(),
         status: 'error',
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('❌ Supabase 테스트 실패:', errorMessage);
+    logger.debug('❌ Supabase 테스트 실패:', errorMessage);
 
     return NextResponse.json({
       timestamp: new Date().toISOString(),

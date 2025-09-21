@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { logger } from '@/shared/lib/logger';
 import { Button } from './button';
 
 interface ErrorFallbackProps {
@@ -17,7 +18,7 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
   const handleReport = () => {
     // 에러 리포팅 (개발 환경에서만)
     if (process.env.NODE_ENV === 'development') {
-      console.error('🚨 Error Report:', {
+      logger.debug('🚨 Error Report:', {
         message: error.message,
         stack: error.stack,
         timestamp: new Date().toISOString(),

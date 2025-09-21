@@ -33,7 +33,7 @@ export async function GET(
     const result = await getSeedreamStatus(jobId);
 
     if (!result.ok) {
-      console.error('DEBUG: SeeDream 상태 확인 실패:', {
+      logger.debug('DEBUG: SeeDream 상태 확인 실패:', {
         jobId,
         error: result.error,
       });
@@ -72,7 +72,7 @@ export async function GET(
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('DEBUG: SeeDream 상태 확인 라우트 오류:', {
+    logger.debug('DEBUG: SeeDream 상태 확인 라우트 오류:', {
       jobId,
       error: (error as Error).message,
     });
@@ -161,7 +161,7 @@ export async function DELETE(
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('DEBUG: SeeDream 작업 취소 라우트 오류:', {
+    logger.debug('DEBUG: SeeDream 작업 취소 라우트 오류:', {
       jobId,
       error: (error as Error).message,
     });

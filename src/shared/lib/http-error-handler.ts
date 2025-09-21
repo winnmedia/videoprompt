@@ -10,6 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 import { ZodError } from 'zod';
 
 // ===== 에러 코드 정의 =====
@@ -388,7 +389,7 @@ export function handleGenericError(
   request: NextRequest,
   fallbackMessage = '서버 오류가 발생했습니다.'
 ): NextResponse {
-  console.error('🚨 Generic error handler:', error);
+  logger.error('🚨 Generic error handler:', error instanceof Error ? error : new Error(String(error)));
 
   // Zod 검증 에러
   if (error instanceof ZodError) {

@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 import { z } from 'zod';
 import {
   sendEmail,
@@ -216,7 +217,7 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error('[API] Email send error:', error);
+    logger.error('[API] Email send error:', error instanceof Error ? error : new Error(String(error)));
     
     // Handle validation errors
     if (error instanceof z.ZodError) {
@@ -276,7 +277,7 @@ export async function GET() {
       { status: 200 }
     );
   } catch (error) {
-    console.error('[API] Email status error:', error);
+    logger.error('[API] Email status error:', error instanceof Error ? error : new Error(String(error)));
     
     return NextResponse.json(
       {

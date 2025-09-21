@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(result);
 
     } catch (geminiError: any) {
-      console.error('[Prompt Optimizer] Gemini API 오류:', geminiError);
+      logger.debug('[Prompt Optimizer] Gemini API 오류:', geminiError);
 
       // Gemini 에러를 사용자 친화적으로 변환
       let userMessage = 'AI 프롬프트 최적화에 실패했습니다. 잠시 후 다시 시도해주세요.';
@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('[Prompt Optimizer] ❌ 예상치 못한 오류:', error);
+    logger.error('[Prompt Optimizer] ❌ 예상치 못한 오류:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({
       error: 'INTERNAL_ERROR',
       message: 'AI 프롬프트 최적화 중 오류가 발생했습니다.',

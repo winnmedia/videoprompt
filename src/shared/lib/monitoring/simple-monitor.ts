@@ -57,11 +57,11 @@ class SimpleMonitor {
 
     // 🚨 $300 사건 방지: 임계값 체크
     if (record.count > 10 && Date.now() - record.lastCall < 60000) {
-      console.error(`🚨 API 호출 급증 감지: ${endpoint} (${record.count}회/분)`);
+      logger.debug(`🚨 API 호출 급증 감지: ${endpoint} (${record.count}회/분)`);
     }
 
     if (record.cost > 1.0) {
-      console.error(`🚨 API 비용 임계값 초과: ${endpoint} ($${record.cost.toFixed(3)})`);
+      logger.debug(`🚨 API 비용 임계값 초과: ${endpoint} ($${record.cost.toFixed(3)})`);
     }
 
     this.apiCalls.set(endpoint, record);
@@ -89,7 +89,7 @@ class SimpleMonitor {
 
     // Critical 메트릭 즉시 로깅
     if (critical) {
-      console.warn(`⚠️ Critical 메트릭: ${name} = ${value}`);
+      logger.debug(`⚠️ Critical 메트릭: ${name} = ${value}`);
     }
   }
 

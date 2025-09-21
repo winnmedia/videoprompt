@@ -18,6 +18,7 @@ import {
   StorageStatus
 } from '@/entities/planning/model/repository-interfaces';
 import { BaseContent } from '@/entities/planning/model/types';
+import { logger } from '@/shared/lib/logger';
 import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
 
 // ============================================================================
@@ -64,7 +65,7 @@ export class SupabasePlanningRepository implements SupabaseRepository {
       };
 
     } catch (error) {
-      console.error('🚨 Supabase save failed:', error);
+      logger.error('🚨 Supabase save failed:', error instanceof Error ? error : new Error(String(error)));
       return {
         id: content.id,
         success: false,
@@ -88,7 +89,7 @@ export class SupabasePlanningRepository implements SupabaseRepository {
       return data.content as BaseContent;
 
     } catch (error) {
-      console.error('🚨 Supabase findById failed:', error);
+      logger.error('🚨 Supabase findById failed:', error instanceof Error ? error : new Error(String(error)));
       return null;
     }
   }
@@ -108,7 +109,7 @@ export class SupabasePlanningRepository implements SupabaseRepository {
       return (data || []).map(item => item.content as BaseContent);
 
     } catch (error) {
-      console.error('🚨 Supabase findByUserId failed:', error);
+      logger.error('🚨 Supabase findByUserId failed:', error instanceof Error ? error : new Error(String(error)));
       return [];
     }
   }
@@ -130,7 +131,7 @@ export class SupabasePlanningRepository implements SupabaseRepository {
       return true;
 
     } catch (error) {
-      console.error('🚨 Supabase update failed:', error);
+      logger.error('🚨 Supabase update failed:', error instanceof Error ? error : new Error(String(error)));
       return false;
     }
   }
@@ -149,7 +150,7 @@ export class SupabasePlanningRepository implements SupabaseRepository {
       return true;
 
     } catch (error) {
-      console.error('🚨 Supabase delete failed:', error);
+      logger.error('🚨 Supabase delete failed:', error instanceof Error ? error : new Error(String(error)));
       return false;
     }
   }
@@ -190,7 +191,7 @@ export class SupabasePlanningRepository implements SupabaseRepository {
       }
 
     } catch (error) {
-      console.error('🚨 Supabase health check failed:', error);
+      logger.error('🚨 Supabase health check failed:', error instanceof Error ? error : new Error(String(error)));
       supabaseStatus = {
         status: 'unhealthy',
         responseTime: performance.now() - startTime,

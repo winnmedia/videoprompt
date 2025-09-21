@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 import { 
   DevelopShotsRequestSchema,
   DevelopShotsResponseSchema,
@@ -131,11 +132,11 @@ JSON만 반환해주세요.`;
 
       return validatedShots;
     } catch (parseError) {
-      console.error('JSON 파싱 오류:', parseError);
+      logger.debug('JSON 파싱 오류:', parseError);
       throw new Error(`응답 파싱 실패: ${parseError instanceof Error ? parseError.message : '알 수 없는 오류'}`);
     }
   } catch (error) {
-    console.error('Gemini API 호출 오류:', error);
+    logger.error('Gemini API 호출 오류:', error instanceof Error ? error : new Error(String(error)));
     throw error;
   }
 }
@@ -197,7 +198,7 @@ export async function POST(request: NextRequest) {
       // Gemini API로 12샷 생성 시도
       shots12 = await generateTwelveShotsWithGemini(structure4, genre, tone);
     } catch (apiError) {
-      console.warn('Gemini API 호출 실패, 기본 생성 모드로 전환:', apiError);
+      logger.debug('Gemini API 호출 실패, 기본 생성 모드로 전환:', apiError);
 
       // 폴백: 기본 12샷 생성
       shots12 = generateDefaultTwelveShots(structure4, genre, tone);
@@ -223,7 +224,7 @@ export async function POST(request: NextRequest) {
     const responseValidation = DevelopShotsResponseSchema.safeParse(responseData);
 
     if (!responseValidation.success) {
-      console.error('응답 데이터 검증 실패:', responseValidation.error.issues);
+      logger.debug('응답 데이터 검증 실패:', responseValidation.error.issues);
       return NextResponse.json(
         createErrorResponse('RESPONSE_VALIDATION_ERROR', '응답 데이터 형식이 올바르지 않습니다'),
         { status: 500 }
@@ -232,7 +233,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(responseData);
   } catch (error) {
-    console.error('12샷 분해 API 오류:', error);
+    logger.error('12샷 분해 API 오류:', error instanceof Error ? error : new Error(String(error)));
 
     const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다';
 

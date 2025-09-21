@@ -63,7 +63,7 @@ export async function withRetry<T>(
         opts.maxDelay
       );
       
-      console.warn(`⚠️ API 재시도 ${attempt + 1}/${opts.maxRetries} (${delay}ms 후):`, lastError.message);
+      logger.debug(`⚠️ API 재시도 ${attempt + 1}/${opts.maxRetries} (${delay}ms 후):`, lastError.message);
       
       await new Promise(resolve => setTimeout(resolve, delay));
     }
@@ -112,7 +112,7 @@ class ApiLimiter {
 
     // 제한 확인
     if (this.requests.length >= this.maxRequestsPerMinute) {
-      console.warn('🚨 API 호출 제한 도달 - $300 사건 방지');
+      logger.debug('🚨 API 호출 제한 도달 - $300 사건 방지');
       return false;
     }
 
@@ -158,15 +158,15 @@ function getServerApiBase(): string {
     return `${protocol}://${process.env.VERCEL_URL}`;
   }
 
-  // 3순위: Railway 배포 환경
-  if (process.env.RAILWAY_STATIC_URL) {
-    return `https://${process.env.RAILWAY_STATIC_URL}`;
+  // 3순위: Supabase 서비스 URL
+  if (process.env.SUPABASE_URL) {
+    return process.env.SUPABASE_URL;
   }
 
   // 4순위: 기타 배포 환경 감지
   if (process.env.NODE_ENV === 'production') {
     // 프로덕션에서 localhost는 사용하지 않음
-    console.warn('⚠️ Production environment detected but no deployment URL found');
+    logger.debug('⚠️ Production environment detected but no deployment URL found');
     throw new Error('Production deployment URL not configured');
   }
 
@@ -206,7 +206,7 @@ export async function safeFetch(
 
   // 프로덕션에서 localhost 사용 감지 및 경고
   if (process.env.NODE_ENV === 'production' && fullUrl.includes('localhost')) {
-    console.error('🚨 Production environment using localhost URL - this will fail!');
+    logger.debug('🚨 Production environment using localhost URL - this will fail!');
     monitoring.trackError(
       'Production localhost URL detected',
       { url: fullUrl, env: process.env.NODE_ENV },

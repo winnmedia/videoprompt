@@ -91,7 +91,7 @@ export const GET = withOptionalAuth(async (request: NextRequest, { user, authCon
     );
 
   } catch (error) {
-    console.error('프롬프트 조회 오류:', error);
+    logger.error('프롬프트 조회 오류:', error instanceof Error ? error : new Error(String(error)));
 
     return NextResponse.json(
       createErrorResponse(
@@ -126,7 +126,7 @@ export const POST = withOptionalAuth(async (request: NextRequest, { user, authCo
     // Rate Limiting 체크 (비용 안전 장치)
     const rateLimitResult = checkRateLimit(user.id || 'anonymous');
     if (!rateLimitResult.allowed) {
-      console.warn('🚨 Rate limit exceeded for user:', user.id, rateLimitResult);
+      logger.debug('🚨 Rate limit exceeded for user:', user.id, rateLimitResult);
       return NextResponse.json(
         createErrorResponse(
           'RATE_LIMIT_EXCEEDED',
@@ -152,7 +152,7 @@ export const POST = withOptionalAuth(async (request: NextRequest, { user, authCo
     const validationResult = PromptSaveRequestSchema.safeParse(body);
 
     if (!validationResult.success) {
-      console.warn('🚨 Invalid prompt save request:', validationResult.error.issues);
+      logger.debug('🚨 Invalid prompt save request:', validationResult.error.issues);
       return NextResponse.json(
         createErrorResponse(
           'VALIDATION_ERROR',
@@ -173,9 +173,9 @@ export const POST = withOptionalAuth(async (request: NextRequest, { user, authCo
       supabaseClient = await getSupabaseClientSafe('admin');
     } catch (error) {
       if (error instanceof ServiceConfigError) {
-        console.warn('⚠️ Supabase admin client unavailable, proceeding with Prisma only:', error.message);
+        logger.debug('⚠️ Supabase admin client unavailable, proceeding with Prisma only:', error.message);
       } else {
-        console.error('❌ Supabase client initialization error:', error);
+        logger.error('❌ Supabase client initialization error:', error instanceof Error ? error : new Error(String(error)));
       }
     }
 
@@ -263,7 +263,7 @@ export const POST = withOptionalAuth(async (request: NextRequest, { user, authCo
     );
 
   } catch (error) {
-    console.error('🚨 Prompt save error:', error);
+    logger.error('🚨 Prompt save error:', error instanceof Error ? error : new Error(String(error)));
 
     return NextResponse.json(
       createErrorResponse(

@@ -189,10 +189,10 @@ describe('🎯 핵심 기능별 백엔드 연동 상태', () => {
     expect(status.migrated).toBe(false);
   });
 
-  it('Video Upload - 로컬/Railway 사용 중', () => {
+  it('Video Upload - Supabase Storage 사용 중', () => {
     const status = {
       api: 'Video Upload',
-      backend: 'Local/Railway Proxy',
+      backend: 'Supabase Storage',
       migrated: false,
       nextStep: 'Supabase Storage 전환 필요'
     };

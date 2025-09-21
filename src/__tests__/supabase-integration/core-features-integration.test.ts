@@ -6,7 +6,7 @@
  * 2. 스토리/기획 데이터 (Prisma → Supabase 쿼리)
  * 3. 템플릿 관리 (Mock → Supabase 테이블) ✅ 완료
  * 4. 작업 큐 관리 (Prisma → Supabase 실시간)
- * 5. 영상 파일 업로드 (로컬/Railway → Supabase Storage)
+ * 5. 영상 파일 업로드 (Supabase Storage)
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';

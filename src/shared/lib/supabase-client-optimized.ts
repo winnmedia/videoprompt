@@ -91,7 +91,7 @@ function debugLog(message: string, data?: any) {
 
 function errorLog(message: string, data?: any) {
   // 에러는 항상 로깅 (프로덕션에서도 필요)
-  console.error(message, data);
+  logger.debug(message, data);
 }
 
 // ============================================================================

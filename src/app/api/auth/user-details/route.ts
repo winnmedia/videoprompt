@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 import { z } from 'zod';
 
 /**
@@ -71,7 +72,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('User details error:', error);
+    logger.error('User details error:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({ 
       ok: false, 
       message: 'Internal server error' 

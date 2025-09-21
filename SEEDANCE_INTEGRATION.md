@@ -136,7 +136,7 @@ NEXT_PUBLIC_ENABLE_MOCK_API=true
 ### 프로덕션 환경 (Production)
 
 ```bash
-# Vercel/Railway 환경변수
+# Vercel 환경변수
 NODE_ENV=production
 SEEDANCE_API_KEY=ark_your_production_key_here
 

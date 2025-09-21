@@ -209,7 +209,7 @@ export function useAutoSaveStory(
           steps
         });
       } catch (error) {
-        console.error('Auto-save failed:', error);
+        logger.error('Auto-save failed:', error instanceof Error ? error : new Error(String(error)));
       }
     }, 30 * 1000);
 

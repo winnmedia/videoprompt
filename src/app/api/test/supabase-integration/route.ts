@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
-import { logger, LogCategory } from '@/shared/lib/structured-logger';
+import { logger } from '@/shared/lib/logger';
 
 export const runtime = 'nodejs';
 
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const traceId = getTraceId(request);
   const startTime = Date.now();
 
-  logger.info(LogCategory.API, 'Starting Supabase integration test', { traceId });
+  logger.info('API: Starting Supabase integration test', { traceId });
 
   const testResults = {
     timestamp: new Date().toISOString(),
@@ -199,7 +199,7 @@ export async function GET(request: NextRequest) {
     testResults.status = allPassed ? 'completed' : 'partial';
     testResults.duration = Date.now() - startTime;
 
-    logger.info(LogCategory.API, 'Integration test completed', {
+    logger.info('API: Integration test completed', {
       status: testResults.status,
       duration: testResults.duration,
       traceId
@@ -211,7 +211,7 @@ export async function GET(request: NextRequest) {
     testResults.status = 'failed';
     testResults.duration = Date.now() - startTime;
 
-    logger.error(LogCategory.API, 'Integration test failed', error, { traceId });
+    logger.error('API: Integration test failed', error, { traceId });
 
     return NextResponse.json({
       ...testResults,

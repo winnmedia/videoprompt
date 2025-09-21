@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import { logger } from '@/shared/lib/logger';
 
 // Act 구조 스키마 (4단계 스토리 구조)
 export const ActContract = z.object({
@@ -52,7 +53,7 @@ export const StorySuccessResponseContract = z.object({
   // 확장된 필드들 (선택사항)
   core_themes: z.array(z.string()).optional(),
   signature_elements: z.array(z.string()).optional(),
-  // null과 undefined 모두 허용 - Railway API에서 null 반환 시 호환성 보장
+  // null과 undefined 모두 허용 - API에서 null 반환 시 호환성 보장
   project: ProjectInfoContract.nullable().optional()
 });
 
@@ -117,7 +118,7 @@ export function validateStoryResponse(
         `${err.path.join('.')}: ${err.message}`
       ).join(', ');
 
-      console.error(`스토리 응답 스키마 검증 실패 ${context ? `(${context})` : ''}:`, {
+      logger.debug(`스토리 응답 스키마 검증 실패 ${context ? `(${context})` : ''}:`, {
         errors: error.issues,
         received: response
       });

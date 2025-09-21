@@ -13,7 +13,6 @@ describe('CORS 보안 정책 테스트', () => {
         'https://videoprompt.vridge.kr',
         'https://www.vridge.kr',
         'https://vridge.kr',
-        'https://videoprompt-production.up.railway.app',
       ];
 
       allowedOrigins.forEach(origin => {

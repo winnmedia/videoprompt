@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 import { getSupabaseClientSafe } from '@/shared/lib/supabase-safe';
 import { z } from 'zod';
 // import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
     if (e instanceof z.ZodError) {
       return failure('INVALID_INPUT_FIELDS', e.message, 400);
     }
-    console.error('[VerifyEmail] Error:', e);
+    logger.debug('[VerifyEmail] Error:', e);
     return failure('UNKNOWN', e?.message || 'Server error', 500);
   }
 }
@@ -114,7 +115,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (e: any) {
-    console.error('[VerifyEmail GET] Error:', e);
+    logger.debug('[VerifyEmail GET] Error:', e);
     return failure('UNKNOWN', e?.message || 'Server error', 500);
   }
 }

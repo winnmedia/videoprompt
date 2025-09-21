@@ -558,7 +558,7 @@ export function cleanupMemory(): void {
   const memoryThreshold = 50 * 1024 * 1024; // 50MB
 
   if (memUsage.cacheMemory > memoryThreshold) {
-    console.warn('🧹 캐시 메모리 사용량이 높아 정리를 시작합니다');
+    logger.debug('🧹 캐시 메모리 사용량이 높아 정리를 시작합니다');
 
     // 부분적 캐시 정리 (오래된 항목 위주)
     adaptiveCache.clear();

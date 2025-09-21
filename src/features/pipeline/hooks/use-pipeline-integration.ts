@@ -112,7 +112,7 @@ export function usePipelineIntegration(): UsePipelineIntegrationReturn {
       const result = await apiFunction();
       return result;
     } catch (error) {
-      console.error(`${errorMessage}:`, error);
+      logger.error(`${errorMessage}:`, error instanceof Error ? error : new Error(String(error)));
 
       dispatch(addPipelineError({
         step: step as any,
@@ -180,7 +180,7 @@ export function usePipelineIntegration(): UsePipelineIntegrationReturn {
   }) => {
     // 현재 스토리가 있는지 확인
     if (!progress.story.id) {
-      console.warn('업데이트할 스토리가 없습니다. 새 스토리를 제출해주세요.');
+      logger.debug('업데이트할 스토리가 없습니다. 새 스토리를 제출해주세요.');
       return;
     }
 
@@ -396,7 +396,7 @@ export function usePipelineIntegration(): UsePipelineIntegrationReturn {
 
   const checkPipelineStatus = useCallback(async () => {
     if (!pipelineState.projectId) {
-      console.warn('프로젝트 ID가 없어 상태 조회를 건너뜁니다.');
+      logger.debug('프로젝트 ID가 없어 상태 조회를 건너뜁니다.');
       return;
     }
 
@@ -409,7 +409,7 @@ export function usePipelineIntegration(): UsePipelineIntegrationReturn {
         // TODO: 상태 업데이트 로직 구현
       }
     } catch (error) {
-      console.error('파이프라인 상태 조회 실패:', error);
+      logger.error('파이프라인 상태 조회 실패:', error instanceof Error ? error : new Error(String(error)));
     }
   }, [pipelineState.projectId]);
 

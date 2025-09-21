@@ -14,7 +14,7 @@ export async function GET(req: Request) {
       total: 0,
     });
   } catch (error) {
-    console.error('Admin search error:', error);
+    logger.error('Admin search error:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

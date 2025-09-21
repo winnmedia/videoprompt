@@ -1,4 +1,5 @@
 import { StoryInput, StoryStep, Shot, StoryboardShot } from '@/entities/scenario';
+import { logger } from '@/shared/lib/logger';
 import { extractSceneComponents } from '@/shared/lib';
 
 interface GenerateShotsParams {
@@ -84,7 +85,7 @@ export async function generateShots({
     onSuccess?.(generatedShots, `${generatedShots.length}개의 숏트가 성공적으로 생성되었습니다!`);
     return generatedShots;
   } catch (e) {
-    console.error(e);
+    logger.debug(e);
     const errorMessage = '숏트 생성 중 오류가 발생했습니다.';
     onError?.(errorMessage, 'server');
     throw new Error(errorMessage);

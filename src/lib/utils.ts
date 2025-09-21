@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { logger } from '@/shared/lib/logger';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -56,7 +57,7 @@ export function validateResponseSize(
   try {
     const jsonString = JSON.stringify(data);
     if (jsonString.length > maxSize) {
-      console.warn(`Response size ${jsonString.length} exceeds limit ${maxSize}`);
+      logger.warn(`Response size ${jsonString.length} exceeds limit ${maxSize}`);
       return {
         safe: false,
         error: `Response too large (${jsonString.length} > ${maxSize}) - potential header overflow prevented`,

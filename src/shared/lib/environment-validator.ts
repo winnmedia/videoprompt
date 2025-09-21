@@ -217,14 +217,14 @@ export function initializeEnvironment(): EnvironmentValidationResult {
 
   // 경고사항 출력
   if (result.warnings.length > 0) {
-    console.warn('⚠️ Environment Warnings:');
-    result.warnings.forEach(warning => console.warn(`  - ${warning}`));
+    logger.debug('⚠️ Environment Warnings:');
+    result.warnings.forEach(warning => logger.debug(`  - ${warning}`));
   }
 
   // 에러 출력
   if (result.errors.length > 0) {
-    console.error('🚨 Environment Errors:');
-    result.errors.forEach(error => console.error(`  - ${error}`));
+    logger.debug('🚨 Environment Errors:');
+    result.errors.forEach(error => logger.debug(`  - ${error}`));
   }
 
   // 환경변수 디버그 정보 (개발환경에서만)

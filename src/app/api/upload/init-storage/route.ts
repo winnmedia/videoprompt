@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
-import { logger, LogCategory } from '@/shared/lib/structured-logger';
+import { logger } from '@/shared/lib/logger';
 
 export const runtime = 'nodejs';
 
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   try {
     const traceId = getTraceId(request);
 
-    logger.info(LogCategory.API, 'Initializing Supabase Storage', {
+    logger.info('API: Initializing Supabase Storage', {
       bucket: BUCKET_NAME,
       traceId
     });
@@ -28,14 +28,14 @@ export async function POST(request: NextRequest) {
       supabase = await getSupabaseClientSafe('anon');
     } catch (error) {
       if (error instanceof ServiceConfigError) {
-        logger.error(LogCategory.DATABASE, 'Supabase client initialization failed', error, { traceId });
+        logger.error('DATABASE: Supabase client initialization failed', error, { traceId });
         return NextResponse.json(
           failure(error.errorCode, error.message, error.statusCode, 'Supabase client not initialized', traceId),
           { status: error.statusCode }
         );
       }
 
-      logger.error(LogCategory.DATABASE, 'Unexpected Supabase client error', error as Error, { traceId });
+      logger.error('DATABASE: Unexpected Supabase client error', error as Error, { traceId });
       return NextResponse.json(
         failure('SUPABASE_CONFIG_ERROR', 'Backend configuration error. Please contact support.', 503, 'Supabase client initialization failed', traceId),
         { status: 503 }
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     const { data: existingBuckets, error: listError } = await supabase.storage.listBuckets();
 
     if (listError) {
-      logger.error(LogCategory.DATABASE, 'Failed to list Supabase buckets', listError, { traceId });
+      logger.error('DATABASE: Failed to list Supabase buckets', listError, { traceId });
       return NextResponse.json(
         failure('STORAGE_LIST_ERROR', `버킷 목록 조회 실패: ${listError.message}`, 503, undefined, traceId),
         { status: 503 }
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     const bucketExists = existingBuckets?.some(bucket => bucket.name === BUCKET_NAME);
 
     if (bucketExists) {
-      logger.info(LogCategory.DATABASE, 'Videos bucket already exists', {
+      logger.info('DATABASE: Videos bucket already exists', {
         bucket: BUCKET_NAME,
         traceId
       });
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (createError) {
-      logger.error(LogCategory.DATABASE, 'Failed to create Supabase bucket', createError, {
+      logger.error('DATABASE: Failed to create Supabase bucket', createError, {
         bucket: BUCKET_NAME,
         traceId
       });
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    logger.info(LogCategory.DATABASE, 'Successfully created Supabase Storage bucket', {
+    logger.info('DATABASE: Successfully created Supabase Storage bucket', {
       bucket: BUCKET_NAME,
       bucketData: createData,
       traceId
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     const traceId = getTraceId(request);
-    logger.error(LogCategory.API, 'Storage initialization failed', error, {
+    logger.error('API: Storage initialization failed', error, {
       bucket: BUCKET_NAME,
       traceId
     });

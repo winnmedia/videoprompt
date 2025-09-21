@@ -97,7 +97,7 @@ export async function requireSupabaseAuthentication(
     };
 
   } catch (error) {
-    console.error('🚨 Authentication error:', error);
+    logger.error('🚨 Authentication error:', error instanceof Error ? error : new Error(String(error)));
     return {
       code: 'UNAUTHORIZED',
       message: '인증 처리 중 오류가 발생했습니다.',
@@ -116,7 +116,7 @@ async function authenticateWithSupabase(req: NextRequest): Promise<AuthUser | Gu
     const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      console.warn('⚠️ Supabase 환경변수가 설정되지 않음 - 게스트 모드로 진행');
+      logger.debug('⚠️ Supabase 환경변수가 설정되지 않음 - 게스트 모드로 진행');
       return {
         id: null,
         email: null,
@@ -189,7 +189,7 @@ async function authenticateWithSupabase(req: NextRequest): Promise<AuthUser | Gu
     };
 
   } catch (error) {
-    console.warn('⚠️ Supabase authentication failed:', error);
+    logger.error('⚠️ Supabase authentication failed:', error instanceof Error ? error : new Error(String(error)));
     return {
       id: null,
       email: null,
@@ -248,7 +248,7 @@ async function authenticateWithLegacyJWT(req: NextRequest): Promise<AuthUser | G
     };
 
   } catch (error) {
-    console.warn('⚠️ Legacy JWT authentication failed:', error);
+    logger.error('⚠️ Legacy JWT authentication failed:', error instanceof Error ? error : new Error(String(error)));
     return {
       id: null,
       email: null,

@@ -113,12 +113,12 @@ export function usePlanningState() {
         // 로딩 시간 업데이트
         setLastLoadTime(now);
       } else {
-        console.error('Dashboard API 응답 실패:', response.status);
+        logger.debug('Dashboard API 응답 실패:', response.status);
         throw new Error(`Dashboard API 호출 실패: ${response.status}`);
       }
 
     } catch (error) {
-      console.error('Planning 데이터 로딩 실패:', error);
+      logger.error('Planning 데이터 로딩 실패:', error instanceof Error ? error : new Error(String(error)));
 
       // 에러 발생 시 빈 배열로 초기화
       setScenarioItems([]);

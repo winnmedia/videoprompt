@@ -56,7 +56,7 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
   if (!apiKey) {
     const error =
       'Google AI Studio API key is not configured. Set GOOGLE_AI_STUDIO_API_KEY environment variable.';
-    console.error('DEBUG: VEO API 키 미설정:', error);
+    logger.error('DEBUG: VEO API 키 미설정:', error);
     return { ok: false, error };
   }
 
@@ -124,7 +124,7 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
       logger.info('DEBUG: VEO 응답 텍스트 (처음 500자):', responseText.slice(0, 500));
 
       if (!response.ok) {
-        console.error('DEBUG: VEO HTTP 에러:', {
+        logger.error('DEBUG: VEO HTTP 에러:', {
           status: response.status,
           statusText: response.statusText,
         });
@@ -140,7 +140,7 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
       try {
         jsonResponse = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('DEBUG: VEO JSON 파싱 에러:', parseError);
+        logger.error('DEBUG: VEO JSON 파싱 에러:', parseError);
         return {
           ok: false,
           error: `Invalid JSON response: ${parseError instanceof Error ? parseError.message : 'Unknown parse error'}`,
@@ -157,7 +157,7 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
       const progress = jsonResponse?.progress || 0;
 
       if (!operationId) {
-        console.error('DEBUG: VEO operationId 추출 실패:', jsonResponse);
+        logger.error('DEBUG: VEO operationId 추출 실패:', jsonResponse);
         return {
           ok: false,
           error: 'No operation ID found in response',
@@ -176,13 +176,13 @@ export async function generateVeoVideo(options: VeoVideoOptions): Promise<VeoVid
     } catch (fetchError) {
       clearTimeout(timeout);
       if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-        console.error('DEBUG: VEO 요청 타임아웃');
+        logger.error('DEBUG: VEO 요청 타임아웃');
         return { ok: false, error: 'Request timeout after 60 seconds' };
       }
       throw fetchError;
     }
   } catch (error) {
-    console.error('DEBUG: VEO 예상치 못한 에러:', error);
+    logger.error('DEBUG: VEO 예상치 못한 에러:', error);
     return {
       ok: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -260,7 +260,7 @@ export async function checkVeoVideoStatus(operationId: string): Promise<VeoVideo
       error: 'Operation not completed or no video data',
     };
   } catch (error) {
-    console.error('DEBUG: Veo status check exception:', error);
+    logger.error('DEBUG: Veo status check exception:', error);
     return {
       ok: false,
       error: `Status check exception: ${error instanceof Error ? error.message : 'unknown error'}`,

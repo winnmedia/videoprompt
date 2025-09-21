@@ -134,7 +134,7 @@ export class InfiniteLoopDetector {
 
     // 경고 레벨
     if (projectedCost >= this.config.costThresholds.warning) {
-      console.warn(`⚠️ 비용 경고: 현재 $${this.totalCost.toFixed(2)}, 예상 $${projectedCost.toFixed(2)}`);
+      logger.debug(`⚠️ 비용 경고: 현재 $${this.totalCost.toFixed(2)}, 예상 $${projectedCost.toFixed(2)}`);
     }
 
     return {
@@ -172,9 +172,9 @@ export class InfiniteLoopDetector {
     const hasFunctionDep = dependencies.some(dep => typeof dep === 'function');
 
     if (hasFunctionDep) {
-      console.error(`🚨 CRITICAL: useEffect에 함수 의존성 감지! (${functionName})`);
-      console.error('이 패턴은 $300 비용 폭탄을 야기할 수 있습니다.');
-      console.error('해결책: 의존성 배열을 빈 배열 []로 변경하거나 useCallback을 사용하세요.');
+      logger.debug(`🚨 CRITICAL: useEffect에 함수 의존성 감지! (${functionName})`);
+      logger.debug('이 패턴은 $300 비용 폭탄을 야기할 수 있습니다.');
+      logger.debug('해결책: 의존성 배열을 빈 배열 []로 변경하거나 useCallback을 사용하세요.');
 
       // 개발 환경에서는 에러 발생
       if (process.env.NODE_ENV === 'development') {
@@ -306,9 +306,9 @@ export function withLoopPrevention<T extends (...args: any[]) => any>(
     const checkResult = loopDetector.checkApiCall(actualEndpoint, source);
 
     if (!checkResult.allowed) {
-      console.error(`🚨 API 호출 차단: ${checkResult.reason}`);
-      console.error(`📊 현재 비용: $${checkResult.currentCost.toFixed(3)}`);
-      console.error(`💡 권장사항: ${checkResult.recommendation}`);
+      logger.debug(`🚨 API 호출 차단: ${checkResult.reason}`);
+      logger.debug(`📊 현재 비용: $${checkResult.currentCost.toFixed(3)}`);
+      logger.debug(`💡 권장사항: ${checkResult.recommendation}`);
 
       return Response.json({
         error: checkResult.reason,
@@ -356,7 +356,7 @@ export function useSafeEffect(
   const isValid = loopDetector.checkUseEffectPattern(Array.from(deps), functionName);
 
   if (!isValid) {
-    console.error(`🚨 useEffect 실행 차단: ${functionName}`);
+    logger.debug(`🚨 useEffect 실행 차단: ${functionName}`);
     return;
   }
 

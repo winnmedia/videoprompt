@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { logger } from '@/shared/lib/logger';
 
 // Force dynamic rendering to prevent static generation issues
 export const dynamic = 'force-dynamic';
@@ -16,7 +17,7 @@ export default function GlobalError({
   React.useEffect(() => {
     // Log error for debugging (avoid console in production)
     if (process.env.NODE_ENV === 'development') {
-      console.error('Global error:', error);
+      logger.error('Global error:', error instanceof Error ? error : new Error(String(error)));
     }
   }, [error]);
 

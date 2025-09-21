@@ -113,7 +113,7 @@ SEEDANCE_API_KEY=your_seedance_api_key
 
 ### **API 연결 문제**:
 
-1. Railway 백엔드 상태 확인
+1. Supabase 백엔드 상태 확인
 2. CORS 설정 확인
 3. API 키 유효성 검증
 

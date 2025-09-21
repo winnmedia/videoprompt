@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { success, failure, getTraceId, supabaseErrors } from '@/shared/lib/api-response';
 import { withAuth } from '@/shared/lib/auth-middleware-v2';
 import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
-import { logger, LogCategory } from '@/shared/lib/structured-logger';
+import { logger } from '@/shared/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -29,14 +29,14 @@ export const POST = withAuth(async (req: NextRequest, { user, degradationMode, a
       userAgent: req.headers.get('user-agent') || undefined,
     });
 
-    logger.info(LogCategory.API, 'Queue retry request started (withAuth v2)', {
+    logger.info('API: Queue retry request started (withAuth v2)', {
       traceId,
       userId: user.id,
       tokenType: user.tokenType,
       queueId: id
     });
 
-    logger.debug(LogCategory.SECURITY, 'User authentication successful for retry', {
+    logger.debug('SECURITY: User authentication successful for retry', {
       userId: user.id,
       userEmail: user?.email,
       videoAssetId: id,
@@ -49,7 +49,7 @@ export const POST = withAuth(async (req: NextRequest, { user, degradationMode, a
       supabase = await getSupabaseClientSafe('anon');
     } catch (error) {
       if (error instanceof ServiceConfigError) {
-        logger.error(LogCategory.DATABASE, 'Supabase client initialization failed', error, {
+        logger.error('DATABASE: Supabase client initialization failed', error, {
           userId: user.id,
           videoAssetId: id,
           traceId
@@ -57,7 +57,7 @@ export const POST = withAuth(async (req: NextRequest, { user, degradationMode, a
         return supabaseErrors.configError(traceId, error.message);
       }
 
-      logger.error(LogCategory.DATABASE, 'Unexpected Supabase client error', error as Error, {
+      logger.error('DATABASE: Unexpected Supabase client error', error as Error, {
         userId: user.id,
         videoAssetId: id,
         traceId
@@ -83,7 +83,7 @@ export const POST = withAuth(async (req: NextRequest, { user, degradationMode, a
       .single();
 
     if (fetchError) {
-      logger.error(LogCategory.DATABASE, 'Failed to fetch video asset for retry', fetchError, {
+      logger.error('DATABASE: Failed to fetch video asset for retry', fetchError, {
         videoAssetId: id,
         userId: user.id,
         traceId
@@ -104,7 +104,7 @@ export const POST = withAuth(async (req: NextRequest, { user, degradationMode, a
     }
 
     if (!videoAsset) {
-      logger.warn(LogCategory.API, 'Video asset not found for retry', {
+      logger.warn('API: Video asset not found for retry', {
         videoAssetId: id,
         userId: user.id,
         traceId
@@ -114,7 +114,7 @@ export const POST = withAuth(async (req: NextRequest, { user, degradationMode, a
 
     // 상태 검증: 실패한 작업만 재시도 가능
     if (videoAsset.status !== 'failed') {
-      logger.warn(LogCategory.API, 'Invalid status for retry', {
+      logger.warn('API: Invalid status for retry', {
         videoAssetId: id,
         currentStatus: videoAsset.status,
         userId: user.id,
@@ -123,7 +123,7 @@ export const POST = withAuth(async (req: NextRequest, { user, degradationMode, a
       return failure('INVALID_STATUS', '실패한 작업만 재시도할 수 있습니다.', 400, undefined, traceId);
     }
 
-    logger.info(LogCategory.API, 'Retrying failed video asset', {
+    logger.info('API: Retrying failed video asset', {
       videoAssetId: id,
       title: videoAsset.title,
       currentStatus: videoAsset.status,
@@ -144,7 +144,7 @@ export const POST = withAuth(async (req: NextRequest, { user, degradationMode, a
       .single();
 
     if (updateError) {
-      logger.error(LogCategory.DATABASE, 'Failed to update video asset status for retry', updateError, {
+      logger.error('DATABASE: Failed to update video asset status for retry', updateError, {
         videoAssetId: id,
         userId: user.id,
         traceId
@@ -159,7 +159,7 @@ export const POST = withAuth(async (req: NextRequest, { user, degradationMode, a
       );
     }
 
-    logger.info(LogCategory.API, 'Successfully queued video asset for retry', {
+    logger.info('API: Successfully queued video asset for retry', {
       videoAssetId: id,
       newStatus: updatedAsset?.status,
       updatedAt: updatedAsset?.updated_at,
@@ -183,7 +183,7 @@ export const POST = withAuth(async (req: NextRequest, { user, degradationMode, a
 
   } catch (error: any) {
     const traceId = getTraceId(req);
-    logger.error(LogCategory.API, 'Queue retry request failed', error, {
+    logger.error('API: Queue retry request failed', error, {
       traceId,
       errorMessage: error.message
     });

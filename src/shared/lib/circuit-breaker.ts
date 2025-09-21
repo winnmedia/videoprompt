@@ -87,7 +87,7 @@ export class CircuitBreaker {
 
     if (this.failureCount >= this.config.failureThreshold) {
       this.state = CircuitState.OPEN;
-      console.error('🚨 Circuit Breaker: OPEN 상태로 전환됨', {
+      logger.debug('🚨 Circuit Breaker: OPEN 상태로 전환됨', {
         failureCount: this.failureCount,
         threshold: this.config.failureThreshold
       });

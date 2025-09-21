@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { logger } from '@/shared/lib/logger';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Logo, Button } from '@/shared/ui';
@@ -51,7 +52,7 @@ export default function VerifyEmailTokenPage({ params }: VerifyEmailTokenPagePro
           setErrorMessage(data.message || '인증에 실패했습니다.');
         }
       } catch (error) {
-        console.error('Verification error:', error);
+        logger.error('Verification error:', error instanceof Error ? error : new Error(String(error)));
         setVerificationStatus('error');
         setErrorMessage('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
       }

@@ -96,7 +96,7 @@ export class DualStorageFactory {
 
     // 설정 검증 (Supabase 전용)
     if (this.config.supabaseEnabled && !supabase) {
-      console.warn('⚠️ Supabase client is required but not provided, falling back to Prisma only');
+      logger.debug('⚠️ Supabase client is required but not provided, falling back to Prisma only');
       this.config = {
         ...this.config,
         supabaseEnabled: false,

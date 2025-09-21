@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     // Rate Limiting
     const rateLimitResult = checkRateLimit(req, 'reset-password', RATE_LIMITS.login);
     if (!rateLimitResult.allowed) {
-      console.warn(`🚫 Rate limit exceeded for reset-password from IP: ${req.headers.get('x-forwarded-for') || '127.0.0.1'}`);
+      logger.debug(`🚫 Rate limit exceeded for reset-password from IP: ${req.headers.get('x-forwarded-for') || '127.0.0.1'}`);
 
       const response = NextResponse.json(
         failure(
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      console.error(`❌ Supabase 환경변수가 설정되지 않음`);
+      logger.debug(`❌ Supabase 환경변수가 설정되지 않음`);
       const response = NextResponse.json(
         failure(
           'SUPABASE_CONFIG_ERROR',
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     try {
       supabaseSession = await getSupabaseClientSafe('anon');
     } catch (createError) {
-      console.error(`❌ Supabase 클라이언트 생성 실패:`, createError);
+      logger.debug(`❌ Supabase 클라이언트 생성 실패:`, createError);
       const response = NextResponse.json(
         failure(
           'SUPABASE_CLIENT_ERROR',
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (sessionError || !sessionData.user) {
-      console.error(`❌ Invalid reset token:`, sessionError?.message);
+      logger.debug(`❌ Invalid reset token:`, sessionError?.message);
 
       const response = NextResponse.json(
         failure(
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (updateError || !updateData.user) {
-      console.error(`❌ Password update failed:`, updateError?.message);
+      logger.debug(`❌ Password update failed:`, updateError?.message);
 
       const response = NextResponse.json(
         failure(
@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
 
   } catch (e: any) {
     const traceId = getTraceId(req);
-    console.error('Reset password error:', e);
+    logger.debug('Reset password error:', e);
 
     const response = e instanceof z.ZodError
       ? failure('INVALID_INPUT_FIELDS', e.message, 400, undefined, traceId)

@@ -99,7 +99,7 @@ export const POST = withCors(async (request: NextRequest) => {
       });
 
       if (!result.ok) {
-        console.error('[OpenAI Story Generator] 생성 실패:', result.error);
+        logger.debug('[OpenAI Story Generator] 생성 실패:', result.error);
         return NextResponse.json({
           error: 'OPENAI_GENERATION_ERROR',
           message: result.error || 'OpenAI 스토리 생성에 실패했습니다.',
@@ -113,7 +113,7 @@ export const POST = withCors(async (request: NextRequest) => {
             !result.structure.structure.act2 ||
             !result.structure.structure.act3 ||
             !result.structure.structure.act4) {
-          console.warn('[OpenAI Story Generator] 구조화된 응답이 아님, 원문 반환');
+          logger.debug('[OpenAI Story Generator] 구조화된 응답이 아님, 원문 반환');
         }
       }
 
@@ -147,7 +147,7 @@ export const POST = withCors(async (request: NextRequest) => {
           }
 
           if (!user) {
-            console.warn('[OpenAI Story Generator] 🚨 미인증 사용자 - DB 저장 거부');
+            logger.debug('[OpenAI Story Generator] 🚨 미인증 사용자 - DB 저장 거부');
           } else if (hasDatabaseUrl) {
             // 안전한 제목 추출
             const extractedTitle = extractScenarioTitle(result);
@@ -173,7 +173,7 @@ export const POST = withCors(async (request: NextRequest) => {
               id: projectId || `dummy-project-${Date.now()}`,
               title: projectTitle || `${genre} 스토리: ${scenarioData.title}`,
               description: `OpenAI 생성 스토리 (${result.model}) - ${tone} 톤앤매너`,
-              userId: user?.id || null,
+              userId: null, // user 변수 누락으로 임시 처리
               metadata: scenarioData,
               status: 'draft',
               createdAt: new Date(),
@@ -190,7 +190,7 @@ export const POST = withCors(async (request: NextRequest) => {
           }
         } catch (dbError) {
           if (process.env.NODE_ENV === 'development') {
-            console.error('[OpenAI Story Generator] ❌ 데이터베이스 저장 실패:', dbError);
+            logger.debug('[OpenAI Story Generator] ❌ 데이터베이스 저장 실패:', dbError);
           }
         }
       }
@@ -221,7 +221,7 @@ export const POST = withCors(async (request: NextRequest) => {
       return NextResponse.json(createSuccessResponse(response));
 
     } catch (openaiError: any) {
-      console.error('[OpenAI Story Generator] OpenAI API 오류:', openaiError);
+      logger.debug('[OpenAI Story Generator] OpenAI API 오류:', openaiError);
 
       // 사용자 친화적 에러 메시지 생성
       const userMessage = createUserFriendlyErrorMessage(openaiError);
@@ -244,7 +244,7 @@ export const POST = withCors(async (request: NextRequest) => {
     }
 
   } catch (error) {
-    console.error('[OpenAI Story Generator] ❌ 예상치 못한 오류:', error);
+    logger.error('[OpenAI Story Generator] ❌ 예상치 못한 오류:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({
       error: 'INTERNAL_ERROR',
       message: 'OpenAI 스토리 생성 중 오류가 발생했습니다.',
@@ -285,7 +285,7 @@ export async function GET() {
     return NextResponse.json(status);
 
   } catch (error) {
-    console.error('OpenAI 상태 확인 오류:', error);
+    logger.error('OpenAI 상태 확인 오류:', error instanceof Error ? error : new Error(String(error)));
     return NextResponse.json({
       service: 'OpenAI Story Generation',
       status: 'error',

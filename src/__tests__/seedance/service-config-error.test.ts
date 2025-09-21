@@ -175,14 +175,14 @@ describe('ServiceConfigError - 도메인 계약 검증', () => {
       process.env.NODE_ENV = originalEnv;
     });
 
-    it('프로덕션 환경 가이드는 Vercel/Railway 설정 방법을 포함해야 함', () => {
+    it('프로덕션 환경 가이드는 Vercel 설정 방법을 포함해야 함', () => {
       process.env.NODE_ENV = 'production';
       const error = createServiceConfigError.seedanceNotConfigured();
       const guide = error.setupGuide!;
 
       expect(guide.environment).toBe('production');
       expect(guide.setupMethods.vercel).toBeDefined();
-      expect(guide.setupMethods.railway).toBeDefined();
+      expect(guide.setupMethods.vercel).toBeDefined();
     });
   });
 

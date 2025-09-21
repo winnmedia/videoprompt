@@ -3,7 +3,7 @@ import { randomUUID } from 'crypto';
 import { checkRateLimit, RATE_LIMITS } from '@/shared/lib/rate-limiter';
 import { success, failure, getTraceId } from '@/shared/lib/api-response';
 import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
-import { logger, LogCategory } from '@/shared/lib/structured-logger';
+import { logger } from '@/shared/lib/logger';
 // import { PrismaClient } from '@prisma/client'; // Prisma 임시 비활성화
 
 export const runtime = 'nodejs';
@@ -142,7 +142,7 @@ async function saveUploadMetadata(
   traceId?: string
 ): Promise<{ id: string }> {
   // Prisma 비활성화로 인한 더미 응답
-  logger.info(LogCategory.DATABASE, 'Upload metadata save skipped (Prisma disabled)', {
+  logger.info('DATABASE: Upload metadata save skipped (Prisma disabled)', {
     filename: fileData.filename,
     size: fileData.size,
     userId,
@@ -178,7 +178,7 @@ async function uploadToSupabaseStorage(
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const filePath = `${year}/${month}/${fileName}`;
 
-  logger.debug(LogCategory.API, 'Uploading to Supabase Storage', {
+  logger.debug('API: Uploading to Supabase Storage', {
     fileName,
     filePath,
     fileSize: file.size,
@@ -193,7 +193,7 @@ async function uploadToSupabaseStorage(
     try {
       supabase = await getSupabaseClientSafe('admin');
     } catch (error) {
-      logger.error(LogCategory.DATABASE, 'Supabase client initialization failed', error as Error, {
+      logger.error('DATABASE: Supabase client initialization failed', error as Error, {
         traceId,
         function: 'uploadToSupabaseStorage'
       });
@@ -216,7 +216,7 @@ async function uploadToSupabaseStorage(
       });
 
     if (error) {
-      logger.error(LogCategory.DATABASE, 'Supabase Storage upload failed', error, {
+      logger.error('DATABASE: Supabase Storage upload failed', error, {
         filePath,
         fileName,
         fileSize: file.size,
@@ -234,7 +234,7 @@ async function uploadToSupabaseStorage(
       throw new Error('Supabase Storage 공개 URL 생성 실패');
     }
 
-    logger.info(LogCategory.DATABASE, 'Supabase Storage upload successful', {
+    logger.info('DATABASE: Supabase Storage upload successful', {
       filePath: data.path,
       publicUrl: publicUrlData.publicUrl,
       fileSize: file.size,
@@ -257,7 +257,7 @@ async function uploadToSupabaseStorage(
         traceId
       );
     } catch (dbError) {
-      logger.warn(LogCategory.DATABASE, 'Upload metadata save failed, but file uploaded successfully', {
+      logger.warn('DATABASE: Upload metadata save failed, but file uploaded successfully', {
         filePath: data.path,
         publicUrl: publicUrlData.publicUrl,
         dbError: dbError instanceof Error ? dbError.message : String(dbError),
@@ -284,7 +284,7 @@ async function uploadToSupabaseStorage(
       }
     };
   } catch (uploadError: any) {
-    logger.error(LogCategory.DATABASE, 'File upload to Supabase failed', uploadError, {
+    logger.error('DATABASE: File upload to Supabase failed', uploadError, {
       fileName,
       filePath,
       traceId
@@ -310,14 +310,14 @@ async function rollbackUpload(
       .remove([filePath]);
 
     if (deleteError) {
-      logger.warn(LogCategory.DATABASE, 'Failed to delete file from Supabase Storage during rollback', {
+      logger.warn('DATABASE: Failed to delete file from Supabase Storage during rollback', {
         filePath,
         uploadId,
         error: deleteError.message,
         traceId
       });
     } else {
-      logger.info(LogCategory.DATABASE, 'File successfully deleted from Supabase Storage during rollback', {
+      logger.info('DATABASE: File successfully deleted from Supabase Storage during rollback', {
         filePath,
         uploadId,
         traceId
@@ -326,13 +326,13 @@ async function rollbackUpload(
 
     // 2. 데이터베이스 레코드 삭제 스킵 (Prisma 비활성화)
     if (uploadId && uploadId !== 'metadata-save-failed') {
-      logger.info(LogCategory.DATABASE, 'Upload record deletion skipped (Prisma disabled)', {
+      logger.info('DATABASE: Upload record deletion skipped (Prisma disabled)', {
         uploadId,
         traceId
       });
     }
   } catch (rollbackError) {
-    logger.error(LogCategory.DATABASE, 'Rollback failed', rollbackError as Error, {
+    logger.error('DATABASE: Rollback failed', rollbackError as Error, {
       filePath,
       uploadId,
       traceId
@@ -352,14 +352,14 @@ export async function POST(request: NextRequest) {
       userAgent: request.headers.get('user-agent') || undefined,
     });
 
-    logger.info(LogCategory.API, 'Video upload request started (Supabase)', {
+    logger.info('API: Video upload request started (Supabase)', {
       traceId,
     });
 
     // Rate Limiting
     const rateLimitResult = checkRateLimit(request, 'upload', RATE_LIMITS.upload);
     if (!rateLimitResult.allowed) {
-      logger.warn(LogCategory.API, 'Rate limit exceeded for upload', {
+      logger.warn('API: Rate limit exceeded for upload', {
         ip: request.headers.get('x-forwarded-for') || '127.0.0.1',
         retryAfter: rateLimitResult.retryAfter,
         traceId
@@ -389,7 +389,7 @@ export async function POST(request: NextRequest) {
     const userId = formData.get('userId') as string | null;
 
     if (!file) {
-      logger.warn(LogCategory.API, 'Missing video file in upload request', { traceId });
+      logger.warn('API: Missing video file in upload request', { traceId });
       return NextResponse.json(
         {
           ok: false,
@@ -402,7 +402,7 @@ export async function POST(request: NextRequest) {
 
     // 기본 파일 타입 검증
     if (!ALLOWED_TYPES.includes(file.type)) {
-      logger.warn(LogCategory.API, 'Invalid file type', {
+      logger.warn('API: Invalid file type', {
         fileType: file.type,
         allowedTypes: ALLOWED_TYPES,
         traceId
@@ -421,7 +421,7 @@ export async function POST(request: NextRequest) {
     // 고급 보안 검증
     const securityValidation = validateFileSecurity(file);
     if (!securityValidation.isValid) {
-      logger.warn(LogCategory.API, 'File security validation failed', {
+      logger.warn('API: File security validation failed', {
         fileName: file.name,
         fileType: file.type,
         fileSize: file.size,
@@ -442,7 +442,7 @@ export async function POST(request: NextRequest) {
     // 파일 헤더 검증 (Magic Number)
     const headerValidation = await validateFileHeader(file);
     if (!headerValidation.isValid) {
-      logger.warn(LogCategory.API, 'File header validation failed', {
+      logger.warn('API: File header validation failed', {
         fileName: file.name,
         fileType: file.type,
         fileSize: file.size,
@@ -462,7 +462,7 @@ export async function POST(request: NextRequest) {
 
     // 파일 크기 검증
     if (file.size > SUPABASE_FILE_SIZE_LIMIT) {
-      logger.warn(LogCategory.API, 'File too large', {
+      logger.warn('API: File too large', {
         fileSize: file.size,
         limit: SUPABASE_FILE_SIZE_LIMIT,
         fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
@@ -479,7 +479,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    logger.info(LogCategory.API, 'File validation passed, starting upload', {
+    logger.info('API: File validation passed, starting upload', {
       fileName: file.name,
       fileSize: file.size,
       fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
@@ -493,7 +493,7 @@ export async function POST(request: NextRequest) {
     try {
       const uploadResult = await uploadToSupabaseStorage(file, slot, userId, traceId);
 
-      logger.info(LogCategory.API, 'Video upload completed successfully', {
+      logger.info('API: Video upload completed successfully', {
         url: uploadResult.url,
         path: uploadResult.path,
         fileSize: file.size,
@@ -525,7 +525,7 @@ export async function POST(request: NextRequest) {
         { status: 200 }
       );
     } catch (uploadError: any) {
-      logger.error(LogCategory.API, 'Supabase upload failed', uploadError, {
+      logger.error('API: Supabase upload failed', uploadError, {
         fileName: file.name,
         fileSize: file.size,
         traceId
@@ -545,7 +545,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     const traceId = getTraceId(request);
-    logger.error(LogCategory.API, 'Video upload request failed', error, {
+    logger.error('API: Video upload request failed', error, {
       traceId,
       errorMessage: error.message
     });

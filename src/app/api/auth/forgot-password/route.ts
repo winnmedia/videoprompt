@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     // Rate Limiting
     const rateLimitResult = checkRateLimit(req, 'forgot-password', RATE_LIMITS.forgotPassword);
     if (!rateLimitResult.allowed) {
-      console.warn(`🚫 Rate limit exceeded for forgot-password from IP: ${req.headers.get('x-forwarded-for') || '127.0.0.1'}`);
+      logger.debug(`🚫 Rate limit exceeded for forgot-password from IP: ${req.headers.get('x-forwarded-for') || '127.0.0.1'}`);
 
       const response = NextResponse.json(
         failure(
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!supabaseResult.client || !supabaseResult.canProceed) {
-      console.error('❌ Supabase 클라이언트 생성 실패:', supabaseResult.error);
+      logger.debug('❌ Supabase 클라이언트 생성 실패:', supabaseResult.error);
 
       const response = supabaseErrors.unavailable(
         traceId,
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
     // Supabase는 보안상 항상 성공 응답을 반환함 (사용자 존재 여부 노출 방지)
     // 따라서 error가 있는 경우는 시스템 오류
     if (error) {
-      console.error(`❌ Supabase password reset failed:`, error.message);
+      logger.debug(`❌ Supabase password reset failed:`, error.message);
 
       const response = NextResponse.json(
         failure(
@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
 
   } catch (e: any) {
     const traceId = getTraceId(req);
-    console.error('Forgot password error:', e);
+    logger.debug('Forgot password error:', e);
 
     const response = e instanceof z.ZodError
       ? failure('INVALID_INPUT_FIELDS', e.message, 400, undefined, traceId)

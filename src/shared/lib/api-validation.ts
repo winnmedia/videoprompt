@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/shared/lib/logger';
 import { getAIApiKeys, getServiceUrls, envUtils } from '@/shared/config/env';
 import { createCorsResponse } from './cors';
 
@@ -50,7 +51,7 @@ export function validateWebhookSignature(
     // 현재는 기본적인 검증만 수행
     return signature.length > 0 && secret.length > 0;
   } catch (error) {
-    console.error('Webhook 서명 검증 실패:', error);
+    logger.error('Webhook 서명 검증 실패:', error instanceof Error ? error : new Error(String(error)));
     return false;
   }
 }
@@ -220,7 +221,7 @@ export function withApiSecurity<T extends (req: NextRequest, ...args: any[]) => 
       return await handler(req, ...args);
       
     } catch (error) {
-      console.error('API 보안 미들웨어 오류:', error);
+      logger.error('API 보안 미들웨어 오류:', error instanceof Error ? error : new Error(String(error)));
       return createCorsResponse(
         { error: 'INTERNAL_ERROR', message: '서버 내부 오류가 발생했습니다.' },
         origin,

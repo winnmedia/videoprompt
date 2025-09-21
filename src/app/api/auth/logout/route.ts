@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 
     return addCorsHeaders(response);
   } catch (error: any) {
-    console.error('Logout error:', error);
+    logger.error('Logout error:', error instanceof Error ? error : new Error(String(error)));
     const traceId = getTraceId(req);
     
     // 에러가 발생해도 쿠키는 제거

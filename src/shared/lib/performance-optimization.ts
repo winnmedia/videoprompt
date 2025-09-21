@@ -194,7 +194,7 @@ export class BatchProcessor<TItem, TResult> {
       const results = await this.processor(currentBatch);
       currentCallbacks.forEach(callback => callback(results));
     } catch (error) {
-      console.error('Batch processing failed:', error);
+      logger.error('Batch processing failed:', error instanceof Error ? error : new Error(String(error)));
       currentCallbacks.forEach(callback => callback([]));
     }
   }
@@ -423,7 +423,7 @@ export function useRenderPerformance(componentName: string) {
 
         // 느린 렌더링 경고 (16ms 초과)
         if (renderTime > 16) {
-          console.warn(
+          logger.debug(
             `[Performance Warning] ${componentName} took ${renderTime.toFixed(2)}ms to render (>16ms)`
           );
         }
@@ -483,7 +483,7 @@ export function useCleanup() {
         try {
           fn();
         } catch (error) {
-          console.error('Cleanup function failed:', error);
+          logger.error('Cleanup function failed:', error instanceof Error ? error : new Error(String(error)));
         }
       });
       cleanupFunctionsRef.current = [];

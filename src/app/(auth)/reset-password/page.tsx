@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
+import { logger } from '@/shared/lib/logger';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Logo, Button } from '@/shared/ui';
@@ -115,7 +116,7 @@ function ResetPasswordForm() {
         setError(data.message || '비밀번호 재설정에 실패했습니다.');
       }
     } catch (error) {
-      console.error('Reset password error:', error);
+      logger.error('Reset password error:', error instanceof Error ? error : new Error(String(error)));
       setError('서버 오류가 발생했습니다.');
     } finally {
       setLoading(false);
