@@ -1,242 +1,47 @@
 /**
- * Shared 레이어 공개 API
- * FSD 아키텍처에 따른 공개 인터페이스
+ * Shared Lib Public API
+ *
+ * 공통 라이브러리와 유틸리티 함수들의 진입점입니다.
+ * 순수 함수들과 재사용 가능한 헬퍼들을 제공합니다.
+ * CLAUDE.md 준수: FSD shared 레이어, 순수성, 재사용성
  */
 
-// =============================================================================
-// 공통 유틸리티 및 훅
-// =============================================================================
+// AI 클라이언트
+export * from './gemini-client'
 
-export { useAsyncOperation } from './hooks/useAsyncOperation';
+// 데이터베이스 클라이언트
+export * from './supabase'
 
-// =============================================================================
-// 타입 내보내기
-// =============================================================================
+// 로거
+export * from './structured-logger'
 
-export type {
-  StoryboardResult,
-  StoryboardGenerationOptions,
-  SingleShotGenerationRequest,
-  BatchGenerationRequest,
-  BatchGenerationResult,
-  ShotGenerationState,
-  StoryboardGenerationState,
-  StoryboardSaveRequest,
-  PromptCacheEntry,
-  ImageCompressionUtils,
-  PromptOptimizationUtils,
-} from './types/storyboard';
+// 비용 안전 미들웨어
+export * from './cost-safety-middleware'
 
-export {
-  ShotGenerationStatus,
-  StoryboardErrorType,
-  StoryboardGenerationError,
-} from './types/storyboard';
+// 일관성 관리자
+export * from './consistency-manager'
 
-// =============================================================================
-// 서비스 내보내기 (서버 사이드만)
-// =============================================================================
+// 파일 업로드 유틸
+export * from './file-upload-utils'
 
-// 주석 처리: 클라이언트 사이드에서 Google API 관련 Node.js 전용 모듈 문제 해결
-// export {
-//   StoryboardGeneratorService,
-//   generateStoryboard,
-//   generateSingleShot,
-//   batchGenerateShots,
-//   saveStoryboard,
-//   getGenerationState,
-//   clearCache,
-//   getCacheStats,
-// } from './services/storyboard-generator';
+// 영상 관련
+export * from './video-queue'
+export * from './video-error-handler'
 
-// =============================================================================
-// Redux Store 내보내기 (app/store로 이동됨)
-// =============================================================================
+// 에러 클래스
+export * from './errors'
 
-// 🚨 Redux 스토어 통합: app/store에서 직접 import하도록 변경
-// export { store, useAppDispatch, useAppSelector } from './store';
-// export type { RootState, AppDispatch } from './store';
+// 암호화 유틸
+export * from './crypto-utils'
 
-// 🚨 스토리보드 관련 액션들: entities/scenario로 이동됨
-// export {
-//   setActiveProject,
-//   initializeGenerationState,
-//   updateGenerationState,
-//   updateShotState,
-//   addGeneratedResult,
-//   addBatchResults,
-//   removeGenerationState,
-//   updateUIState,
-//   selectShot,
-//   setViewMode,
-//   setFilter,
-//   setSort,
-//   addError,
-//   removeError,
-//   clearErrors,
-//   updateStatistics,
-//   clearProjectResults,
-//   resetState,
-//   storyboardSelectors,
-// } from './store/slices/storyboard';
+// 실시간 동기화
+export * from './realtime-sync-manager'
+export * from './realtime-events'
 
-// =============================================================================
-// React Query 내보내기
-// =============================================================================
+// 테스트 모킹
+export * from '../mocks'
 
-export { queryClient, queryKeys } from './query/client';
-
-// 주석 처리: 스토리보드 생성 hooks (필요시 개별 import)
-// export {
-//   useGenerateStoryboard,
-//   useGenerateSingleShot,
-//   useBatchGenerateShots,
-//   useSaveStoryboard,
-//   useGenerationStatus,
-//   useCacheStats,
-//   useStoryboard,
-//   useGenerationHistory,
-//   useOptimisticStoryboardUpdate,
-// } from './query/hooks/useStoryboardGeneration';
-
-// =============================================================================
-// MSW Mock 핸들러 (개발/테스트용) - 주석 처리
-// =============================================================================
-
-// 주석 처리: 빌드 시 MSW 관련 모듈 문제 해결
-// export { handlers, errorHandlers, successHandlers } from './mocks/handlers';
-// export { worker, startMSW } from './mocks/browser';
-// export { server, setupTestServer } from './mocks/server';
-
-// =============================================================================
-// 기존 유틸리티 내보내기
-// =============================================================================
-
-export { cn } from './utils';
-export { useSoftPrefetch } from './prefetch';
-export { logger } from './logger';
-export { success, failure } from './api-response';
-export type { ApiError } from './api-response';
-export * from './auth';
-
-// =============================================================================
-// 업로드 유틸리티 내보내기
-// =============================================================================
-
-export {
-  formatFileSize,
-  sanitizeFileName,
-  isValidVideoFile,
-  isFileSizeValid,
-  createFileChunks,
-  calculateProgress,
-  calculateRetryDelay,
-  isRetriableError,
-  createUploadSession,
-  createUploadHeaders,
-  getMemoryUsage,
-  createCancellationToken,
-  calculateFileChecksum,
-  isUploadSessionExpired,
-  isUploadSessionActive,
-  DEFAULT_CHUNK_SIZE,
-  DEFAULT_RETRY_CONFIG,
-  SUPPORTED_VIDEO_TYPES,
-  MAX_FILE_SIZE,
-} from './upload-utils';
-
-export type {
-  UploadProgress,
-  UploadChunk,
-  UploadSession,
-  RetryConfig,
-} from './upload-utils';
-
-// =============================================================================
-// AI Client 내보내기
-// =============================================================================
-
-export { extractSceneComponents } from './ai-client';
-
-// =============================================================================
-// Zod 스키마 내보내기
-// =============================================================================
-
-export {
-  // API 스키마
-  BaseApiResponseSchema,
-  createApiResponseSchema,
-  createPaginatedResponseSchema,
-  PaginationSchema,
-  ApiErrorSchema,
-  ValidationErrorSchema,
-  ValidationErrorResponseSchema,
-  UserSchema,
-  UserPreferencesSchema,
-  UserWithPreferencesSchema,
-  LoginRequestSchema,
-  RegisterRequestSchema,
-  AuthResponseSchema,
-  FileUploadMetadataSchema,
-  FileUploadResponseSchema,
-  VideoUploadValidationSchema,
-  VideoUploadResponseSchema,
-  PaginationQuerySchema,
-  SearchQuerySchema,
-  FilterQuerySchema,
-  CombinedQuerySchema,
-  createValidationErrorResponse,
-  createSuccessResponse,
-  createErrorResponse,
-  createPaginatedSuccessResponse,
-} from '../schemas/api.schema';
-
-export type {
-  ApiResponse,
-  PaginatedResponse,
-  ValidationError,
-  User,
-  UserPreferences,
-  LoginRequest,
-  RegisterRequest,
-  AuthResponse,
-  FileUploadResponse,
-  VideoUploadResponse,
-  PaginationQuery,
-  SearchQuery,
-  FilterQuery,
-  CombinedQuery,
-} from '../schemas/api.schema';
-
-export {
-  // Story 스키마
-  StorySchema,
-  CreateStoryRequestSchema,
-  UpdateStoryRequestSchema,
-  GetStoriesQuerySchema,
-  StoryResponseSchema,
-  StoriesResponseSchema,
-  DevelopShotsRequestSchema,
-  DevelopShotsResponseSchema,
-  SceneSchema,
-  storyValidators,
-  validateStoryStructure,
-  validateDevelopShotsRequest,
-} from '../schemas/story.schema';
-
-export type {
-  Story,
-  CreateStoryRequest,
-  UpdateStoryRequest,
-  GetStoriesQuery,
-  StoryResponse,
-  StoriesResponse,
-  DevelopShotsRequest,
-  DevelopShotsResponse,
-  Scene,
-  ScenePrompt,
-  TimelineElement,
-  Genre,
-  Tone,
-  TargetAudience,
-} from '../schemas/story.schema';
+// TODO: 다른 유틸리티들 추가
+// export { dateUtils } from './date'
+// export { validationUtils } from './validation'
+// export { formatUtils } from './format'

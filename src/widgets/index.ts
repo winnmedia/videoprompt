@@ -1,30 +1,40 @@
 /**
- * ✨ Widgets Layer - FSD Public API
+ * Widgets Layer Public API
  *
- * 🎯 Complex UI Blocks
- * - 비즈니스 로직이 포함된 UI 위젯
- * - shared/ui 컴포넌트들의 조합
- * - features 레이어와 통신
- *
- * 🏗️ Architecture Rules
- * - entities와 features를 조율
- * - 페이지 레벨 UI 블록
- * - 재사용 가능한 위젯
+ * UI 위젯들의 단일 진입점입니다.
+ * 조합된 UI 블록들을 제공하며, features와 entities를 조합하여 구성됩니다.
+ * CLAUDE.md 준수: FSD widgets 레이어 Public API
  */
 
-// 🏠 Layout Widgets
-export * from './header';
+// 시나리오 위젯
+export * from './scenario'
 
-// 🎬 Content Widgets
-export * from './scenario';
-export * from './storyboard';
-export * from './workflow';
+// 스토리보드 위젯
+export * from './storyboard'
 
-// 📊 Data Widgets
-export * from './monitoring-dashboard';
-export * from './performance';
-export * from './planning';
+// 영상 위젯
+export * from './video'
 
-// 🌱 Feature Widgets
-export * from './seedance';
-export * from './export';
+// 피드백 위젯
+export * from './feedback'
+
+// 기획 위젯
+export * from './planning'
+
+// 관리자 위젯
+export * from './admin'
+
+// 콘텐츠 관리 위젯
+export * from './content-management'
+
+// 프롬프트 위젯
+export * from './prompt'
+
+// 템플릿 위젯
+export * from './templates'
+
+// 온보딩 위젯
+export * from './onboarding'
+
+// 협업 위젯
+export * from './collaboration'

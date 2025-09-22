@@ -1,32 +1,16 @@
 /**
  * Shared Hooks Public API
- * FSD 아키텍처에 따른 Public API 인터페이스
+ *
+ * 공통 React 훅들의 진입점입니다.
+ * 재사용 가능한 상태 로직과 사이드 이팩트를 제공합니다.
+ * CLAUDE.md 준수: FSD shared 레이어, Public API 원칙
  */
 
-export { useSceneWizard } from './useSceneWizard';
-export { useWizardOptions } from './useWizardOptions';
-export { useScenarioGenerator } from './useScenarioGenerator';
-export { useAuthRedirect } from './useAuthRedirect';
-export {
-  useRealtimeValidation,
-  checkEmailExists,
-  emailSchema,
-  passwordSchema,
-  usernameSchema
-} from './useRealtimeValidation';
+// 프로젝트 관련 통합 훅
+export { useProjectScenarioIntegration } from './useProjectScenarioIntegration'
 
-export type {
-  WizardState,
-  WizardActions
-} from './useSceneWizard';
+// 시나리오-스토리보드 통합 훅
+export { useScenarioStoryboardIntegration } from './useScenarioStoryboardIntegration'
 
-export type {
-  WizardOptions,
-  WizardOptionsActions
-} from './useWizardOptions';
-
-export type {
-  StoryStep,
-  StoryInput,
-  ScenarioState
-} from './useScenarioGenerator';
+// 워크플로우 상태 관리 훅
+export { useWorkflowState } from './useWorkflowState'

@@ -5,7 +5,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://vlanet.app/schemas/vlanet-prompt.v1.0.json",
   "title": "VLANET Prompt v1.0 Canonical Model (Veo 3 Optimized + Compact Prompt)",
-  "description": "VLANET Prompt 데이터 모델 v1.0. Veo 3 최적화 규칙을 유지하면서, 간결 포맷(finalOutputCompact) 출력도 지원. CineGenius v3.1 기반 확장.",
+  "description": "VLANET Prompt 데이터 모델 v1.0. Veo 3 최적화 규칙을 유지하면서, 간결 포맷(finalOutputCompact) 출력도 지원.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -52,7 +52,11 @@
             "required": ["url", "sha256", "fetchedAt"],
             "properties": {
               "url": { "type": "string", "format": "uri" },
-              "sha256": { "type": "string", "minLength": 64, "maxLength": 128 },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-fA-F]{64}$",
+                "description": "SHA256 해시 (64자 헥스)"
+              },
               "fetchedAt": { "type": "string", "format": "date-time" },
               "mimeType": { "type": "string", "minLength": 0, "maxLength": 100 }
             }
@@ -89,7 +93,21 @@
             "maxItems": 200,
             "uniqueItems": true
           },
-          "overrides": { "type": "object", "description": "스키마 경로 기반 덮어쓰기", "additionalProperties": true }
+          "overrides": {
+            "type": "object",
+            "description": "스키마 경로 기반 덮어쓰기 (JSON Pointer 패턴)",
+            "additionalProperties": false,
+            "patternProperties": {
+              "^/[a-zA-Z0-9/_-]+$": {
+                "oneOf": [
+                  { "type": "string" },
+                  { "type": "number" },
+                  { "type": "boolean" },
+                  { "type": "array" }
+                ]
+              }
+            }
+          }
         }
       },
       "maxItems": 100
@@ -390,9 +408,10 @@
 
         "timeline": {
           "type": "array",
-          "description": "샷 리스트.",
+          "description": "샷 리스트. 시퀀스 번호는 중복 불가.",
           "minItems": 1,
           "maxItems": 500,
+          "uniqueItems": true,
           "items": {
             "type": "object",
             "additionalProperties": false,
@@ -410,9 +429,25 @@
                 "additionalProperties": false,
                 "properties": {
                   "startMs": { "type": "integer", "minimum": 0 },
-                  "endMs": { "type": "integer", "minimum": 0 },
+                  "endMs": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "endMs는 startMs보다 커야 함"
+                  },
                   "smpteStart": { "type": "string", "pattern": "^\\d{2}:\\d{2}:\\d{2}:\\d{2}$" },
                   "smpteEnd": { "type": "string", "pattern": "^\\d{2}:\\d{2}:\\d{2}:\\d{2}$" }
+                },
+                "if": {
+                  "properties": {
+                    "startMs": { "type": "integer" },
+                    "endMs": { "type": "integer" }
+                  },
+                  "required": ["startMs", "endMs"]
+                },
+                "then": {
+                  "properties": {
+                    "endMs": { "minimum": { "$data": "1/startMs" } }
+                  }
                 }
               },
 
@@ -747,7 +782,12 @@
             }
           }
         },
-        "text": { "type": "string", "enum": ["none"] },
+        "text": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 5000,
+          "description": "프롬프트 텍스트 설명 또는 'none'"
+        },
         "keywords": {
           "type": "array",
           "items": { "type": "string", "minLength": 1, "maxLength": 80 },
@@ -1111,6 +1151,32 @@
                   { "required": ["lockedSegments"] },
                   { "required": ["lastFrameData"] }
                 ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "projectConfig": {
+            "properties": {
+              "profileId": { "minLength": 1 }
+            },
+            "required": ["profileId"]
+          }
+        },
+        "required": ["projectConfig"]
+      },
+      "then": {
+        "required": ["profiles"],
+        "properties": {
+          "profiles": {
+            "minItems": 1,
+            "contains": {
+              "properties": {
+                "name": { "$data": "4/projectConfig/profileId" }
               }
             }
           }

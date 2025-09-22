@@ -1,119 +1,113 @@
 /**
- * Scenario feature 통합 export
- * FSD features 레이어 - 시나리오 기능의 공개 인터페이스
+ * Scenario Feature Public API
+ *
+ * 시나리오 기능 레이어의 진입점
+ * CLAUDE.md 준수: FSD features 레이어 Public API, 단일 진입점
  */
 
-// Redux slices - entities Public API 경유
+// === Business Logic Models ===
 export {
-  scenarioReducer,
-  storyReducer,
-  storyboardReducer
-} from '@/entities/scenario';
+  StoryGenerator,
+  type StoryGenerationResult,
+  type StoryGenerationOptions,
+  storyGeneratorHelpers
+} from './model/story-generator'
 
-// Slice actions and selectors - entities Public API 경유
 export {
-  setWorkflowStep,
-  setCanProceed,
-  completeWorkflow,
-  resetWorkflow,
-  updateStoryInput,
-  setStoryInput,
-  markSaved,
-  markDirty,
-  selectWorkflow,
-  selectCurrentStep,
-  selectStoryInput,
-  selectIsValid,
-  selectWorkflowProgress,
-} from '@/entities/scenario';
+  SceneSplitter,
+  type SceneSplitResult,
+  type SplitStrategy,
+  type SceneSplitOptions,
+  sceneSplitterUtils
+} from './model/scene-splitter'
 
-// Story actions - entities Public API 경유
-export {
-  setLoading,
-  setError as setStoryError,
-  setStorySteps,
-  updateStoryStep,
-  resetStory as clearStory,
-} from '@/entities/scenario';
-
-// Storyboard actions - entities Public API 경유
-export {
-  setShots,
-  setStoryboardShots,
-  startGeneration,
-  updateGenerationProgress,
-  completeGeneration,
-  selectShots,
-  selectStoryboardShots,
-  selectIsGenerating,
-  selectGenerationProgress,
-  selectStoryboardStats,
-} from '@/entities/scenario';
-
-// RTK Query hooks
+// === React Hooks ===
 export {
   useStoryGeneration,
-  useStorySave,
-  useStoryLoad,
-  useSavedStories,
-  useAutoSaveStory,
-  useInvalidateStoryCache,
-} from './hooks/use-story-generation';
+  useStoryGenerationProgress,
+  type UseStoryGenerationState,
+  type UseStoryGenerationOptions,
+  type GenerationStep
+} from './hooks/use-story-generation'
 
 export {
-  useShotGeneration,
-  useStoryboardGeneration,
-  useStoryboardSave,
-  useStoryboardLoad,
-  useSavedStoryboards,
-  useAutoSaveStoryboard,
-  useInvalidateStoryboardCache,
-  useStoryboardWorkflow,
-} from './hooks/use-storyboard-generation';
+  useSceneEditing,
+  useSceneEditor,
+  type UseSceneEditingState,
+  type UseSceneEditingOptions,
+  type SceneEditMode
+} from './hooks/use-scene-editing'
 
 export {
-  useCreateProject,
-  useUpdateProject,
-  useDeleteProject,
-  useProject,
-  useProjects,
-  useRecentProjects,
-  useAutoSaveProject,
-  useDuplicateProject,
-  useProjectCacheManager,
-  useProjectStats,
-} from './hooks/use-project-management';
+  useScenario,
+  type UseScenarioState,
+  type UseScenarioActions,
+  type UseScenarioReturn
+} from './hooks/useScenario'
 
-// Types (re-export from entities)
-export type {
-  StoryInput,
-  StoryStep,
-  Shot,
-  StoryboardShot,
-  InsertShot,
-  StoryTemplate,
-} from '@/entities/scenario';
+// === Utility Functions ===
+export const scenarioFeatureUtils = {
+  /**
+   * 스토리 생성 비용 추정
+   */
+  estimateGenerationCost: storyGeneratorHelpers.estimateGenerationCost,
+  
+  /**
+   * 장르별 기본 설정
+   */
+  getGenreDefaults: storyGeneratorHelpers.getGenreDefaults,
+  
+  /**
+   * 텍스트 복잡도 분석
+   */
+  analyzeTextComplexity: sceneSplitterUtils.analyzeTextComplexity,
+  
+  /**
+   * 최적 분할 전략 제안
+   */
+  suggestSplitStrategy: sceneSplitterUtils.suggestSplitStrategy
+} as const
 
-export type {
-  Project,
-  ProjectMetadata,
-} from './hooks/use-project-management';
-
-// DTO transformers are available from shared API layer
-// Use: import { transformStoryInputToApiRequest, ... } from '@/shared/api/dto-transformers'
-
-// Error handling
-export {
-  handleQueryError,
-  handleMutationError,
-  ErrorHandler,
-  UserFriendlyErrorMessages,
-} from '@/shared/lib/error-handling';
-
-// Performance utilities
-export {
-  useDebounce,
-  useBatchProcessor,
-  useMemoizedCalculation,
-  useCacheOptimization,
-} from '@/shared/lib/performance-optimization';
+// === Constants ===
+export const SCENARIO_FEATURE_CONSTANTS = {
+  GENERATION_STEPS: [
+    'idle',
+    'preparing',
+    'generating_outline',
+    'creating_scenes',
+    'validating',
+    'finalizing',
+    'completed',
+    'error'
+  ] as const,
+  
+  EDIT_MODES: [
+    'view',
+    'edit',
+    'split',
+    'merge'
+  ] as const,
+  
+  SPLIT_STRATEGIES: [
+    'natural_breaks',
+    'duration_based',
+    'content_based',
+    'hybrid',
+    'ai_guided'
+  ] as const,
+  
+  DEFAULT_GENERATION_OPTIONS: {
+    validateResult: true,
+    retryOnFailure: true,
+    maxRetries: 2
+  } as const,
+  
+  DEFAULT_SPLIT_OPTIONS: {
+    strategy: 'hybrid' as const,
+    useAI: true,
+    fallbackToRuleBased: true,
+    minSceneDuration: 10,
+    maxSceneDuration: 120,
+    targetSceneCount: 5
+  } as const
+} as const

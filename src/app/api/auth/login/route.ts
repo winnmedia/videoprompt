@@ -1,125 +1,154 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
-import { success, failure, getTraceId } from '@/shared/lib/api-response';
-import { signInWithSupabase } from '@/shared/lib/auth-supabase';
-import { addCorsHeaders } from '@/shared/lib/cors-utils';
-import { checkRateLimit, RATE_LIMITS } from '@/shared/lib/rate-limiter';
-import { logger } from '@/shared/lib/logger';
+/**
+ * Auth Login API Route
+ *
+ * UserJourneyMap.md 1단계: 로그인 기능
+ * CLAUDE.md 준수: Supabase Auth 연동, Zod 검증, 비용 안전
+ */
 
+import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-
+// 로그인 요청 스키마 (Zod 검증)
 const LoginSchema = z.object({
   email: z.string().email('유효한 이메일을 입력해주세요'),
-  password: z.string().min(8, '비밀번호는 최소 8자 이상이어야 합니다').max(128),
-});
+  password: z.string().min(6, '비밀번호는 최소 6자 이상이어야 합니다'),
+  rememberMe: z.boolean().optional().default(false)
+})
 
-// CORS OPTIONS 핸들러
-export async function OPTIONS(req: NextRequest) {
-  const response = new NextResponse(null, { status: 200 });
-  return addCorsHeaders(response);
+export async function POST(request: NextRequest) {
+  try {
+    // 요청 본문 파싱 및 검증
+    const body = await request.json()
+    const validatedData = LoginSchema.parse(body)
+
+    // Supabase 클라이언트 초기화
+    const cookieStore = await cookies()
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+
+    // Supabase Auth로 로그인 시도
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: validatedData.email,
+      password: validatedData.password,
+    })
+
+    if (error) {
+      console.error('Login error:', error)
+
+      // 에러 타입별 분기 처리
+      if (error.message.includes('Invalid login credentials')) {
+        return NextResponse.json({
+          success: false,
+          error: {
+            code: 'INVALID_CREDENTIALS',
+            message: '이메일 또는 비밀번호가 올바르지 않습니다'
+          }
+        }, { status: 401 })
+      }
+
+      if (error.message.includes('Email not confirmed')) {
+        return NextResponse.json({
+          success: false,
+          error: {
+            code: 'EMAIL_NOT_VERIFIED',
+            message: '이메일 인증이 필요합니다. 이메일을 확인해주세요'
+          }
+        }, { status: 403 })
+      }
+
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'AUTH_ERROR',
+          message: '로그인 중 오류가 발생했습니다'
+        }
+      }, { status: 400 })
+    }
+
+    // 로그인 성공
+    const user = data.user
+    const session = data.session
+
+    if (!user || !session) {
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'LOGIN_FAILED',
+          message: '로그인에 실패했습니다'
+        }
+      }, { status: 400 })
+    }
+
+    // 사용자 메타데이터 업데이트 (마지막 로그인 시간)
+    await supabase.auth.updateUser({
+      data: {
+        last_login: new Date().toISOString(),
+        remember_me: validatedData.rememberMe
+      }
+    })
+
+    // 성공 응답
+    return NextResponse.json({
+      success: true,
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          displayName: user.user_metadata?.display_name || user.email?.split('@')[0],
+          avatarUrl: user.user_metadata?.avatar_url,
+          emailVerified: user.email_confirmed_at ? true : false,
+          role: user.user_metadata?.role || 'user',
+          createdAt: user.created_at,
+          lastLoginAt: new Date().toISOString()
+        },
+        session: {
+          accessToken: session.access_token,
+          refreshToken: session.refresh_token,
+          expiresAt: session.expires_at,
+          expiresIn: session.expires_in
+        }
+      },
+      message: '로그인되었습니다'
+    })
+
+  } catch (error) {
+    console.error('Login API error:', error)
+
+    // Zod 검증 오류
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: '입력값이 올바르지 않습니다',
+          details: error.errors.map(err => ({
+            field: err.path.join('.'),
+            message: err.message
+          }))
+        }
+      }, { status: 400 })
+    }
+
+    // 기타 서버 오류
+    return NextResponse.json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: '서버 오류가 발생했습니다'
+      }
+    }, { status: 500 })
+  }
 }
 
-/**
- * Supabase Auth 기반 로그인 API
- * 기존 API 구조 유지, Supabase Auth로 내부 로직 변경
- */
-export async function POST(req: NextRequest) {
-  try {
-    const traceId = getTraceId(req);
-
-    // Rate Limiting 유지
-    const rateLimitResult = checkRateLimit(req, 'login', RATE_LIMITS.login);
-    if (!rateLimitResult.allowed) {
-      logger.debug(`🚫 Rate limit exceeded for login from IP: ${req.headers.get('x-forwarded-for') || '127.0.0.1'}`);
-
-      const response = NextResponse.json(
-        failure(
-          'RATE_LIMIT_EXCEEDED',
-          '로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.',
-          429,
-          `retryAfter: ${rateLimitResult.retryAfter}`,
-          traceId
-        ),
-        { status: 429 }
-      );
-
-      Object.entries(rateLimitResult.headers).forEach(([key, value]) => {
-        response.headers.set(key, value);
-      });
-
-      return addCorsHeaders(response);
-    }
-
-    // 요청 데이터 검증
-    const body = await req.json();
-    const { email, password } = LoginSchema.parse(body);
-
-    logger.info(`🔐 Login attempt for email: ${email}`);
-
-    // Supabase Auth로 로그인
-    const { user, session, error } = await signInWithSupabase(email, password);
-
-    if (error || !user || !session) {
-      logger.debug(`❌ Login failed for ${email}:`, (error as any)?.originalMessage || (error as any)?.message);
-
-      // 이미 한국어로 변환된 에러 메시지 사용
-      const errorMessage = (error as any)?.message || '로그인 중 오류가 발생했습니다.';
-      const debugMessage = (error as any)?.originalMessage || (error as any)?.message;
-
-      const response = failure('UNAUTHORIZED', errorMessage, 401, debugMessage, traceId);
-      return addCorsHeaders(response);
-    }
-
-    logger.info(`✅ Login successful for ${email}, user ID: ${user.id}`);
-
-    // 기존 API 응답 구조 유지
-    const responseData = {
-      id: user.id,
-      email: user.email,
-      username: user.user_metadata?.username || user.email?.split('@')[0],
-      accessToken: session.access_token,
-      token: session.access_token, // 기존 코드 호환성을 위해 유지
-    };
-
-    const response = success(responseData, 200, traceId);
-
-    // Supabase 토큰을 httpOnly 쿠키로 설정
-    (response as NextResponse).cookies.set('sb-access-token', session.access_token, {
-      httpOnly: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      secure: true,
-      path: '/',
-      maxAge: 60 * 60, // 1시간
-    });
-
-    (response as NextResponse).cookies.set('sb-refresh-token', session.refresh_token, {
-      httpOnly: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      secure: true,
-      path: '/',
-      maxAge: 7 * 24 * 60 * 60, // 7일
-    });
-
-    // 기존 세션 쿠키도 설정 (하위 호환성)
-    (response as NextResponse).cookies.set('session', session.access_token, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: 60 * 60, // 1시간
-    });
-
-    return addCorsHeaders(response);
-  } catch (e: any) {
-    const traceId = getTraceId(req);
-    logger.debug('Login error:', e);
-
-    const response = e instanceof z.ZodError
-      ? failure('INVALID_INPUT_FIELDS', e.message, 400, undefined, traceId)
-      : failure('UNKNOWN', e?.message || 'Server error', 500, undefined, traceId);
-
-    return addCorsHeaders(response);
-  }
+// OPTIONS 메서드 (CORS 지원)
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  })
 }

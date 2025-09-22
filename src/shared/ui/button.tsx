@@ -1,176 +1,237 @@
-"use client";
+/**
+ * Button Component
+ *
+ * CLAUDE.md 준수사항:
+ * - cva 기반 variant 시스템
+ * - WCAG 2.1 AA 접근성 준수 (대비 4.5:1)
+ * - 200ms 이하 애니메이션
+ * - 임의값 사용 금지
+ * - data-testid 네이밍 규약
+ */
+
+'use client';
+
 import React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '@/shared/lib/utils';
-import type { ButtonHTMLAttributes } from 'react';
+import { ComponentProps } from 'react';
 
-export const buttonVariants = cva(
-  // ✨ A11y 강화: 터치 타겟, 포커스, 디스에이블 상태
-  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 hover:scale-105',
+// Simple Slot 구현 (Radix UI 스타일)
+const Slot = React.forwardRef<
+  HTMLElement,
+  React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }
+>(({ children, ...props }, ref) => {
+  if (React.isValidElement(children)) {
+    return React.cloneElement(children, {
+      ...props,
+      ...children.props,
+      ref: ref,
+      className: [props.className, children.props.className].filter(Boolean).join(' '),
+    });
+  }
+
+  return <span {...props} ref={ref as React.Ref<HTMLSpanElement>}>{children}</span>;
+});
+
+// Button variants 정의 (cva 기반)
+const buttonVariants = cva(
+  // 기본 스타일 (공통)
+  [
+    'inline-flex items-center justify-center',
+    'font-medium text-sm leading-5',
+    'border border-transparent',
+    'cursor-pointer',
+    'transition-all duration-150 ease-out',
+    'focus:outline-none focus:ring-2 focus:ring-offset-2',
+    'disabled:opacity-50 disabled:cursor-not-allowed',
+    'active:scale-95',
+  ],
   {
     variants: {
+      // 스타일 variant
       variant: {
-        default: 'bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800 focus-visible:ring-primary-400',
-        primary: 'bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800 focus-visible:ring-primary-400',
-        secondary: 'border border-secondary-300 bg-white text-secondary-900 hover:bg-secondary-50 focus-visible:ring-secondary-400',
-        outline: 'border border-secondary-300 bg-transparent text-secondary-900 hover:bg-secondary-50 focus-visible:ring-secondary-400',
-        ghost: 'text-secondary-900 hover:bg-secondary-100 active:bg-secondary-200 focus-visible:ring-secondary-400',
-        destructive: 'bg-danger-600 text-white hover:bg-danger-700 active:bg-danger-800 focus-visible:ring-danger-400',
-        success: 'bg-success-600 text-white hover:bg-success-700 active:bg-success-800 focus-visible:ring-success-400',
-        warning: 'bg-warning-600 text-white hover:bg-warning-700 active:bg-warning-800 focus-visible:ring-warning-400',
-        accent: 'bg-accent-600 text-white hover:bg-accent-700 active:bg-accent-800 focus-visible:ring-accent-400',
-        toggle: 'border transition-colors data-[active=true]:bg-primary-500 data-[active=true]:text-white data-[active=true]:border-primary-500 data-[active=false]:bg-secondary-100 data-[active=false]:text-secondary-600 data-[active=false]:border-secondary-300 hover:data-[active=false]:bg-secondary-200',
+        primary: [
+          'bg-primary-600 text-white',
+          'hover:bg-primary-700',
+          'focus:ring-primary-500',
+          'border-primary-600',
+        ],
+        secondary: [
+          'bg-neutral-100 text-neutral-900',
+          'hover:bg-neutral-200',
+          'focus:ring-neutral-500',
+          'border-neutral-200',
+        ],
+        outline: [
+          'bg-transparent text-primary-600',
+          'border-primary-600',
+          'hover:bg-primary-50',
+          'focus:ring-primary-500',
+        ],
+        ghost: [
+          'bg-transparent text-neutral-700',
+          'hover:bg-neutral-100',
+          'focus:ring-neutral-500',
+        ],
+        destructive: [
+          'bg-error-600 text-white',
+          'hover:bg-error-700',
+          'focus:ring-error-500',
+          'border-error-600',
+        ],
       },
+      // 크기 variant
       size: {
-        default: 'h-10 px-4 py-2',
-        sm: 'h-8 px-3 text-xs',
-        md: 'h-9 px-4',
-        lg: 'min-h-touch-target px-6', // 모바일 터치 타겟 준수
-        xl: 'h-12 px-8 text-base',
-        icon: 'min-h-touch-target min-w-touch-target', // 아이콘 버튼도 터치 타겟 준수
+        sm: ['h-8 px-3 text-xs', 'rounded-md'],
+        md: ['h-10 px-4 text-sm', 'rounded-lg'],
+        lg: ['h-12 px-6 text-base', 'rounded-lg'],
+        xl: ['h-14 px-8 text-lg', 'rounded-xl'],
+      },
+      // 전체 너비 variant
+      fullWidth: {
+        true: 'w-full',
+        false: 'w-auto',
       },
     },
     defaultVariants: {
-      variant: 'default',
-      size: 'default',
+      variant: 'primary',
+      size: 'md',
+      fullWidth: false,
     },
-  },
+  }
 );
 
+// Button Props 타입 정의
 export interface ButtonProps
-  extends ButtonHTMLAttributes<HTMLButtonElement>,
+  extends Omit<ComponentProps<'button'>, 'size'>,
     VariantProps<typeof buttonVariants> {
-  loading?: boolean;
-  leftIcon?: React.ReactNode;
-  rightIcon?: React.ReactNode;
-  active?: boolean;
-  testId?: string;
-  error?: boolean;
-  errorMessage?: string;
-  loadingText?: string;
-  description?: string;
+  /** asChild 패턴 지원 (Radix UI 스타일) */
   asChild?: boolean;
+  /** 로딩 상태 */
+  loading?: boolean;
+  /** 버튼 앞에 표시할 아이콘 */
+  leftIcon?: React.ReactNode;
+  /** 버튼 뒤에 표시할 아이콘 */
+  rightIcon?: React.ReactNode;
+  /** 접근성을 위한 추가 설명 */
+  'aria-label'?: string;
+  /** 테스트를 위한 data-testid */
+  'data-testid'?: string;
 }
 
-export function Button({
-  className,
-  variant,
-  size,
-  loading,
-  leftIcon,
-  rightIcon,
-  children,
-  disabled,
-  active,
-  testId,
-  error,
-  errorMessage,
-  loadingText,
-  description,
-  asChild = false,
-  ...props
-}: ButtonProps) {
-  const isDisabled = disabled || loading;
-  const finalVariant = error ? 'destructive' : variant;
-
-  const buttonId = testId || `button-${Math.random().toString(36).substr(2, 9)}`;
-  const descriptionId = description ? `${buttonId}-description` : undefined;
-  const errorId = errorMessage ? `${buttonId}-error` : undefined;
-
-  const buttonClasses = cn(
-    buttonVariants({ variant: finalVariant, size }),
+/**
+ * Button 컴포넌트
+ *
+ * @example
+ * ```tsx
+ * // 기본 사용법
+ * <Button>클릭</Button>
+ *
+ * // variant와 size 지정
+ * <Button variant="secondary" size="lg">큰 버튼</Button>
+ *
+ * // 아이콘과 함께
+ * <Button leftIcon={<PlusIcon />}>추가</Button>
+ *
+ * // 로딩 상태
+ * <Button loading>처리 중...</Button>
+ * ```
+ */
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  (
     {
-      'ring-2 ring-danger-400 ring-offset-2': error && !disabled,
+      className,
+      variant,
+      size,
+      fullWidth,
+      asChild = false,
+      loading = false,
+      disabled,
+      leftIcon,
+      rightIcon,
+      children,
+      'data-testid': dataTestId,
+      ...props
     },
-    className
-  );
+    ref
+  ) => {
+    const Comp = asChild ? Slot : 'button';
+    const buttonClassName = buttonVariants({ variant, size, fullWidth, className });
 
-  const buttonProps: ButtonHTMLAttributes<HTMLButtonElement> & {
-    'data-active'?: boolean;
-    'data-testid'?: string;
-  } = {
-    id: buttonId,
-    className: buttonClasses,
-    disabled: isDisabled,
-    'data-active': active,
-    'data-testid': testId,
-    'aria-describedby': cn(descriptionId, errorId) || undefined,
-    'aria-invalid': error ? ('true' as const) : undefined,
-    'aria-busy': loading ? ('true' as const) : undefined,
-    'aria-pressed': active ? ('true' as const) : undefined,
-    role: variant === 'toggle' ? ('button' as const) : undefined,
-    ...props,
-  };
-
-  const buttonContent = (
-    <>
-      {loading && (
-        <svg
-          className="mr-2 h-4 w-4 animate-spin"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          aria-label="로딩 스피너"
-        >
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
-      )}
-      {!loading && leftIcon && <span className="mr-2">{leftIcon}</span>}
-      {loading && loadingText ? loadingText : children}
-      {!loading && rightIcon && <span className="ml-2">{rightIcon}</span>}
-    </>
-  );
-
-  return (
-    <div className="space-y-1">
-      {asChild && React.isValidElement(children) ? (
-        React.cloneElement(children as React.ReactElement<{ className?: string; children?: React.ReactNode }>, {
-          ...buttonProps,
-          className: cn((children as React.ReactElement<{ className?: string }>).props.className, buttonClasses),
-          children: buttonContent,
-        })
-      ) : (
-        <button type="button" {...buttonProps}>
-          {buttonContent}
-        </button>
-      )}
-
-      {/* 설명 텍스트 */}
-      {description && (
-        <p
-          id={descriptionId}
-          className="text-xs text-gray-600"
-        >
-          {description}
-        </p>
-      )}
-
-      {/* 에러 메시지 */}
-      {errorMessage && (
-        <p
-          id={errorId}
-          role="alert"
-          aria-live="polite"
-          className="text-xs text-danger-600 flex items-start gap-1"
-        >
+    const content = (
+      <>
+        {/* 로딩 스피너 */}
+        {loading && (
           <svg
-            className="h-3 w-3 mt-0.5 flex-shrink-0"
-            fill="currentColor"
-            viewBox="0 0 20 20"
+            className="animate-spin -ml-1 mr-2 h-4 w-4"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
             aria-hidden="true"
           >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
             <path
-              fillRule="evenodd"
-              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5l-3 5A1 1 0 007 14h6a1 1 0 00.866-1.5l-3-5A1 1 0 0010 7z"
-              clipRule="evenodd"
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             />
           </svg>
-          <span>{errorMessage}</span>
-        </p>
-      )}
-    </div>
-  );
-}
+        )}
 
+        {/* 왼쪽 아이콘 */}
+        {!loading && leftIcon && (
+          <span className="mr-2 inline-flex" aria-hidden="true">
+            {leftIcon}
+          </span>
+        )}
 
+        {/* 버튼 텍스트 */}
+        {children}
+
+        {/* 오른쪽 아이콘 */}
+        {!loading && rightIcon && (
+          <span className="ml-2 inline-flex" aria-hidden="true">
+            {rightIcon}
+          </span>
+        )}
+      </>
+    );
+
+    if (asChild) {
+      return (
+        <Comp
+          className={buttonClassName}
+          data-testid={dataTestId || 'ui-button'}
+          {...props}
+          ref={ref as any}
+        >
+          {content}
+        </Comp>
+      );
+    }
+
+    return (
+      <Comp
+        ref={ref}
+        className={buttonClassName}
+        disabled={disabled || loading}
+        data-testid={dataTestId || 'ui-button'}
+        aria-disabled={disabled || loading}
+        {...props}
+      >
+        {content}
+      </Comp>
+    );
+  }
+);
+
+Button.displayName = 'Button';
+
+// 타입 export
+export type { VariantProps };

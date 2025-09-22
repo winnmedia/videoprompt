@@ -1,573 +1,557 @@
-'use client';
+/**
+ * StoryInputForm Widget
+ *
+ * AI 스토리 생성을 위한 사용자 입력 폼 컴포넌트
+ * CLAUDE.md 준수: FSD widgets 레이어, 접근성 WCAG 2.1 AA, React 19
+ */
 
-import React, { useState } from 'react';
-import { StoryInput, StoryTemplate } from '@/entities/scenario';
-import { Button } from '@/shared/ui';
-import { TemplateSelector } from './TemplateSelector';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
+import type {
+  StoryGenerationRequest,
+  ScenarioCreateInput
+} from '../../entities/scenario'
 
-interface StoryInputFormProps {
-  storyInput: StoryInput;
-  onInputChange: (field: keyof StoryInput, value: any) => void;
-  onSubmit: () => void;
-  loading: boolean;
-  error: string | null;
-  errorType: 'client' | 'server' | 'network' | null;
-  retryCount: number;
-  onRetry: () => void;
-  customTone: string;
-  setCustomTone: (value: string) => void;
-  showCustomToneInput: boolean;
-  setShowCustomToneInput: (value: boolean) => void;
-  customGenre: string;
-  setCustomGenre: (value: string) => void;
-  showCustomGenreInput: boolean;
-  setShowCustomGenreInput: (value: boolean) => void;
-  onTemplateSelect: (template: StoryTemplate) => void;
-  onSaveAsTemplate: (templateData: { name: string; description: string; storyInput: StoryInput }) => void;
+import { useStoryGeneration, StoryGenerator } from '../../features/scenario'
+import { Button, Card, Input, Select, Textarea } from '../../shared/ui'
+import logger from '../../shared/lib/logger'
+
+/**
+ * 스토리 입력 폼 속성
+ */
+export interface StoryInputFormProps {
+  onStoryGenerated?: (scenario: any) => void
+  onError?: (error: string) => void
+  disabled?: boolean
+  className?: string
+  defaultValues?: {
+    title?: string
+    description?: string
+    genre?: string
+    targetDuration?: number
+    prompt?: string
+    style?: string
+    tone?: string
+  }
 }
 
-// 옵션 상수들
-const toneOptions = [
-  '친근한',
-  '전문적인',
-  '감성적인',
-  '유머러스한',
-  '진중한',
-  '트렌디한',
-  '따뜻한',
-  '강렬한',
-];
+/**
+ * 폼 데이터 타입
+ */
+interface FormData {
+  title: string
+  description: string
+  genre: string
+  targetDuration: number
+  prompt: string
+  style: 'casual' | 'professional' | 'creative' | 'educational'
+  tone: 'serious' | 'humorous' | 'dramatic' | 'informative'
+}
 
-const genreOptions = [
-  '다큐멘터리',
-  '광고',
-  '뮤직비디오',
-  '숏폼',
-  '브이로그',
-  '튜토리얼',
-  '인터뷰',
-  '리뷰',
-];
-
-const formatOptions = ['16:9', '9:16', '1:1', '4:3'];
-
-const tempoOptions = ['빠르게', '보통', '느리게'];
-
-const intensityOptions = ['강하게', '보통', '부드럽게'];
-
-const developmentOptions = [
-  '훅-몰입-반전-떡밥',
-  '클래식 기승전결', 
-  '귀납법',
-  '연역법',
-  '다큐(인터뷰식)',
-  '픽사스토리'
-];
-
+/**
+ * 스토리 입력 폼 컴포넌트
+ *
+ * AI 스토리 생성을 위한 사용자 입력 폼
+ * CLAUDE.md 준수: FSD widgets 레이어, 접근성 WCAG 2.1 AA
+ */
 export function StoryInputForm({
-  storyInput,
-  onInputChange,
-  onSubmit,
-  loading,
-  error,
-  errorType,
-  retryCount,
-  onRetry,
-  customTone,
-  setCustomTone,
-  showCustomToneInput,
-  setShowCustomToneInput,
-  customGenre,
-  setCustomGenre,
-  showCustomGenreInput,
-  setShowCustomGenreInput,
-  onTemplateSelect,
-  onSaveAsTemplate
+  onStoryGenerated,
+  onError,
+  disabled = false,
+  className = '',
+  defaultValues = {}
 }: StoryInputFormProps) {
-  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
-  const handleToneRemove = (toneToRemove: string) => {
-    const newTones = storyInput.toneAndManner.filter(tone => tone !== toneToRemove);
-    onInputChange('toneAndManner', newTones);
-  };
-
-  const handleCustomToneAdd = () => {
-    if (customTone.trim() && !storyInput.toneAndManner.includes(customTone.trim())) {
-      onInputChange('toneAndManner', [...storyInput.toneAndManner, customTone.trim()]);
-      setCustomTone('');
-      setShowCustomToneInput(false);
+  // Redux 상태 및 Hook
+  const {
+    generateStory,
+    isGenerating,
+    progress,
+    currentStep,
+    error,
+    clearError
+  } = useStoryGeneration({
+    autoSave: true,
+    onSuccess: (result) => {
+      if (result.scenario) {
+        onStoryGenerated?.(result.scenario)
+        logger.info('스토리 생성 성공', {
+          scenarioId: result.scenario.metadata.id
+        })
+      }
+    },
+    onError: (errorMsg) => {
+      onError?.(errorMsg)
+      logger.error('스토리 생성 실패', { error: errorMsg })
     }
-  };
+  })
 
-  const handleCustomGenreSet = () => {
-    if (customGenre.trim()) {
-      onInputChange('genre', customGenre.trim());
-      setCustomGenre('');
-      setShowCustomGenreInput(false);
+  // 폼 상태 관리
+  const [formData, setFormData] = useState<FormData>({
+    title: defaultValues.title || '',
+    description: defaultValues.description || '',
+    genre: defaultValues.genre || '브이로그',
+    targetDuration: defaultValues.targetDuration || 300,
+    prompt: defaultValues.prompt || '',
+    style: (defaultValues.style as FormData['style']) || 'professional',
+    tone: (defaultValues.tone as FormData['tone']) || 'informative'
+  })
+
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+  const [showAdvanced, setShowAdvanced] = useState(false)
+
+  /**
+   * 폼 데이터 업데이트
+   */
+  const updateFormData = useCallback((field: keyof FormData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+
+    // 해당 필드 에러 제거
+    if (validationErrors[field]) {
+      setValidationErrors(prev => {
+        const { [field]: removed, ...rest } = prev
+        return rest
+      })
     }
-  };
+  }, [validationErrors])
 
-  // 필수 입력값 검증
-  const isFormValid = () => {
-    return (
-      storyInput.title.trim() !== '' &&
-      storyInput.oneLineStory.trim() !== '' &&
-      storyInput.toneAndManner.length > 0 &&
-      storyInput.genre.trim() !== '' &&
-      storyInput.target.trim() !== '' &&
-      storyInput.duration.trim() !== '' &&
-      storyInput.format.trim() !== '' &&
-      storyInput.tempo.trim() !== '' &&
-      storyInput.developmentMethod.trim() !== '' &&
-      storyInput.developmentIntensity.trim() !== ''
-    );
-  };
+  /**
+   * 폼 검증
+   */
+  const validateForm = useCallback((): boolean => {
+    const errors: Record<string, string> = {}
+
+    if (!formData.title.trim()) {
+      errors.title = '제목을 입력해주세요.'
+    } else if (formData.title.length > 100) {
+      errors.title = '제목은 100자 이하로 입력해주세요.'
+    }
+
+    if (!formData.prompt.trim()) {
+      errors.prompt = '스토리 아이디어를 입력해주세요.'
+    } else {
+      const promptValidation = StoryGenerator.validatePrompt(formData.prompt)
+      if (!promptValidation.isValid) {
+        errors.prompt = promptValidation.issues.join(' ')
+      }
+    }
+
+    if (formData.targetDuration < 30 || formData.targetDuration > 3600) {
+      errors.targetDuration = '대상 지속시간은 30초~60분 사이로 설정해주세요.'
+    }
+
+    setValidationErrors(errors)
+    return Object.keys(errors).length === 0
+  }, [formData])
+
+  /**
+   * 폼 제출 처리
+   */
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!validateForm() || isGenerating) {
+      return
+    }
+
+    // 에러 상태 제거
+    if (error) {
+      clearError()
+    }
+
+    const scenarioInput: ScenarioCreateInput = {
+      title: formData.title,
+      description: formData.description,
+      genre: formData.genre,
+      targetDuration: formData.targetDuration,
+      storyPrompt: formData.prompt,
+      userId: 'current-user' // TODO: 실제 사용자 ID로 교체
+    }
+
+    const generationRequest: StoryGenerationRequest = {
+      prompt: StoryGenerator.optimizePrompt(formData.prompt, {
+        genre: formData.genre,
+        platform: '온라인 비디오'
+      }),
+      genre: formData.genre,
+      targetDuration: formData.targetDuration,
+      style: formData.style,
+      tone: formData.tone
+    }
+
+    await generateStory(scenarioInput, generationRequest)
+  }, [formData, validateForm, isGenerating, error, clearError, generateStory])
+
+  /**
+   * 예상 비용 계산
+   */
+  const estimatedCost = useMemo(() => {
+    if (!formData.prompt) return null
+    return StoryGenerator.estimateGenerationCost(formData.prompt, formData.targetDuration)
+  }, [formData.prompt, formData.targetDuration])
+
+  /**
+   * $300 사건 방지: useRef로 이전 값 추적하여 무한 루프 방지
+   * 장르 변경 시 기본값 적용
+   */
+  const previousGenreRef = useRef<string>('')
+
+  useEffect(() => {
+    // 장르가 실제로 변경되었을 때만 실행 (무한 루프 방지)
+    if (formData.genre && formData.genre !== previousGenreRef.current) {
+      previousGenreRef.current = formData.genre
+      const defaults = StoryGenerator.getGenreDefaults(formData.genre)
+      setFormData(prev => ({
+        ...prev,
+        style: defaults.style,
+        tone: defaults.tone,
+        targetDuration: prev.targetDuration || defaults.targetDuration
+      }))
+    }
+  }, [formData.genre]) // formData.genre만 의존성으로 유지 (setFormData는 React가 안정적으로 보장)
 
   return (
-    <div className="bg-white rounded-lg shadow p-4 sm:p-6" aria-busy={loading} aria-live="polite">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">스토리 입력</h2>
-        <Button
-          onClick={() => setShowTemplateSelector(true)}
-          variant="secondary"
-          className="text-sm"
-        >
-          템플릿 선택
-        </Button>
-      </div>
+    <Card className={`p-6 ${className}`}>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-neutral-900">
+            AI 스토리 생성
+          </h2>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* 기본 정보 */}
-        <div className="space-y-4">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-900">제목</label>
-            <input
-              type="text"
-              value={storyInput.title}
-              onChange={(e) => onInputChange('title', e.target.value)}
-              className="w-full rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
-              placeholder="시나리오 제목을 입력하세요"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-900">
-              한 줄 스토리
-            </label>
-            <textarea
-              value={storyInput.oneLineStory}
-              onChange={(e) => onInputChange('oneLineStory', e.target.value)}
-              rows={3}
-              className="w-full rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
-              placeholder="스토리의 핵심을 한 줄로 요약하세요"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-900">타겟</label>
-            <input
-              type="text"
-              value={storyInput.target}
-              onChange={(e) => onInputChange('target', e.target.value)}
-              className="w-full rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
-              placeholder="타겟 시청자"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-900">분량</label>
-            <input
-              type="text"
-              value={storyInput.duration}
-              onChange={(e) => onInputChange('duration', e.target.value)}
-              className="w-full rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
-              placeholder="예: 30초, 60초, 90초"
-            />
-          </div>
-        </div>
-
-        {/* 스타일 및 전개 */}
-        <div className="space-y-4">
-          <div>
-            <label className="mb-3 block text-sm font-medium text-gray-900">
-              톤앤매너 (다중 선택)
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {toneOptions.map((tone) => (
-                <label key={tone} className="flex cursor-pointer items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={storyInput.toneAndManner.includes(tone)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        onInputChange('toneAndManner', [
-                          ...storyInput.toneAndManner,
-                          tone,
-                        ]);
-                      } else {
-                        onInputChange(
-                          'toneAndManner',
-                          storyInput.toneAndManner.filter((t) => t !== tone),
-                        );
-                      }
-                    }}
-                    className="text-primary border-border focus:ring-primary h-4 w-4 rounded focus:ring-2 focus:ring-offset-2"
-                  />
-                  <span className="text-sm text-gray-900">{tone}</span>
-                </label>
-              ))}
-              <button
-                type="button"
-                onClick={() => setShowCustomToneInput(true)}
-                className="flex cursor-pointer items-center space-x-2 text-brand-600 hover:text-brand-700"
-              >
-                <div className="h-4 w-4 rounded border-2 border-brand-600 flex items-center justify-center">
-                  <span className="text-xs">+</span>
-                </div>
-                <span className="text-sm">기타 추가</span>
-              </button>
+          {isGenerating && (
+            <div className="flex items-center gap-2 text-primary-600">
+              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm font-medium">
+                {currentStep === 'preparing' && '준비 중...'}
+                {currentStep === 'generating_outline' && '아웃라인 생성 중...'}
+                {currentStep === 'creating_scenes' && '씬 생성 중...'}
+                {currentStep === 'validating' && '검증 중...'}
+                {currentStep === 'finalizing' && '마무리 중...'}
+              </span>
             </div>
-            
-            {/* 선택된 톤앤매너 태그 표시 */}
-            {storyInput.toneAndManner.length > 0 && (
-              <div className="mt-3">
-                <div className="flex flex-wrap gap-2">
-                  {storyInput.toneAndManner.map((tone) => (
-                    <span 
-                      key={tone}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-800"
-                    >
-                      {tone}
-                      <button
-                        type="button"
-                        onClick={() => handleToneRemove(tone)}
-                        className="ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full text-brand-400 hover:bg-brand-200 hover:text-brand-500 focus:bg-brand-500 focus:text-white focus:outline-none"
-                      >
-                        <span className="sr-only">Remove {tone}</span>
-                        <span aria-hidden="true">×</span>
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {/* 커스텀 톤앤매너 입력 */}
-            {showCustomToneInput && (
-              <div className="mt-3 flex gap-2">
-                <input
-                  type="text"
-                  value={customTone}
-                  onChange={(e) => setCustomTone(e.target.value)}
-                  placeholder="새로운 톤앤매너를 입력하세요"
-                  className="flex-1 rounded-lg border-2 border-brand-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      handleCustomToneAdd();
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={handleCustomToneAdd}
-                  className="px-3 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                >
-                  추가
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCustomToneInput(false);
-                    setCustomTone('');
-                  }}
-                  className="px-3 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-200"
-                >
-                  취소
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-900">장르</label>
-              {showCustomGenreInput ? (
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={customGenre}
-                      onChange={(e) => setCustomGenre(e.target.value)}
-                      placeholder="새로운 장르를 입력하세요"
-                      className="flex-1 rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          handleCustomGenreSet();
-                        }
-                      }}
-                      autoFocus
-                    />
-                  </div>
-                  <div className="flex gap-2 justify-end">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowCustomGenreInput(false);
-                        setCustomGenre('');
-                      }}
-                      className="px-3 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-200"
-                    >
-                      취소
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCustomGenreSet}
-                      disabled={!customGenre.trim()}
-                      className="px-3 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      추가
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <select
-                  value={storyInput.genre === customGenre ? '기타' : storyInput.genre}
-                  onChange={(e) => {
-                    if (e.target.value === '기타') {
-                      setShowCustomGenreInput(true);
-                    } else {
-                      onInputChange('genre', e.target.value);
-                    }
-                  }}
-                  className="w-full rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                >
-                  <option value="">장르를 선택하세요</option>
-                  {genreOptions.map((genre) => (
-                    <option key={genre} value={genre}>
-                      {genre}
-                    </option>
-                  ))}
-                  <option value="기타">기타 (직접 입력)</option>
-                </select>
-              )}
-              {storyInput.genre && !genreOptions.includes(storyInput.genre) && (
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-800">
-                    커스텀: {storyInput.genre}
-                    <button
-                      type="button"
-                      onClick={() => onInputChange('genre', '')}
-                      className="ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full text-brand-400 hover:bg-brand-200 hover:text-brand-500 focus:bg-brand-500 focus:text-white focus:outline-none"
-                    >
-                      <span className="sr-only">Remove custom genre</span>
-                      <span aria-hidden="true">×</span>
-                    </button>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCustomGenreInput(false);
-                      setCustomGenre('');
-                    }}
-                    className="text-xs text-brand-600 hover:text-brand-700 underline"
-                  >
-                    다른 장르 선택
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-900">포맷</label>
-              <select
-                value={storyInput.format}
-                onChange={(e) => onInputChange('format', e.target.value)}
-                className="w-full rounded-lg border-2 border-brand-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
-              >
-                <option value="">포맷을 선택하세요</option>
-                {formatOptions.map((format) => (
-                  <option key={format} value={format}>
-                    {format}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-900">템포</label>
-              <div className="space-y-2">
-                {tempoOptions.map((tempo) => (
-                  <label key={tempo} className="flex cursor-pointer items-center space-x-2">
-                    <input
-                      type="radio"
-                      name="tempo"
-                      value={tempo}
-                      checked={storyInput.tempo === tempo}
-                      onChange={(e) => onInputChange('tempo', e.target.value)}
-                      className="text-primary border-border focus:ring-primary h-4 w-4 focus:ring-2 focus:ring-offset-2"
-                    />
-                    <span className="text-sm text-gray-900">{tempo}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-900">
-                전개 강도
-              </label>
-              <div className="space-y-2">
-                {intensityOptions.map((intensity) => (
-                  <label
-                    key={intensity}
-                    className="flex cursor-pointer items-center space-x-2"
-                  >
-                    <input
-                      type="radio"
-                      name="intensity"
-                      value={intensity}
-                      checked={storyInput.developmentIntensity === intensity}
-                      onChange={(e) =>
-                        onInputChange('developmentIntensity', e.target.value)
-                      }
-                      className="text-primary border-border focus:ring-primary h-4 w-4 focus:ring-2 focus:ring-offset-2"
-                    />
-                    <span className="text-sm text-gray-900">{intensity}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-900">전개 방식</label>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {developmentOptions.map((method) => {
-                const selected = storyInput.developmentMethod === method;
-                return (
-                  <button
-                    key={method}
-                    type="button"
-                    onClick={() => onInputChange('developmentMethod', method)}
-                    className={`rounded-md border p-3 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
-                      selected
-                        ? 'border-brand-500 bg-primary-50 shadow'
-                        : 'border-gray-300 bg-white hover:border-gray-400'
-                    }`}
-                    aria-pressed={selected ? 'true' : 'false'}
-                  >
-                    <div className="font-medium text-gray-900">{method}</div>
-                    <div className="mt-1 text-xs text-gray-600">
-                      {method === '훅-몰입-반전-떡밥' && '시작에 강한 주목→빠른 몰입→반전→후속 기대'}
-                      {method === '클래식 기승전결' && '기-승-전-결의 안정적 구조'}
-                      {method === '귀납법' && '사례를 모아 결론에 도달'}
-                      {method === '연역법' && '결론을 먼저 제시하고 근거로 전개'}
-                      {method === '다큐(인터뷰식)' && '인터뷰/내레이션 중심의 전개'}
-                      {method === '픽사스토리' && '옛날 옛적에→매일→그러던 어느 날→때문에→결국'}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 선택된 옵션 미리보기 */}
-      {(storyInput.toneAndManner.length > 0 ||
-        storyInput.genre ||
-        storyInput.tempo ||
-        storyInput.developmentMethod ||
-        storyInput.developmentIntensity) && (
-        <div className="mt-6 rounded-lg border border-brand-200 bg-primary-50 p-4">
-          <h3 className="mb-2 text-sm font-medium text-primary-800">선택된 설정 미리보기</h3>
-          <div className="grid grid-cols-1 gap-2 text-sm text-primary-700 sm:grid-cols-2">
-            {storyInput.toneAndManner.length > 0 && (
-              <div>
-                <span className="font-medium">톤앤매너:</span>{' '}
-                {storyInput.toneAndManner.join(', ')}
-              </div>
-            )}
-            {storyInput.genre && (
-              <div>
-                <span className="font-medium">장르:</span> {storyInput.genre}
-              </div>
-            )}
-            {storyInput.tempo && (
-              <div>
-                <span className="font-medium">템포:</span> {storyInput.tempo}
-              </div>
-            )}
-            {storyInput.developmentMethod && (
-              <div>
-                <span className="font-medium">전개 방식:</span> {storyInput.developmentMethod}
-              </div>
-            )}
-            {storyInput.developmentIntensity && (
-              <div>
-                <span className="font-medium">전개 강도:</span> {storyInput.developmentIntensity}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 에러 메시지 */}
-      {error && (
-        <div className="mt-6 rounded-md bg-red-50 p-4">
-          <div className="flex">
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">오류가 발생했습니다</h3>
-              <div className="mt-2 text-sm text-red-700">
-                <p>{error}</p>
-              </div>
-              {errorType === 'server' && retryCount < 3 && (
-                <div className="mt-4">
-                  <button
-                    type="button"
-                    onClick={onRetry}
-                    className="rounded-md bg-red-100 px-2 py-1.5 text-sm font-medium text-red-800 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 focus:ring-offset-red-50"
-                  >
-                    다시 시도 ({retryCount}/3)
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 액션 버튼 */}
-      <div className="mt-8 flex items-center justify-between">
-        <div className="text-sm text-gray-600">
-          {!isFormValid() && '모든 필드를 입력해주세요.'}
-        </div>
-        <Button
-          onClick={onSubmit}
-          disabled={!isFormValid() || loading}
-          size="lg"
-          className="min-w-[120px]"
-        >
-          {loading ? (
-            <div className="flex items-center">
-              <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              생성 중...
-            </div>
-          ) : (
-            '4단계 스토리 생성'
           )}
-        </Button>
-      </div>
+        </div>
 
-      {/* 템플릿 선택 모달 */}
-      <TemplateSelector
-        isVisible={showTemplateSelector}
-        onClose={() => setShowTemplateSelector(false)}
-        onSelect={onTemplateSelect}
-        onSaveAsTemplate={onSaveAsTemplate}
-        currentStoryInput={storyInput}
-      />
-    </div>
-  );
+        {/* 진행률 바 */}
+        {isGenerating && (
+          <div className="w-full bg-neutral-200 rounded-full h-2">
+            <div
+              className="bg-primary-600 h-2 rounded-full transition-all duration-300 ease-out"
+              style={{ width: `${progress}%` }}
+              role="progressbar"
+              aria-valuenow={progress}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="스토리 생성 진행률"
+            />
+          </div>
+        )}
+
+        {/* 오류 메시지 */}
+        {error && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-red-800">
+                  스토리 생성 오류
+                </h3>
+                <p className="text-sm text-red-700 mt-1">{error}</p>
+                <button
+                  type="button"
+                  onClick={clearError}
+                  className="text-sm text-red-600 underline mt-2 hover:text-red-800"
+                >
+                  닫기
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 기본 정보 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <label htmlFor="title" className="block text-sm font-medium text-neutral-700">
+              제목 *
+            </label>
+            <Input
+              id="title"
+              type="text"
+              value={formData.title}
+              onChange={(e) => updateFormData('title', e.target.value)}
+              placeholder="예: 내 첫 브이로그 영상"
+              disabled={disabled || isGenerating}
+              className={validationErrors.title ? 'border-red-500' : ''}
+              maxLength={100}
+              required
+              data-testid="story-title-input"
+            />
+            {validationErrors.title && (
+              <p className="text-sm text-red-600" role="alert">
+                {validationErrors.title}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="genre" className="block text-sm font-medium text-neutral-700">
+              장르
+            </label>
+            <Select
+              id="genre"
+              value={formData.genre}
+              onChange={(value) => updateFormData('genre', value)}
+              disabled={disabled || isGenerating}
+              data-testid="story-genre-select"
+            >
+              <option value="브이로그">브이로그</option>
+              <option value="교육">교육</option>
+              <option value="마케팅">마케팅</option>
+              <option value="엔터테인먼트">엔터테인먼트</option>
+              <option value="뉴스">뉴스/리포팅</option>
+              <option value="리뷰">리뷰</option>
+            </Select>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="description" className="block text-sm font-medium text-neutral-700">
+            간단한 설명
+          </label>
+          <Textarea
+            id="description"
+            value={formData.description}
+            onChange={(e) => updateFormData('description', e.target.value)}
+            placeholder="이 영상에 대한 간단한 설명을 입력해주세요 (선택사항)"
+            disabled={disabled || isGenerating}
+            rows={2}
+            maxLength={200}
+            data-testid="story-description-input"
+          />
+        </div>
+
+        {/* 스토리 아이디어 */}
+        <div className="space-y-2">
+          <label htmlFor="prompt" className="block text-sm font-medium text-neutral-700">
+            스토리 아이디어 *
+          </label>
+          <Textarea
+            id="prompt"
+            value={formData.prompt}
+            onChange={(e) => updateFormData('prompt', e.target.value)}
+            placeholder="만들고 싶은 영상에 대해 자세히 설명해주세요. 예: 나의 일상을 담은 브이로그를 만들고 싶습니다. 아침에 일어나서 커피를 마시고, 운동을 하고, 일을 하는 모습을 보여주고 싶습니다."
+            disabled={disabled || isGenerating}
+            rows={4}
+            className={validationErrors.prompt ? 'border-red-500' : ''}
+            required
+            data-testid="story-prompt-input"
+          />
+          {validationErrors.prompt && (
+            <p className="text-sm text-red-600" role="alert">
+              {validationErrors.prompt}
+            </p>
+          )}
+        </div>
+
+        {/* 대상 지속시간 */}
+        <div className="space-y-2">
+          <label htmlFor="duration" className="block text-sm font-medium text-neutral-700">
+            대상 지속시간
+            <span className="sr-only">
+              현재 {Math.floor(formData.targetDuration / 60)}분 {formData.targetDuration % 60}초로 설정됨
+            </span>
+          </label>
+          <div className="flex items-center gap-4">
+            <div className="flex-1 relative">
+              <input
+                id="duration"
+                type="range"
+                min="30"
+                max="600"
+                step="30"
+                value={formData.targetDuration}
+                onChange={(e) => updateFormData('targetDuration', parseInt(e.target.value))}
+                disabled={disabled || isGenerating}
+                className="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                aria-valuemin={30}
+                aria-valuemax={600}
+                aria-valuenow={formData.targetDuration}
+                aria-valuetext={`${Math.floor(formData.targetDuration / 60)}분 ${formData.targetDuration % 60}초`}
+                aria-describedby="duration-description"
+                data-testid="story-duration-slider"
+              />
+              <style jsx>{`
+                input[type="range"]::-webkit-slider-thumb {
+                  appearance: none;
+                  height: 20px;
+                  width: 20px;
+                  border-radius: 50%;
+                  background: #3b82f6;
+                  cursor: pointer;
+                  border: 2px solid white;
+                  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                }
+                input[type="range"]::-moz-range-thumb {
+                  height: 20px;
+                  width: 20px;
+                  border-radius: 50%;
+                  background: #3b82f6;
+                  cursor: pointer;
+                  border: 2px solid white;
+                  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                }
+                input[type="range"]:focus::-webkit-slider-thumb {
+                  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+                }
+              `}</style>
+            </div>
+            <div className="min-w-[80px] text-center">
+              <span className="text-sm font-medium text-neutral-900 block">
+                {Math.floor(formData.targetDuration / 60)}:{(formData.targetDuration % 60).toString().padStart(2, '0')}
+              </span>
+              <span className="text-xs text-neutral-500">분:초</span>
+            </div>
+          </div>
+          <p id="duration-description" className="text-xs text-neutral-500">
+            30초에서 10분 사이로 설정할 수 있습니다
+          </p>
+          {validationErrors.targetDuration && (
+            <p className="text-sm text-red-600" role="alert" aria-live="polite">
+              {validationErrors.targetDuration}
+            </p>
+          )}
+        </div>
+
+        {/* 고급 설정 */}
+        <div className="border-t pt-6">
+          <button
+            type="button"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 rounded-sm p-1 -m-1 transition-colors"
+            aria-expanded={showAdvanced}
+            aria-controls="advanced-settings"
+            aria-label={`고급 설정 ${showAdvanced ? '숨기기' : '보기'}`}
+            data-testid="toggle-advanced-settings"
+          >
+            <svg
+              className={`w-4 h-4 transition-transform duration-200 ${showAdvanced ? 'rotate-90' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            고급 설정
+          </button>
+
+          <div
+            id="advanced-settings"
+            className={`overflow-hidden transition-all duration-300 ease-in-out ${
+              showAdvanced
+                ? 'max-h-96 opacity-100 mt-4'
+                : 'max-h-0 opacity-0'
+            }`}
+            aria-hidden={!showAdvanced}
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+              <div className="space-y-2">
+                <label htmlFor="style" className="block text-sm font-medium text-neutral-700">
+                  스타일
+                  <span className="text-xs text-neutral-500 block font-normal">
+                    영상의 전반적인 스타일을 선택하세요
+                  </span>
+                </label>
+                <Select
+                  id="style"
+                  value={formData.style}
+                  onChange={(value) => updateFormData('style', value)}
+                  disabled={disabled || isGenerating}
+                  aria-describedby="style-description"
+                  data-testid="story-style-select"
+                >
+                  <option value="casual">캐주얼 - 편안하고 친근한 분위기</option>
+                  <option value="professional">전문적 - 비즈니스 및 공식적인 톤</option>
+                  <option value="creative">창의적 - 독창적이고 예술적인 접근</option>
+                  <option value="educational">교육적 - 학습과 정보 전달 중심</option>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="tone" className="block text-sm font-medium text-neutral-700">
+                  톤
+                  <span className="text-xs text-neutral-500 block font-normal">
+                    전달하고자 하는 감정이나 분위기를 선택하세요
+                  </span>
+                </label>
+                <Select
+                  id="tone"
+                  value={formData.tone}
+                  onChange={(value) => updateFormData('tone', value)}
+                  disabled={disabled || isGenerating}
+                  aria-describedby="tone-description"
+                  data-testid="story-tone-select"
+                >
+                  <option value="serious">진지한 - 신중하고 중요한 메시지</option>
+                  <option value="humorous">유머러스 - 재미있고 밝은 분위기</option>
+                  <option value="dramatic">드라마틱 - 감동적이고 극적인 효과</option>
+                  <option value="informative">정보 전달 - 명확하고 객관적인 설명</option>
+                </Select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 비용 추정 */}
+        {estimatedCost && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-blue-800">
+                  예상 비용
+                </h3>
+                <p className="text-sm text-blue-700 mt-1">
+                  예상 토큰: {estimatedCost.estimatedTokens.toLocaleString()}개
+                  {estimatedCost.warningLevel === 'high' && (
+                    <span className="ml-2 text-orange-600 font-medium">
+                      (비용 주의)
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 제출 버튼 */}
+        <div className="flex gap-3">
+          <Button
+            type="submit"
+            disabled={disabled || isGenerating || !formData.title.trim() || !formData.prompt.trim()}
+            className="flex-1"
+            data-testid="generate-story-button"
+          >
+            {isGenerating ? (
+              <>
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                생성 중... ({progress}%)
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                AI 스토리 생성
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
+    </Card>
+  )
 }

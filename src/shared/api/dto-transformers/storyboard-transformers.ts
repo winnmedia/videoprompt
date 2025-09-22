@@ -1,585 +1,854 @@
 /**
- * 스토리보드 관련 DTO 변환 계층
- * API 응답 ↔ 도메인 모델 간 안전한 데이터 변환
- * FSD shared 레이어 - Anti-Corruption Layer 역할
+ * 스토리보드 DTO 변환기 및 검증 시스템
+ *
+ * CLAUDE.md 준수:
+ * - Anti-Corruption Layer 패턴 구현
+ * - Zod를 통한 런타임 스키마 검증
+ * - 데이터 품질 검증 강화
+ * - 타입 안전성 보장
+ * - 불변성 유지
  */
 
-import { Shot, StoryboardShot, InsertShot } from '@/entities/scenario';
-import { logger } from '@/shared/lib/logger';
 import { z } from 'zod';
+import {
+  Storyboard,
+  StoryboardFrame,
+  StoryboardCreateInput,
+  ConsistencyReference,
+  ImageGenerationConfig,
+  GenerationResult,
+  PromptEngineering,
+  ImageGenerationModel,
+  ImageAspectRatio,
+  ImageQuality,
+  StylePreset,
+  StoryboardFrameStatus,
+  STORYBOARD_CONSTANTS,
+} from '../../entities/storyboard';
+import { ValidationError } from '../types';
 
-// API 요청/응답 타입 정의
-export interface ApiShotRequest {
-  id?: string;
-  stepId: string;
-  title: string;
-  description: string;
-  shotType: string;
-  camera: string;
-  composition?: string;
-  length: number;
-  dialogue?: string;
-  subtitle?: string;
-  transition?: string;
-}
+// ===========================================
+// ByteDance API 응답 스키마
+// ===========================================
 
-export interface ApiShotResponse {
-  id: string;
-  stepId: string;
-  title: string;
-  description: string;
-  shotType: string;
-  camera: string;
-  composition?: string;
-  length: number;
-  dialogue?: string;
-  subtitle?: string;
-  transition?: string;
-  contiImage?: string;
-  insertShots?: ApiInsertShotResponse[];
-  metadata?: {
-    aiGenerated: boolean;
-    generatedAt: string;
-    model?: string;
-    prompt?: string;
-  };
-}
-
-export interface ApiInsertShotResponse {
-  id: string;
-  purpose: string;
-  description: string;
-  framing: string;
-  duration?: number;
-}
-
-export interface ApiStoryboardShotRequest {
-  shotId: string;
-  title: string;
-  description?: string;
-  shotType?: string;
-  camera?: string;
-  duration?: number;
-  style?: string;
-}
-
-export interface ApiStoryboardShotResponse {
-  id: string;
-  title: string;
-  description?: string;
-  imageUrl?: string;
-  prompt?: string;
-  shotType?: string;
-  camera?: string;
-  duration?: number;
-  index: number;
-  metadata?: {
-    generatedAt: string;
-    model?: string;
-    style?: string;
-    seed?: number;
-    iterations?: number;
-  };
-}
-
-export interface ApiShotsGenerationResponse {
-  success: boolean;
-  data?: {
-    shots: ApiShotResponse[];
-    metadata?: {
-      totalShots: number;
-      aiModel: string;
-      generatedAt: string;
-      processingTime: number;
-    };
-  };
-  message: string;
-}
-
-export interface ApiStoryboardGenerationResponse {
-  success: boolean;
-  data?: {
-    storyboardShots: ApiStoryboardShotResponse[];
-    metadata?: {
-      totalImages: number;
-      aiModel: string;
-      generatedAt: string;
-      processingTime: number;
-      style: string;
-    };
-  };
-  message: string;
-}
-
-// 런타임 검증 스키마
-const ApiShotResponseSchema = z.object({
-  id: z.string().uuid(),
-  stepId: z.string().uuid(),
-  title: z.string().min(1).max(200),
-  description: z.string().min(1),
-  shotType: z.string().min(1),
-  camera: z.string().min(1),
-  composition: z.string().optional(),
-  length: z.number().positive(),
-  dialogue: z.string().optional(),
-  subtitle: z.string().optional(),
-  transition: z.string().optional(),
-  contiImage: z.string().url().optional(),
-  insertShots: z.array(z.object({
-    id: z.string().uuid(),
-    purpose: z.string().min(1),
-    description: z.string().min(1),
-    framing: z.string().min(1),
-    duration: z.number().optional(),
-  })).optional(),
-  metadata: z.object({
-    aiGenerated: z.boolean(),
-    generatedAt: z.string(),
-    model: z.string().optional(),
-    prompt: z.string().optional(),
-  }).optional(),
-});
-
-const ApiStoryboardShotResponseSchema = z.object({
-  id: z.string().uuid(),
-  title: z.string().min(1),
-  description: z.string().optional(),
-  imageUrl: z.string().url().optional(),
-  prompt: z.string().optional(),
-  shotType: z.string().optional(),
-  camera: z.string().optional(),
-  duration: z.number().optional(),
-  index: z.number().int().min(0),
-  metadata: z.object({
-    generatedAt: z.string(),
-    model: z.string().optional(),
-    style: z.string().optional(),
-    seed: z.number().optional(),
-    iterations: z.number().optional(),
-  }).optional(),
-});
-
-const ApiShotsGenerationResponseSchema = z.object({
-  success: z.boolean(),
+/**
+ * ByteDance 이미지 생성 API 응답 스키마
+ */
+export const ByteDanceImageResponseSchema = z.object({
+  request_id: z.string(),
+  status: z.enum(['success', 'failed', 'pending', 'processing']),
   data: z.object({
-    shots: z.array(ApiShotResponseSchema),
-    metadata: z.object({
-      totalShots: z.number(),
-      aiModel: z.string(),
-      generatedAt: z.string(),
-      processingTime: z.number(),
-    }).optional(),
+    images: z.array(
+      z.object({
+        image_url: z.string().url(),
+        image_id: z.string(),
+        width: z.number().positive(),
+        height: z.number().positive(),
+        format: z.enum(['png', 'jpg', 'jpeg', 'webp']),
+        file_size: z.number().positive(),
+        created_at: z.string().datetime(),
+      })
+    ),
+    prompt_used: z.string(),
+    model: z.string(),
+    parameters: z.object({
+      style: z.string().optional(),
+      quality: z.string().optional(),
+      aspect_ratio: z.string().optional(),
+      seed: z.number().optional(),
+      steps: z.number().optional(),
+      guidance_scale: z.number().optional(),
+    }),
+    processing_time_ms: z.number().optional(),
+    cost: z.number().optional(),
   }).optional(),
-  message: z.string(),
-});
-
-const ApiStoryboardGenerationResponseSchema = z.object({
-  success: z.boolean(),
-  data: z.object({
-    storyboardShots: z.array(ApiStoryboardShotResponseSchema),
-    metadata: z.object({
-      totalImages: z.number(),
-      aiModel: z.string(),
-      generatedAt: z.string(),
-      processingTime: z.number(),
-      style: z.string(),
-    }).optional(),
+  error: z.object({
+    code: z.string(),
+    message: z.string(),
+    details: z.record(z.any()).optional(),
   }).optional(),
-  message: z.string(),
 });
 
 /**
- * Shot[] → API 요청 변환
+ * ByteDance 배치 처리 응답 스키마
  */
-export function transformShotsToApiRequest(shots: Shot[]): ApiShotRequest[] {
-  try {
-    if (!Array.isArray(shots) || shots.length === 0) {
-      throw new Error('변환할 샷 데이터가 없습니다');
+export const ByteDanceBatchResponseSchema = z.object({
+  batch_id: z.string(),
+  status: z.enum(['queued', 'processing', 'completed', 'failed', 'cancelled']),
+  total_requests: z.number().nonnegative(),
+  completed_requests: z.number().nonnegative(),
+  failed_requests: z.number().nonnegative(),
+  results: z.array(ByteDanceImageResponseSchema),
+  created_at: z.string().datetime(),
+  completed_at: z.string().datetime().optional(),
+  estimated_completion_at: z.string().datetime().optional(),
+});
+
+// ===========================================
+// 스토리보드 생성 요청 스키마
+// ===========================================
+
+/**
+ * 이미지 생성 설정 스키마
+ */
+export const ImageGenerationConfigSchema = z.object({
+  model: z.enum(['dall-e-3', 'midjourney', 'stable-diffusion', 'runway-gen3']),
+  aspectRatio: z.enum(['16:9', '9:16', '1:1', '4:3', '3:4']),
+  quality: z.enum(['standard', 'hd', '4k']),
+  style: z.enum([
+    'cinematic', 'anime', 'photorealistic', 'illustration', 'sketch',
+    'watercolor', 'oil-painting', 'digital-art', 'cartoon', 'vintage'
+  ]).optional(),
+  seed: z.number().int().min(0).max(4294967295).optional(),
+  steps: z.number().int().min(1).max(100).optional(),
+  guidanceScale: z.number().min(1).max(30).optional(),
+  negativePrompt: z.string().max(500).optional(),
+  customParams: z.record(z.unknown()).optional(),
+});
+
+/**
+ * 일관성 참조 스키마
+ */
+export const ConsistencyReferenceSchema = z.object({
+  id: z.string().min(1),
+  type: z.enum(['character', 'location', 'object', 'style']),
+  name: z.string().min(1).max(100),
+  description: z.string().min(10).max(500),
+  referenceImageUrl: z.string().url().optional(),
+  keyFeatures: z.array(z.string().min(1).max(100)).min(1).max(10),
+  weight: z.number().min(0).max(1),
+  isActive: z.boolean(),
+});
+
+/**
+ * 프롬프트 엔지니어링 스키마
+ */
+export const PromptEngineeringSchema = z.object({
+  basePrompt: z.string().min(5).max(STORYBOARD_CONSTANTS.MAX_PROMPT_LENGTH),
+  enhancedPrompt: z.string().min(5).max(STORYBOARD_CONSTANTS.MAX_PROMPT_LENGTH),
+  styleModifiers: z.array(z.string().min(1).max(50)).max(20),
+  technicalSpecs: z.array(z.string().min(1).max(100)).max(10),
+  negativePrompt: z.string().max(500).optional(),
+  promptTokens: z.number().positive().optional(),
+});
+
+/**
+ * 스토리보드 생성 요청 스키마
+ */
+export const StoryboardCreateRequestSchema = z.object({
+  scenarioId: z.string().uuid(),
+  title: z.string().min(1).max(STORYBOARD_CONSTANTS.MAX_TITLE_LENGTH),
+  description: z.string().max(STORYBOARD_CONSTANTS.MAX_DESCRIPTION_LENGTH).optional(),
+  config: ImageGenerationConfigSchema.partial().optional(),
+  consistencyRefs: z.array(ConsistencyReferenceSchema).max(10).optional(),
+  userId: z.string().uuid(),
+  frames: z.array(
+    z.object({
+      sceneId: z.string().uuid(),
+      sceneDescription: z.string().min(10).max(1000),
+      additionalPrompt: z.string().max(500).optional(),
+      config: ImageGenerationConfigSchema.partial().optional(),
+      consistencyRefs: z.array(z.string().uuid()).max(5).optional(),
+      priority: z.enum(['low', 'normal', 'high']).default('normal'),
+    })
+  ).min(1).max(STORYBOARD_CONSTANTS.MAX_FRAMES_COUNT),
+});
+
+/**
+ * 프레임 생성 요청 스키마
+ */
+export const FrameGenerationRequestSchema = z.object({
+  sceneId: z.string().uuid(),
+  sceneDescription: z.string().min(10).max(1000),
+  additionalPrompt: z.string().max(500).optional(),
+  config: ImageGenerationConfigSchema.partial().optional(),
+  consistencyRefs: z.array(z.string().uuid()).max(5).optional(),
+  priority: z.enum(['low', 'normal', 'high']).default('normal'),
+});
+
+/**
+ * 배치 생성 요청 스키마
+ */
+export const BatchGenerationRequestSchema = z.object({
+  frames: z.array(FrameGenerationRequestSchema).min(1).max(20),
+  batchSettings: z.object({
+    maxConcurrent: z.number().int().min(1).max(10).default(3),
+    delayBetweenRequests: z.number().int().min(100).max(10000).default(1000),
+    stopOnError: z.boolean().default(false),
+  }).optional(),
+});
+
+// ===========================================
+// 타입 추론
+// ===========================================
+
+export type ByteDanceImageResponse = z.infer<typeof ByteDanceImageResponseSchema>;
+export type ByteDanceBatchResponse = z.infer<typeof ByteDanceBatchResponseSchema>;
+export type StoryboardCreateRequest = z.infer<typeof StoryboardCreateRequestSchema>;
+export type FrameGenerationRequest = z.infer<typeof FrameGenerationRequestSchema>;
+export type BatchGenerationRequest = z.infer<typeof BatchGenerationRequestSchema>;
+
+// ===========================================
+// 데이터 품질 검증 시스템
+// ===========================================
+
+/**
+ * 데이터 품질 검증 결과
+ */
+export interface StoryboardDataQualityResult {
+  readonly isValid: boolean;
+  readonly score: number; // 0-100
+  readonly errors: readonly DataQualityIssue[];
+  readonly warnings: readonly DataQualityIssue[];
+  readonly metrics: {
+    readonly promptQualityScore: number;
+    readonly consistencyScore: number;
+    readonly technicalValidityScore: number;
+    readonly urlValidityScore: number;
+    readonly duplicateFramesCount: number;
+    readonly missingPromptsCount: number;
+  };
+}
+
+/**
+ * 데이터 품질 이슈
+ */
+export interface DataQualityIssue {
+  readonly type: 'error' | 'warning';
+  readonly code: string;
+  readonly message: string;
+  readonly field?: string;
+  readonly frameId?: string;
+  readonly severity: 'low' | 'medium' | 'high' | 'critical';
+  readonly suggestion?: string;
+  readonly autoFixable: boolean;
+}
+
+/**
+ * URL 검증 결과
+ */
+export interface UrlValidationResult {
+  readonly isValid: boolean;
+  readonly isReachable: boolean;
+  readonly contentType?: string;
+  readonly fileSize?: number;
+  readonly dimensions?: { width: number; height: number };
+  readonly error?: string;
+}
+
+/**
+ * 프롬프트 품질 분석 결과
+ */
+export interface PromptQualityAnalysis {
+  readonly score: number; // 0-100
+  readonly wordCount: number;
+  readonly sentenceCount: number;
+  readonly descriptiveRichness: number; // 0-1
+  readonly technicalClarity: number; // 0-1
+  readonly styleConsistency: number; // 0-1
+  readonly issues: readonly string[];
+  readonly suggestions: readonly string[];
+}
+
+// ===========================================
+// DTO 변환기 클래스
+// ===========================================
+
+/**
+ * 스토리보드 DTO 변환 및 검증 클래스
+ */
+class StoryboardDTOTransformers {
+  /**
+   * ByteDance API 응답 → GenerationResult 도메인 모델
+   */
+  generationResultFromByteDance(
+    response: unknown,
+    frameId: string,
+    originalPrompt: PromptEngineering,
+    config: ImageGenerationConfig
+  ): GenerationResult {
+    const validated = this.validateDTO(ByteDanceImageResponseSchema, response, 'ByteDanceResponse');
+
+    if (validated.status === 'failed' || !validated.data) {
+      throw new ValidationError('ByteDance API 생성 실패', {
+        frameId,
+        error: validated.error,
+        requestId: validated.request_id,
+      });
     }
 
-    return shots.map((shot, index) => {
-      if (!shot.id?.trim()) {
-        throw new Error(`${index + 1}번째 샷의 ID가 유효하지 않습니다`);
+    const imageData = validated.data.images[0];
+    if (!imageData) {
+      throw new ValidationError('생성된 이미지가 없습니다', {
+        frameId,
+        requestId: validated.request_id,
+      });
+    }
+
+    return Object.freeze({
+      imageUrl: imageData.image_url,
+      thumbnailUrl: this.generateThumbnailUrl(imageData.image_url),
+      generationId: imageData.image_id,
+      model: this.mapByteDanceModel(validated.data.model),
+      config: Object.freeze({
+        ...config,
+        // ByteDance 실제 사용된 설정으로 업데이트
+        aspectRatio: this.parseAspectRatio(validated.data.parameters.aspect_ratio),
+        quality: this.parseQuality(validated.data.parameters.quality),
+        style: this.parseStyle(validated.data.parameters.style),
+        seed: validated.data.parameters.seed,
+        steps: validated.data.parameters.steps,
+        guidanceScale: validated.data.parameters.guidance_scale,
+      }),
+      prompt: Object.freeze({
+        ...originalPrompt,
+        enhancedPrompt: validated.data.prompt_used || originalPrompt.enhancedPrompt,
+      }),
+      generatedAt: new Date(imageData.created_at),
+      processingTime: validated.data.processing_time_ms ? validated.data.processing_time_ms / 1000 : undefined,
+      cost: validated.data.cost,
+    });
+  }
+
+  /**
+   * 스토리보드 생성 요청 검증 및 변환
+   */
+  validateStoryboardCreateRequest(request: unknown): StoryboardCreateInput {
+    const validated = this.validateDTO(StoryboardCreateRequestSchema, request, 'StoryboardCreateRequest');
+
+    return Object.freeze({
+      scenarioId: validated.scenarioId,
+      title: validated.title,
+      description: validated.description,
+      config: validated.config ? Object.freeze(validated.config) : undefined,
+      consistencyRefs: validated.consistencyRefs ?
+        Object.freeze(validated.consistencyRefs.map(ref => Object.freeze(ref))) : undefined,
+      userId: validated.userId,
+    });
+  }
+
+  /**
+   * 배치 생성 요청 검증
+   */
+  validateBatchGenerationRequest(request: unknown): BatchGenerationRequest {
+    return this.validateDTO(BatchGenerationRequestSchema, request, 'BatchGenerationRequest');
+  }
+
+  /**
+   * 스토리보드 데이터 품질 검증
+   */
+  performDataQualityCheck(storyboard: Storyboard): StoryboardDataQualityResult {
+    const errors: DataQualityIssue[] = [];
+    const warnings: DataQualityIssue[] = [];
+
+    // 1. 기본 메타데이터 검증
+    this.validateBasicMetadata(storyboard, errors, warnings);
+
+    // 2. 프레임 품질 검증
+    const promptAnalysis = this.analyzePromptQuality(storyboard.frames);
+    const consistencyAnalysis = this.analyzeConsistency(storyboard);
+    const urlValidation = this.validateUrls(storyboard);
+    const technicalValidation = this.validateTechnicalSpecs(storyboard);
+
+    // 3. 중복 검사
+    const duplicateFrames = this.detectDuplicateFrames(storyboard.frames);
+
+    // 4. 누락 검사
+    const missingPrompts = this.detectMissingPrompts(storyboard.frames);
+
+    // 품질 점수 계산
+    const scores = {
+      promptQualityScore: promptAnalysis.averageScore,
+      consistencyScore: consistencyAnalysis.score,
+      technicalValidityScore: technicalValidation.score,
+      urlValidityScore: urlValidation.score,
+      duplicateFramesCount: duplicateFrames.length,
+      missingPromptsCount: missingPrompts.length,
+    };
+
+    const overallScore = this.calculateOverallQualityScore(scores, errors, warnings);
+
+    return Object.freeze({
+      isValid: errors.length === 0,
+      score: overallScore,
+      errors: Object.freeze(errors),
+      warnings: Object.freeze(warnings),
+      metrics: Object.freeze(scores),
+    });
+  }
+
+  /**
+   * URL 유효성 검증 (비동기)
+   */
+  async validateImageUrl(url: string): Promise<UrlValidationResult> {
+    try {
+      // URL 형식 검증
+      new URL(url);
+
+      // HEAD 요청으로 리소스 확인
+      const response = await fetch(url, { method: 'HEAD' });
+
+      if (!response.ok) {
+        return {
+          isValid: false,
+          isReachable: false,
+          error: `HTTP ${response.status}: ${response.statusText}`,
+        };
       }
 
-      if (!shot.title?.trim()) {
-        throw new Error(`${index + 1}번째 샷의 제목이 필요합니다`);
+      const contentType = response.headers.get('content-type');
+      const contentLength = response.headers.get('content-length');
+
+      // 이미지 타입 검증
+      if (!contentType || !contentType.startsWith('image/')) {
+        return {
+          isValid: false,
+          isReachable: true,
+          contentType,
+          error: '이미지 형식이 아닙니다',
+        };
       }
 
-      if (!shot.description?.trim()) {
-        throw new Error(`${index + 1}번째 샷의 설명이 필요합니다`);
-      }
+      // 파일 크기 검증
+      const fileSize = contentLength ? parseInt(contentLength, 10) : undefined;
+      const maxSizeMB = STORYBOARD_CONSTANTS.MAX_FILE_SIZE_MB;
 
-      if (shot.length <= 0) {
-        throw new Error(`${index + 1}번째 샷의 길이는 0보다 커야 합니다`);
+      if (fileSize && fileSize > maxSizeMB * 1024 * 1024) {
+        return {
+          isValid: false,
+          isReachable: true,
+          contentType,
+          fileSize,
+          error: `파일 크기가 너무 큽니다 (${Math.round(fileSize / 1024 / 1024)}MB > ${maxSizeMB}MB)`,
+        };
       }
 
       return {
-        id: shot.id,
-        stepId: shot.stepId,
-        title: shot.title.trim(),
-        description: shot.description.trim(),
-        shotType: shot.shotType || 'Medium Shot',
-        camera: shot.camera || 'Static',
-        composition: shot.composition?.trim() || '',
-        length: shot.length,
-        dialogue: shot.dialogue?.trim() || '',
-        subtitle: shot.subtitle?.trim() || '',
-        transition: shot.transition?.trim() || 'Cut',
+        isValid: true,
+        isReachable: true,
+        contentType,
+        fileSize,
       };
-    });
-  } catch (error) {
-    throw new Error(`샷 데이터 변환 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
-  }
-}
-
-/**
- * API 응답 → Shot[] 변환
- */
-export function transformApiResponseToShots(
-  apiResponse: unknown,
-  context: string = 'Shots API Response'
-): Shot[] {
-  try {
-    const validatedResponse = ApiShotsGenerationResponseSchema.parse(apiResponse);
-
-    if (!validatedResponse.success) {
-      throw new Error(validatedResponse.message || '샷 생성 요청이 실패했습니다');
-    }
-
-    if (!validatedResponse.data?.shots) {
-      throw new Error('API 응답에 샷 데이터가 없습니다');
-    }
-
-    const shots: Shot[] = validatedResponse.data.shots.map((apiShot): Shot => ({
-      id: apiShot.id,
-      stepId: apiShot.stepId,
-      title: apiShot.title,
-      description: apiShot.description,
-      shotType: apiShot.shotType,
-      camera: apiShot.camera,
-      composition: apiShot.composition || '',
-      length: apiShot.length,
-      dialogue: apiShot.dialogue || '',
-      subtitle: apiShot.subtitle || '',
-      transition: apiShot.transition || 'Cut',
-      contiImage: apiShot.contiImage,
-      insertShots: apiShot.insertShots?.map((insertShot): InsertShot => ({
-        id: insertShot.id,
-        purpose: insertShot.purpose,
-        description: insertShot.description,
-        framing: insertShot.framing,
-      })) || [],
-    }));
-
-    // 권장 샷 수 검증 (12샷)
-    if (shots.length !== 12) {
-      logger.debug(`권장되는 12샷과 다른 ${shots.length}개 샷이 생성되었습니다`);
-    }
-
-    return shots;
-
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      const errorDetails = error.issues.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
-      throw new Error(`${context} 데이터 검증 실패: ${errorDetails}`);
-    }
-
-    throw new Error(`${context} 변환 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
-  }
-}
-
-/**
- * StoryboardShot[] → API 요청 변환
- */
-export function transformStoryboardShotsToApiRequest(
-  storyboardShots: StoryboardShot[]
-): ApiStoryboardShotRequest[] {
-  try {
-    if (!Array.isArray(storyboardShots) || storyboardShots.length === 0) {
-      throw new Error('변환할 스토리보드 데이터가 없습니다');
-    }
-
-    return storyboardShots.map((shot, index) => {
-      if (!shot.id?.trim()) {
-        throw new Error(`${index + 1}번째 스토리보드 샷의 ID가 유효하지 않습니다`);
-      }
-
-      if (!shot.title?.trim()) {
-        throw new Error(`${index + 1}번째 스토리보드 샷의 제목이 필요합니다`);
-      }
-
+    } catch (error) {
       return {
-        shotId: shot.id,
-        title: shot.title.trim(),
-        description: shot.description?.trim() || '',
-        shotType: shot.shotType || 'Medium Shot',
-        camera: shot.camera || 'Static',
-        duration: shot.duration || 3,
-        style: 'cinematic', // 기본 스타일
+        isValid: false,
+        isReachable: false,
+        error: error instanceof Error ? error.message : '알 수 없는 오류',
       };
+    }
+  }
+
+  /**
+   * 프롬프트 품질 분석
+   */
+  analyzePromptQuality(prompt: string): PromptQualityAnalysis {
+    const words = prompt.trim().split(/\s+/);
+    const sentences = prompt.split(/[.!?]+/).filter(s => s.trim().length > 0);
+
+    const wordCount = words.length;
+    const sentenceCount = sentences.length;
+
+    // 설명 풍부도 분석 (형용사, 부사, 전문용어 비율)
+    const descriptiveWords = words.filter(word =>
+      this.isDescriptiveWord(word.toLowerCase())
+    ).length;
+    const descriptiveRichness = Math.min(descriptiveWords / Math.max(wordCount * 0.3, 1), 1);
+
+    // 기술적 명확성 (카메라 앵글, 조명, 스타일 용어)
+    const technicalTerms = words.filter(word =>
+      this.isTechnicalTerm(word.toLowerCase())
+    ).length;
+    const technicalClarity = Math.min(technicalTerms / Math.max(wordCount * 0.1, 1), 1);
+
+    // 스타일 일관성 (일관된 톤 및 표현)
+    const styleConsistency = this.analyzeStyleConsistency(sentences);
+
+    // 이슈 및 제안사항
+    const issues: string[] = [];
+    const suggestions: string[] = [];
+
+    if (wordCount < 10) {
+      issues.push('프롬프트가 너무 짧습니다');
+      suggestions.push('더 구체적인 설명을 추가하세요');
+    }
+
+    if (wordCount > 100) {
+      issues.push('프롬프트가 너무 깁니다');
+      suggestions.push('핵심 요소만 간결하게 표현하세요');
+    }
+
+    if (descriptiveRichness < 0.2) {
+      issues.push('시각적 설명이 부족합니다');
+      suggestions.push('색상, 질감, 분위기 등을 추가하세요');
+    }
+
+    if (technicalClarity < 0.1) {
+      suggestions.push('카메라 앵글이나 조명 설정을 명시하세요');
+    }
+
+    // 종합 점수 계산
+    const score = Math.round(
+      (descriptiveRichness * 40) +
+      (technicalClarity * 30) +
+      (styleConsistency * 20) +
+      (Math.min(wordCount / 50, 1) * 10)
+    );
+
+    return Object.freeze({
+      score: Math.max(0, Math.min(100, score)),
+      wordCount,
+      sentenceCount,
+      descriptiveRichness,
+      technicalClarity,
+      styleConsistency,
+      issues: Object.freeze(issues),
+      suggestions: Object.freeze(suggestions),
     });
-  } catch (error) {
-    throw new Error(`스토리보드 데이터 변환 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
-  }
-}
-
-/**
- * API 응답 → StoryboardShot[] 변환
- */
-export function transformApiResponseToStoryboardShots(
-  apiResponse: unknown,
-  context: string = 'Storyboard API Response'
-): StoryboardShot[] {
-  try {
-    const validatedResponse = ApiStoryboardGenerationResponseSchema.parse(apiResponse);
-
-    if (!validatedResponse.success) {
-      throw new Error(validatedResponse.message || '스토리보드 생성 요청이 실패했습니다');
-    }
-
-    if (!validatedResponse.data?.storyboardShots) {
-      throw new Error('API 응답에 스토리보드 데이터가 없습니다');
-    }
-
-    const storyboardShots: StoryboardShot[] = validatedResponse.data.storyboardShots.map((apiShot): StoryboardShot => ({
-      id: apiShot.id,
-      title: apiShot.title,
-      description: apiShot.description,
-      imageUrl: apiShot.imageUrl,
-      prompt: apiShot.prompt,
-      shotType: apiShot.shotType,
-      camera: apiShot.camera,
-      duration: apiShot.duration,
-      index: apiShot.index,
-    }));
-
-    // 인덱스 순으로 정렬
-    storyboardShots.sort((a, b) => a.index - b.index);
-
-    return storyboardShots;
-
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      const errorDetails = error.issues.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
-      throw new Error(`${context} 데이터 검증 실패: ${errorDetails}`);
-    }
-
-    throw new Error(`${context} 변환 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
-  }
-}
-
-/**
- * 샷 타입 정규화 (표준 용어로 변환)
- */
-export function normalizeShotType(shotType: string): string {
-  const normalizedTypes: Record<string, string> = {
-    'extreme close up': 'Extreme Close-up',
-    'extreme close-up': 'Extreme Close-up',
-    'ecu': 'Extreme Close-up',
-    'close up': 'Close-up',
-    'close-up': 'Close-up',
-    'cu': 'Close-up',
-    'medium close up': 'Medium Close-up',
-    'medium close-up': 'Medium Close-up',
-    'mcu': 'Medium Close-up',
-    'medium shot': 'Medium Shot',
-    'ms': 'Medium Shot',
-    'medium long shot': 'Medium Long Shot',
-    'mls': 'Medium Long Shot',
-    'long shot': 'Long Shot',
-    'ls': 'Long Shot',
-    'extreme long shot': 'Extreme Long Shot',
-    'els': 'Extreme Long Shot',
-    'wide shot': 'Wide Shot',
-    'ws': 'Wide Shot',
-    'establishing shot': 'Establishing Shot',
-    'master shot': 'Master Shot',
-  };
-
-  const lowercaseType = shotType.toLowerCase().trim();
-  return normalizedTypes[lowercaseType] || shotType;
-}
-
-/**
- * 카메라 움직임 정규화
- */
-export function normalizeCameraMovement(camera: string): string {
-  const normalizedMovements: Record<string, string> = {
-    'static': 'Static',
-    'pan left': 'Pan Left',
-    'pan right': 'Pan Right',
-    'tilt up': 'Tilt Up',
-    'tilt down': 'Tilt Down',
-    'zoom in': 'Zoom In',
-    'zoom out': 'Zoom Out',
-    'dolly in': 'Dolly In',
-    'dolly out': 'Dolly Out',
-    'dolly left': 'Dolly Left',
-    'dolly right': 'Dolly Right',
-    'crane up': 'Crane Up',
-    'crane down': 'Crane Down',
-    'handheld': 'Handheld',
-    'steadicam': 'Steadicam',
-    'tracking': 'Tracking',
-    'arc': 'Arc',
-  };
-
-  const lowercaseMovement = camera.toLowerCase().trim();
-  return normalizedMovements[lowercaseMovement] || camera;
-}
-
-/**
- * 샷 데이터 정규화
- */
-export function normalizeShots(shots: Shot[]): Shot[] {
-  return shots.map((shot) => ({
-    ...shot,
-    title: shot.title?.trim() || '제목 없음',
-    description: shot.description?.trim() || '',
-    shotType: normalizeShotType(shot.shotType || 'Medium Shot'),
-    camera: normalizeCameraMovement(shot.camera || 'Static'),
-    composition: shot.composition?.trim() || '',
-    dialogue: shot.dialogue?.trim() || '',
-    subtitle: shot.subtitle?.trim() || '',
-    transition: shot.transition?.trim() || 'Cut',
-    length: Math.max(0.5, shot.length || 3), // 최소 0.5초
-    insertShots: shot.insertShots?.map(insertShot => ({
-      ...insertShot,
-      purpose: insertShot.purpose?.trim() || '',
-      description: insertShot.description?.trim() || '',
-      framing: insertShot.framing?.trim() || '',
-    })) || [],
-  }));
-}
-
-/**
- * 스토리보드 샷 데이터 정규화
- */
-export function normalizeStoryboardShots(storyboardShots: StoryboardShot[]): StoryboardShot[] {
-  return storyboardShots.map((shot, index) => ({
-    ...shot,
-    title: shot.title?.trim() || `샷 ${index + 1}`,
-    description: shot.description?.trim() || '',
-    shotType: shot.shotType ? normalizeShotType(shot.shotType) : undefined,
-    camera: shot.camera ? normalizeCameraMovement(shot.camera) : undefined,
-    duration: Math.max(0.5, shot.duration || 3),
-    index: shot.index >= 0 ? shot.index : index,
-  }));
-}
-
-/**
- * 샷 길이 검증 및 조정
- */
-export function validateAndAdjustShotDurations(
-  shots: Shot[],
-  targetTotalDuration: number = 60 // 기본 1분
-): Shot[] {
-  const currentTotalDuration = shots.reduce((sum, shot) => sum + shot.length, 0);
-
-  if (Math.abs(currentTotalDuration - targetTotalDuration) <= 2) {
-    // 2초 이내 차이는 허용
-    return shots;
   }
 
-  // 비례적으로 조정
-  const scaleFactor = targetTotalDuration / currentTotalDuration;
+  // === Private Helper Methods ===
 
-  return shots.map(shot => ({
-    ...shot,
-    length: Math.max(0.5, Math.round(shot.length * scaleFactor * 10) / 10) // 0.1초 단위로 반올림
-  }));
-}
-
-/**
- * 스토리보드 에러 변환
- */
-export function transformStoryboardApiError(error: unknown, context: string = 'Storyboard API'): string {
-  if (error instanceof Error) {
-    if (error.message.includes('generation_quota_exceeded')) {
-      return `${context} - 일일 생성 할당량이 초과되었습니다. 내일 다시 시도해주세요`;
-    }
-
-    if (error.message.includes('inappropriate_content')) {
-      return `${context} - 부적절한 내용이 감지되어 생성이 중단되었습니다`;
-    }
-
-    if (error.message.includes('processing_timeout')) {
-      return `${context} - 이미지 생성 시간이 초과되었습니다. 더 간단한 설명으로 다시 시도해주세요`;
-    }
-
-    return `${context} - ${error.message}`;
-  }
-
-  return `${context} - 알 수 없는 오류가 발생했습니다`;
-}
-
-/**
- * 스토리보드 데이터 검증
- */
-export function validateStoryboardData(data: unknown): { isValid: boolean; errors: string[] } {
-  const errors: string[] = [];
-
-  try {
-    if (!data || typeof data !== 'object') {
-      errors.push('유효하지 않은 데이터 형식입니다');
-      return { isValid: false, errors };
-    }
-
-    const obj = data as Record<string, unknown>;
-
-    if (!obj.success && !obj.data) {
-      errors.push('API 응답 구조가 올바르지 않습니다');
-    }
-
-    if (obj.data && typeof obj.data === 'object') {
-      const dataObj = obj.data as Record<string, unknown>;
-
-      // 샷 데이터 검증
-      if (dataObj.shots && Array.isArray(dataObj.shots)) {
-        dataObj.shots.forEach((shot, index) => {
-          if (!shot || typeof shot !== 'object') {
-            errors.push(`${index + 1}번째 샷 데이터가 유효하지 않습니다`);
-            return;
+  /**
+   * DTO 검증 및 에러 처리
+   */
+  private validateDTO<T>(schema: z.ZodSchema<T>, data: unknown, entityName: string): T {
+    try {
+      return schema.parse(data);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new ValidationError(
+          `잘못된 ${entityName} 데이터`,
+          {
+            entityName,
+            errors: error.errors,
+            receivedData: data,
           }
-
-          const shotObj = shot as Record<string, unknown>;
-
-          if (!shotObj.id || typeof shotObj.id !== 'string') {
-            errors.push(`${index + 1}번째 샷의 ID가 유효하지 않습니다`);
-          }
-
-          if (typeof shotObj.length === 'number' && shotObj.length <= 0) {
-            errors.push(`${index + 1}번째 샷의 길이는 0보다 커야 합니다`);
-          }
-        });
+        );
       }
+      throw error;
+    }
+  }
 
-      // 스토리보드 이미지 데이터 검증
-      if (dataObj.storyboardShots && Array.isArray(dataObj.storyboardShots)) {
-        dataObj.storyboardShots.forEach((shot, index) => {
-          if (!shot || typeof shot !== 'object') {
-            errors.push(`${index + 1}번째 스토리보드 샷 데이터가 유효하지 않습니다`);
-            return;
-          }
+  /**
+   * ByteDance 모델명 매핑
+   */
+  private mapByteDanceModel(byteDanceModel: string): ImageGenerationModel {
+    const modelMap: Record<string, ImageGenerationModel> = {
+      'stable-diffusion-xl': 'stable-diffusion',
+      'stable-diffusion-v1.5': 'stable-diffusion',
+      'dalle-3': 'dall-e-3',
+      'midjourney-v6': 'midjourney',
+      'runway-gen3-alpha': 'runway-gen3',
+    };
 
-          const shotObj = shot as Record<string, unknown>;
+    return modelMap[byteDanceModel] || 'stable-diffusion';
+  }
 
-          if (!shotObj.id || typeof shotObj.id !== 'string') {
-            errors.push(`${index + 1}번째 스토리보드 샷의 ID가 유효하지 않습니다`);
-          }
+  /**
+   * 화면 비율 파싱
+   */
+  private parseAspectRatio(ratio?: string): ImageAspectRatio {
+    const ratioMap: Record<string, ImageAspectRatio> = {
+      '16:9': '16:9',
+      '9:16': '9:16',
+      '1:1': '1:1',
+      '4:3': '4:3',
+      '3:4': '3:4',
+    };
 
-          if (typeof shotObj.index === 'number' && shotObj.index < 0) {
-            errors.push(`${index + 1}번째 스토리보드 샷의 인덱스가 유효하지 않습니다`);
-          }
-        });
-      }
+    return ratioMap[ratio || '16:9'] || '16:9';
+  }
+
+  /**
+   * 품질 설정 파싱
+   */
+  private parseQuality(quality?: string): ImageQuality {
+    const qualityMap: Record<string, ImageQuality> = {
+      'standard': 'standard',
+      'hd': 'hd',
+      'high': 'hd',
+      '4k': '4k',
+      'ultra': '4k',
+    };
+
+    return qualityMap[quality || 'standard'] || 'standard';
+  }
+
+  /**
+   * 스타일 파싱
+   */
+  private parseStyle(style?: string): StylePreset | undefined {
+    const styleMap: Record<string, StylePreset> = {
+      'cinematic': 'cinematic',
+      'anime': 'anime',
+      'photorealistic': 'photorealistic',
+      'illustration': 'illustration',
+      'sketch': 'sketch',
+      'watercolor': 'watercolor',
+      'oil-painting': 'oil-painting',
+      'digital-art': 'digital-art',
+      'cartoon': 'cartoon',
+      'vintage': 'vintage',
+    };
+
+    return style ? styleMap[style] : undefined;
+  }
+
+  /**
+   * 썸네일 URL 생성
+   */
+  private generateThumbnailUrl(imageUrl: string): string {
+    // 실제 구현에서는 CDN 썸네일 서비스 활용
+    return imageUrl.replace(/(\.[^.]+)$/, '_thumb$1');
+  }
+
+  /**
+   * 기본 메타데이터 검증
+   */
+  private validateBasicMetadata(
+    storyboard: Storyboard,
+    errors: DataQualityIssue[],
+    warnings: DataQualityIssue[]
+  ): void {
+    if (!storyboard.metadata.title.trim()) {
+      errors.push({
+        type: 'error',
+        code: 'TITLE_REQUIRED',
+        message: '스토리보드 제목은 필수입니다',
+        field: 'metadata.title',
+        severity: 'critical',
+        suggestion: '의미 있는 제목을 입력하세요',
+        autoFixable: false,
+      });
     }
 
-    return { isValid: errors.length === 0, errors };
+    if (storyboard.frames.length === 0) {
+      errors.push({
+        type: 'error',
+        code: 'NO_FRAMES',
+        message: '스토리보드에 프레임이 없습니다',
+        field: 'frames',
+        severity: 'critical',
+        suggestion: '최소 1개 이상의 프레임을 추가하세요',
+        autoFixable: false,
+      });
+    }
 
-  } catch (error) {
-    errors.push(`데이터 검증 중 오류 발생: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
-    return { isValid: false, errors };
+    if (storyboard.frames.length > STORYBOARD_CONSTANTS.MAX_FRAMES_COUNT) {
+      warnings.push({
+        type: 'warning',
+        code: 'TOO_MANY_FRAMES',
+        message: `프레임 수가 권장 한도를 초과했습니다 (${storyboard.frames.length}/${STORYBOARD_CONSTANTS.MAX_FRAMES_COUNT})`,
+        field: 'frames',
+        severity: 'medium',
+        suggestion: '성능을 위해 프레임 수를 줄이는 것을 고려하세요',
+        autoFixable: false,
+      });
+    }
+  }
+
+  /**
+   * 프롬프트 품질 분석 (배열)
+   */
+  private analyzePromptQuality(frames: StoryboardFrame[]): { averageScore: number } {
+    if (frames.length === 0) return { averageScore: 0 };
+
+    const scores = frames.map(frame =>
+      this.analyzePromptQuality(frame.prompt.enhancedPrompt).score
+    );
+
+    return {
+      averageScore: scores.reduce((sum, score) => sum + score, 0) / scores.length,
+    };
+  }
+
+  /**
+   * 일관성 분석
+   */
+  private analyzeConsistency(storyboard: Storyboard): { score: number } {
+    // 글로벌 일관성 참조 사용률
+    const globalRefsCount = storyboard.settings.globalConsistencyRefs.length;
+    const activeRefsCount = storyboard.settings.globalConsistencyRefs.filter(ref => ref.isActive).length;
+
+    // 프레임 간 일관성 참조 사용
+    const framesWithRefs = storyboard.frames.filter(frame => frame.consistencyRefs.length > 0).length;
+    const consistencyUsageRate = storyboard.frames.length > 0 ? framesWithRefs / storyboard.frames.length : 0;
+
+    // 일관성 점수 계산
+    const score = Math.round(
+      (activeRefsCount / Math.max(globalRefsCount, 1) * 50) +
+      (consistencyUsageRate * 50)
+    );
+
+    return { score: Math.max(0, Math.min(100, score)) };
+  }
+
+  /**
+   * URL 검증 (동기)
+   */
+  private validateUrls(storyboard: Storyboard): { score: number } {
+    const urls = [
+      ...storyboard.settings.globalConsistencyRefs
+        .map(ref => ref.referenceImageUrl)
+        .filter(Boolean),
+      ...storyboard.frames
+        .map(frame => frame.result?.imageUrl)
+        .filter(Boolean),
+    ];
+
+    if (urls.length === 0) return { score: 100 };
+
+    // 간단한 URL 형식 검증
+    const validUrls = urls.filter(url => {
+      try {
+        new URL(url!);
+        return true;
+      } catch {
+        return false;
+      }
+    });
+
+    const score = Math.round((validUrls.length / urls.length) * 100);
+    return { score };
+  }
+
+  /**
+   * 기술적 스펙 검증
+   */
+  private validateTechnicalSpecs(storyboard: Storyboard): { score: number } {
+    let validSpecs = 0;
+    let totalSpecs = 0;
+
+    storyboard.frames.forEach(frame => {
+      totalSpecs++;
+
+      // 설정 완성도 확인
+      if (frame.config.model && frame.config.aspectRatio && frame.config.quality) {
+        validSpecs++;
+      }
+    });
+
+    const score = totalSpecs > 0 ? Math.round((validSpecs / totalSpecs) * 100) : 100;
+    return { score };
+  }
+
+  /**
+   * 중복 프레임 검출
+   */
+  private detectDuplicateFrames(frames: StoryboardFrame[]): StoryboardFrame[] {
+    const promptMap = new Map<string, StoryboardFrame[]>();
+
+    frames.forEach(frame => {
+      const prompt = frame.prompt.enhancedPrompt.toLowerCase().trim();
+      if (!promptMap.has(prompt)) {
+        promptMap.set(prompt, []);
+      }
+      promptMap.get(prompt)!.push(frame);
+    });
+
+    return Array.from(promptMap.values())
+      .filter(group => group.length > 1)
+      .flat();
+  }
+
+  /**
+   * 누락된 프롬프트 검출
+   */
+  private detectMissingPrompts(frames: StoryboardFrame[]): StoryboardFrame[] {
+    return frames.filter(frame =>
+      !frame.prompt.enhancedPrompt ||
+      frame.prompt.enhancedPrompt.trim().length < 5
+    );
+  }
+
+  /**
+   * 종합 품질 점수 계산
+   */
+  private calculateOverallQualityScore(
+    metrics: any,
+    errors: DataQualityIssue[],
+    warnings: DataQualityIssue[]
+  ): number {
+    // 가중 평균 계산
+    const baseScore = (
+      metrics.promptQualityScore * 0.3 +
+      metrics.consistencyScore * 0.2 +
+      metrics.technicalValidityScore * 0.2 +
+      metrics.urlValidityScore * 0.15 +
+      (metrics.duplicateFramesCount === 0 ? 100 : 0) * 0.1 +
+      (metrics.missingPromptsCount === 0 ? 100 : 0) * 0.05
+    );
+
+    // 에러/경고에 따른 패널티
+    const errorPenalty = errors.length * 10;
+    const warningPenalty = warnings.length * 5;
+
+    return Math.max(0, Math.min(100, Math.round(baseScore - errorPenalty - warningPenalty)));
+  }
+
+  /**
+   * 설명적 단어 판별
+   */
+  private isDescriptiveWord(word: string): boolean {
+    const descriptivePatterns = [
+      /bright|dark|vivid|pale|rich|deep|soft|harsh|warm|cool/,
+      /large|small|tiny|huge|massive|delicate|bold|subtle/,
+      /smooth|rough|textured|glossy|matte|shiny|dull/,
+      /beautiful|elegant|dramatic|peaceful|energetic|mysterious/,
+    ];
+
+    return descriptivePatterns.some(pattern => pattern.test(word));
+  }
+
+  /**
+   * 기술적 용어 판별
+   */
+  private isTechnicalTerm(word: string): boolean {
+    const technicalTerms = [
+      'close-up', 'wide-shot', 'medium-shot', 'macro', 'aerial',
+      'bokeh', 'depth-of-field', 'focus', 'blur', 'sharp',
+      'lighting', 'shadow', 'highlight', 'exposure', 'contrast',
+      '4k', 'hdr', 'cinematic', 'photorealistic', 'render',
+    ];
+
+    return technicalTerms.includes(word);
+  }
+
+  /**
+   * 스타일 일관성 분석
+   */
+  private analyzeStyleConsistency(sentences: string[]): number {
+    if (sentences.length < 2) return 1;
+
+    // 문장 길이 일관성
+    const lengths = sentences.map(s => s.trim().length);
+    const avgLength = lengths.reduce((sum, len) => sum + len, 0) / lengths.length;
+    const lengthVariance = lengths.reduce((sum, len) => sum + Math.pow(len - avgLength, 2), 0) / lengths.length;
+    const lengthConsistency = Math.max(0, 1 - (lengthVariance / (avgLength * avgLength)));
+
+    return lengthConsistency;
   }
 }
+
+// 싱글톤 인스턴스 export
+export const storyboardTransformers = new StoryboardDTOTransformers();
+
+// 스키마 export
+export {
+  ByteDanceImageResponseSchema,
+  ByteDanceBatchResponseSchema,
+  ImageGenerationConfigSchema,
+  ConsistencyReferenceSchema,
+  PromptEngineeringSchema,
+  StoryboardCreateRequestSchema,
+  FrameGenerationRequestSchema,
+  BatchGenerationRequestSchema,
+};
+
+// 타입 export
+export type {
+  StoryboardDataQualityResult,
+  DataQualityIssue,
+  UrlValidationResult,
+  PromptQualityAnalysis,
+};

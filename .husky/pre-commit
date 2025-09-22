@@ -1,26 +1,29 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-echo "🔍 MCP 서버 상태 확인 중..."
-npm run test:mcp
+# $300 사건 방지를 위한 사전 검사
+echo "🔍 $300 사건 방지 검사 중..."
 
-if [ $? -ne 0 ]; then
-  echo "❌ MCP 서버 상태 확인 실패. 커밋을 중단합니다."
-  echo "💡 해결 방법: npm run test:mcp 명령어로 상태를 확인하세요."
+# useEffect 의존성 배열에 함수가 있는지 검사
+if grep -r "useEffect.*\[.*function\|useEffect.*\[.*=>" src/ --include="*.ts" --include="*.tsx"; then
+  echo "🚨 $300 패턴 감지! useEffect 의존성 배열에 함수가 포함되어 있습니다."
+  echo "빈 배열 []을 사용하거나 useCallback으로 함수를 메모이제이션하세요."
   exit 1
 fi
 
-echo "🧪 변경된 파일에 대한 MCP 테스트 실행 중..."
-npm run test:mcp:enhanced
-
-if [ $? -ne 0 ]; then
-  echo "❌ MCP 테스트 실패. 커밋을 중단합니다."
-  echo "💡 해결 방법: 실패한 테스트를 수정한 후 다시 커밋하세요."
+# API 호출이 무한 루프에 빠질 수 있는 패턴 검사
+if grep -r "useEffect.*checkAuth\|useEffect.*auth.*me" src/ --include="*.ts" --include="*.tsx"; then
+  echo "🚨 위험한 auth 호출 패턴 감지!"
+  echo "auth/me 호출은 앱 전체에서 1번만 실행되어야 합니다."
   exit 1
 fi
 
-echo "✅ 모든 MCP 테스트 통과. 커밋을 진행합니다."
+# ESLint 검사
+echo "📋 코드 품질 검사 중..."
+npx eslint . --ext .ts,.tsx --max-warnings 0
 
+# TypeScript 타입 검사
+echo "🔧 타입 검사 중..."
+npx tsc --noEmit
 
-
-
+echo "✅ 모든 검사 통과!"

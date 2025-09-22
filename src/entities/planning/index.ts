@@ -1,123 +1,94 @@
 /**
  * Planning Entity Public API
- * FSD Architecture - Entities Layer
+ *
+ * CLAUDE.md 준수: FSD Public API 패턴, entities 레이어
  */
 
-// 도메인 타입 Export
+// 타입 정의
 export type {
-  ContentType,
-  ContentStatus,
-  StorageStatus,
-  BaseContent,
-  ScenarioContent,
-  PromptContent,
-  VideoContent,
-  PlanningContent,
-  ProjectId,
-  ContentId,
-  StorageResult,
-  DualStorageConfig,
-  DomainEvent,
-  ContentCreatedEvent,
-  ContentUpdatedEvent,
-  StorageFailedEvent,
-  ConsistencyRestoredEvent,
-  PlanningDomainError,
-  StorageConsistencyError,
-  InvalidContentError,
-  DualStorageError,
-  // 하위 호환성 타입들
-  VideoItem,
-  ScenarioItem,
-  PromptItem,
-  PlanningItem,
-  PlanningState,
-  ImageAsset
-} from './model/types';
+  // 핵심 엔티티
+  PlanningProject,
+  PlanningProjectMetadata,
+  PlanningInputData,
+  StoryStep,
+  ShotSequence,
+  InsertShot,
 
-// 도메인 서비스 Export
+  // 위저드 관련
+  WizardStep,
+  WizardStatus,
+  WizardProgress,
+
+  // 옵션 타입
+  ToneAndManner,
+  StoryDevelopment,
+  StoryIntensity,
+  ContiStyle,
+
+  // API 요청/응답
+  StoryGenerationRequest,
+  StoryGenerationResponse,
+  ShotBreakdownRequest,
+  ShotBreakdownResponse,
+  ContiGenerationRequest,
+  ContiGenerationResponse,
+
+  // Marp 및 내보내기
+  MarpExportMetadata,
+  ExportSettings,
+  MarpPdfGenerationRequest,
+  MarpPdfGenerationResponse,
+
+  // CRUD 타입
+  PlanningProjectCreateInput,
+  PlanningProjectUpdateInput,
+
+  // 검색 및 필터링
+  PlanningSearchFilter,
+  PaginatedPlanningProjects,
+
+  // 검증 및 에러
+  PlanningValidationResult,
+  PlanningError,
+
+  // 세션 및 설정
+  SessionRestoreData,
+  AutoSaveSettings,
+
+  // 템플릿
+  PlanningTemplate,
+} from './types'
+
+// 비즈니스 로직 함수
 export {
-  saveScenario,
-  savePrompt,
-  saveVideo,
-  type DualStorageDependencies
-} from './model/services';
+  validatePlanningInput,
+  validateStorySteps,
+  validateShotSequences,
+  calculateWizardProgress,
+  calculateCompletionPercentage,
+  calculateTotalDuration,
+  canRestoreSession,
+  reorderStorySteps,
+  reorderShotSequences,
+  createDefaultStorySteps,
+  createDefaultShotSequences,
+  validateDataIntegrity,
+} from './model'
 
-// Repository Interfaces (Pure Domain)
+// 상수
 export {
-  type PlanningRepository,
-  type PrismaRepository,
-  type SupabaseRepository,
-  type DualStorageRepository,
-  type DualStorageResult,
-  type RepositoryFactory
-} from './model/repository';
+  PLANNING_BUSINESS_RULES,
+  PLANNING_CONSTANTS,
+} from './types'
 
-// Repository Factory Export (API 라우트용)
+// Redux Store (re-export from features)
 export {
-  getPlanningRepository,
-  getDualPlanningRepository
-} from './model/repository-factory';
-
-// Infrastructure Export (Repository 구현체) - Prisma 임시 비활성화
-// export {
-//   createPrismaRepository,
-//   PrismaRepositoryImpl
-// } from './infrastructure/prisma-repository';
-
-export {
-  createSupabaseRepository,
-  SupabaseRepositoryImpl
-} from './infrastructure/supabase-repository';
-
-// Redux Store Export
-export {
-  planningReducer,
-  setActiveTab,
-  setLoading,
-  setError,
-  updateLastLoadTime,
-  setScenarios,
-  setPrompts,
-  setVideos,
-  setImages,
-  updateScenario,
-  updatePrompt,
-  updateVideo,
-  updateVideoStatus,
-  setSelectedVideo,
-  setSelectedItems,
-  toggleSelectedItem,
-  setBatchMode,
-  setSearchTerm,
-  setStatusFilter,
-  setTypeFilter,
-  setProviderFilter,
-  setDateFilter,
-  setSortBy,
-  setEditingItem,
-  setViewingItem,
-  setShowCreateDialog,
-  setCreateItemType,
-  resetFilters,
-  clearError,
-  selectPlanningState,
-  selectActiveTab,
-  selectLoading,
-  selectError,
-  selectScenarios,
-  selectPrompts,
-  selectVideos,
-  selectImages,
-  selectSelectedVideo,
-  selectSelectedItems,
-  selectFilters,
-  selectLastLoadTime,
-  shouldRefreshData,
-} from './store/planning-slice';
-
-// export {
-//   getDualStorageFactory,
-//   createDualStorageDependencies,
-//   DualStorageFactory
-// } from './infrastructure/dual-storage-factory'; // Prisma 의존성으로 인한 임시 비활성화
+  default as planningSlice,
+  planningActions,
+  planningSelectors,
+  createProject,
+  loadProject,
+  saveProject,
+  loadProjects,
+  type PlanningState
+} from '../../features/planning/store/planning-slice'

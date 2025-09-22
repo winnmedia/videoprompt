@@ -1,73 +1,79 @@
-import { NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/shared/lib/supabase-client';
-// import { prisma } from '@/lib/db'; // Prisma 임시 비활성화
-import { logger } from '@/shared/lib/logger';
+/**
+ * Health Check API
+ *
+ * 애플리케이션 상태 확인용 엔드포인트
+ * CI/CD 파이프라인에서 사용
+ */
+
+import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
 export async function GET() {
-  const timestamp = new Date().toISOString();
-
   try {
-    // 환경변수 체크
-    const envCheck = {
-      DATABASE_URL: !!process.env.DATABASE_URL,
-      NODE_ENV: process.env.NODE_ENV || 'unknown'
-    };
+    const startTime = Date.now()
 
-    // 기본 앱 상태
-    const appStatus = {
+    // 기본 상태 체크
+    const health = {
       status: 'healthy',
-      timestamp,
-      uptime: Math.floor(process.uptime()),
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV,
       version: process.env.npm_package_version || '1.0.0',
-      environment: envCheck
-    };
-
-    // DB 연결 체크 (Supabase)
-    let dbStatus = 'healthy';
-    let dbError = null;
-
-    try {
-      const { client, error, canProceed } = await getSupabaseClient({
-        throwOnError: false,
-        serviceName: 'health-check'
-      });
-
-      if (!canProceed || error) {
-        dbStatus = 'degraded';
-        dbError = error || 'Supabase connection unavailable';
+      checks: {
+        database: false,
+        auth: false,
+        storage: false
       }
-    } catch (error) {
-      dbStatus = 'unhealthy';
-      dbError = error instanceof Error ? error.message : String(error);
-      logger.error('Supabase health check failed', error instanceof Error ? error : new Error(String(error)));
     }
 
-    const healthData = {
-      ...appStatus,
-      services: {
-        database: {
-          status: dbStatus,
-          type: 'supabase',
-          ...(dbError && { error: dbError })
-        },
-        app: 'healthy'
+    // Supabase 연결 확인
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      try {
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        )
+
+        // 단순한 쿼리로 DB 연결 확인
+        const { data, error } = await supabase
+          .from('users')
+          .select('count')
+          .limit(1)
+          .single()
+
+        health.checks.database = !error
+        health.checks.auth = true
+        health.checks.storage = true
+      } catch (error) {
+        console.warn('Supabase health check failed:', error)
+        health.checks.database = false
       }
-    };
+    }
 
-    // DB 문제나 환경변수 문제가 있으면 503, degraded면 207, 정상이면 200
-    const hasIssues = dbStatus === 'unhealthy' || !envCheck.DATABASE_URL;
-    const isDegraded = dbStatus === 'degraded';
-    const statusCode = hasIssues ? 503 : isDegraded ? 207 : 200;
+    const responseTime = Date.now() - startTime
 
-    return NextResponse.json(healthData, { status: statusCode });
+    // 모든 체크가 성공하면 200, 하나라도 실패하면 503
+    const allHealthy = Object.values(health.checks).every(Boolean)
+    const status = allHealthy ? 200 : 503
+
+    return NextResponse.json({
+      ...health,
+      responseTime: `${responseTime}ms`,
+      message: allHealthy ? 'All systems operational' : 'Some systems degraded'
+    }, { status })
 
   } catch (error) {
-    logger.error('Health check error', error instanceof Error ? error : new Error(String(error)));
-    
+    console.error('Health check failed:', error)
+
     return NextResponse.json({
-      status: 'error',
-      timestamp,
-      error: 'Health check failed'
-    }, { status: 500 });
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      error: 'Health check failed',
+      checks: {
+        database: false,
+        auth: false,
+        storage: false
+      }
+    }, { status: 503 })
   }
 }

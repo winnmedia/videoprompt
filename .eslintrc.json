@@ -1,0 +1,128 @@
+{
+  "extends": [
+    "next/core-web-vitals",
+    "@typescript-eslint/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module",
+    "project": "./tsconfig.json"
+  },
+  "plugins": [
+    "@typescript-eslint",
+    "boundaries"
+  ],
+  "settings": {
+    "boundaries/elements": [
+      {
+        "type": "app",
+        "pattern": "src/app/**/*"
+      },
+      {
+        "type": "processes",
+        "pattern": "src/processes/**/*"
+      },
+      {
+        "type": "pages",
+        "pattern": "src/pages/**/*"
+      },
+      {
+        "type": "widgets",
+        "pattern": "src/widgets/**/*"
+      },
+      {
+        "type": "features",
+        "pattern": "src/features/**/*"
+      },
+      {
+        "type": "entities",
+        "pattern": "src/entities/**/*"
+      },
+      {
+        "type": "shared",
+        "pattern": "src/shared/**/*"
+      }
+    ],
+    "boundaries/ignore": [
+      "**/*.test.*",
+      "**/*.spec.*",
+      "**/*.stories.*"
+    ]
+  },
+  "rules": {
+    // FSD 레이어 의존성 규칙 강제
+    "boundaries/element-types": [
+      "error",
+      {
+        "default": "disallow",
+        "rules": [
+          {
+            "from": "app",
+            "allow": ["processes", "pages", "widgets", "features", "entities", "shared"]
+          },
+          {
+            "from": "processes",
+            "allow": ["pages", "widgets", "features", "entities", "shared"]
+          },
+          {
+            "from": "pages",
+            "allow": ["widgets", "features", "entities", "shared"]
+          },
+          {
+            "from": "widgets",
+            "allow": ["features", "entities", "shared"]
+          },
+          {
+            "from": "features",
+            "allow": ["entities", "shared"]
+          },
+          {
+            "from": "entities",
+            "allow": ["shared"]
+          },
+          {
+            "from": "shared",
+            "allow": []
+          }
+        ]
+      }
+    ],
+
+    // Public API 강제: index.ts를 통해서만 import 허용
+    "boundaries/no-private": [
+      "error",
+      {
+        "allowUncles": false
+      }
+    ],
+
+    // $300 사건 방지 규칙들
+    "react-hooks/exhaustive-deps": [
+      "error",
+      {
+        "additionalHooks": "useAsync|useAsyncFn"
+      }
+    ],
+
+    // useEffect 의존성 배열에 함수 금지
+    "@typescript-eslint/no-misused-promises": [
+      "error",
+      {
+        "checksVoidReturn": {
+          "attributes": false
+        }
+      }
+    ],
+
+    // TypeScript 엄격 규칙
+    "@typescript-eslint/no-unused-vars": "error",
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/ban-ts-comment": "error",
+
+    // 코드 품질 규칙
+    "prefer-const": "error",
+    "no-var": "error",
+    "no-console": "warn"
+  }
+}

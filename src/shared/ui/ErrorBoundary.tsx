@@ -1,100 +1,130 @@
+/**
+ * Error Boundary Component
+ * CLAUDE.md 준수: 선언적 오류 처리, Graceful Degradation
+ */
+
 'use client';
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { logger } from '@/shared/lib/logger';
-import { Button } from './button';
-import { Icon } from './Icon';
 
-interface Props {
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error?: Error;
+  errorInfo?: ErrorInfo;
+}
+
+interface ErrorBoundaryProps {
   children: ReactNode;
   fallback?: ReactNode;
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  showDetails?: boolean;
 }
 
-interface State {
-  hasError: boolean;
-  error: Error | null;
-  errorId: string | null;
-}
-
-export class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
+export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, error: null, errorId: null };
+    this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return {
       hasError: true,
       error,
-      errorId: `error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Production 환경에서는 최소한의 로깅만 수행
-    if (process.env.NODE_ENV === 'development') {
-      logger.debug('ErrorBoundary caught an error:', error, errorInfo);
-    } else {
-      // Production에서는 에러 ID만 로깅
-      logger.debug(`Error ${this.state.errorId}:`, error.message);
-    }
+    this.setState({
+      error,
+      errorInfo,
+    });
 
-    // 사용자 정의 에러 핸들러 호출
-    if (this.props.onError) {
-      this.props.onError(error, errorInfo);
+    // Call the onError callback if provided
+    this.props.onError?.(error, errorInfo);
+
+    // Log error to console in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error('ErrorBoundary caught an error:', error, errorInfo);
     }
   }
 
-  handleReload = () => {
-    window.location.reload();
-  };
-
-  handleReset = () => {
-    this.setState({ hasError: false, error: null, errorId: null });
-  };
-
   render() {
     if (this.state.hasError) {
+      // Custom fallback UI
       if (this.props.fallback) {
         return this.props.fallback;
       }
 
+      // Default fallback UI
       return (
-        <div className="min-h-96 flex items-center justify-center p-6">
-          <div className="text-center max-w-md mx-auto">
-            <div className="mb-6">
-              <Icon name="error" size="xl" className="text-red-500 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                문제가 발생했습니다
-              </h2>
-              <p className="text-gray-600 text-sm mb-4">
-                예상치 못한 오류가 발생했습니다. 페이지를 새로고침하거나 다시 시도해 주세요.
-              </p>
-              {process.env.NODE_ENV === 'development' && this.state.error && (
-                <details className="text-left text-xs text-red-600 bg-red-50 p-3 rounded border mb-4">
-                  <summary className="cursor-pointer font-medium">기술적 세부사항</summary>
-                  <div className="mt-2 font-mono whitespace-pre-wrap break-all">
-                    {this.state.error.message}
-                  </div>
-                </details>
-              )}
-            </div>
-            <div className="flex gap-3 justify-center">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={this.handleReset}
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg
+                className="w-8 h-8 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                다시 시도
-              </Button>
-              <Button
-                size="sm"
-                onClick={this.handleReload}
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"
+                />
+              </svg>
+            </div>
+
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              문제가 발생했습니다
+            </h2>
+
+            <p className="text-gray-600 mb-6">
+              예상치 못한 오류가 발생했습니다. 페이지를 새로고침하거나 잠시 후 다시 시도해주세요.
+            </p>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => window.location.reload()}
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
               >
                 페이지 새로고침
-              </Button>
+              </button>
+
+              <button
+                onClick={() => window.history.back()}
+                className="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition-colors"
+              >
+                이전 페이지로
+              </button>
             </div>
+
+            {/* Show error details in development */}
+            {this.props.showDetails && process.env.NODE_ENV === 'development' && this.state.error && (
+              <details className="mt-6 text-left">
+                <summary className="cursor-pointer text-sm font-medium text-gray-500 hover:text-gray-700">
+                  오류 세부 정보 (개발 모드)
+                </summary>
+                <div className="mt-2 p-3 bg-gray-100 rounded text-xs font-mono text-gray-800 overflow-auto max-h-40">
+                  <div className="font-bold text-red-600 mb-2">Error:</div>
+                  <div className="mb-4">{this.state.error.message}</div>
+
+                  {this.state.error.stack && (
+                    <>
+                      <div className="font-bold text-red-600 mb-2">Stack Trace:</div>
+                      <pre className="whitespace-pre-wrap">{this.state.error.stack}</pre>
+                    </>
+                  )}
+
+                  {this.state.errorInfo && (
+                    <>
+                      <div className="font-bold text-red-600 mb-2 mt-4">Component Stack:</div>
+                      <pre className="whitespace-pre-wrap">{this.state.errorInfo.componentStack}</pre>
+                    </>
+                  )}
+                </div>
+              </details>
+            )}
           </div>
         </div>
       );
@@ -104,19 +134,4 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-// 함수형 컴포넌트를 위한 HOC
-export function withErrorBoundary<P extends object>(
-  Component: React.ComponentType<P>,
-  fallback?: ReactNode,
-  onError?: (error: Error, errorInfo: ErrorInfo) => void
-) {
-  const WrappedComponent: React.FC<P> = (props) => (
-    <ErrorBoundary fallback={fallback} onError={onError}>
-      <Component {...props} />
-    </ErrorBoundary>
-  );
-
-  WrappedComponent.displayName = `withErrorBoundary(${Component.displayName || Component.name})`;
-  
-  return WrappedComponent;
-}
+export default ErrorBoundary;

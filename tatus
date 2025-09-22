@@ -1,5 +1,0 @@
-[33mbdf29ff[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m deploy: trigger
-[33m368b436[m deploy: trigger
-[33m0abc0a6[m deploy: trigger
-[33m578a23f[m fix: seedance status route uses dynamic imports to avoid runtime issues
-[33m1ac222d[m deploy: trigger

@@ -1,245 +1,353 @@
 /**
- * RTK Query 기반 스토리 생성 서버 상태 관리
- * FSD features 레이어 - 비즈니스 로직 및 서버 상태 관리
+ * useStoryGeneration Hook
  *
- * v2.0 업데이트:
- * - 파이프라인 매니저 통합
- * - ProjectID 기반 상태 관리
- * - 자동 단계 진행
+ * AI 스토리 생성 기능을 위한 React Hook
+ * CLAUDE.md 준수: FSD features 레이어, React 19 훅 규칙
  */
 
-import React from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { StoryInput, StoryStep, setStorySteps, setStoryError, setLoading } from '@/entities/scenario';
-import { useGenerateStoryMutation, useSaveStoryMutation, useLoadStoryQuery, useGetSavedStoriesQuery, apiSlice } from '@/shared/api/api-slice';
-import { useToast } from '@/shared/lib/hooks/useToast';
-import { pipelineManager } from '@/shared/lib/pipeline-manager';
-import { selectProjectId } from '@/entities/pipeline/store/pipeline-slice';
-import type { RootState } from '@/shared/types/store';
-import { logger } from '@/shared/lib/logger';
+import { useState, useCallback, useRef } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 
+import type {
+  StoryGenerationRequest,
+  ScenarioCreateInput,
+  Scenario
+} from '../../../entities/scenario'
+
+import { scenarioActions, scenarioSelectors } from '../../../entities/scenario'
+import { StoryGenerator, type StoryGenerationResult, type StoryGenerationOptions } from '../model/story-generator'
+import logger from '../../../shared/lib/logger'
 
 /**
- * RTK Query 기반 스토리 생성 Hook
- * React Query와 동일한 인터페이스 제공하되 RTK Query 사용
+ * 스토리 생성 Hook 상태
  */
+export interface UseStoryGenerationState {
+  isGenerating: boolean
+  progress: number // 0-100
+  currentStep: GenerationStep
+  lastResult: StoryGenerationResult | null
+  error: string | null
+}
 
 /**
- * 스토리 생성 뮤테이션 훅
- * RTK Query + 파이프라인 매니저 통합
+ * 생성 단계
  */
-export function useStoryGeneration() {
-  const dispatch = useDispatch();
-  const toast = useToast();
-  const currentProjectId = useSelector((state: RootState) => selectProjectId(state));
-  const [generateStory, { isLoading, error }] = useGenerateStoryMutation();
+export type GenerationStep = 
+  | 'idle'
+  | 'preparing'
+  | 'generating_outline'
+  | 'creating_scenes'
+  | 'validating'
+  | 'finalizing'
+  | 'completed'
+  | 'error'
 
-  // 파이프라인 매니저 초기화
-  React.useEffect(() => {
-    pipelineManager.setDispatch(dispatch);
-  }, [dispatch]);
+/**
+ * Hook 옵션
+ */
+export interface UseStoryGenerationOptions {
+  autoSave?: boolean
+  enableProgressTracking?: boolean
+  onStepChange?: (step: GenerationStep, progress: number) => void
+  onSuccess?: (result: StoryGenerationResult) => void
+  onError?: (error: string) => void
+}
 
-  const generateStoryWithPipeline = async (storyInput: StoryInput, projectId?: string) => {
+/**
+ * AI 스토리 생성 Hook
+ */
+export function useStoryGeneration(options: UseStoryGenerationOptions = {}) {
+  const {
+    autoSave = true,
+    enableProgressTracking = true,
+    onStepChange,
+    onSuccess,
+    onError
+  } = options
+
+  const dispatch = useDispatch()
+  const isLoading = useSelector(scenarioSelectors.getIsLoading)
+  const currentScenario = useSelector(scenarioSelectors.getCurrentScenario)
+  
+  // 내부 상태
+  const [state, setState] = useState<UseStoryGenerationState>({
+    isGenerating: false,
+    progress: 0,
+    currentStep: 'idle',
+    lastResult: null,
+    error: null
+  })
+
+  // 취소를 위한 AbortController
+  const abortControllerRef = useRef<AbortController | null>(null)
+
+  /**
+   * 상태 업데이트 헬퍼
+   */
+  const updateState = useCallback((updates: Partial<UseStoryGenerationState>) => {
+    setState(prev => {
+      const newState = { ...prev, ...updates }
+      
+      // 단계 변경 알림
+      if (enableProgressTracking && onStepChange && updates.currentStep) {
+        onStepChange(updates.currentStep, newState.progress)
+      }
+      
+      return newState
+    })
+  }, [enableProgressTracking, onStepChange])
+
+  /**
+   * 진행률 업데이트
+   */
+  const updateProgress = useCallback((step: GenerationStep, progress: number) => {
+    updateState({ currentStep: step, progress })
+  }, [updateState])
+
+  /**
+   * 새로운 스토리 생성
+   */
+  const generateStory = useCallback(async (
+    input: ScenarioCreateInput,
+    request: StoryGenerationRequest,
+    generationOptions: StoryGenerationOptions = {}
+  ): Promise<StoryGenerationResult | null> => {
+    // 이미 생성 중인 경우 방지
+    if (state.isGenerating) {
+      logger.warn('이미 스토리 생성이 진행 중입니다.')
+      return null
+    }
+
     try {
-      // ProjectID 확보 (기존 것이 있으면 사용, 없으면 새로 생성)
-      const activeProjectId = projectId || currentProjectId || pipelineManager.startNewProject();
+      // AbortController 설정
+      abortControllerRef.current = new AbortController()
+      
+      // 초기 상태 설정
+      updateState({
+        isGenerating: true,
+        progress: 0,
+        currentStep: 'preparing',
+        error: null,
+        lastResult: null
+      })
 
-      logger.info('🚀 스토리 생성 시작:', {
-        projectId: activeProjectId,
-        title: storyInput.title
-      });
+      dispatch(scenarioActions.setLoading(true))
 
-      // 로딩 상태 설정
-      dispatch(setLoading(true));
-      toast.info('AI가 4단계 스토리를 생성하고 있습니다...', '스토리 생성 중', { duration: 0 });
+      // 1단계: 준비
+      updateProgress('preparing', 10)
+      await new Promise(resolve => setTimeout(resolve, 500)) // UI 업데이트 시간
 
-      // ProjectID가 포함된 요청 데이터 생성
-      const requestData = pipelineManager.injectProjectId(storyInput, activeProjectId);
-      const result = await generateStory(requestData).unwrap();
+      // 2단계: 아웃라인 생성
+      updateProgress('generating_outline', 30)
+      
+      // 3단계: 씬 생성
+      updateProgress('creating_scenes', 60)
+      
+      // 실제 생성 수행
+      const result = await StoryGenerator.generateScenario(input, request, {
+        ...generationOptions,
+        validateResult: true
+      })
 
-      // result 및 result.steps 존재 여부 체크
-      if (!result) {
-        throw new Error('스토리 생성 응답이 비어있습니다. 다시 시도해주세요.');
+      // 4단계: 검증
+      updateProgress('validating', 80)
+      await new Promise(resolve => setTimeout(resolve, 300))
+
+      // 5단계: 마무리
+      updateProgress('finalizing', 90)
+
+      if (result.success && result.scenario) {
+        // Redux 상태 업데이트
+        dispatch(scenarioActions.setCurrentScenario(result.scenario))
+        
+        if (autoSave) {
+          dispatch(scenarioActions.addToScenarioList(result.scenario))
+        }
+
+        // 성공 완료
+        updateState({
+          isGenerating: false,
+          progress: 100,
+          currentStep: 'completed',
+          lastResult: result
+        })
+
+        onSuccess?.(result)
+        
+        logger.info('스토리 생성 성공', {
+          scenarioId: result.scenario.metadata.id,
+          sceneCount: result.scenario.scenes.length
+        })
+
+        return result
+
+      } else {
+        // 생성 실패
+        throw new Error(result.error || '스토리 생성에 실패했습니다.')
       }
 
-      if (!result.steps || !Array.isArray(result.steps) || result.steps.length === 0) {
-        throw new Error('스토리 단계 데이터가 없습니다. 다시 시도해주세요.');
-      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'
+      
+      // 에러 상태
+      updateState({
+        isGenerating: false,
+        progress: 0,
+        currentStep: 'error',
+        error: errorMessage
+      })
 
-      // Redux 상태 업데이트 (기존 로직 유지)
-      dispatch(setStorySteps(result.steps));
+      dispatch(scenarioActions.setError(errorMessage))
+      onError?.(errorMessage)
+      
+      logger.error('스토리 생성 오류', {
+        error: errorMessage,
+        prompt: request.prompt
+      })
 
-      // 파이프라인 상태 업데이트
-      const storyId = crypto.randomUUID();
-      pipelineManager.completeStoryStep(activeProjectId, storyId, storyInput, result.steps);
+      return null
 
-      // 성공 토스트
-      toast.success(`${result.steps.length}단계 스토리가 성공적으로 생성되었습니다!`, '스토리 생성 완료');
-
-      return {
-        ...result,
-        projectId: activeProjectId,
-        storyId
-      };
-    } catch (error: any) {
-      // Redux 에러 상태 설정
-      dispatch(setStoryError(error.message || '스토리 생성에 실패했습니다'));
-
-      // 에러 토스트
-      toast.error(error.message || '다시 시도해주세요', '스토리 생성 실패');
-
-      throw error;
     } finally {
-      // 로딩 상태 해제
-      dispatch(setLoading(false));
+      dispatch(scenarioActions.setLoading(false))
+      abortControllerRef.current = null
     }
-  };
+  }, [state.isGenerating, dispatch, autoSave, updateState, updateProgress, onSuccess, onError])
 
-  return {
-    mutateAsync: generateStoryWithPipeline,
-    mutate: generateStoryWithPipeline,
-    isLoading,
-    error,
-    isPending: isLoading,
-    currentProjectId
-  };
-}
+  /**
+   * 스토리 재생성/개선
+   */
+  const regenerateStory = useCallback(async (
+    improvementPrompt: string,
+    options: StoryGenerationOptions = {}
+  ): Promise<StoryGenerationResult | null> => {
+    if (!currentScenario) {
+      const error = '재생성할 시나리오가 없습니다.'
+      onError?.(error)
+      return null
+    }
 
-/**
- * 스토리 저장 뮤테이션 훅
- * 파이프라인 통합 버전
- */
-export function useStorySave() {
-  const dispatch = useDispatch();
-  const toast = useToast();
-  const currentProjectId = useSelector((state: RootState) => selectProjectId(state));
-  const [saveStory, { isLoading, error }] = useSaveStoryMutation();
-
-  // 파이프라인 매니저 초기화
-  React.useEffect(() => {
-    pipelineManager.setDispatch(dispatch);
-  }, [dispatch]);
-
-  const saveStoryWithPipeline = async (data: {
-    storyInput: StoryInput;
-    steps: StoryStep[];
-    projectId?: string;
-  }) => {
     try {
-      // ProjectID 확보
-      const activeProjectId = data.projectId || currentProjectId;
-      if (!activeProjectId) {
-        throw new Error('ProjectID가 필요합니다. 먼저 스토리를 생성해주세요.');
+      updateState({
+        isGenerating: true,
+        progress: 0,
+        currentStep: 'preparing',
+        error: null
+      })
+
+      const result = await StoryGenerator.regenerateStory(
+        currentScenario,
+        improvementPrompt,
+        options
+      )
+
+      if (result.success && result.scenario) {
+        dispatch(scenarioActions.setCurrentScenario(result.scenario))
+        
+        updateState({
+          isGenerating: false,
+          progress: 100,
+          currentStep: 'completed',
+          lastResult: result
+        })
+
+        onSuccess?.(result)
+        return result
+      } else {
+        throw new Error(result.error || '스토리 재생성에 실패했습니다.')
       }
 
-      logger.info('💾 스토리 저장 시작:', {
-        projectId: activeProjectId,
-        stepCount: data.steps.length
-      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '재생성 오류'
+      
+      updateState({
+        isGenerating: false,
+        currentStep: 'error',
+        error: errorMessage
+      })
 
-      // ProjectID가 포함된 저장 데이터
-      const saveData = {
-        ...data,
-        projectId: activeProjectId
-      };
-
-      const result = await saveStory(saveData).unwrap();
-
-      toast.success('프로젝트가 성공적으로 저장되었습니다', '스토리 저장 완료');
-
-      return {
-        ...result,
-        projectId: activeProjectId
-      };
-    } catch (error: any) {
-      toast.error(error.message || '스토리 저장에 실패했습니다', '저장 실패');
-      throw error;
+      onError?.(errorMessage)
+      return null
     }
-  };
+  }, [currentScenario, dispatch, updateState, onSuccess, onError])
+
+  /**
+   * 생성 취소
+   */
+  const cancelGeneration = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    
+    updateState({
+      isGenerating: false,
+      progress: 0,
+      currentStep: 'idle',
+      error: null
+    })
+    
+    dispatch(scenarioActions.setLoading(false))
+    
+    logger.info('스토리 생성이 취소되었습니다.')
+  }, [updateState, dispatch])
+
+  /**
+   * 에러 상태 초기화
+   */
+  const clearError = useCallback(() => {
+    updateState({ error: null, currentStep: 'idle' })
+    dispatch(scenarioActions.clearError())
+  }, [updateState, dispatch])
+
+  /**
+   * 전체 상태 초기화
+   */
+  const reset = useCallback(() => {
+    if (state.isGenerating) {
+      cancelGeneration()
+    }
+    
+    setState({
+      isGenerating: false,
+      progress: 0,
+      currentStep: 'idle',
+      lastResult: null,
+      error: null
+    })
+  }, [state.isGenerating, cancelGeneration])
 
   return {
-    mutateAsync: saveStoryWithPipeline,
-    mutate: saveStoryWithPipeline,
+    // 상태
+    state,
+    isGenerating: state.isGenerating,
+    progress: state.progress,
+    currentStep: state.currentStep,
+    error: state.error,
+    lastResult: state.lastResult,
+    
+    // 액션
+    generateStory,
+    regenerateStory,
+    cancelGeneration,
+    clearError,
+    reset,
+    
+    // Redux 상태 (대리)
     isLoading,
-    error,
-    isPending: isLoading,
-    currentProjectId
-  };
+    currentScenario
+  }
 }
 
 /**
- * 스토리 불러오기 쿼리 훅
+ * 스토리 생성 진행 상태를 표시하는 간단한 Hook
  */
-export function useStoryLoad(projectId?: string) {
-  return useLoadStoryQuery(projectId!, {
-    skip: !projectId,
-  });
-}
-
-/**
- * 저장된 스토리 목록 쿼리 훅
- */
-export function useSavedStories() {
-  return useGetSavedStoriesQuery();
-}
-
-/**
- * 스토리 자동 저장 훅
- * - RTK Query 기반으로 30초마다 자동 저장
- * - 변경 사항이 있을 때만 저장
- */
-export function useAutoSaveStory(
-  storyInput: StoryInput | null,
-  steps: StoryStep[],
-  isDirty: boolean,
-  enabled: boolean = true
-) {
-  const saveMutation = useStorySave();
-
-  // 30초마다 자동 저장 - useEffect 기반으로 구현
-  React.useEffect(() => {
-    if (!enabled || !isDirty || !storyInput || steps.length === 0) {
-      return;
-    }
-
-    const interval = setInterval(async () => {
-      try {
-        await saveMutation.mutateAsync({
-          storyInput,
-          steps
-        });
-      } catch (error) {
-        logger.error('Auto-save failed:', error instanceof Error ? error : new Error(String(error)));
-      }
-    }, 30 * 1000);
-
-    return () => clearInterval(interval);
-  }, [enabled, isDirty, storyInput, steps, saveMutation]);
-
+export function useStoryGenerationProgress() {
+  const isLoading = useSelector(scenarioSelectors.getIsLoading)
+  const currentScenario = useSelector(scenarioSelectors.getCurrentScenario)
+  
   return {
-    isAutoSaving: saveMutation.isPending,
-    autoSaveError: saveMutation.error,
-  };
-}
-
-/**
- * RTK Query 캐시 무효화 유틸리티
- */
-export function useInvalidateStoryCache() {
-  const dispatch = useDispatch();
-
-  return {
-    invalidateAll: () => {
-      dispatch(apiSlice.util.invalidateTags(['Story', 'SavedStories']));
-    },
-    invalidateGeneration: () => {
-      dispatch(apiSlice.util.invalidateTags(['Story']));
-    },
-    invalidateSaved: () => {
-      dispatch(apiSlice.util.invalidateTags(['SavedStories']));
-    },
-    resetCache: () => {
-      dispatch(apiSlice.util.resetApiState());
-    },
-  };
+    isGenerating: isLoading,
+    hasScenario: !!currentScenario,
+    sceneCount: currentScenario?.scenes.length || 0,
+    totalDuration: currentScenario?.totalDuration || 0
+  }
 }

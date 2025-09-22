@@ -1,390 +1,210 @@
-import { logger } from '@/shared/lib/logger';
-
 /**
- * 강화된 구조화 로깅 시스템
+ * Structured Logger
  *
- * - 레벨별 로깅 (DEBUG, INFO, WARN, ERROR)
- * - 구조화된 메타데이터
- * - 프로덕션 환경 최적화
- * - 성능 메트릭 추적
- * - 오류 컨텍스트 보존
- * - Gemini API 호출 추적
+ * CLAUDE.md 준수: 개발/프로덕션 환경별 로깅, 에러 추적
+ * $300 사건 방지: 로그 레벨 제어로 과도한 출력 방지
  */
 
-export enum LogLevel {
-  DEBUG = 0,
-  INFO = 1,
-  WARN = 2,
-  ERROR = 3
+type LogLevel = 'debug' | 'info' | 'warn' | 'error'
+
+interface LogContext {
+  component?: string
+  action?: string
+  userId?: string
+  sessionId?: string
+  metadata?: Record<string, any>
+  // 동적 속성 지원 (sceneId, from, error, settings, fileName, count, index, title, imageId 등)
+  [key: string]: any
 }
 
-export interface LogMetadata {
-  timestamp: string;
-  level: LogLevel;
-  service: string;
-  operation?: string;
-  userId?: string;
-  sessionId?: string;
-  requestId?: string;
-  duration?: number;
-  statusCode?: number;
-  error?: {
-    name: string;
-    message: string;
-    stack?: string;
-    code?: string;
-  };
-  gemini?: {
-    model: string;
-    tokensUsed?: number;
-    rateLimitRemaining?: number;
-    retryCount?: number;
-  };
-  performance?: {
-    memory: NodeJS.MemoryUsage;
-    timing: {
-      [key: string]: number;
-    };
-  };
-  [key: string]: any;
+interface LogEntry {
+  timestamp: string
+  level: LogLevel
+  message: string
+  context?: LogContext
+  error?: Error | string
 }
 
 class Logger {
-  private currentLevel: LogLevel;
-  private context: Record<string, unknown> = {};
+  private isDevelopment = process.env.NODE_ENV === 'development'
+  private isTest = process.env.NODE_ENV === 'test'
 
-  constructor() {
-    // 환경별 로그 레벨 설정
-    this.currentLevel = this.getLogLevel();
-  }
-
-  setContext(context: Record<string, unknown>): void {
-    this.context = { ...this.context, ...context };
-  }
-
-  clearContext(): void {
-    this.context = {};
-  }
-
-  private getLogLevel(): LogLevel {
-    const envLevel = process.env.LOG_LEVEL?.toUpperCase();
-    const nodeEnv = process.env.NODE_ENV;
-
-    if (envLevel) {
-      switch (envLevel) {
-        case 'DEBUG': return LogLevel.DEBUG;
-        case 'INFO': return LogLevel.INFO;
-        case 'WARN': return LogLevel.WARN;
-        case 'ERROR': return LogLevel.ERROR;
-      }
-    }
-
-    // 기본값: 환경별 설정
-    return nodeEnv === 'production' ? LogLevel.WARN : LogLevel.DEBUG;
-  }
-
-  private formatMessage(level: LogLevel, message: string, metadata: Record<string, unknown> = {}): string {
-    const baseMetadata: LogMetadata = {
-      timestamp: new Date().toISOString(),
-      level,
-      service: 'videoprompt-api',
-      ...this.context,
-      ...metadata
-    };
-
-    // 민감 정보 마스킹
-    const sanitizedMetadata = maskSensitiveData(baseMetadata);
-
-    // 개발 환경: 읽기 쉬운 형태
-    if (process.env.NODE_ENV === 'development') {
-      const levelName = LogLevel[level];
-      const operation = sanitizedMetadata.operation ? ` [${sanitizedMetadata.operation}]` : '';
-      const duration = sanitizedMetadata.duration ? ` (${sanitizedMetadata.duration}ms)` : '';
-
-      return `[${sanitizedMetadata.timestamp}] ${levelName}${operation}: ${message}${duration}`;
-    }
-
-    // 프로덕션 환경: JSON 구조화
-    return JSON.stringify({
-      message,
-      ...sanitizedMetadata
-    });
+  private formatTimestamp(): string {
+    return new Date().toISOString()
   }
 
   private shouldLog(level: LogLevel): boolean {
-    return level >= this.currentLevel;
-  }
-
-  debug(message: string, metadata: Record<string, unknown> = {}): void {
-    if (this.shouldLog(LogLevel.DEBUG)) {
-      logger.debug(this.formatMessage(LogLevel.DEBUG, message, metadata));
+    // 테스트 환경에서는 에러만 로깅
+    if (this.isTest) {
+      return level === 'error'
     }
-  }
 
-  info(message: string, metadata: Record<string, unknown> = {}): void {
-    if (this.shouldLog(LogLevel.INFO)) {
-      logger.info(this.formatMessage(LogLevel.INFO, message, metadata));
+    // 프로덕션에서는 info 이상만 로깅
+    if (!this.isDevelopment) {
+      return ['info', 'warn', 'error'].includes(level)
     }
+
+    // 개발 환경에서는 모든 레벨 로깅
+    return true
   }
 
-  warn(message: string, metadata: Record<string, unknown> = {}): void {
-    if (this.shouldLog(LogLevel.WARN)) {
-      logger.warn(this.formatMessage(LogLevel.WARN, message, metadata));
-    }
-  }
-
-  error(message: string, error?: Error, metadata: Record<string, unknown> = {}): void {
-    if (this.shouldLog(LogLevel.ERROR)) {
-      const errorMetadata = error ? {
-        error: {
-          name: error.name,
-          message: error.message,
-          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-          code: (error as any).code
-        }
-      } : {};
-
-      console.error(this.formatMessage(LogLevel.ERROR, message, {
-        ...metadata,
-        ...errorMetadata
-      }));
-    }
-  }
-
-  /**
-   * API 요청 시작 로깅
-   */
-  apiStart(operation: string, metadata: Record<string, unknown> = {}): string {
-    const requestId = generateRequestId();
-
-    this.info(`API request started: ${operation}`, {
-      operation,
-      requestId,
-      ...metadata
-    });
-
-    return requestId;
-  }
-
-  /**
-   * API 요청 완료 로깅
-   */
-  apiEnd(
-    operation: string,
-    requestId: string,
-    startTime: number,
-    statusCode: number,
-    metadata: Record<string, unknown> = {}
-  ): void {
-    const duration = Date.now() - startTime;
-    const level = statusCode >= 400 ? LogLevel.ERROR : LogLevel.INFO;
-    const message = `API request completed: ${operation}`;
-
-    if (level === LogLevel.ERROR) {
-      this.error(message, undefined, {
-        operation,
-        requestId,
-        duration,
-        statusCode,
-        ...metadata
-      });
-    } else {
-      this.info(message, {
-        operation,
-        requestId,
-        duration,
-        statusCode,
-        ...metadata
-      });
-    }
-  }
-
-  /**
-   * Gemini API 호출 로깅
-   */
-  geminiCall(
-    model: string,
-    operation: string,
-    metadata: Record<string, unknown> = {}
-  ): void {
-    this.info(`Gemini API call: ${operation}`, {
-      operation: `gemini-${operation}`,
-      gemini: {
-        model,
-        ...metadata.gemini
-      },
-      ...metadata
-    });
-  }
-
-  /**
-   * 성능 메트릭 로깅
-   */
-  performance(
-    operation: string,
-    timing: { [key: string]: number },
-    metadata: Record<string, unknown> = {}
-  ): void {
-    this.info(`Performance metrics: ${operation}`, {
-      operation,
-      performance: {
-        memory: process.memoryUsage(),
-        timing
-      },
-      ...metadata
-    });
-  }
-
-  /**
-   * Rate limit 로깅
-   */
-  rateLimitHit(
-    limiterName: string,
-    key: string,
-    remaining: number,
-    resetTime: number
-  ): void {
-    this.warn(`Rate limit hit: ${limiterName}`, {
-      operation: 'rate-limit-hit',
-      rateLimitInfo: {
-        limiterName,
-        key: key.startsWith('ip:') ? key : '[REDACTED]', // IP만 로깅
-        remaining,
-        resetTime: new Date(resetTime).toISOString()
-      }
-    });
-  }
-
-  /**
-   * 보안 이벤트 로깅
-   */
-  security(
-    event: string,
-    severity: 'low' | 'medium' | 'high' | 'critical',
-    metadata: Record<string, unknown> = {}
-  ): void {
-    const level = severity === 'critical' || severity === 'high' ? LogLevel.ERROR : LogLevel.WARN;
-    const message = `Security event: ${event}`;
-
-    if (level === LogLevel.ERROR) {
-      this.error(message, undefined, {
-        operation: 'security-event',
-        securityEvent: {
-          event,
-          severity
-        },
-        ...metadata
-      });
-    } else {
-      this.warn(message, {
-        operation: 'security-event',
-        securityEvent: {
-          event,
-          severity
-        },
-        ...metadata
-      });
-    }
-  }
-
-  // Legacy 호환성을 위한 기존 메서드들
-  apiError(endpoint: string, error: Error | unknown): void {
-    this.error(`API 호출 실패: ${endpoint}`, error instanceof Error ? error : new Error(String(error)));
-  }
-
-  userAction(action: string, data?: Record<string, unknown>): void {
-    this.info(`사용자 액션: ${action}`, { userActionData: data });
-  }
-}
-
-/**
- * 요청 ID 생성
- */
-function generateRequestId(): string {
-  const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substring(2, 8);
-  return `${timestamp}-${random}`;
-}
-
-/**
- * 민감 정보 마스킹
- */
-function maskSensitiveData(data: unknown): unknown {
-  if (typeof data !== 'object' || data === null) {
-    return data;
-  }
-
-  const sensitiveKeys = ['password', 'token', 'key', 'secret', 'auth', 'apikey', 'authorization', 'cookie', 'email'];
-  const masked = { ...data };
-
-  for (const key in masked) {
-    const lowerKey = key.toLowerCase();
-
-    if (sensitiveKeys.some(sensitive => lowerKey.includes(sensitive))) {
-      if (typeof masked[key] === 'string' && masked[key].length > 8) {
-        masked[key] = `${masked[key].substring(0, 4)}****${masked[key].slice(-4)}`;
-      } else {
-        masked[key] = '[REDACTED]';
-      }
-    } else if (typeof masked[key] === 'object') {
-      masked[key] = maskSensitiveData(masked[key]);
-    }
-  }
-
-  return masked;
-}
-
-/**
- * 성능 타이머
- */
-export class PerformanceTimer {
-  private startTime: number;
-  private markers: { [key: string]: number } = {};
-
-  constructor() {
-    this.startTime = Date.now();
-  }
-
-  mark(name: string): void {
-    this.markers[name] = Date.now() - this.startTime;
-  }
-
-  getTiming(): { [key: string]: number } {
+  private createLogEntry(
+    level: LogLevel,
+    message: string,
+    context?: LogContext,
+    error?: Error | string
+  ): LogEntry {
     return {
-      total: Date.now() - this.startTime,
-      ...this.markers
-    };
+      timestamp: this.formatTimestamp(),
+      level,
+      message,
+      context,
+      error
+    }
+  }
+
+  private output(entry: LogEntry): void {
+    if (!this.shouldLog(entry.level)) {
+      return
+    }
+
+    const logMessage = this.isDevelopment
+      ? this.formatDevelopmentLog(entry)
+      : this.formatProductionLog(entry)
+
+    switch (entry.level) {
+      case 'debug':
+        console.debug(logMessage)
+        break
+      case 'info':
+        console.info(logMessage)
+        break
+      case 'warn':
+        console.warn(logMessage)
+        break
+      case 'error':
+        console.error(logMessage)
+        break
+    }
+  }
+
+  private formatDevelopmentLog(entry: LogEntry): string {
+    const { timestamp, level, message, context, error } = entry
+
+    let logParts = [
+      `[${timestamp}]`,
+      `[${level.toUpperCase()}]`
+    ]
+
+    if (context?.component) {
+      logParts.push(`[${context.component}]`)
+    }
+
+    if (context?.action) {
+      logParts.push(`[${context.action}]`)
+    }
+
+    logParts.push(message)
+
+    if (context?.metadata) {
+      logParts.push(`Context: ${JSON.stringify(context.metadata, null, 2)}`)
+    }
+
+    if (error) {
+      if (error instanceof Error) {
+        logParts.push(`Error: ${error.message}`)
+        if (error.stack) {
+          logParts.push(`Stack: ${error.stack}`)
+        }
+      } else {
+        logParts.push(`Error: ${error}`)
+      }
+    }
+
+    return logParts.join(' ')
+  }
+
+  private formatProductionLog(entry: LogEntry): any {
+    // 프로덕션에서는 JSON 형태로 구조화된 로그
+    return JSON.stringify(entry)
+  }
+
+  debug(message: string, context?: LogContext): void {
+    const entry = this.createLogEntry('debug', message, context)
+    this.output(entry)
+  }
+
+  info(message: string, context?: LogContext): void {
+    const entry = this.createLogEntry('info', message, context)
+    this.output(entry)
+  }
+
+  warn(message: string, context?: LogContext): void {
+    const entry = this.createLogEntry('warn', message, context)
+    this.output(entry)
+  }
+
+  error(message: string, error?: Error | string, context?: LogContext): void {
+    const entry = this.createLogEntry('error', message, context, error)
+    this.output(entry)
+  }
+
+  // 성능 추적을 위한 특별 메서드
+  performance(action: string, startTime: number, context?: LogContext): void {
+    const duration = Date.now() - startTime
+    this.info(`Performance: ${action} completed in ${duration}ms`, {
+      ...context,
+      action,
+      metadata: {
+        ...context?.metadata,
+        duration,
+        startTime
+      }
+    })
+  }
+
+  // API 호출 추적 ($300 사건 방지)
+  apiCall(
+    method: string,
+    url: string,
+    status: number,
+    duration: number,
+    context?: LogContext
+  ): void {
+    const level = status >= 400 ? 'error' : status >= 300 ? 'warn' : 'info'
+
+    this[level](`API ${method} ${url} - ${status} (${duration}ms)`, {
+      ...context,
+      action: 'api_call',
+      metadata: {
+        ...context?.metadata,
+        method,
+        url,
+        status,
+        duration
+      }
+    })
+  }
+
+  // 사용자 액션 추적
+  userAction(
+    action: string,
+    userId?: string,
+    metadata?: Record<string, any>
+  ): void {
+    this.info(`User action: ${action}`, {
+      action: 'user_action',
+      userId,
+      metadata: {
+        userAction: action,
+        ...metadata
+      }
+    })
   }
 }
 
-// 싱글톤 인스턴스 (기존 호환성 유지)
-export const logger = new Logger();
+// 싱글톤 인스턴스
+const logger = new Logger()
 
-// 전역 에러 핸들러 (Next.js API 라우트용)
-export function withErrorLogging<T extends (...args: unknown[]) => unknown>(
-  handler: T,
-  operation: string
-): T {
-  return (async (...args: unknown[]) => {
-    const startTime = Date.now();
-    const requestId = logger.apiStart(operation);
-
-    try {
-      const result = await handler(...args);
-      logger.apiEnd(operation, requestId, startTime, 200);
-      return result;
-    } catch (error) {
-      logger.apiEnd(operation, requestId, startTime, 500);
-      logger.error(`Operation failed: ${operation}`, error as Error, {
-        operation,
-        requestId
-      });
-      throw error;
-    }
-  }) as T;
-}
-
-
-
-
-
+export { Logger, type LogLevel, type LogContext }
+export default logger

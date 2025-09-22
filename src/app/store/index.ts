@@ -1,244 +1,126 @@
 /**
+ * Redux Store Configuration
+ *
+ * CLAUDE.md 준수: Redux Toolkit 2.0, FSD app 레이어
+ * $300 사건 방지: 비용 안전 규칙 적용
+ */
+
+import { configureStore } from '@reduxjs/toolkit'
+import { setupListeners } from '@reduxjs/toolkit/query'
+
+// Entities - 도메인 상태
+import scenarioReducer from '../../entities/scenario/store'
+import projectReducer from '../../entities/project/store'
+import storyboardReducer from '../../entities/storyboard/store'
+import authReducer from '../../entities/auth/store'
+import feedbackReducer from '../../entities/feedback/store/feedback-slice'
+import contentManagementReducer from '../../entities/content-management/store/content-slice'
+import userJourneyReducer from '../../entities/user-journey/store/user-journey-slice'
+
+// Features - 기능별 상태
+import adminMetricsReducer from '../../features/admin/store/admin-metrics-slice'
+import userManagementReducer from '../../features/admin/store/user-management-slice'
+import planningReducer from '../../features/planning/store/planning-slice'
+
+// Performance monitoring for cost safety
+import logger from '../../shared/lib/logger'
+import { costSafetyMiddleware } from '../../shared/lib/cost-safety-middleware'
+
+/**
  * Redux Store 설정
- * 모든 상태 관리를 위한 중앙 집중식 store 구성
- * FSD app 레이어 - 전역 상태 관리
- */
-
-import { configureStore } from '@reduxjs/toolkit';
-import { persistStore, persistReducer } from 'redux-persist';
-import storage from 'redux-persist/lib/storage';
-import { combineReducers } from '@reduxjs/toolkit';
-import { logger } from '@/shared/lib/logger';
-
-
-// RTK Query API slice
-import { apiSlice, RTKQueryUtils } from '@/shared/api/api-slice';
-
-// Slice reducers - 새로운 통합 파이프라인 스토어
-import { pipelineReducer } from '@/entities/pipeline';
-import { seedanceProviderReducer } from '@/entities/seedance';
-import { planningReducer } from '@/entities/planning/store/planning-slice';
-import uiReducer from './ui-slice';
-
-// 레거시 슬라이스들 (점진적 마이그레이션 중)
-import { scenarioReducer, storyReducer, storyboardReducer } from '@/entities/scenario';
-
-// 통합된 상태 관리 슬라이스들
-import authReducer from './auth-slice';
-import projectReducer from './project-slice';
-import performanceReducer from './performance-slice';
-
-/**
- * Persistence 설정
- */
-const authPersistConfig = {
-  key: 'auth',
-  storage,
-  whitelist: ['user', 'isAuthenticated'] // 특정 필드만 persist
-};
-
-const projectPersistConfig = {
-  key: 'project',
-  storage,
-  whitelist: ['id', 'scenario', 'prompt', 'video', 'versions', 'scenarioId', 'promptId', 'videoAssetId', 'createdAt', 'updatedAt']
-};
-
-/**
- * RTK Query 캐시는 persist하지 않음 (서버 상태이므로)
- * 앱 재시작 시 fresh 데이터 로드
- */
-
-/**
- * Persisted Reducers
- */
-const persistedAuthReducer = persistReducer(authPersistConfig, authReducer);
-const persistedProjectReducer = persistReducer(projectPersistConfig, projectReducer);
-
-/**
- * Root Reducer
- */
-const rootReducer = combineReducers({
-  // RTK Query API reducer
-  [apiSlice.reducerPath]: apiSlice.reducer,
-
-  // 통합된 상태 관리 (Redux 중심, 영속성 포함)
-  auth: persistedAuthReducer,
-  project: persistedProjectReducer,
-  pipeline: pipelineReducer,
-  planning: planningReducer,
-  performance: performanceReducer,
-
-  // 기존 스토어들 (점진적 마이그레이션)
-  scenario: scenarioReducer,
-  story: storyReducer,
-  storyboard: storyboardReducer,
-  seedanceProvider: seedanceProviderReducer,
-  ui: uiReducer,
-});
-
-/**
- * Redux Store 구성
+ *
+ * 비용 안전 규칙:
+ * - 무한 호출 방지를 위한 엄격한 미들웨어 설정
+ * - 개발 환경에서만 DevTools 활성화
+ * - 직렬화 체크 강화
  */
 export const store = configureStore({
-  reducer: rootReducer,
+  reducer: {
+    // Entities
+    auth: authReducer,
+    scenario: scenarioReducer,
+    project: projectReducer,
+    storyboard: storyboardReducer,
+    feedback: feedbackReducer,
+    contentManagement: contentManagementReducer,
+    userJourney: userJourneyReducer,
+
+    // Features
+    adminMetrics: adminMetricsReducer,
+    userManagement: userManagementReducer,
+    planning: planningReducer,
+  },
+
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
+      // 비용 안전: 직렬화 체크 강화
       serializableCheck: {
-        // redux-persist actions와 RTK Query actions 제외
-        ignoredActions: [
-          'persist/PERSIST',
-          'persist/REHYDRATE',
-          'persist/PAUSE',
-          'persist/PURGE',
-          'persist/REGISTER',
-          // RTK Query actions
-          'api/executeQuery/pending',
-          'api/executeQuery/fulfilled',
-          'api/executeQuery/rejected',
-          'api/executeMutation/pending',
-          'api/executeMutation/fulfilled',
-          'api/executeMutation/rejected'
+        // Date 객체는 허용 (시나리오 메타데이터, 인증 토큰에서 사용)
+        ignoredActionPaths: ['payload.timestamp', 'payload.tokens.expiresAt', 'payload.user.metadata'],
+        ignoredStatePaths: [
+          'scenario.editorState.lastSavedAt',
+          'project.metadata.createdAt',
+          'project.metadata.updatedAt',
+          'auth.tokens.expiresAt',
+          'auth.user.metadata.createdAt',
+          'auth.user.metadata.updatedAt',
+          'auth.user.metadata.lastLoginAt',
+          'auth.lastActivity',
+          'userJourney.currentJourney.startedAt',
+          'userJourney.currentJourney.lastActivityAt',
+          'userJourney.journeyHistory',
+          'userJourney.lastSyncedAt'
         ],
-        // 토스트 액션의 함수는 직렬화 검사에서 제외
-        ignoredActionsPaths: ['payload.action.onClick', 'payload.onCancel', 'payload.retryAction'],
-        // 상태에서도 함수 및 RTK Query 캐시 제외
-        ignoredPaths: [
-          'ui.toasts',
-          'api.queries',
-          'api.mutations',
-          'api.subscriptions'
-        ],
+      },
+
+      // 비용 안전: 불변성 체크 활성화
+      immutableCheck: {
+        warnAfter: 128, // 성능 임계값
       },
     })
-    // RTK Query middleware 추가
-    .concat(apiSlice.middleware),
+    // $300 사건 방지: 비용 안전 미들웨어 추가
+    .concat(costSafetyMiddleware),
+
+  // 개발 환경에서만 DevTools 활성화
   devTools: process.env.NODE_ENV !== 'production',
-});
 
-/**
- * Persistor 생성
- */
-export const persistor = persistStore(store);
+  // 초기 상태 미리 로드 방지 (비용 안전)
+  preloadedState: undefined,
+})
 
-/**
- * 타입 정의
- */
-export type RootState = ReturnType<typeof rootReducer>;
-export type AppDispatch = typeof store.dispatch;
+// RTK Query 리스너 설정 (향후 서버 상태 관리용)
+setupListeners(store.dispatch)
 
-/**
- * 타입이 지정된 hooks (별도 파일에서 import)
- */
-export { useAppDispatch, useAppSelector } from './hooks';
+// 타입 정의
+export type RootState = ReturnType<typeof store.getState>
+export type AppDispatch = typeof store.dispatch
 
-/**
- * Store 유틸리티
- */
-export class StoreUtils {
-  /**
-   * 전체 상태 직렬화
-   */
-  static serialize(state: RootState): string {
-    const serializableState = {
-      ...state,
-      ui: {
-        ...state.ui,
-        toasts: state.ui.toasts.map(toast => ({
-          ...toast,
-          action: toast.action ? { label: toast.action.label, onClick: '[Function]' } : undefined,
-        })),
-      },
-    };
-
-    return JSON.stringify(serializableState, null, 2);
-  }
-
-  /**
-   * 상태 크기 계산 (메모리 사용량 모니터링용)
-   */
-  static getStateSize(state: RootState): {
-    total: number;
-    breakdown: Record<string, number>;
-  } {
-    const breakdown: Record<string, number> = {};
-    let total = 0;
-
-    Object.entries(state).forEach(([key, value]) => {
-      const size = JSON.stringify(value).length;
-      breakdown[key] = size;
-      total += size;
-    });
-
-    return { total, breakdown };
-  }
-
-  /**
-   * 디버그 정보 출력
-   */
-  static logDebugInfo(): void {
-    if (process.env.NODE_ENV === 'development') {
-      const state = store.getState();
-      const { total, breakdown } = this.getStateSize(state);
-
-      console.group('🏪 Redux Store Debug Info');
-      logger.info('Total size:', total, 'bytes');
-      logger.info('Size breakdown:', breakdown);
-      logger.info('Current state:', state);
-      console.groupEnd();
-    }
-  }
-}
-
-/**
- * 통합된 상태 관리 hooks export
- */
-export { useAuth, useAuthStore } from './hooks/useAuth';
-export { useProject, useProjectStore } from './hooks/useProject';
-export { usePerformance, usePerformanceStore } from './hooks/usePerformance';
-
-/**
- * Redux slice actions export (only specific exports to avoid conflicts)
- */
-export * from './auth-slice';
-export {
-  reset as resetProject,
-  init,
-  setScenario,
-  setPrompt,
-  setVideo,
-  setScenarioId,
-  setPromptId,
-  setVideoAssetId,
-  addVersion,
-  updateVideo
-} from './project-slice';
-export {
-  reset as resetPerformance,
-  startMonitoring,
-  stopMonitoring,
-  addCoreWebVital,
-  addApiMetric,
-  addAlert,
-  clearAlerts,
-  acknowledgeAlert,
-  updateBudget,
-  setCurrentSession,
-  calculateStats
-} from './performance-slice';
-
-/**
- * RTK Query exports
- */
-export { apiSlice, RTKQueryUtils };
-
-/**
- * 개발용 전역 store 접근
- */
+// Store 인스턴스 로깅 (개발 환경만)
 if (process.env.NODE_ENV === 'development') {
-  (window as any).__REDUX_STORE__ = store;
-  (window as any).__STORE_UTILS__ = StoreUtils;
-  (window as any).__RTK_QUERY_UTILS__ = RTKQueryUtils;
-
-  // RTK Query 캐시 디버깅 함수 추가
-  (window as any).__DEBUG_RTK_CACHE__ = () => RTKQueryUtils.debugCache(store.getState);
+  logger.info('Redux Store 초기화 완료', {
+    reducers: Object.keys(store.getState()),
+    timestamp: new Date().toISOString(),
+  } as any)
 }
+
+// 비용 안전: Store 구독 모니터링
+if (process.env.NODE_ENV === 'development') {
+  let subscriptionCount = 0
+
+  const originalSubscribe = store.subscribe
+  store.subscribe = (...args) => {
+    subscriptionCount++
+
+    // 구독 수가 비정상적으로 많으면 경고
+    if (subscriptionCount > 50) {
+      logger.warn('⚠️ 구독 수 급증 감지', {
+        count: subscriptionCount,
+        warning: '무한 구독으로 인한 비용 폭탄 위험',
+      } as any)
+    }
+
+    return originalSubscribe.apply(store, args)
+  }
+}
+
+export default store

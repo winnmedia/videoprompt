@@ -1,255 +1,231 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
-import { success, failure, getTraceId, supabaseErrors } from '@/shared/lib/api-response';
-import { signUpWithSupabase } from '@/shared/lib/auth-supabase';
-import { checkRateLimit, RATE_LIMITS } from '@/shared/lib/rate-limiter';
-import { getSupabaseClientSafe, ServiceConfigError } from '@/shared/lib/supabase-safe';
-import { logger } from '@/shared/lib/logger';
+/**
+ * Auth Register API Route
+ *
+ * UserJourneyMap.md 1단계: 회원가입 기능
+ * CLAUDE.md 준수: Supabase Auth 연동, Zod 검증, 이메일 인증
+ */
 
+import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 
-export const runtime = 'nodejs';
+// 회원가입 요청 스키마 (Zod 검증)
+const RegisterSchema = z.object({
+  email: z.string().email('유효한 이메일을 입력해주세요'),
+  password: z.string()
+    .min(8, '비밀번호는 최소 8자 이상이어야 합니다')
+    .regex(/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, '비밀번호는 대문자, 소문자, 숫자를 포함해야 합니다'),
+  confirmPassword: z.string(),
+  displayName: z.string()
+    .min(2, '이름은 최소 2자 이상이어야 합니다')
+    .max(50, '이름은 50자를 초과할 수 없습니다'),
+  termsAccepted: z.boolean().refine(val => val === true, {
+    message: '이용약관에 동의해야 합니다'
+  }),
+  privacyAccepted: z.boolean().refine(val => val === true, {
+    message: '개인정보 처리방침에 동의해야 합니다'
+  }),
+  marketingAccepted: z.boolean().optional().default(false)
+}).refine((data) => data.password === data.confirmPassword, {
+  message: '비밀번호가 일치하지 않습니다',
+  path: ['confirmPassword'],
+})
 
-// CORS preflight 처리
-export async function OPTIONS(req: NextRequest) {
-  return new Response(null, {
+export async function POST(request: NextRequest) {
+  try {
+    // 요청 본문 파싱 및 검증
+    const body = await request.json()
+    const validatedData = RegisterSchema.parse(body)
+
+    // Supabase 클라이언트 초기화
+    const cookieStore = await cookies()
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+
+    // 이메일 중복 확인
+    const { data: existingUser } = await supabase
+      .from('auth.users')
+      .select('email')
+      .eq('email', validatedData.email)
+      .single()
+
+    if (existingUser) {
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'EMAIL_ALREADY_EXISTS',
+          message: '이미 사용 중인 이메일입니다'
+        }
+      }, { status: 409 })
+    }
+
+    // Supabase Auth로 회원가입
+    const { data, error } = await supabase.auth.signUp({
+      email: validatedData.email,
+      password: validatedData.password,
+      options: {
+        data: {
+          display_name: validatedData.displayName,
+          role: 'user',
+          terms_accepted: validatedData.termsAccepted,
+          privacy_accepted: validatedData.privacyAccepted,
+          marketing_accepted: validatedData.marketingAccepted,
+          created_at: new Date().toISOString(),
+          onboarding_completed: false
+        },
+        emailRedirectTo: `${request.nextUrl.origin}/verify-email`
+      }
+    })
+
+    if (error) {
+      console.error('Register error:', error)
+
+      // 에러 타입별 분기 처리
+      if (error.message.includes('User already registered')) {
+        return NextResponse.json({
+          success: false,
+          error: {
+            code: 'USER_ALREADY_EXISTS',
+            message: '이미 가입된 사용자입니다'
+          }
+        }, { status: 409 })
+      }
+
+      if (error.message.includes('Password should be')) {
+        return NextResponse.json({
+          success: false,
+          error: {
+            code: 'WEAK_PASSWORD',
+            message: '비밀번호가 보안 요구사항을 충족하지 않습니다'
+          }
+        }, { status: 400 })
+      }
+
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'SIGNUP_ERROR',
+          message: '회원가입 중 오류가 발생했습니다'
+        }
+      }, { status: 400 })
+    }
+
+    const user = data.user
+    const session = data.session
+
+    if (!user) {
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'SIGNUP_FAILED',
+          message: '회원가입에 실패했습니다'
+        }
+      }, { status: 400 })
+    }
+
+    // 사용자 프로필 테이블에 추가 정보 저장
+    if (session) {
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .insert({
+          id: user.id,
+          email: validatedData.email,
+          display_name: validatedData.displayName,
+          role: 'user',
+          terms_accepted_at: new Date().toISOString(),
+          privacy_accepted_at: new Date().toISOString(),
+          marketing_accepted: validatedData.marketingAccepted,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+
+      if (profileError) {
+        console.error('Profile creation error:', profileError)
+        // 프로필 생성 실패해도 회원가입은 성공으로 처리
+      }
+    }
+
+    // 이메일 확인이 필요한 경우 vs 즉시 로그인
+    if (user.email_confirmed_at) {
+      // 이메일이 이미 확인됨 (즉시 로그인)
+      return NextResponse.json({
+        success: true,
+        data: {
+          user: {
+            id: user.id,
+            email: user.email,
+            displayName: validatedData.displayName,
+            emailVerified: true,
+            role: 'user',
+            createdAt: user.created_at
+          },
+          session: session ? {
+            accessToken: session.access_token,
+            refreshToken: session.refresh_token,
+            expiresAt: session.expires_at,
+            expiresIn: session.expires_in
+          } : null,
+          needsEmailVerification: false
+        },
+        message: '회원가입이 완료되었습니다'
+      })
+    } else {
+      // 이메일 확인 필요
+      return NextResponse.json({
+        success: true,
+        data: {
+          user: {
+            id: user.id,
+            email: user.email,
+            displayName: validatedData.displayName,
+            emailVerified: false,
+            role: 'user',
+            createdAt: user.created_at
+          },
+          session: null,
+          needsEmailVerification: true
+        },
+        message: '회원가입이 완료되었습니다. 이메일을 확인하여 계정을 활성화해주세요'
+      })
+    }
+
+  } catch (error) {
+    console.error('Register API error:', error)
+
+    // Zod 검증 오류
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: '입력값이 올바르지 않습니다',
+          details: error.errors.map(err => ({
+            field: err.path.join('.'),
+            message: err.message
+          }))
+        }
+      }, { status: 400 })
+    }
+
+    // 기타 서버 오류
+    return NextResponse.json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: '서버 오류가 발생했습니다'
+      }
+    }, { status: 500 })
+  }
+}
+
+// OPTIONS 메서드 (CORS 지원)
+export async function OPTIONS() {
+  return new NextResponse(null, {
     status: 200,
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
-  });
-}
-
-const RegisterSchema = z.object({
-  email: z.string().email('유효한 이메일을 입력해주세요'),
-  username: z.string().min(3, '사용자명은 최소 3자 이상이어야 합니다').max(32, '사용자명은 최대 32자까지 가능합니다'),
-  password: z.string().min(8, '비밀번호는 최소 8자 이상이어야 합니다').max(128),
-});
-
-/**
- * Supabase Auth 기반 회원가입 API
- * 기존 API 구조 유지, Supabase Auth로 내부 로직 변경
- */
-export async function POST(req: NextRequest) {
-  const traceId = getTraceId(req);
-
-  try {
-    // Rate Limiting 유지
-    const rateLimitResult = checkRateLimit(req, 'register', RATE_LIMITS.register);
-    if (!rateLimitResult.allowed) {
-      logger.debug(`🚫 Rate limit exceeded for register from IP: ${req.headers.get('x-forwarded-for') || '127.0.0.1'}`);
-
-      const response = failure(
-        'RATE_LIMIT_EXCEEDED',
-        '너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요.',
-        429,
-        `retryAfter: ${rateLimitResult.retryAfter}`,
-        traceId
-      );
-
-      Object.entries(rateLimitResult.headers).forEach(([key, value]) => {
-        response.headers.set(key, value);
-      });
-
-      return response;
-    }
-
-    // 요청 데이터 검증
-    const body = await req.json();
-    const { email, username, password } = RegisterSchema.parse(body);
-
-    logger.info(`📝 Registration attempt for email: ${email}, username: ${username}`);
-
-    // 1단계: Supabase Auth로 회원가입
-    const { user, session, error } = await signUpWithSupabase(email, password, {
-      username,
-    });
-
-    if (error) {
-      logger.debug(`❌ Registration failed for ${email}:`, (error as any)?.originalMessage || (error as any)?.message);
-
-      // 이미 한국어로 변환된 에러 메시지 사용
-      const errorMessage = (error as any)?.message || '회원가입 중 오류가 발생했습니다.';
-      const debugMessage = (error as any)?.originalMessage || (error as any)?.message;
-
-      return failure('REGISTRATION_FAILED', errorMessage, 400, debugMessage, traceId);
-    }
-
-    if (!user) {
-      return failure('REGISTRATION_FAILED', '회원가입에 실패했습니다.', 400, undefined, traceId);
-    }
-
-    // 2단계: 실제 users 테이블에 사용자 정보 저장
-    let supabaseClient;
-    try {
-      supabaseClient = await getSupabaseClientSafe('anon');
-    } catch (error) {
-      logger.error('❌ Supabase 클라이언트 접근 실패:', error instanceof Error ? error : new Error(String(error)));
-
-      if (error instanceof ServiceConfigError) {
-        return supabaseErrors.configError(traceId, error.message);
-      }
-
-      // 네트워크 관련 오류
-      const errorMessage = String(error);
-      if (errorMessage.includes('fetch') ||
-          errorMessage.includes('network') ||
-          errorMessage.includes('ENOTFOUND')) {
-        return supabaseErrors.unavailable(traceId, errorMessage);
-      }
-
-      // 기타 Supabase 오류
-      return supabaseErrors.unavailable(traceId, errorMessage);
-    }
-
-    try {
-      // users 테이블에 실제 데이터 저장
-      const { data: insertedUser, error: insertError } = await supabaseClient
-        .from('users')
-        .insert({
-          id: user.id,
-          email: user.email!,
-          username: username,
-          role: 'user',
-          email_verified: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        logger.debug('❌ users 테이블 저장 실패:', insertError);
-
-        // 🔄 롤백: Supabase Auth에서 생성된 사용자 삭제
-        try {
-          logger.info(`🔄 사용자 데이터 롤백 시작: ${user.id}`);
-          const adminClient = await getSupabaseClientSafe('admin');
-
-          const { error: deleteError } = await adminClient.auth.admin.deleteUser(user.id);
-
-          if (deleteError) {
-            logger.debug('❌ 사용자 롤백 실패:', deleteError);
-          } else {
-            logger.info(`✅ 사용자 롤백 완료: ${user.id}`);
-          }
-        } catch (rollbackError) {
-          logger.debug('❌ 롤백 중 예외 발생:', rollbackError);
-          // 롤백 실패는 로그만 남기고 원래 에러를 반환
-        }
-
-        // 중복 데이터 에러 처리
-        if (insertError.code === '23505') { // Unique constraint violation
-          return failure('DUPLICATE_USER', '이미 등록된 사용자입니다.', 409, insertError.message, traceId);
-        }
-
-        return failure('DATABASE_ERROR', '사용자 정보 저장에 실패했습니다. 다시 시도해주세요.', 500, insertError.message, traceId);
-      }
-
-      logger.info(`✅ User data saved to users table:`, insertedUser);
-    } catch (tableError) {
-      logger.debug('❌ 테이블 저장 중 예외 발생:', tableError);
-
-      // 🔄 롤백: Supabase Auth에서 생성된 사용자 삭제
-      try {
-        logger.info(`🔄 예외 발생으로 인한 사용자 롤백 시작: ${user.id}`);
-        const adminClient = await getSupabaseClientSafe('admin');
-
-        const { error: deleteError } = await adminClient.auth.admin.deleteUser(user.id);
-
-        if (deleteError) {
-          logger.debug('❌ 예외 시 사용자 롤백 실패:', deleteError);
-        } else {
-          logger.info(`✅ 예외 시 사용자 롤백 완료: ${user.id}`);
-        }
-      } catch (rollbackError) {
-        logger.debug('❌ 예외 시 롤백 중 에러:', rollbackError);
-        // 롤백 실패는 로그만 남기고 원래 에러를 반환
-      }
-
-      return failure('DATABASE_ERROR', '데이터베이스 오류가 발생했습니다. 다시 시도해주세요.', 500, String(tableError), traceId);
-    }
-
-    logger.info(`✅ Registration successful for ${email}, user ID: ${user.id}`);
-
-    // 이메일 확인 필요 여부 체크
-    let needsEmailConfirmation = !user.email_confirmed_at;
-
-    // 개발 환경에서 자동 이메일 확인 (테스트 편의성)
-    if (process.env.NODE_ENV === 'development' && needsEmailConfirmation) {
-      try {
-        const adminClient = await getSupabaseClientSafe('admin');
-
-        logger.info(`🔧 개발 환경: 사용자 ${user.id}의 이메일 자동 확인 중...`);
-
-        const { error: confirmError } = await adminClient.auth.admin.updateUserById(
-          user.id,
-          { email_confirm: true }
-        );
-
-        if (!confirmError) {
-          needsEmailConfirmation = false;
-          logger.info(`✅ 개발 환경: 사용자 ${user.id}의 이메일이 자동 확인되었습니다.`);
-
-          // users 테이블도 업데이트
-          await supabaseClient
-            .from('users')
-            .update({ email_verified: true, verified_at: new Date().toISOString() })
-            .eq('id', user.id);
-        } else {
-          logger.debug(`⚠️ 개발 환경: 이메일 자동 확인 실패:`, confirmError.message);
-        }
-      } catch (autoConfirmError) {
-        logger.debug(`⚠️ 개발 환경: Admin 클라이언트 사용 불가 또는 이메일 자동 확인 중 오류:`, autoConfirmError);
-      }
-    }
-
-    // 기존 API 응답 구조 유지
-    const responseData = {
-      id: user.id,
-      email: user.email,
-      username: username,
-      emailVerified: !needsEmailConfirmation,
-      needsEmailConfirmation,
-      message: needsEmailConfirmation
-        ? '회원가입이 완료되었습니다. 이메일을 확인하여 계정을 활성화해주세요.'
-        : '회원가입이 완료되었습니다.',
-      // 세션이 있으면 토큰도 반환 (이메일 확인이 필요없는 경우)
-      ...(session && {
-        accessToken: session.access_token,
-        token: session.access_token,
-      }),
-    };
-
-    const response = success(responseData, 201, traceId);
-
-    // 세션이 있으면 쿠키 설정
-    if (session) {
-      response.cookies.set('sb-access-token', session.access_token, {
-        httpOnly: true,
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        secure: true,
-        path: '/',
-        maxAge: 60 * 60, // 1시간
-      });
-
-      response.cookies.set('sb-refresh-token', session.refresh_token, {
-        httpOnly: true,
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        secure: true,
-        path: '/',
-        maxAge: 7 * 24 * 60 * 60, // 7일
-      });
-    }
-
-    return response;
-
-  } catch (e: any) {
-    logger.debug('Registration error:', e);
-
-    return e instanceof z.ZodError
-      ? failure('INVALID_INPUT_FIELDS', '요청이 올바르지 않습니다. 입력 내용을 확인해주세요.', 400, e.message, traceId)
-      : failure('UNKNOWN', e?.message || 'Server error', 500, undefined, traceId);
-  }
+  })
 }

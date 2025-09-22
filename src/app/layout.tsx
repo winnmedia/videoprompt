@@ -1,137 +1,223 @@
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import Link from 'next/link';
-import './globals.css';
-import { Logo, ToastProvider } from '@/shared/ui';
-import { MainNav } from '@/components/layout/MainNav';
-import { AuthProvider } from '@/components/providers/AuthProvider';
-import { AuthErrorBoundary } from '@/components/error-boundaries/AuthErrorBoundary';
-import { GlobalErrorBoundary } from '@/components/error-boundaries/GlobalErrorBoundary';
-import { MonitoringDashboard } from '@/widgets/monitoring-dashboard';
-import { Providers } from './providers';
+/**
+ * Root Layout - Next.js App Router
+ *
+ * CLAUDE.md 준수사항:
+ * - FSD 아키텍처 앱 레이어 (app/)
+ * - 전역 에러 처리 및 접근성 준수
+ * - SEO 최적화 메타데이터 설정
+ * - Core Web Vitals 성능 예산 준수
+ * - 폰트 최적화 및 레이아웃 시프트 방지
+ */
 
-const inter = Inter({ subsets: ['latin'] });
+import type { Metadata, Viewport } from 'next'
+import { Inter } from 'next/font/google'
+import './globals.css'
 
-// Force dynamic rendering to prevent static generation issues
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
+// Shared UI 컴포넌트 (FSD Public API 준수)
+import { PageErrorBoundary, ClientNavigation } from '../shared/ui'
+import { EnvValidator } from '../shared/config/env-validator'
+import { ReduxProvider } from './providers'
 
+// 앱 시작 시점에 환경변수 검증 (서버 사이드에서만 실행)
+if (typeof window === 'undefined') {
+  const envValidation = EnvValidator.validate()
+  if (!envValidation.success) {
+    console.error('❌ 환경변수 검증 실패:', envValidation.error.errors)
+    // 개발 환경에서는 경고만 출력하고 계속 진행
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('환경변수 검증 실패')
+    }
+  } else {
+    console.log('✅ 환경변수 검증 완료')
+  }
+}
+
+// 폰트 최적화 (CLS 방지)
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap', // FOUT 방지
+  preload: true,
+})
+
+// SEO 및 메타데이터 최적화
 export const metadata: Metadata = {
-  title: 'VLANET - AI 영상 플랫폼',
-  description: 'AI 시나리오 · 프롬프트 · 영상 생성 · 피드백 파이프라인',
-  keywords: 'VLANET, AI Video, Scenario, Prompt, Feedback',
-};
+  title: {
+    default: 'VideoPlanet - 고성능 영상 기획 및 생성 플랫폼',
+    template: '%s | VideoPlanet'
+  },
+  description: 'AI 기반 영상 기획부터 제작까지 한번에. 시나리오 작성, 프롬프트 생성, 워크플로우 관리를 통합 지원',
+  keywords: ['영상 기획', '영상 제작', 'AI 영상', '시나리오', '프롬프트', '워크플로우', 'VideoPlanet'],
+  authors: [{ name: 'VideoPlanet Team' }],
+  creator: 'VideoPlanet',
+  publisher: 'VideoPlanet',
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  // 환경변수 검증은 API 라우트에서 개별적으로 처리
-  // Static generation 중에는 환경변수가 없을 수 있으므로 여기서는 체크하지 않음
+  // Open Graph
+  openGraph: {
+    type: 'website',
+    locale: 'ko_KR',
+    url: 'https://videoplanet.com',
+    siteName: 'VideoPlanet',
+    title: 'VideoPlanet - 고성능 영상 기획 및 생성 플랫폼',
+    description: 'AI 기반 영상 기획부터 제작까지 한번에',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'VideoPlanet Platform',
+      },
+    ],
+  },
+
+  // Twitter Card
+  twitter: {
+    card: 'summary_large_image',
+    title: 'VideoPlanet - 고성능 영상 기획 및 생성 플랫폼',
+    description: 'AI 기반 영상 기획부터 제작까지 한번에',
+    images: ['/og-image.png'],
+  },
+
+  // 로봇 및 인덱싱
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+
+  // 기타 메타데이터
+  category: 'technology',
+  classification: 'Business',
+  other: {
+    'apple-mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-status-bar-style': 'default',
+  },
+}
+
+// 뷰포트 설정 (모바일 최적화)
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#000000' },
+  ],
+}
+
+/**
+ * Root Layout 컴포넌트
+ *
+ * 전역 레이아웃과 프로바이더들을 관리합니다.
+ * - 전역 에러 처리
+ * - 네비게이션 레이아웃
+ * - 접근성 기본 설정
+ * - 성능 모니터링 초기화
+ */
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="ko">
-      <body className={`${inter.className} bg-white text-gray-900`}>
-        <GlobalErrorBoundary>
-          <Providers>
-            <ToastProvider>
-              <AuthProvider>
-                <AuthErrorBoundary>
-          <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-brand-600 focus:px-3 focus:py-2 focus:text-white">본문으로 건너뛰기</a>
-          <div className="min-h-screen">
-          <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur">
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-              <div className="flex h-16 items-center justify-between">
-                {/* 로고 */}
-                <Link href="/" className="flex items-center" aria-label="VLANET Home">
-                  <Logo size="lg" />
-                </Link>
+    <html
+      lang="ko"
+      className={inter.variable}
+      suppressHydrationWarning // Next.js 다크모드 깜빡임 방지
+    >
+      <head>
+        {/* 성능 최적화를 위한 리소스 힌트 */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://api.videoplanet.com" />
 
-                {/* 네비게이션 */}
-                <MainNav />
+        {/* 파비콘 */}
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/manifest.json" />
+      </head>
+      <body
+        className="min-h-screen bg-white font-sans antialiased"
+        suppressHydrationWarning
+      >
+        {/* 스킵 링크 (접근성) */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-50 px-4 py-2 bg-primary-600 text-white rounded-md"
+          data-testid="skip-link"
+        >
+          메인 콘텐츠로 건너뛰기
+        </a>
 
-                {/* 액션 */}
-                <div className="flex items-center gap-3">
-                  <Link
-                    href="/scenario"
-                    className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-400"
-                  >
-                    무료로 시작하기
-                  </Link>
+        {/* Redux Provider */}
+        <ReduxProvider>
+          {/* 전역 에러 경계 */}
+          <PageErrorBoundary>
+            {/* 네비게이션 */}
+            <ClientNavigation
+              brandText="VideoPlanet"
+              brandHref="/"
+              data-testid="main-navigation"
+            />
+
+            {/* 메인 콘텐츠 */}
+            <main
+              id="main-content"
+              className="flex-1"
+              role="main"
+              data-testid="main-content"
+            >
+              {children}
+            </main>
+
+            {/* 푸터 */}
+            <footer
+              className="bg-neutral-50 border-t border-neutral-200 py-8 mt-auto"
+              role="contentinfo"
+              data-testid="main-footer"
+            >
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="text-center text-sm text-neutral-600">
+                  <p>&copy; 2024 VideoPlanet. All rights reserved.</p>
+                  <p className="mt-1">
+                    고성능 영상 기획 및 생성 플랫폼
+                  </p>
                 </div>
               </div>
-            </div>
-          </header>
+            </footer>
+          </PageErrorBoundary>
+        </ReduxProvider>
 
-          <main id="main" tabIndex={-1}>{children}</main>
+        {/* 전역 에러 핸들러 초기화 스크립트 */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                // 전역 에러 핸들러 설정
+                if (typeof window !== 'undefined') {
+                  // 처리되지 않은 Promise rejection
+                  window.addEventListener('unhandledrejection', function(event) {
+                    console.error('Unhandled promise rejection:', event.reason);
+                  });
 
-          <footer className="mt-16 border-t border-gray-200 bg-white">
-            <div className="mx-auto max-w-7xl px-4 py-10 text-sm text-gray-600 sm:px-6 lg:px-8">
-              {/* 로고 중복 방지: 푸터 로고 제거 */}
-              <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
-                <div className="col-span-1 text-gray-600 md:col-span-2">
-                  AI 시나리오 · 프롬프트 · 영상 생성 · 피드백까지 한 번에.
-                </div>
-                <div>
-                  <h3 className="mb-2 font-medium text-gray-800">제품</h3>
-                  <ul className="space-y-1">
-                    <li>
-                      <Link href="/scenario" className="hover:text-brand-600">
-                        AI 영상 기획
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/prompt-generator" className="hover:text-brand-600">
-                        프롬프트 생성기
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/wizard" className="hover:text-brand-600">
-                        AI 영상 생성
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/feedback" className="hover:text-brand-600">
-                        영상 피드백
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/planning" className="hover:text-brand-600">
-                        콘텐츠 관리
-                      </Link>
-                    </li>
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="mb-2 font-medium text-gray-800">지원</h3>
-                  <ul className="space-y-1">
-                    <li>
-                      <Link href="/manual" className="hover:text-brand-600">
-                        문서
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/api" className="hover:text-brand-600">
-                        API
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/contact" className="hover:text-brand-600">
-                        문의
-                      </Link>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-              <div className="mt-8 border-t border-gray-200 pt-6 text-center text-gray-500">
-                © 2025 vlanet. All rights reserved.
-              </div>
-            </div>
-          </footer>
-          </div>
-                </AuthErrorBoundary>
-              </AuthProvider>
-            </ToastProvider>
-          </Providers>
-          <MonitoringDashboard />
-        </GlobalErrorBoundary>
+                  // 일반적인 JavaScript 에러
+                  window.addEventListener('error', function(event) {
+                    console.error('Global JavaScript error:', event.error);
+                  });
+                }
+              })();
+            `,
+          }}
+        />
       </body>
     </html>
-  );
+  )
 }

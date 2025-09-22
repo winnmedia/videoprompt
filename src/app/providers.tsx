@@ -1,29 +1,25 @@
 /**
- * 앱 레벨 Provider 구성
- * Redux (RTK Query 포함) Provider 설정
+ * App Providers
+ *
+ * Redux Provider를 포함한 애플리케이션 전역 Provider들
+ * CLAUDE.md 준수: 클라이언트 컴포넌트, FSD app 레이어
  */
 
-'use client';
+'use client'
 
-import { ReactNode } from 'react';
-import { Provider as ReduxProvider } from 'react-redux';
-import { PersistGate } from 'redux-persist/integration/react';
-import { store, persistor } from '@/app/store';
+import { Provider } from 'react-redux'
+import { store } from './store'
 
-interface ProvidersProps {
-  children: ReactNode;
+interface ReduxProviderProps {
+  children: React.ReactNode
 }
 
 /**
- * 앱 전체 Provider 컴포넌트
- * Redux (RTK Query 포함) with persistence 제공
+ * Redux Provider 컴포넌트
+ *
+ * Redux store를 애플리케이션에 제공합니다.
+ * 클라이언트 컴포넌트로 구현하여 SSR과 CSR 모두 지원합니다.
  */
-export function Providers({ children }: ProvidersProps) {
-  return (
-    <ReduxProvider store={store}>
-      <PersistGate loading={<div>로딩 중...</div>} persistor={persistor}>
-        {children}
-      </PersistGate>
-    </ReduxProvider>
-  );
+export function ReduxProvider({ children }: ReduxProviderProps) {
+  return <Provider store={store}>{children}</Provider>
 }
