@@ -1,25 +1,61 @@
 /**
- * Entities Layer Public API
- *
- * 도메인 모델들의 단일 진입점입니다.
- * 비즈니스 로직과 도메인 규칙이 포함된 핵심 엔티티들을 제공합니다.
- * CLAUDE.md 준수: FSD entities 레이어 Public API, 도메인 순수성
+ * Entities Public API - 통합 버전
+ * 모든 도메인 엔티티를 단일 진입점으로 관리
+ * 중복 export 방지를 위한 명시적 export
  */
 
-// 사용자 도메인
-export * from './user'
+// User Entity
+export {
+  type User,
+  type UserPreferences,
+  type UserState,
+  userSlice,
+  userReducer,
+  defaultPreferences,
+  setCurrentUser,
+  clearCurrentUser,
+  createGuestUser,
+  setLoading as setUserLoading,
+  setUserError,
+  updateUserPreferences,
+  restoreUserFromStorage,
+  selectUserState,
+  selectCurrentUser,
+  selectIsAuthenticated,
+  selectIsGuest,
+  selectUserLoading,
+  selectUserError,
+  selectUserPreferences,
+  selectUserInfo,
+  selectAuthStatus,
+} from './user';
 
-// 프로젝트 도메인
-export * from './project'
+// Story Entity
+export * from './story';
 
-// 영상 생성 도메인 (새로 추가됨)
-export * from './video'
+// Shot Entity - alias conflicts 방지
+export {
+  type Shot,
+  type ShotType,
+  type CameraAngle,
+  type ShotState,
+  shotSlice,
+  shotReducer,
+  addShot,
+  updateShot,
+  removeShot,
+  setError as setShotError,
+  selectAllShots,
+  selectShotById,
+  selectIsLoading as selectShotIsLoading,
+  selectError as selectShotError,
+} from './shot';
 
-// 시나리오 도메인 (업데이트됨)
-export * from './scenario'
+// Storyboard Entity
+export * from './storyboard';
 
-// 스토리보드 도메인
-export * from './storyboard'
+// Scenario Entity
+export * from './scenario';
 
-// 성능 도메인
-export * from './performance'
+// Prompt Entity
+export * from './prompt';

@@ -1,25 +1,22 @@
 /**
- * Features Layer Public API
- *
- * 비즈니스 기능들의 단일 진입점입니다.
- * 각 기능은 완전히 캡슐화되어야 하며, 외부에서는 이 index.ts를 통해서만 접근합니다.
- * CLAUDE.md 준수: FSD features 레이어 Public API
+ * Features Public API - 통합 버전
+ * 모든 기능별 피처를 단일 진입점으로 관리
  */
 
-// 인증 기능
-export * from './auth'
+// Auth Feature exports
+export { useAuth, AuthApi } from './auth.feature';
+export type { LoginResponse } from './auth.feature';
 
-// 기획 기능
-export * from './planning'
+// Story Generator Feature exports
+export {
+  useStoryGenerator,
+  StoryGeneratorApi,
+  StoryInput,
+  StoryOutput
+} from './story-generator.feature';
 
-// 편집 기능
-export * from './editing'
+// Storyboard Generator Feature exports
+export * from './storyboard-generator.feature';
 
-// 공유 기능
-export * from './sharing'
-
-// 시나리오 기능 (새로 추가)
-export * from './scenario'
-
-// 스토리보드 기능
-export * from './storyboard'
+// Scenario Feature exports
+export * from './scenario.feature';

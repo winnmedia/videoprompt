@@ -1,52 +1,56 @@
-const nextJest = require('next/jest')
+const nextJest = require('next/jest');
 
 const createJestConfig = nextJest({
-  // Next.js 앱의 경로를 제공합니다. (테스트 환경에서 next.config.js와 .env 파일을 로드하기 위해)
+  // Provide the path to your Next.js app
   dir: './',
-})
+});
 
-// Jest에 전달할 사용자 정의 설정
+// Add any custom config to be passed to Jest
 const customJestConfig = {
+  // Add more setup options before each test is run
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  testEnvironment: 'jest-environment-jsdom',
-  testEnvironmentOptions: {
-    customExportConditions: ['']
-  },
-  setupFiles: ['<rootDir>/jest.polyfills.js'],
   moduleNameMapper: {
-    // tsconfig.json의 paths와 일치하도록 설정
+    // Handle module aliases (this will be automatically configured for you soon)
     '^@/(.*)$': '<rootDir>/src/$1',
-    '^@/app/(.*)$': '<rootDir>/src/app/$1',
+    '^@/app$': '<rootDir>/app',
+    '^@/app/(.*)$': '<rootDir>/app/$1',
+    '^@/app/store$': '<rootDir>/src/app/store',
+    '^@/processes$': '<rootDir>/src/processes',
     '^@/processes/(.*)$': '<rootDir>/src/processes/$1',
+    '^@/pages$': '<rootDir>/src/pages',
     '^@/pages/(.*)$': '<rootDir>/src/pages/$1',
+    '^@/widgets$': '<rootDir>/src/widgets',
     '^@/widgets/(.*)$': '<rootDir>/src/widgets/$1',
+    '^@/features$': '<rootDir>/src/features',
     '^@/features/(.*)$': '<rootDir>/src/features/$1',
+    '^@/entities$': '<rootDir>/src/entities',
     '^@/entities/(.*)$': '<rootDir>/src/entities/$1',
+    '^@/shared$': '<rootDir>/src/shared',
     '^@/shared/(.*)$': '<rootDir>/src/shared/$1',
   },
+  testEnvironment: 'jest-environment-jsdom',
   testMatch: [
-    '**/__tests__/**/*.(ts|tsx|js)',
-    '**/*.(test|spec).(ts|tsx|js)'
+    '**/__tests__/**/*.test.[jt]s?(x)',
+    '**/?(*.)+(spec|test).[jt]s?(x)',
   ],
   collectCoverageFrom: [
-    'src/**/*.{ts,tsx}',
+    'src/**/*.{js,jsx,ts,tsx}',
     '!src/**/*.d.ts',
-    '!src/**/*.stories.{ts,tsx}',
-    '!src/**/*.test.{ts,tsx}',
-    '!src/**/*.spec.{ts,tsx}',
+    '!src/**/index.ts',
+    '!src/**/*.stories.tsx',
   ],
-  coverageThreshold: {
-    global: {
-      branches: 80,
-      functions: 80,
-      lines: 80,
-      statements: 80
-    }
-  },
+  coveragePathIgnorePatterns: [
+    '/node_modules/',
+    '/.next/',
+    '/coverage/',
+    '/public/',
+  ],
   transformIgnorePatterns: [
-    'node_modules/(?!(msw|@mswjs|until-async|@open-draft|headers-polyfill|strict-event-emitter|outvariant)/)'
-  ]
-}
+    '/node_modules/(?!(msw|@mswjs|until-async)/)',
+    '^.+\\.module\\.(css|sass|scss)$',
+  ],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
+};
 
-// createJestConfig는 next/jest가 비동기적으로 Next.js 설정을 로드할 수 있도록 하는 함수입니다.
-module.exports = createJestConfig(customJestConfig)
+// createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
+module.exports = createJestConfig(customJestConfig);

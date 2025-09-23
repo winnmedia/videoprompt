@@ -1,31 +1,12 @@
 /**
  * Auth Feature Public API
- *
- * 인증 기능의 진입점입니다.
- * 로그인, 회원가입, 토큰 관리 등의 기능을 제공합니다.
+ * FSD 아키텍처 준수 - auth.feature.ts에서 분리된 디렉토리 구조
  */
 
-// === 훅 exports ===
-export { useAuth, useAuthGuard } from './hooks/use-auth'
+// Re-export from the main feature file
+export { useAuth, AuthApi } from '../auth.feature';
+export type { LoginResponse } from '../auth.feature';
 
-// === 컴포넌트 exports ===
-export { LoginForm } from './components/login-form'
-export { RegisterForm } from './components/register-form'
-export { AuthGuard, AdminGuard, ModeratorGuard } from './components/auth-guard'
-
-// === 타입 re-exports (편의상) ===
-export type {
-  User,
-  AuthState,
-  AuthTokens,
-  LoginRequest,
-  RegisterRequest,
-  PasswordResetRequest,
-  RefreshTokenRequest,
-  AuthError
-} from '../../entities/auth'
-
-export {
-  UserRole,
-  AuthStatus
-} from '../../entities/auth'
+// Components exports
+export { LoginForm } from './components/LoginForm';
+export { GuestLogin } from './components/GuestLogin';

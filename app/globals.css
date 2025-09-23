@@ -1,0 +1,253 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * VLANET 글로벌 스타일
+ * 다크 테마 전용 디지털 미니멀 디자인
+ */
+
+/* Pretendard 폰트 (한글) */
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 400;
+  font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/woff2/Pretendard-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 600;
+  font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/woff2/Pretendard-SemiBold.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 700;
+  font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/woff2/Pretendard-Bold.woff2') format('woff2');
+}
+
+/* 베이스 레이어 */
+@layer base {
+  :root {
+    --font-pretendard: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+
+    /* 네온 색상 팔레트 */
+    --neon-cyan: 0 255 255;
+    --neon-purple: 147 51 234;
+    --neon-pink: 236 72 153;
+    --neon-blue: 59 130 246;
+    --neon-green: 34 197 94;
+
+    /* 그라디언트 */
+    --gradient-neon: linear-gradient(135deg, rgb(var(--neon-purple)), rgb(var(--neon-cyan)));
+    --gradient-dark: linear-gradient(180deg, #0a0a0a, #000000);
+  }
+
+  * {
+    border-color: #1f2937;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: var(--font-pretendard);
+    background-color: #000000;
+    color: #ffffff;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-image: var(--gradient-dark);
+    min-height: 100vh;
+  }
+
+  /* 선택 영역 스타일 */
+  ::selection {
+    background-color: rgba(147, 51, 234, 0.3);
+    color: #ffffff;
+  }
+
+  /* 포커스 스타일 */
+  :focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px #000000, 0 0 0 4px rgba(147, 51, 234, 0.5);
+  }
+
+  /* 스크롤바 커스터마이징 */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background-color: #000000;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: #374151;
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #4b5563;
+  }
+
+  /* Firefox 스크롤바 */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #374151 #000000;
+  }
+}
+
+/* 컴포넌트 레이어 */
+@layer components {
+  /* 네온 텍스트 효과 */
+  .text-neon {
+    color: transparent;
+    background-clip: text;
+    -webkit-background-clip: text;
+    background-image: var(--gradient-neon);
+    text-shadow:
+      0 0 20px rgba(var(--neon-cyan), 0.5),
+      0 0 40px rgba(var(--neon-purple), 0.3);
+  }
+
+  /* 글래스모피즘 카드 */
+  .glass-card {
+    background-color: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  /* 네온 버튼 */
+  .btn-neon {
+    position: relative;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: linear-gradient(to right, #9333ea, #06b6d4);
+    transition: all 0.3s;
+  }
+
+  .btn-neon:hover {
+    box-shadow: 0 10px 25px rgba(147, 51, 234, 0.25);
+  }
+
+  .btn-neon::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: opacity 0.3s;
+  }
+
+  .btn-neon:hover::before {
+    opacity: 1;
+    animation: shimmer 0.5s;
+  }
+
+  /* 네온 보더 */
+  .neon-border {
+    position: relative;
+    box-shadow:
+      0 0 10px rgba(var(--neon-cyan), 0.5),
+      inset 0 0 10px rgba(var(--neon-purple), 0.2);
+  }
+
+  /* 로딩 스피너 */
+  .spinner {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 9999px;
+    border: 3px solid rgba(var(--neon-purple), 0.2);
+    border-top-color: rgb(var(--neon-cyan));
+    animation: spin 1s linear infinite;
+  }
+}
+
+/* 유틸리티 레이어 */
+@layer utilities {
+  /* 애니메이션 */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  /* 애니메이션 클래스 */
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.6s ease-out;
+  }
+
+  .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* 모션 감소 대응 */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

@@ -26,10 +26,13 @@
         "./src/*"
       ],
       "@/app": [
-        "./src/app"
+        "./app"
       ],
       "@/app/*": [
-        "./src/app/*"
+        "./app/*"
+      ],
+      "@/app/store": [
+        "./src/app/store"
       ],
       "@/processes": [
         "./src/processes"
@@ -79,6 +82,8 @@
     ".next/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    ".next",
+    "cypress"
   ]
 }

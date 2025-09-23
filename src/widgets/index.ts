@@ -1,40 +1,28 @@
 /**
- * Widgets Layer Public API
- *
- * UI 위젯들의 단일 진입점입니다.
- * 조합된 UI 블록들을 제공하며, features와 entities를 조합하여 구성됩니다.
- * CLAUDE.md 준수: FSD widgets 레이어 Public API
+ * Widgets Public API - 통합 버전
+ * 모든 위젯을 단일 진입점으로 관리
  */
 
-// 시나리오 위젯
-export * from './scenario'
+// Auth Widgets
+export * from './auth.widget';
 
-// 스토리보드 위젯
-export * from './storyboard'
+// Prompt Widgets
+export * from './prompt.widget';
 
-// 영상 위젯
-export * from './video'
+// Story Form Widgets
+export * from './story-form.widget';
 
-// 피드백 위젯
-export * from './feedback'
+// Content Manager Widgets
+export * from './content-manager.widget';
 
-// 기획 위젯
-export * from './planning'
+// Landing Widgets
+export * from './landing.widget';
 
-// 관리자 위젯
-export * from './admin'
+// Layout Widgets
+export * from './layout.widget';
 
-// 콘텐츠 관리 위젯
-export * from './content-management'
+// Shots Widgets
+export * from './shots.widget';
 
-// 프롬프트 위젯
-export * from './prompt'
-
-// 템플릿 위젯
-export * from './templates'
-
-// 온보딩 위젯
-export * from './onboarding'
-
-// 협업 위젯
-export * from './collaboration'
+// Scenario Widgets
+export * from './scenario.widget';
