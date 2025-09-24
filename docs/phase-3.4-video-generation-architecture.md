@@ -56,29 +56,36 @@ src/
 ### 1. entities/video - 도메인 모델
 
 #### 주요 타입
+
 ```typescript
 // 영상 생성 상태
-type VideoGenerationStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
+type VideoGenerationStatus =
+  | 'pending'
+  | 'processing'
+  | 'completed'
+  | 'failed'
+  | 'cancelled';
 
 // 지원 제공업체
-type VideoProvider = 'runway' | 'seedance' | 'stable-video'
+type VideoProvider = 'runway' | 'seedance' | 'stable-video';
 
 // 영상 생성 도메인 모델
 interface VideoGeneration {
-  id: string
-  scenarioId: string
-  projectId: string
-  userId: string
-  status: VideoGenerationStatus
-  provider: VideoProvider
-  inputPrompt: string
-  outputVideoUrl?: string
-  metadata: VideoMetadata
+  id: string;
+  scenarioId: string;
+  projectId: string;
+  userId: string;
+  status: VideoGenerationStatus;
+  provider: VideoProvider;
+  inputPrompt: string;
+  outputVideoUrl?: string;
+  metadata: VideoMetadata;
   // ... 기타 필드
 }
 ```
 
 #### 비즈니스 규칙
+
 - 프롬프트 길이 제한 (최대 1000자)
 - 영상 길이 제한 (최대 30초)
 - 해상도 검증 (256x256 ~ 2048x2048)
@@ -88,20 +95,22 @@ interface VideoGeneration {
 ### 2. shared/lib/video-clients - API 추상화
 
 #### 베이스 클라이언트
+
 ```typescript
 abstract class BaseVideoClient {
-  abstract generateVideo(params: VideoApiParams): Promise<VideoApiJob>
-  abstract getJobStatus(jobId: string): Promise<VideoApiJob>
-  abstract cancelJob(jobId: string): Promise<void>
+  abstract generateVideo(params: VideoApiParams): Promise<VideoApiJob>;
+  abstract getJobStatus(jobId: string): Promise<VideoApiJob>;
+  abstract cancelJob(jobId: string): Promise<void>;
 
   // 공통 기능
-  protected withRetry<T>(operation: () => Promise<T>): Promise<T>
-  protected makeRequest<T>(endpoint: string, method: string): Promise<T>
-  protected validateParams(params: VideoApiParams): void
+  protected withRetry<T>(operation: () => Promise<T>): Promise<T>;
+  protected makeRequest<T>(endpoint: string, method: string): Promise<T>;
+  protected validateParams(params: VideoApiParams): void;
 }
 ```
 
 #### 제공업체별 특징
+
 - **Runway ML**: 최대 30초, 고품질, 카메라 컨트롤 지원
 - **Seedance**: 최대 10초, 빠른 생성, 스타일 컨트롤
 - **Stable Video**: 최대 4초, 이미지 필수, 오픈소스
@@ -109,22 +118,24 @@ abstract class BaseVideoClient {
 ### 3. shared/lib/video-queue - 비동기 큐 시스템
 
 #### 핵심 기능
+
 ```typescript
 class VideoQueue {
-  async enqueue(item: VideoQueueItem): Promise<void>
-  async dequeue(itemId: string): Promise<boolean>
+  async enqueue(item: VideoQueueItem): Promise<void>;
+  async dequeue(itemId: string): Promise<boolean>;
 
   // 상태 관리
-  pause(): void
-  resume(): Promise<void>
-  getStatus(): QueueStatus
+  pause(): void;
+  resume(): Promise<void>;
+  getStatus(): QueueStatus;
 
   // 이벤트 시스템
-  on(eventType: QueueEventType, listener: Function): () => void
+  on(eventType: QueueEventType, listener: Function): () => void;
 }
 ```
 
 #### 큐 관리 특징
+
 - 우선순위 기반 스케줄링
 - 동시 처리 제한 (기본 3개)
 - 자동 재시도 (지수 백오프)
@@ -134,6 +145,7 @@ class VideoQueue {
 ### 4. shared/lib/video-error-handler - 에러 처리
 
 #### 에러 분류 및 전략
+
 ```typescript
 enum ErrorCategory {
   VALIDATION = 'validation',
@@ -154,6 +166,7 @@ enum RecoveryStrategy {
 ```
 
 #### 자동 복구 메커니즘
+
 - 네트워크 오류 → 자동 재시도
 - 제공업체 오류 → 다른 제공업체로 폴백
 - 요청 제한 → 큐 지연 추가
@@ -162,6 +175,7 @@ enum RecoveryStrategy {
 ## 비용 안전 규칙
 
 ### API 호출 제한
+
 ```typescript
 // useEffect 의존성에 함수 절대 금지
 useEffect(() => {
@@ -175,12 +189,14 @@ useEffect(() => {
 ```
 
 ### 요청 간격 제한
+
 - Runway: 최소 5초 간격
 - Seedance: 최소 3초 간격
 - Stable Video: 최소 10초 간격
 - 중복 요청 방지 체크
 
 ### 사용량 모니터링
+
 - 일일 생성 한도 추적
 - 사용자 등급별 제한
 - 실시간 비용 추적
@@ -188,6 +204,7 @@ useEffect(() => {
 ## 사용 예시
 
 ### 1. 영상 생성 요청
+
 ```typescript
 import { useVideoGeneration } from 'features/video-generation'
 
@@ -220,6 +237,7 @@ function VideoCreationForm() {
 ```
 
 ### 2. 진행 상태 모니터링
+
 ```typescript
 import { useVideoProgress } from 'features/video-generation'
 
@@ -239,6 +257,7 @@ function VideoProgressTracker({ videoId }) {
 ```
 
 ### 3. 큐 관리
+
 ```typescript
 import { useVideoQueue } from 'features/video-generation'
 
@@ -261,65 +280,71 @@ function QueueManager() {
 ## 테스트 전략
 
 ### 1. 단위 테스트 (entities)
+
 ```typescript
 // entities/video/model.test.ts
 describe('VideoGenerationDomain', () => {
   it('should validate generation request', () => {
-    const request = createMockRequest()
-    const result = VideoGenerationDomain.validateGenerationRequest(request)
-    expect(result.isValid).toBe(true)
-  })
-})
+    const request = createMockRequest();
+    const result = VideoGenerationDomain.validateGenerationRequest(request);
+    expect(result.isValid).toBe(true);
+  });
+});
 ```
 
 ### 2. 통합 테스트 (features)
+
 ```typescript
 // features/video-generation/hooks/use-video-generation.test.ts
 describe('useVideoGeneration', () => {
   it('should handle generation flow', async () => {
-    const { result } = renderHook(() => useVideoGeneration())
+    const { result } = renderHook(() => useVideoGeneration());
     await act(async () => {
-      await result.current.generateVideo(mockParams)
-    })
-    expect(result.current.isGenerating).toBe(false)
-  })
-})
+      await result.current.generateVideo(mockParams);
+    });
+    expect(result.current.isGenerating).toBe(false);
+  });
+});
 ```
 
 ### 3. E2E 테스트 (workflows)
+
 ```typescript
 // cypress/e2e/video-generation.cy.ts
 describe('Video Generation Workflow', () => {
   it('should complete full generation process', () => {
-    cy.visit('/scenario/123')
-    cy.fillVideoForm()
-    cy.clickGenerate()
-    cy.waitForVideoCompletion()
-    cy.verifyVideoPlayer()
-  })
-})
+    cy.visit('/scenario/123');
+    cy.fillVideoForm();
+    cy.clickGenerate();
+    cy.waitForVideoCompletion();
+    cy.verifyVideoPlayer();
+  });
+});
 ```
 
 ## 성능 최적화
 
 ### 1. 코드 스플리팅
+
 ```typescript
 // Lazy loading으로 번들 크기 최적화
-const VideoGenerationPanel = lazy(() =>
-  import('widgets/video/VideoGenerationPanel')
-)
+const VideoGenerationPanel = lazy(
+  () => import('widgets/video/VideoGenerationPanel')
+);
 ```
 
 ### 2. 메모이제이션
+
 ```typescript
 // 비싼 계산 캐싱
-const processedVideos = useMemo(() =>
-  videos.filter(v => v.status === 'completed'),
+const processedVideos = useMemo(
+  () => videos.filter((v) => v.status === 'completed'),
   [videos]
-)
+);
 ```
 
 ### 3. 가상화
+
 ```typescript
 // 대량 목록 가상화
 import { VirtualList } from 'shared/lib/virtual-list'
@@ -334,6 +359,7 @@ import { VirtualList } from 'shared/lib/virtual-list'
 ## 모니터링 및 알림
 
 ### 1. 핵심 지표
+
 - 생성 성공률 (제공업체별)
 - 평균 처리 시간
 - 큐 대기 시간
@@ -341,6 +367,7 @@ import { VirtualList } from 'shared/lib/virtual-list'
 - 비용 사용량
 
 ### 2. 알림 설정
+
 - 에러율 임계값 초과 시 즉시 알림
 - 큐 적체 상황 모니터링
 - 비용 예산 초과 경고
@@ -349,6 +376,7 @@ import { VirtualList } from 'shared/lib/virtual-list'
 ## 배포 고려사항
 
 ### 1. 환경변수
+
 ```bash
 # API 키들
 RUNWAY_API_KEY=your_runway_key
@@ -364,6 +392,7 @@ SENTRY_DSN=your_sentry_dsn
 ```
 
 ### 2. 인프라 요구사항
+
 - Redis (큐 상태 지속성)
 - WebSocket 지원 (실시간 업데이트)
 - 모니터링 시스템 (Sentry, DataDog)
@@ -372,17 +401,20 @@ SENTRY_DSN=your_sentry_dsn
 ## 향후 확장 계획
 
 ### 1. 추가 제공업체
+
 - OpenAI Sora
 - Meta Make-A-Video
 - Google Imagen Video
 
 ### 2. 고급 기능
+
 - 배치 처리
 - 워크플로우 자동화
 - A/B 테스트 지원
 - 커스텀 모델 지원
 
 ### 3. 최적화
+
 - 엣지 캐싱
 - CDN 통합
 - 압축 최적화

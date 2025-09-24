@@ -33,8 +33,16 @@
       "additionalProperties": false,
       "required": ["oneLineScenario"],
       "properties": {
-        "oneLineScenario": { "type": "string", "minLength": 1, "maxLength": 500 },
-        "targetAudience": { "type": "string", "minLength": 0, "maxLength": 200 },
+        "oneLineScenario": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "targetAudience": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 200
+        },
         "referenceUrls": {
           "type": "array",
           "items": { "type": "string", "format": "uri" },
@@ -71,9 +79,18 @@
       "additionalProperties": false,
       "required": ["creationMode", "frameworkType", "aiAssistantPersona"],
       "properties": {
-        "creationMode": { "type": "string", "enum": ["VISUAL_FIRST", "SOUND_FIRST"] },
-        "frameworkType": { "type": "string", "enum": ["EVENT_DRIVEN", "DIRECTION_DRIVEN", "HYBRID"] },
-        "aiAssistantPersona": { "type": "string", "enum": ["ASSISTANT_DIRECTOR", "CINEMATOGRAPHER", "SCREENWRITER"] },
+        "creationMode": {
+          "type": "string",
+          "enum": ["VISUAL_FIRST", "SOUND_FIRST"]
+        },
+        "frameworkType": {
+          "type": "string",
+          "enum": ["EVENT_DRIVEN", "DIRECTION_DRIVEN", "HYBRID"]
+        },
+        "aiAssistantPersona": {
+          "type": "string",
+          "enum": ["ASSISTANT_DIRECTOR", "CINEMATOGRAPHER", "SCREENWRITER"]
+        },
         "profileId": { "type": "string", "minLength": 0, "maxLength": 60 }
       }
     },
@@ -144,20 +161,43 @@
           "type": "object",
           "description": "전역 설정. timeline의 개별 설정에 의해 오버라이드될 수 있음.",
           "additionalProperties": false,
-          "required": ["promptName", "baseStyle", "spatialContext", "cameraSetting", "deliverySpec"],
+          "required": [
+            "promptName",
+            "baseStyle",
+            "spatialContext",
+            "cameraSetting",
+            "deliverySpec"
+          ],
           "properties": {
-            "promptName": { "type": "string", "minLength": 1, "maxLength": 120 },
+            "promptName": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
 
             "baseStyle": {
               "type": "object",
               "description": "시각적 미학 정의.",
               "additionalProperties": false,
-              "required": ["visualStyle", "genre", "mood", "quality", "styleFusion"],
+              "required": [
+                "visualStyle",
+                "genre",
+                "mood",
+                "quality",
+                "styleFusion"
+              ],
               "properties": {
-                "visualStyle": { "type": "string", "minLength": 1, "maxLength": 80 },
+                "visualStyle": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
                 "genre": { "type": "string", "minLength": 1, "maxLength": 80 },
                 "mood": { "type": "string", "minLength": 1, "maxLength": 80 },
-                "quality": { "type": "string", "enum": ["4K", "8K", "IMAX Quality", "HD"] },
+                "quality": {
+                  "type": "string",
+                  "enum": ["4K", "8K", "IMAX Quality", "HD"]
+                },
                 "styleFusion": {
                   "type": "object",
                   "additionalProperties": false,
@@ -199,8 +239,22 @@
               "additionalProperties": false,
               "required": ["placeDescription", "weather", "lighting"],
               "properties": {
-                "placeDescription": { "type": "string", "minLength": 1, "maxLength": 300 },
-                "weather": { "type": "string", "enum": ["Clear", "Rain", "Heavy Rain", "Snow", "Fog", "Overcast"] },
+                "placeDescription": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 300
+                },
+                "weather": {
+                  "type": "string",
+                  "enum": [
+                    "Clear",
+                    "Rain",
+                    "Heavy Rain",
+                    "Snow",
+                    "Fog",
+                    "Overcast"
+                  ]
+                },
                 "lighting": {
                   "type": "string",
                   "enum": [
@@ -214,7 +268,11 @@
                     "Neon Glow"
                   ]
                 },
-                "regionTag": { "type": "string", "minLength": 0, "maxLength": 80 }
+                "regionTag": {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 80
+                }
               }
             },
 
@@ -247,16 +305,33 @@
                     "Vertigo Effect (Dolly Zoom)"
                   ]
                 },
-                "colorGrade": { "type": "string", "minLength": 0, "maxLength": 120 },
+                "colorGrade": {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 120
+                },
                 "physical": {
                   "type": "object",
                   "additionalProperties": false,
                   "description": "물리적 카메라 설정값.",
                   "properties": {
-                    "aperture": { "type": "string", "pattern": "^f\\/?(\\d+(\\.\\d+)?)$" },
-                    "shutter": { "type": "string", "pattern": "^(\\d+(\\.\\d+)?s)|(1\\/\\d+)$" },
-                    "iso": { "type": "integer", "minimum": 25, "maximum": 204800 },
-                    "ndFilter": { "type": "string", "pattern": "^ND(\\d+|\\d*\\.\\d+)$" }
+                    "aperture": {
+                      "type": "string",
+                      "pattern": "^f\\/?(\\d+(\\.\\d+)?)$"
+                    },
+                    "shutter": {
+                      "type": "string",
+                      "pattern": "^(\\d+(\\.\\d+)?s)|(1\\/\\d+)$"
+                    },
+                    "iso": {
+                      "type": "integer",
+                      "minimum": 25,
+                      "maximum": 204800
+                    },
+                    "ndFilter": {
+                      "type": "string",
+                      "pattern": "^ND(\\d+|\\d*\\.\\d+)$"
+                    }
                   }
                 }
               }
@@ -268,11 +343,25 @@
               "required": ["durationMs", "aspectRatio"],
               "properties": {
                 "durationMs": { "type": "integer", "minimum": 1 },
-                "aspectRatio": { "type": "string", "enum": ["9:16", "1:1", "4:5", "16:9", "2.39:1"] },
+                "aspectRatio": {
+                  "type": "string",
+                  "enum": ["9:16", "1:1", "4:5", "16:9", "2.39:1"]
+                },
                 "fps": { "type": "number", "enum": [24, 25, 30, 50, 60] },
-                "resolution": { "type": "string", "enum": ["HD", "FHD", "4K", "8K"] },
-                "shotType": { "type": "string", "minLength": 0, "maxLength": 60 },
-                "bitrateHint": { "type": "string", "minLength": 0, "maxLength": 40 }
+                "resolution": {
+                  "type": "string",
+                  "enum": ["HD", "FHD", "4K", "8K"]
+                },
+                "shotType": {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 60
+                },
+                "bitrateHint": {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 40
+                }
               }
             },
 
@@ -282,11 +371,23 @@
               "properties": {
                 "singleTake": { "type": "boolean" },
                 "noCuts": { "type": "boolean" },
-                "motionVectorContinuity": { "type": "string", "minLength": 0, "maxLength": 200 },
-                "textureContinuityNote": { "type": "string", "minLength": 0, "maxLength": 200 },
+                "motionVectorContinuity": {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 200
+                },
+                "textureContinuityNote": {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 200
+                },
                 "transitionPolicy": {
                   "type": "string",
-                  "enum": ["None", "Only-internal time ramp", "No editorial transitions"]
+                  "enum": [
+                    "None",
+                    "Only-internal time ramp",
+                    "No editorial transitions"
+                  ]
                 }
               }
             },
@@ -296,11 +397,35 @@
               "additionalProperties": false,
               "properties": {
                 "grade": { "type": "string", "minLength": 0, "maxLength": 120 },
-                "grain": { "type": "string", "enum": ["None", "Fine cinematic", "Medium 35mm", "Coarse 16mm"] },
-                "textureTreatment": { "type": "string", "minLength": 0, "maxLength": 120 },
-                "lutName": { "type": "string", "minLength": 0, "maxLength": 60 },
-                "colorTemperature": { "type": "number", "minimum": 1000, "maximum": 20000 },
-                "contrastCurve": { "type": "string", "minLength": 0, "maxLength": 60 }
+                "grain": {
+                  "type": "string",
+                  "enum": [
+                    "None",
+                    "Fine cinematic",
+                    "Medium 35mm",
+                    "Coarse 16mm"
+                  ]
+                },
+                "textureTreatment": {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 120
+                },
+                "lutName": {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 60
+                },
+                "colorTemperature": {
+                  "type": "number",
+                  "minimum": 1000,
+                  "maximum": 20000
+                },
+                "contrastCurve": {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 60
+                }
               }
             },
 
@@ -310,12 +435,23 @@
               "properties": {
                 "lensRoster": {
                   "type": "array",
-                  "items": { "type": "string", "minLength": 1, "maxLength": 60 },
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60
+                  },
                   "uniqueItems": true,
                   "maxItems": 20
                 },
-                "movementSummary": { "type": "string", "minLength": 0, "maxLength": 300 },
-                "preferredRig": { "type": "string", "enum": ["Handheld", "Dolly", "Gimbal", "Crane", "Drone"] }
+                "movementSummary": {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 300
+                },
+                "preferredRig": {
+                  "type": "string",
+                  "enum": ["Handheld", "Dolly", "Gimbal", "Crane", "Drone"]
+                }
               }
             }
           }
@@ -335,7 +471,11 @@
                 "required": ["id", "description"],
                 "properties": {
                   "id": { "type": "string", "minLength": 1, "maxLength": 60 },
-                  "description": { "type": "string", "minLength": 1, "maxLength": 300 },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 300
+                  },
                   "reference_image_url": { "type": "string", "format": "uri" }
                 }
               }
@@ -349,8 +489,16 @@
                 "required": ["id", "description"],
                 "properties": {
                   "id": { "type": "string", "minLength": 1, "maxLength": 60 },
-                  "description": { "type": "string", "minLength": 1, "maxLength": 300 },
-                  "material": { "type": "string", "minLength": 0, "maxLength": 60 },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 300
+                  },
+                  "material": {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 60
+                  },
                   "reference_image_url": { "type": "string", "format": "uri" }
                 }
               }
@@ -359,14 +507,30 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {
-                "sourceContainer": { "type": "string", "minLength": 0, "maxLength": 120 },
+                "sourceContainer": {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 120
+                },
                 "assembledElements": {
                   "type": "array",
-                  "items": { "type": "string", "minLength": 1, "maxLength": 120 },
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
                   "maxItems": 100
                 },
-                "animationModel": { "type": "string", "minLength": 0, "maxLength": 120 },
-                "physicalityNote": { "type": "string", "minLength": 0, "maxLength": 200 }
+                "animationModel": {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 120
+                },
+                "physicalityNote": {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 200
+                }
               }
             }
           }
@@ -376,7 +540,11 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "musicIntent": { "type": "string", "minLength": 0, "maxLength": 120 },
+            "musicIntent": {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 120
+            },
             "sfxPalette": {
               "type": "array",
               "items": { "type": "string", "minLength": 1, "maxLength": 80 },
@@ -397,7 +565,11 @@
                 "autoWrapNonDiegetic": { "type": "boolean", "default": true },
                 "musicKeywords": {
                   "type": "array",
-                  "items": { "type": "string", "minLength": 1, "maxLength": 40 },
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
                   "maxItems": 50,
                   "uniqueItems": true
                 }
@@ -415,7 +587,13 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["sequence", "visualDirecting", "cameraWork", "pacingFX", "audioLayers"],
+            "required": [
+              "sequence",
+              "visualDirecting",
+              "cameraWork",
+              "pacingFX",
+              "audioLayers"
+            ],
             "properties": {
               "sequence": { "type": "integer", "minimum": 0 },
 
@@ -434,8 +612,14 @@
                     "minimum": 1,
                     "description": "endMs는 startMs보다 커야 함"
                   },
-                  "smpteStart": { "type": "string", "pattern": "^\\d{2}:\\d{2}:\\d{2}:\\d{2}$" },
-                  "smpteEnd": { "type": "string", "pattern": "^\\d{2}:\\d{2}:\\d{2}:\\d{2}$" }
+                  "smpteStart": {
+                    "type": "string",
+                    "pattern": "^\\d{2}:\\d{2}:\\d{2}:\\d{2}$"
+                  },
+                  "smpteEnd": {
+                    "type": "string",
+                    "pattern": "^\\d{2}:\\d{2}:\\d{2}:\\d{2}$"
+                  }
                 },
                 "if": {
                   "properties": {
@@ -494,7 +678,13 @@
                 "properties": {
                   "pacing": {
                     "type": "string",
-                    "enum": ["Real-time", "Slow-motion (0.5x)", "Fast-motion (2x)", "Time-lapse", "Freeze-frame"]
+                    "enum": [
+                      "Real-time",
+                      "Slow-motion (0.5x)",
+                      "Fast-motion (2x)",
+                      "Time-lapse",
+                      "Freeze-frame"
+                    ]
                   },
                   "editingStyle": {
                     "type": "string",
@@ -568,9 +758,21 @@
                 }
               },
 
-              "actionNote": { "type": "string", "minLength": 0, "maxLength": 600 },
-              "audioNote": { "type": "string", "minLength": 0, "maxLength": 300 },
-              "visualNote": { "type": "string", "minLength": 0, "maxLength": 300 }
+              "actionNote": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 600
+              },
+              "audioNote": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 300
+              },
+              "visualNote": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 300
+              }
             }
           }
         }
@@ -624,7 +826,11 @@
               "required": ["imageUrl", "description"],
               "properties": {
                 "imageUrl": { "type": "string", "format": "uri" },
-                "description": { "type": "string", "minLength": 0, "maxLength": 300 }
+                "description": {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 300
+                }
               }
             }
           }
@@ -640,7 +846,11 @@
               "description": "true이면 '(no subtitles), (no text overlay), (no captions)' 자동 부가."
             },
             "brandName": { "type": "string", "minLength": 0, "maxLength": 80 },
-            "logoVisibility": { "type": "string", "minLength": 0, "maxLength": 80 },
+            "logoVisibility": {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 80
+            },
             "legalRestrictions": {
               "type": "array",
               "items": { "type": "string", "minLength": 1, "maxLength": 120 },
@@ -651,22 +861,38 @@
               "items": { "type": "string", "minLength": 1, "maxLength": 120 },
               "maxItems": 50
             },
-            "brandPolicyId": { "type": "string", "minLength": 0, "maxLength": 60 },
+            "brandPolicyId": {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 60
+            },
             "culturalConstraints": {
               "type": "object",
               "additionalProperties": false,
               "properties": {
                 "allowedMotifs": {
                   "type": "array",
-                  "items": { "type": "string", "minLength": 1, "maxLength": 80 },
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
                   "maxItems": 50
                 },
                 "disallowedMotifs": {
                   "type": "array",
-                  "items": { "type": "string", "minLength": 1, "maxLength": 80 },
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
                   "maxItems": 50
                 },
-                "regionLocale": { "type": "string", "minLength": 0, "maxLength": 40 }
+                "regionLocale": {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 40
+                }
               }
             }
           }
@@ -684,7 +910,10 @@
         "promptHash": { "type": "string", "minLength": 64, "maxLength": 128 },
         "schemaVersion": { "type": "string", "minLength": 1, "maxLength": 20 },
         "toolchain": { "type": "string", "minLength": 0, "maxLength": 120 },
-        "randomSeedPolicy": { "type": "string", "enum": ["FIXED", "SEMI_FIXED", "UNFIXED"] }
+        "randomSeedPolicy": {
+          "type": "string",
+          "enum": ["FIXED", "SEMI_FIXED", "UNFIXED"]
+        }
       }
     },
 
@@ -701,7 +930,11 @@
       "additionalProperties": false,
       "required": ["finalPromptText", "keywords", "negativePrompts"],
       "properties": {
-        "finalPromptText": { "type": "string", "minLength": 1, "maxLength": 5000 },
+        "finalPromptText": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 5000
+        },
         "keywords": {
           "type": "array",
           "maxItems": 200,
@@ -734,17 +967,39 @@
         "metadata": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["prompt_name", "base_style", "aspect_ratio", "room_description", "camera_setup"],
+          "required": [
+            "prompt_name",
+            "base_style",
+            "aspect_ratio",
+            "room_description",
+            "camera_setup"
+          ],
           "properties": {
-            "prompt_name": { "type": "string", "minLength": 1, "maxLength": 120 },
-            "base_style": { "type": "string", "minLength": 1, "maxLength": 200 },
+            "prompt_name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "base_style": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
             "aspect_ratio": {
               "type": "string",
               "pattern": "^(?:\\d+(?:\\.\\d+)?):(\\d+)$",
               "description": "예: 9:16, 16:9, 21:9, 2.39:1"
             },
-            "room_description": { "type": "string", "minLength": 1, "maxLength": 800 },
-            "camera_setup": { "type": "string", "minLength": 1, "maxLength": 800 }
+            "room_description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 800
+            },
+            "camera_setup": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 800
+            }
           }
         },
         "key_elements": {
@@ -804,10 +1059,7 @@
       "additionalProperties": {
         "type": "array",
         "items": {
-          "oneOf": [
-            { "type": "string" },
-            { "type": "number" }
-          ]
+          "oneOf": [{ "type": "string" }, { "type": "number" }]
         }
       },
       "properties": {
@@ -964,7 +1216,11 @@
         "/promptBlueprint/metadata/continuity/transitionPolicy": {
           "type": "array",
           "items": { "type": "string" },
-          "default": ["None", "Only-internal time ramp", "No editorial transitions"]
+          "default": [
+            "None",
+            "Only-internal time ramp",
+            "No editorial transitions"
+          ]
         },
 
         "/promptBlueprint/metadata/lookDev/grain": {
@@ -1070,8 +1326,14 @@
                 "additionalProperties": false,
                 "required": ["compact", "blueprint"],
                 "properties": {
-                  "compact": { "type": "string", "pattern": "^(?:\\d+(?:\\.\\d+)?):(\\d+)$" },
-                  "blueprint": { "type": "string", "enum": ["9:16", "1:1", "4:5", "16:9", "2.39:1"] }
+                  "compact": {
+                    "type": "string",
+                    "pattern": "^(?:\\d+(?:\\.\\d+)?):(\\d+)$"
+                  },
+                  "blueprint": {
+                    "type": "string",
+                    "enum": ["9:16", "1:1", "4:5", "16:9", "2.39:1"]
+                  }
                 }
               },
               "default": [
@@ -1116,7 +1378,9 @@
                   "properties": {
                     "pacingFX": {
                       "properties": {
-                        "editingStyle": { "enum": ["None", "Only-internal time ramp"] }
+                        "editingStyle": {
+                          "enum": ["None", "Only-internal time ramp"]
+                        }
                       }
                     }
                   }

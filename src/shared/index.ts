@@ -1,19 +1,17 @@
 /**
- * Shared 모듈 Public API - 통합 버전
- * 모든 공통 요소를 단일 진입점으로 관리
+ * Shared Layer Public API
+ * FSD 아키텍처의 최하위 레이어
+ * 모든 상위 레이어에서 import 가능
  */
-
-// Types
-export * from './types';
-
-// Hooks
-export * from './hooks';
 
 // UI Components
 export * from './ui';
 
-// Libraries
+// Utilities & Libraries
 export * from './lib';
 
-// Mocks
-export * from './mocks';
+// API Clients
+export * from './api';
+
+// Configuration
+export * from './config';

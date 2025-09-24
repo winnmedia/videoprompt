@@ -9,6 +9,7 @@ Phase 3.9 영상 피드백 기능 확장에 따른 성능 최적화 및 보안 �
 ### 1. 프론트엔드 성능 최적화
 
 #### 1.1 번들 크기 최적화
+
 ```typescript
 // 동적 임포트를 통한 코드 스플리팅
 const EnhancedShareModal = lazy(() => import('./EnhancedShareModal'));
@@ -20,7 +21,7 @@ export {
   // 필요한 것만 export
   useVersionManager,
   useEnhancedComments,
-  useAdvancedSharing
+  useAdvancedSharing,
 } from './hooks';
 
 // Webpack Bundle Analyzer 설정
@@ -31,28 +32,28 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 module.exports = withBundleAnalyzer({
   experimental: {
     optimizeCss: true,
-    optimizePackageImports: ['@heroicons/react']
-  }
+    optimizePackageImports: ['@heroicons/react'],
+  },
 });
 ```
 
 #### 1.2 메모이제이션 전략
+
 ```typescript
 // React.memo로 컴포넌트 최적화
-export const CommentItem = React.memo(function CommentItem({
-  comment,
-  onReaction,
-  onReply
-}: CommentItemProps) {
-  // 렌더링 최적화된 로직
-}, (prevProps, nextProps) => {
-  // 커스텀 비교 함수로 불필요한 리렌더링 방지
-  return (
-    prevProps.comment.id === nextProps.comment.id &&
-    prevProps.comment.content === nextProps.comment.content &&
-    prevProps.comment.reactions.length === nextProps.comment.reactions.length
-  );
-});
+export const CommentItem = React.memo(
+  function CommentItem({ comment, onReaction, onReply }: CommentItemProps) {
+    // 렌더링 최적화된 로직
+  },
+  (prevProps, nextProps) => {
+    // 커스텀 비교 함수로 불필요한 리렌더링 방지
+    return (
+      prevProps.comment.id === nextProps.comment.id &&
+      prevProps.comment.content === nextProps.comment.content &&
+      prevProps.comment.reactions.length === nextProps.comment.reactions.length
+    );
+  }
+);
 
 // useMemo로 계산 최적화
 const memoizedCommentTree = useMemo(() => {
@@ -66,6 +67,7 @@ const handleReaction = useCallback((commentId: string, type: EmotionType) => {
 ```
 
 #### 1.3 가상화 및 무한 스크롤
+
 ```typescript
 // 댓글 목록 가상화
 import { FixedSizeList as List } from 'react-window';
@@ -113,6 +115,7 @@ function useInfiniteComments(sessionId: string) {
 ```
 
 #### 1.4 이미지 최적화
+
 ```typescript
 // Next.js Image 컴포넌트 활용
 import Image from 'next/image';
@@ -153,6 +156,7 @@ async function optimizeScreenshot(originalUrl: string): Promise<string> {
 ### 2. 백엔드 성능 최적화
 
 #### 2.1 데이터베이스 최적화
+
 ```sql
 -- 복합 인덱스 최적화
 CREATE INDEX CONCURRENTLY idx_feedback_comments_optimized
@@ -189,6 +193,7 @@ $$ LANGUAGE plpgsql;
 ```
 
 #### 2.2 API 응답 최적화
+
 ```typescript
 // GraphQL 스타일 필드 선택
 interface CommentQueryOptions {
@@ -219,17 +224,20 @@ async function getComments(
 // 응답 압축
 import compression from 'compression';
 
-app.use(compression({
-  level: 6,
-  threshold: 1024,
-  filter: (req, res) => {
-    // JSON 응답만 압축
-    return res.getHeader('content-type')?.includes('application/json');
-  }
-}));
+app.use(
+  compression({
+    level: 6,
+    threshold: 1024,
+    filter: (req, res) => {
+      // JSON 응답만 압축
+      return res.getHeader('content-type')?.includes('application/json');
+    },
+  })
+);
 ```
 
 #### 2.3 캐싱 전략
+
 ```typescript
 // Redis 캐싱 구현
 import Redis from 'ioredis';
@@ -239,7 +247,9 @@ const redis = new Redis(process.env.REDIS_URL);
 class FeedbackCache {
   private static readonly CACHE_TTL = 300; // 5분
 
-  static async getComments(sessionId: string): Promise<ThreadedComment[] | null> {
+  static async getComments(
+    sessionId: string
+  ): Promise<ThreadedComment[] | null> {
     const key = `comments:${sessionId}`;
     const cached = await redis.get(key);
 
@@ -249,7 +259,10 @@ class FeedbackCache {
     return null;
   }
 
-  static async setComments(sessionId: string, comments: ThreadedComment[]): Promise<void> {
+  static async setComments(
+    sessionId: string,
+    comments: ThreadedComment[]
+  ): Promise<void> {
     const key = `comments:${sessionId}`;
     await redis.setex(key, this.CACHE_TTL, JSON.stringify(comments));
   }
@@ -269,8 +282,8 @@ app.get('/api/feedback/sessions/:id/comments', async (req, res) => {
   // 5분 브라우저 캐시, 1시간 CDN 캐시
   res.set({
     'Cache-Control': 'public, max-age=300, s-maxage=3600',
-    'ETag': generateETag(req.params.id),
-    'Last-Modified': new Date().toUTCString()
+    ETag: generateETag(req.params.id),
+    'Last-Modified': new Date().toUTCString(),
   });
 
   // 데이터 반환
@@ -280,12 +293,16 @@ app.get('/api/feedback/sessions/:id/comments', async (req, res) => {
 ### 3. 파일 처리 최적화
 
 #### 3.1 영상 업로드 최적화
+
 ```typescript
 // 청크 업로드 구현
 class ChunkedUpload {
   private static readonly CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
 
-  static async uploadFile(file: File, onProgress: (progress: number) => void): Promise<string> {
+  static async uploadFile(
+    file: File,
+    onProgress: (progress: number) => void
+  ): Promise<string> {
     const totalChunks = Math.ceil(file.size / this.CHUNK_SIZE);
     const uploadId = crypto.randomUUID();
 
@@ -295,7 +312,7 @@ class ChunkedUpload {
       const chunk = file.slice(start, end);
 
       await this.uploadChunk(uploadId, chunkIndex, chunk);
-      onProgress((chunkIndex + 1) / totalChunks * 100);
+      onProgress(((chunkIndex + 1) / totalChunks) * 100);
     }
 
     return await this.completeUpload(uploadId);
@@ -313,7 +330,7 @@ class ChunkedUpload {
 
     const response = await fetch('/api/upload/chunk', {
       method: 'POST',
-      body: formData
+      body: formData,
     });
 
     if (!response.ok) {
@@ -338,15 +355,15 @@ app.post('/api/upload/complete', async (req, res) => {
   const { uploadId } = req.body;
 
   // 청크 병합
-  const chunks = await fs.readdir(`/tmp/uploads/`)
-    .then(files => files
-      .filter(f => f.startsWith(uploadId))
+  const chunks = await fs.readdir(`/tmp/uploads/`).then((files) =>
+    files
+      .filter((f) => f.startsWith(uploadId))
       .sort((a, b) => {
         const aIndex = parseInt(a.split('_')[1]);
         const bIndex = parseInt(b.split('_')[1]);
         return aIndex - bIndex;
       })
-    );
+  );
 
   // 최종 파일 생성
   const finalPath = `/uploads/${uploadId}.mp4`;
@@ -364,6 +381,7 @@ app.post('/api/upload/complete', async (req, res) => {
 ```
 
 #### 3.2 이미지 처리 최적화
+
 ```typescript
 // Sharp를 이용한 이미지 최적화
 import sharp from 'sharp';
@@ -384,7 +402,7 @@ class ImageProcessor {
     if (options.width || options.height) {
       pipeline = pipeline.resize(options.width, options.height, {
         fit: 'inside',
-        withoutEnlargement: true
+        withoutEnlargement: true,
       });
     }
 
@@ -421,6 +439,7 @@ class ImageProcessor {
 ### 4. 실시간 통신 최적화
 
 #### 4.1 WebSocket 최적화
+
 ```typescript
 // 연결 풀링 및 재사용
 class WebSocketManager {
@@ -440,11 +459,13 @@ class WebSocketManager {
     const ws = new WebSocket(`wss://api.videoprompt.com/feedback/realtime`);
 
     ws.onopen = () => {
-      ws.send(JSON.stringify({
-        type: 'auth',
-        sessionId,
-        userId
-      }));
+      ws.send(
+        JSON.stringify({
+          type: 'auth',
+          sessionId,
+          userId,
+        })
+      );
     };
 
     // 하트비트 구현
@@ -489,9 +510,12 @@ class MessageBatcher {
       clearTimeout(this.timers.get(sessionId)!);
     }
 
-    this.timers.set(sessionId, setTimeout(() => {
-      this.flushMessages(sessionId);
-    }, 100));
+    this.timers.set(
+      sessionId,
+      setTimeout(() => {
+        this.flushMessages(sessionId);
+      }, 100)
+    );
   }
 
   private flushMessages(sessionId: string): void {
@@ -500,10 +524,12 @@ class MessageBatcher {
 
     const ws = WebSocketManager.getConnection(sessionId);
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({
-        type: 'batch',
-        messages
-      }));
+      ws.send(
+        JSON.stringify({
+          type: 'batch',
+          messages,
+        })
+      );
     }
 
     this.pending.delete(sessionId);
@@ -517,6 +543,7 @@ class MessageBatcher {
 ### 1. 인증 및 권한 관리
 
 #### 1.1 JWT 토큰 보안
+
 ```typescript
 // JWT 토큰 생성 및 검증
 import jwt from 'jsonwebtoken';
@@ -557,7 +584,10 @@ class TokenManager {
   }
 
   static verifyRefreshToken(token: string): { userId: string; jti: string } {
-    return jwt.verify(token, this.REFRESH_SECRET) as { userId: string; jti: string };
+    return jwt.verify(token, this.REFRESH_SECRET) as {
+      userId: string;
+      jti: string;
+    };
   }
 }
 
@@ -569,7 +599,8 @@ class TokenBlacklist {
     this.blacklistedTokens.add(jti);
 
     // Redis에도 저장 (분산 환경 지원)
-    await redis.setex(`blacklist:${jti}`,
+    await redis.setex(
+      `blacklist:${jti}`,
       Math.floor((expiresAt.getTime() - Date.now()) / 1000),
       'true'
     );
@@ -587,6 +618,7 @@ class TokenBlacklist {
 ```
 
 #### 1.2 권한 기반 접근 제어 (RBAC)
+
 ```typescript
 // 권한 정의
 enum Permission {
@@ -596,7 +628,7 @@ enum Permission {
   DELETE_COMMENT = 'feedback:comment:delete',
   MANAGE_VERSIONS = 'feedback:version:manage',
   CREATE_SHARE_LINK = 'feedback:share:create',
-  ADMIN_SESSION = 'feedback:session:admin'
+  ADMIN_SESSION = 'feedback:session:admin',
 }
 
 enum Role {
@@ -604,20 +636,17 @@ enum Role {
   MEMBER = 'member',
   MODERATOR = 'moderator',
   ADMIN = 'admin',
-  OWNER = 'owner'
+  OWNER = 'owner',
 }
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   [Role.GUEST]: [Permission.VIEW_FEEDBACK],
-  [Role.MEMBER]: [
-    Permission.VIEW_FEEDBACK,
-    Permission.CREATE_COMMENT
-  ],
+  [Role.MEMBER]: [Permission.VIEW_FEEDBACK, Permission.CREATE_COMMENT],
   [Role.MODERATOR]: [
     Permission.VIEW_FEEDBACK,
     Permission.CREATE_COMMENT,
     Permission.EDIT_COMMENT,
-    Permission.DELETE_COMMENT
+    Permission.DELETE_COMMENT,
   ],
   [Role.ADMIN]: [
     Permission.VIEW_FEEDBACK,
@@ -625,9 +654,9 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     Permission.EDIT_COMMENT,
     Permission.DELETE_COMMENT,
     Permission.MANAGE_VERSIONS,
-    Permission.CREATE_SHARE_LINK
+    Permission.CREATE_SHARE_LINK,
   ],
-  [Role.OWNER]: Object.values(Permission)
+  [Role.OWNER]: Object.values(Permission),
 };
 
 // 권한 검사 미들웨어
@@ -640,8 +669,8 @@ function requirePermission(permission: Permission) {
         error: {
           code: 'INSUFFICIENT_PERMISSIONS',
           message: '권한이 없습니다',
-          required: permission
-        }
+          required: permission,
+        },
       });
     }
 
@@ -656,11 +685,14 @@ async function checkSessionPermission(
   permission: Permission
 ): Promise<boolean> {
   // 세션 참여자 정보 조회
-  const participant = await db.query(`
+  const participant = await db.query(
+    `
     SELECT fp.permissions, fp.role
     FROM feedback_participants fp
     WHERE fp.user_id = $1 AND fp.session_id = $2
-  `, [userId, sessionId]);
+  `,
+    [userId, sessionId]
+  );
 
   if (!participant) {
     return false;
@@ -676,6 +708,7 @@ async function checkSessionPermission(
 ### 2. 입력 검증 및 데이터 무결성
 
 #### 2.1 Zod 스키마 검증
+
 ```typescript
 import { z } from 'zod';
 
@@ -683,29 +716,37 @@ import { z } from 'zod';
 const CreateCommentSchema = z.object({
   sessionId: z.string().uuid(),
   videoSlot: z.enum(['v1', 'v2', 'v3']),
-  content: z.string()
+  content: z
+    .string()
     .min(1, '댓글 내용은 필수입니다')
     .max(2000, '댓글은 최대 2000자까지 입력 가능합니다')
-    .refine(content => !content.includes('<script'), '스크립트 태그는 허용되지 않습니다'),
+    .refine(
+      (content) => !content.includes('<script'),
+      '스크립트 태그는 허용되지 않습니다'
+    ),
   timecode: z.object({
     seconds: z.number().min(0).max(7200), // 최대 2시간
-    formatted: z.string().regex(/^\d{1,2}:\d{2}$/)
+    formatted: z.string().regex(/^\d{1,2}:\d{2}$/),
   }),
   parentId: z.string().uuid().optional(),
-  mentionUserIds: z.array(z.string().uuid()).max(10).optional()
+  mentionUserIds: z.array(z.string().uuid()).max(10).optional(),
 });
 
 // 파일 업로드 스키마
 const FileUploadSchema = z.object({
   file: z.object({
-    size: z.number().max(300 * 1024 * 1024, '파일 크기는 300MB를 초과할 수 없습니다'),
-    type: z.string().refine(type =>
-      ['video/mp4', 'video/webm', 'video/quicktime'].includes(type),
-      '지원하지 않는 파일 형식입니다'
-    ),
-    name: z.string().max(255, '파일명이 너무 깁니다')
+    size: z
+      .number()
+      .max(300 * 1024 * 1024, '파일 크기는 300MB를 초과할 수 없습니다'),
+    type: z
+      .string()
+      .refine(
+        (type) => ['video/mp4', 'video/webm', 'video/quicktime'].includes(type),
+        '지원하지 않는 파일 형식입니다'
+      ),
+    name: z.string().max(255, '파일명이 너무 깁니다'),
   }),
-  replaceReason: z.string().max(500).optional()
+  replaceReason: z.string().max(500).optional(),
 });
 
 // 검증 미들웨어
@@ -720,12 +761,12 @@ function validateBody<T>(schema: z.ZodSchema<T>) {
           error: {
             code: 'VALIDATION_ERROR',
             message: '입력 데이터가 유효하지 않습니다',
-            details: error.errors.map(err => ({
+            details: error.errors.map((err) => ({
               field: err.path.join('.'),
               message: err.message,
-              code: err.code
-            }))
-          }
+              code: err.code,
+            })),
+          },
         });
       }
       throw error;
@@ -735,6 +776,7 @@ function validateBody<T>(schema: z.ZodSchema<T>) {
 ```
 
 #### 2.2 SQL 인젝션 방지
+
 ```typescript
 // Prepared Statement 사용
 class SafeDatabase {
@@ -753,7 +795,7 @@ class SafeDatabase {
       sessionId,
       options.includeResolved ?? null,
       options.limit || 20,
-      options.offset || 0
+      options.offset || 0,
     ]);
   }
 
@@ -772,13 +814,12 @@ class SafeDatabase {
       }
     }
 
-    const whereClause = conditions.length > 0
-      ? `WHERE ${conditions.join(' AND ')}`
-      : '';
+    const whereClause =
+      conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     return {
       query: `${baseQuery} ${whereClause}`,
-      values
+      values,
     };
   }
 }
@@ -787,6 +828,7 @@ class SafeDatabase {
 ### 3. 파일 보안
 
 #### 3.1 파일 업로드 보안
+
 ```typescript
 import multer from 'multer';
 import path from 'path';
@@ -797,7 +839,7 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
     fileSize: 300 * 1024 * 1024, // 300MB
-    files: 1
+    files: 1,
   },
   fileFilter: (req, file, cb) => {
     // MIME 타입 검증
@@ -805,7 +847,7 @@ const upload = multer({
       'video/mp4',
       'video/webm',
       'video/quicktime',
-      'video/x-msvideo'
+      'video/x-msvideo',
     ];
 
     if (!allowedMimes.includes(file.mimetype)) {
@@ -821,15 +863,17 @@ const upload = multer({
     }
 
     cb(null, true);
-  }
+  },
 });
 
 // 파일 내용 검증
 class FileValidator {
   static async validateVideoFile(buffer: Buffer): Promise<boolean> {
     // 파일 시그니처 확인
-    const mp4Signature = Buffer.from([0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70]);
-    const webmSignature = Buffer.from([0x1A, 0x45, 0xDF, 0xA3]);
+    const mp4Signature = Buffer.from([
+      0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70,
+    ]);
+    const webmSignature = Buffer.from([0x1a, 0x45, 0xdf, 0xa3]);
 
     const header = buffer.slice(0, 20);
 
@@ -838,7 +882,9 @@ class FileValidator {
 
   static generateSecureFilename(originalName: string): string {
     const ext = path.extname(originalName);
-    const hash = createHash('md5').update(originalName + Date.now()).digest('hex');
+    const hash = createHash('md5')
+      .update(originalName + Date.now())
+      .digest('hex');
     return `${hash}${ext}`;
   }
 
@@ -866,6 +912,7 @@ class FileValidator {
 ```
 
 #### 3.2 파일 접근 제어
+
 ```typescript
 // 서명된 URL을 통한 안전한 파일 접근
 class SecureFileAccess {
@@ -879,20 +926,23 @@ class SecureFileAccess {
     const payload = {
       path: filePath,
       permissions,
-      exp: Math.floor(Date.now() / 1000) + expiresIn
+      exp: Math.floor(Date.now() / 1000) + expiresIn,
     };
 
     const signature = createHash('sha256')
       .update(JSON.stringify(payload) + this.SECRET)
       .digest('hex');
 
-    const token = Buffer.from(JSON.stringify({ ...payload, signature }))
-      .toString('base64url');
+    const token = Buffer.from(
+      JSON.stringify({ ...payload, signature })
+    ).toString('base64url');
 
     return `/api/files/secure/${token}`;
   }
 
-  static verifySignedUrl(token: string): { path: string; permissions: string[] } | null {
+  static verifySignedUrl(
+    token: string
+  ): { path: string; permissions: string[] } | null {
     try {
       const payload = JSON.parse(Buffer.from(token, 'base64url').toString());
 
@@ -923,7 +973,9 @@ app.get('/api/files/secure/:token', async (req, res) => {
   const verification = SecureFileAccess.verifySignedUrl(req.params.token);
 
   if (!verification) {
-    return res.status(403).json({ error: 'Invalid or expired file access token' });
+    return res
+      .status(403)
+      .json({ error: 'Invalid or expired file access token' });
   }
 
   if (!verification.permissions.includes('read')) {
@@ -944,6 +996,7 @@ app.get('/api/files/secure/:token', async (req, res) => {
 ### 4. API 보안
 
 #### 4.1 Rate Limiting
+
 ```typescript
 import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
@@ -952,34 +1005,34 @@ import RedisStore from 'rate-limit-redis';
 const generalLimiter = rateLimit({
   store: new RedisStore({
     client: redis,
-    prefix: 'rl:general:'
+    prefix: 'rl:general:',
   }),
   windowMs: 15 * 60 * 1000, // 15분
   max: 1000, // 요청 제한
   message: {
     error: {
       code: 'RATE_LIMIT_EXCEEDED',
-      message: '요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.'
-    }
+      message: '요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.',
+    },
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 });
 
 // 파일 업로드 제한 (더 엄격)
 const uploadLimiter = rateLimit({
   store: new RedisStore({
     client: redis,
-    prefix: 'rl:upload:'
+    prefix: 'rl:upload:',
   }),
   windowMs: 60 * 60 * 1000, // 1시간
   max: 10, // 파일 업로드 제한
   message: {
     error: {
       code: 'UPLOAD_LIMIT_EXCEEDED',
-      message: '파일 업로드 한도를 초과했습니다.'
-    }
-  }
+      message: '파일 업로드 한도를 초과했습니다.',
+    },
+  },
 });
 
 // 사용자별 동적 제한
@@ -991,38 +1044,41 @@ function createUserBasedLimiter(getUserId: (req: Request) => string) {
       const user = req.user;
       // 프리미엄 사용자는 더 높은 한도
       return user?.isPremium ? 2000 : 500;
-    }
+    },
   });
 }
 ```
 
 #### 4.2 CORS 및 보안 헤더
+
 ```typescript
 import helmet from 'helmet';
 import cors from 'cors';
 
 // 보안 헤더 설정
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://trusted-scripts.com"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https://cdn.videoprompt.com"],
-      mediaSrc: ["'self'", "https://cdn.videoprompt.com"],
-      connectSrc: ["'self'", "wss://api.videoprompt.com"],
-      fontSrc: ["'self'", "https://fonts.googleapis.com"],
-      objectSrc: ["'none'"],
-      baseUri: ["'self'"],
-      frameAncestors: ["'none'"]
-    }
-  },
-  hsts: {
-    maxAge: 31536000,
-    includeSubDomains: true,
-    preload: true
-  }
-}));
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", 'https://trusted-scripts.com'],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'https://cdn.videoprompt.com'],
+        mediaSrc: ["'self'", 'https://cdn.videoprompt.com'],
+        connectSrc: ["'self'", 'wss://api.videoprompt.com'],
+        fontSrc: ["'self'", 'https://fonts.googleapis.com'],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
+  })
+);
 
 // CORS 설정
 const corsOptions = {
@@ -1030,7 +1086,7 @@ const corsOptions = {
     const allowedOrigins = [
       'https://videoprompt.com',
       'https://www.videoprompt.com',
-      'https://app.videoprompt.com'
+      'https://app.videoprompt.com',
     ];
 
     // 개발 환경에서는 localhost 허용
@@ -1045,7 +1101,7 @@ const corsOptions = {
     }
   },
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
@@ -1054,6 +1110,7 @@ app.use(cors(corsOptions));
 ### 5. 모니터링 및 로깅
 
 #### 5.1 보안 로깅
+
 ```typescript
 import winston from 'winston';
 
@@ -1069,12 +1126,12 @@ const securityLogger = winston.createLogger({
     new winston.transports.File({
       filename: 'logs/security.log',
       maxsize: 10 * 1024 * 1024, // 10MB
-      maxFiles: 10
+      maxFiles: 10,
     }),
     new winston.transports.Console({
-      format: winston.format.simple()
-    })
-  ]
+      format: winston.format.simple(),
+    }),
+  ],
 });
 
 // 보안 이벤트 추적
@@ -1085,7 +1142,7 @@ class SecurityAudit {
       userId,
       success,
       ip,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 
@@ -1095,7 +1152,7 @@ class SecurityAudit {
       userId,
       resource,
       action,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 
@@ -1103,7 +1160,7 @@ class SecurityAudit {
     securityLogger.error('Suspicious activity detected', {
       event: 'suspicious_activity',
       details,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 
@@ -1113,7 +1170,7 @@ class SecurityAudit {
       userId,
       resource,
       action,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 }
@@ -1132,7 +1189,7 @@ class ThreatDetection {
         type: 'script_injection',
         ip,
         userAgent,
-        body: req.body
+        body: req.body,
       });
       return true;
     }
@@ -1141,7 +1198,7 @@ class ThreatDetection {
       SecurityAudit.logSuspiciousActivity({
         type: 'rapid_requests',
         ip,
-        userAgent
+        userAgent,
       });
       return true;
     }
@@ -1154,11 +1211,11 @@ class ThreatDetection {
       /<script/i,
       /javascript:/i,
       /on\w+\s*=/i,
-      /eval\s*\(/i
+      /eval\s*\(/i,
     ];
 
     const bodyStr = JSON.stringify(body);
-    return dangerousPatterns.some(pattern => pattern.test(bodyStr));
+    return dangerousPatterns.some((pattern) => pattern.test(bodyStr));
   }
 
   private static isRapidRequests(ip: string): boolean {
@@ -1166,7 +1223,8 @@ class ThreatDetection {
     const key = `rapid_${ip}`;
     const count = this.suspiciousPatterns.get(key) || 0;
 
-    if (count > 100) { // 1분에 100회 이상
+    if (count > 100) {
+      // 1분에 100회 이상
       return true;
     }
 

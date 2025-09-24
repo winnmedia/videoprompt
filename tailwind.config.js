@@ -14,10 +14,10 @@ module.exports = {
       colors: {
         // VRIDGE 브랜드 색상 (로고 기반)
         brand: {
-          primary: '#004AC0',      // 진한 파란색 (메인 브랜드)
+          primary: '#004AC0', // 진한 파란색 (메인 브랜드)
           'primary-dark': '#003A90',
           'primary-light': '#005AE0',
-          secondary: '#0059DA',    // 밝은 파란색 (서브 브랜드)
+          secondary: '#0059DA', // 밝은 파란색 (서브 브랜드)
           'secondary-dark': '#0049BA',
           'secondary-light': '#0069FA',
           // 브랜드 그라디언트 조합
@@ -27,14 +27,14 @@ module.exports = {
         },
         // 네온 효과 색상 팔레트 (액션 및 강조용)
         neon: {
-          green: '#00FF88',    // 메인 액션 색상 (CTA)
+          green: '#00FF88', // 메인 액션 색상 (CTA)
           'green-dark': '#00CC6A',
           'green-light': '#33FFB2',
-          pink: '#FF0066',     // 경고 및 중요 알림
+          pink: '#FF0066', // 경고 및 중요 알림
           'pink-dark': '#CC0052',
           'pink-light': '#FF3388',
-          cyan: '#00FFFF',     // 정보 및 진행 상태
-          purple: '#BB00FF',   // 보조 강조 색상
+          cyan: '#00FFFF', // 정보 및 진행 상태
+          purple: '#BB00FF', // 보조 강조 색상
         },
         // 블랙/화이트 기반 색상
         black: {
@@ -113,17 +113,17 @@ module.exports = {
       },
       // 폰트 패밀리 설정
       fontFamily: {
-        'sans': ['Pretendard', 'system-ui', 'sans-serif'],  // 본문
-        'display': ['Inter', 'system-ui', 'sans-serif'],    // 디스플레이
-        'mono': ['Space Mono', 'monospace'],                 // 코드
+        sans: ['Pretendard', 'system-ui', 'sans-serif'], // 본문
+        display: ['Inter', 'system-ui', 'sans-serif'], // 디스플레이
+        mono: ['Space Mono', 'monospace'], // 코드
       },
       // 타이포그래피 스케일 (2개 기본 + 확장)
       fontSize: {
-        'xs': ['0.75rem', { lineHeight: '1rem' }],
-        'sm': ['0.875rem', { lineHeight: '1.25rem' }],
-        'base': ['1rem', { lineHeight: '1.5rem' }],
-        'lg': ['1.125rem', { lineHeight: '1.75rem' }],
-        'xl': ['1.25rem', { lineHeight: '1.75rem' }],
+        xs: ['0.75rem', { lineHeight: '1rem' }],
+        sm: ['0.875rem', { lineHeight: '1.25rem' }],
+        base: ['1rem', { lineHeight: '1.5rem' }],
+        lg: ['1.125rem', { lineHeight: '1.75rem' }],
+        xl: ['1.25rem', { lineHeight: '1.75rem' }],
         '2xl': ['1.5rem', { lineHeight: '2rem' }],
         '3xl': ['1.875rem', { lineHeight: '2.25rem' }],
         '4xl': ['2.25rem', { lineHeight: '2.5rem' }],
@@ -131,15 +131,15 @@ module.exports = {
       },
       // 스페이싱 시스템 (8px 기반)
       spacing: {
-        '0.5': '0.125rem', // 2px
-        '1.5': '0.375rem', // 6px
-        '2.5': '0.625rem', // 10px
-        '3.5': '0.875rem', // 14px
-        '18': '4.5rem',    // 72px
-        '22': '5.5rem',    // 88px
-        '72': '18rem',     // 288px
-        '84': '21rem',     // 336px
-        '96': '24rem',     // 384px
+        0.5: '0.125rem', // 2px
+        1.5: '0.375rem', // 6px
+        2.5: '0.625rem', // 10px
+        3.5: '0.875rem', // 14px
+        18: '4.5rem', // 72px
+        22: '5.5rem', // 88px
+        72: '18rem', // 288px
+        84: '21rem', // 336px
+        96: '24rem', // 384px
       },
       // 모션 시스템 (200ms 이하 애니메이션)
       animation: {
@@ -196,49 +196,53 @@ module.exports = {
       },
       // 반응형 그리드 시스템
       gridTemplateColumns: {
-        'responsive': 'repeat(auto-fit, minmax(320px, 1fr))',
+        responsive: 'repeat(auto-fit, minmax(320px, 1fr))',
         'mobile-1': '1fr',
         'desktop-2': 'repeat(2, 1fr)',
       },
       // 그림자 시스템 (브랜드 & 네온 효과 포함)
       boxShadow: {
-        'soft': '0 2px 8px 0 rgba(0, 0, 0, 0.1)',
-        'medium': '0 4px 16px 0 rgba(0, 0, 0, 0.12)',
-        'hard': '0 8px 32px 0 rgba(0, 0, 0, 0.16)',
+        soft: '0 2px 8px 0 rgba(0, 0, 0, 0.1)',
+        medium: '0 4px 16px 0 rgba(0, 0, 0, 0.12)',
+        hard: '0 8px 32px 0 rgba(0, 0, 0, 0.16)',
         // 브랜드 색상 그림자 효과
-        'brand-primary': '0 0 20px rgba(0, 74, 192, 0.4), 0 0 40px rgba(0, 74, 192, 0.2)',
-        'brand-secondary': '0 0 20px rgba(0, 89, 218, 0.4), 0 0 40px rgba(0, 89, 218, 0.2)',
-        'brand-glow': '0 0 30px rgba(0, 74, 192, 0.3), 0 0 60px rgba(0, 89, 218, 0.2)',
+        'brand-primary':
+          '0 0 20px rgba(0, 74, 192, 0.4), 0 0 40px rgba(0, 74, 192, 0.2)',
+        'brand-secondary':
+          '0 0 20px rgba(0, 89, 218, 0.4), 0 0 40px rgba(0, 89, 218, 0.2)',
+        'brand-glow':
+          '0 0 30px rgba(0, 74, 192, 0.3), 0 0 60px rgba(0, 89, 218, 0.2)',
         // 네온 그림자 효과
-        'neon-green': '0 0 20px rgba(0, 255, 136, 0.5), 0 0 40px rgba(0, 255, 136, 0.3)',
-        'neon-pink': '0 0 20px rgba(255, 0, 102, 0.5), 0 0 40px rgba(255, 0, 102, 0.3)',
-        'neon-cyan': '0 0 20px rgba(0, 255, 255, 0.5), 0 0 40px rgba(0, 255, 255, 0.3)',
-        'neon-purple': '0 0 20px rgba(187, 0, 255, 0.5), 0 0 40px rgba(187, 0, 255, 0.3)',
+        'neon-green':
+          '0 0 20px rgba(0, 255, 136, 0.5), 0 0 40px rgba(0, 255, 136, 0.3)',
+        'neon-pink':
+          '0 0 20px rgba(255, 0, 102, 0.5), 0 0 40px rgba(255, 0, 102, 0.3)',
+        'neon-cyan':
+          '0 0 20px rgba(0, 255, 255, 0.5), 0 0 40px rgba(0, 255, 255, 0.3)',
+        'neon-purple':
+          '0 0 20px rgba(187, 0, 255, 0.5), 0 0 40px rgba(187, 0, 255, 0.3)',
         // 글래스모피즘용 그림자 (브랜드 색상 반영)
-        'glass': '0 8px 32px 0 rgba(0, 74, 192, 0.1)',
+        glass: '0 8px 32px 0 rgba(0, 74, 192, 0.1)',
         'glass-light': '0 4px 16px 0 rgba(0, 89, 218, 0.1)',
         'glass-brand': '0 8px 32px 0 rgba(0, 74, 192, 0.15)',
       },
       // 경계선 반경
       borderRadius: {
-        'xs': '0.125rem',
-        'sm': '0.25rem',
-        'md': '0.375rem',
-        'lg': '0.5rem',
-        'xl': '0.75rem',
+        xs: '0.125rem',
+        sm: '0.25rem',
+        md: '0.375rem',
+        lg: '0.5rem',
+        xl: '0.75rem',
         '2xl': '1rem',
         '3xl': '1.5rem',
         '4xl': '2rem',
       },
     },
   },
-  plugins: [
-    require('@tailwindcss/forms'),
-    require('@tailwindcss/typography'),
-  ],
+  plugins: [require('@tailwindcss/forms'), require('@tailwindcss/typography')],
   // 임의 값 사용 금지 강제 (ESLint 설정에서 추가 검증 필요)
   corePlugins: {
     // @apply 사용 금지를 위한 설정
     // Note: @apply는 별도 ESLint 규칙으로 제어
   },
-}
+};

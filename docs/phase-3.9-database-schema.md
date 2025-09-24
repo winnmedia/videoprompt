@@ -9,6 +9,7 @@ Phase 3.9 영상 피드백 기능 확장을 위한 Supabase PostgreSQL 데이터
 ### 1. 버전 관리 테이블
 
 #### 1.1 video_versions 테이블
+
 ```sql
 CREATE TABLE video_versions (
     -- 기본 식별자
@@ -60,6 +61,7 @@ CREATE INDEX idx_video_versions_uploader ON video_versions(uploader_id);
 ```
 
 #### 1.2 video_slot_enum 타입
+
 ```sql
 CREATE TYPE video_slot_enum AS ENUM ('v1', 'v2', 'v3');
 ```
@@ -67,6 +69,7 @@ CREATE TYPE video_slot_enum AS ENUM ('v1', 'v2', 'v3');
 ### 2. 스레드 댓글 확장
 
 #### 2.1 기존 feedback_comments 테이블 확장
+
 ```sql
 -- 기존 테이블에 컬럼 추가
 ALTER TABLE feedback_comments
@@ -119,6 +122,7 @@ CREATE TRIGGER trigger_set_comment_thread_id
 ```
 
 #### 2.2 comment_edit_history 테이블
+
 ```sql
 CREATE TABLE comment_edit_history (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -135,6 +139,7 @@ CREATE INDEX idx_comment_edit_history_date ON comment_edit_history(edited_at);
 ```
 
 #### 2.3 comment_attachments 테이블
+
 ```sql
 CREATE TABLE comment_attachments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -159,6 +164,7 @@ CREATE INDEX idx_comment_attachments_type ON comment_attachments(type);
 ### 3. 감정 반응 확장
 
 #### 3.1 기존 emotion_reactions 테이블 확장
+
 ```sql
 -- 기존 테이블에 컬럼 추가 (타임코드 반응 지원)
 ALTER TABLE emotion_reactions
@@ -181,6 +187,7 @@ WHERE timecode_seconds IS NOT NULL;
 ### 4. 고급 공유 시스템
 
 #### 4.1 share_permissions 테이블
+
 ```sql
 CREATE TABLE share_permissions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -219,6 +226,7 @@ CREATE INDEX idx_share_permissions_expires ON share_permissions(expires_at) WHER
 ```
 
 #### 4.2 share_tokens 테이블
+
 ```sql
 CREATE TABLE share_tokens (
     token TEXT PRIMARY KEY, -- 32자 토큰
@@ -235,6 +243,7 @@ CREATE INDEX idx_share_tokens_short_url ON share_tokens(short_url) WHERE short_u
 ```
 
 #### 4.3 share_access_logs 테이블
+
 ```sql
 CREATE TABLE share_access_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -267,6 +276,7 @@ CREATE INDEX idx_share_access_logs_user ON share_access_logs(user_id) WHERE user
 ### 5. 스크린샷 관리
 
 #### 5.1 screenshots 테이블
+
 ```sql
 CREATE TABLE screenshots (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -317,6 +327,7 @@ CREATE INDEX idx_screenshots_date ON screenshots(created_at);
 ### 6. 스레드 통계 (Materialized View)
 
 #### 6.1 comment_thread_stats 구체화된 뷰
+
 ```sql
 CREATE MATERIALIZED VIEW comment_thread_stats AS
 SELECT
@@ -350,6 +361,7 @@ $$ LANGUAGE plpgsql;
 ### 7. 버전 비교 이력
 
 #### 7.1 version_comparisons 테이블
+
 ```sql
 CREATE TABLE version_comparisons (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -384,6 +396,7 @@ CREATE INDEX idx_version_comparisons_versions ON version_comparisons(version_a_i
 ### 8. RLS (Row Level Security) 정책
 
 #### 8.1 video_versions RLS
+
 ```sql
 ALTER TABLE video_versions ENABLE ROW LEVEL SECURITY;
 
@@ -426,6 +439,7 @@ CREATE POLICY video_versions_update_policy ON video_versions
 ```
 
 #### 8.2 comment_attachments RLS
+
 ```sql
 ALTER TABLE comment_attachments ENABLE ROW LEVEL SECURITY;
 
@@ -443,6 +457,7 @@ CREATE POLICY comment_attachments_select_policy ON comment_attachments
 ```
 
 #### 8.3 share_permissions RLS
+
 ```sql
 ALTER TABLE share_permissions ENABLE ROW LEVEL SECURITY;
 
@@ -463,6 +478,7 @@ CREATE POLICY share_permissions_select_policy ON share_permissions
 ### 9. 데이터베이스 함수
 
 #### 9.1 활성 버전 설정 함수
+
 ```sql
 CREATE OR REPLACE FUNCTION set_active_version(
     p_session_id UUID,
@@ -488,6 +504,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
 
 #### 9.2 댓글 트리 조회 함수
+
 ```sql
 CREATE OR REPLACE FUNCTION get_comment_tree(
     p_session_id UUID,
@@ -568,6 +585,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
 
 #### 9.3 공유 링크 사용량 증가 함수
+
 ```sql
 CREATE OR REPLACE FUNCTION increment_share_usage(
     p_token TEXT,
@@ -624,6 +642,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 ### 10. 트리거
 
 #### 10.1 스레드 통계 자동 갱신
+
 ```sql
 CREATE OR REPLACE FUNCTION update_thread_stats_trigger()
 RETURNS TRIGGER AS $$
@@ -641,6 +660,7 @@ CREATE TRIGGER trigger_update_thread_stats
 ```
 
 #### 10.2 파일 정리 트리거
+
 ```sql
 CREATE OR REPLACE FUNCTION cleanup_orphaned_files()
 RETURNS TRIGGER AS $$
@@ -672,6 +692,7 @@ CREATE TRIGGER trigger_cleanup_screenshot_files
 ### 11. 성능 최적화
 
 #### 11.1 파티셔닝 (대용량 로그 테이블)
+
 ```sql
 -- 접근 로그 테이블 월별 파티셔닝
 CREATE TABLE share_access_logs_partitioned (
@@ -689,6 +710,7 @@ FOR VALUES FROM ('2025-02-01') TO ('2025-03-01');
 ```
 
 #### 11.2 복합 인덱스 최적화
+
 ```sql
 -- 세션별 활성 버전 조회 최적화
 CREATE INDEX idx_video_versions_session_slot_active
@@ -713,6 +735,7 @@ WHERE EXISTS (
 ### 12. 백업 및 아카이브 전략
 
 #### 12.1 오래된 데이터 아카이브
+
 ```sql
 CREATE OR REPLACE FUNCTION archive_old_data(
     p_retention_days INTEGER DEFAULT 365

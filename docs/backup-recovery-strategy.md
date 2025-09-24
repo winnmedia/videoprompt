@@ -1,6 +1,7 @@
 # 백업/복구 전략 설계서
 
 ## 개요
+
 VideoPlanet 플랫폼의 데이터 보호 및 재해 복구를 위한 종합적인 백업/복구 전략
 
 ## 1. 백업 정책
@@ -8,22 +9,26 @@ VideoPlanet 플랫폼의 데이터 보호 및 재해 복구를 위한 종합적�
 ### 1.1 데이터 분류 및 우선순위
 
 #### 중요도 Level 1 (Critical) - RTO: 1시간, RPO: 15분
+
 - **사용자 계정 데이터**: users, profiles
 - **프로젝트 핵심 데이터**: projects, stories, scenarios
 - **영상 생성 기록**: video_generations (진행 중인 작업)
 
 #### 중요도 Level 2 (Important) - RTO: 4시간, RPO: 1시간
+
 - **콘텐츠 라이브러리**: prompts, assets, brand_policies
 - **협업 데이터**: feedbacks, versions
 - **사용량 추적**: API 호출 기록, 스토리지 사용량
 
 #### 중요도 Level 3 (Normal) - RTO: 24시간, RPO: 24시간
+
 - **분석 데이터**: 성능 통계, 사용 패턴
 - **로그 데이터**: 시스템 로그, 에러 로그
 
 ### 1.2 백업 스케줄
 
 #### Point-in-Time Recovery (PITR)
+
 ```sql
 -- Supabase 자동 PITR 설정 (7일 보관)
 -- Settings > Database > Backups에서 활성화
@@ -31,6 +36,7 @@ VideoPlanet 플랫폼의 데이터 보호 및 재해 복구를 위한 종합적�
 ```
 
 #### 일일 전체 백업 (매일 02:00 KST)
+
 ```bash
 #!/bin/bash
 # daily-backup.sh
@@ -55,6 +61,7 @@ aws s3api list-objects-v2 --bucket "videoplanet-backups" --prefix "daily/" \
 ```
 
 #### 주간 아카이브 백업 (매주 일요일 01:00 KST)
+
 ```bash
 #!/bin/bash
 # weekly-archive.sh
@@ -80,6 +87,7 @@ aws s3api list-objects-v2 --bucket "videoplanet-backups" --prefix "archive/" \
 ```
 
 ### 1.3 Supabase Storage 백업
+
 ```bash
 #!/bin/bash
 # storage-backup.sh
@@ -99,6 +107,7 @@ rclone dedupe "${BACKUP_STORAGE}assets/" --dedupe-mode newest
 ### 2.1 부분 복구 (개별 테이블/레코드)
 
 #### 단일 레코드 복구
+
 ```sql
 -- 1. PITR을 이용한 특정 시점 복구
 -- Supabase Dashboard > Database > Backups > Point in Time Recovery
@@ -117,6 +126,7 @@ ON CONFLICT (id) DO UPDATE SET
 ```
 
 #### 테이블 전체 복구
+
 ```sql
 -- 1. 테이블 백업 생성
 CREATE TABLE projects_backup AS SELECT * FROM projects;
@@ -137,6 +147,7 @@ FROM projects;
 ### 2.2 전체 복구 (재해 복구)
 
 #### 새로운 Supabase 인스턴스 생성
+
 ```bash
 # 1. 새 Supabase 프로젝트 생성
 supabase projects create "videoplanet-recovery"
@@ -153,6 +164,7 @@ aws s3 sync "${BACKUP_STORAGE}assets/" \
 ```
 
 #### 롤백 절차
+
 ```sql
 -- 1. 현재 상태 스냅샷 생성
 CREATE SCHEMA recovery_snapshot;
@@ -169,6 +181,7 @@ ALTER SCHEMA recovery_snapshot RENAME TO public;
 ### 2.3 데이터 무결성 검증
 
 #### 자동 검증 스크립트
+
 ```sql
 -- integrity-check.sql
 DO $$
@@ -235,6 +248,7 @@ END $$;
 ### 3.1 월간 복구 테스트 절차
 
 #### 테스트 환경 설정
+
 ```bash
 #!/bin/bash
 # monthly-dr-test.sh
@@ -261,6 +275,7 @@ supabase projects delete "$TEST_PROJECT_ID"
 ```
 
 #### 테스트 체크리스트
+
 - [ ] 데이터 복원 완료 시간 측정
 - [ ] 모든 테이블 레코드 수 검증
 - [ ] 핵심 기능 동작 확인
@@ -271,6 +286,7 @@ supabase projects delete "$TEST_PROJECT_ID"
 ### 3.2 성능 지표 모니터링
 
 #### 복구 시간 목표 (RTO)
+
 ```sql
 -- 복구 시간 측정 함수
 CREATE OR REPLACE FUNCTION measure_recovery_time()
@@ -292,6 +308,7 @@ $$ LANGUAGE plpgsql;
 ```
 
 #### 복구 지점 목표 (RPO)
+
 ```sql
 -- 데이터 손실 측정
 CREATE OR REPLACE FUNCTION calculate_data_loss(backup_timestamp TIMESTAMP)
@@ -316,6 +333,7 @@ $$ LANGUAGE plpgsql;
 ## 4. 모니터링 및 알림
 
 ### 4.1 백업 상태 모니터링
+
 ```typescript
 // backup-monitor.ts
 interface BackupStatus {
@@ -327,22 +345,25 @@ interface BackupStatus {
 
 async function checkBackupHealth(): Promise<BackupStatus> {
   // S3에서 최신 백업 정보 조회
-  const latestBackup = await s3.listObjectsV2({
-    Bucket: 'videoplanet-backups',
-    Prefix: 'daily/',
-    MaxKeys: 1
-  }).promise();
+  const latestBackup = await s3
+    .listObjectsV2({
+      Bucket: 'videoplanet-backups',
+      Prefix: 'daily/',
+      MaxKeys: 1,
+    })
+    .promise();
 
   return {
     lastBackupTime: latestBackup.Contents?.[0]?.LastModified || new Date(0),
     backupSize: latestBackup.Contents?.[0]?.Size || 0,
     status: 'success',
-    retentionCompliance: true
+    retentionCompliance: true,
   };
 }
 ```
 
 ### 4.2 알림 설정
+
 ```sql
 -- 백업 실패 알림 함수
 CREATE OR REPLACE FUNCTION notify_backup_failure(error_message TEXT)
@@ -365,11 +386,13 @@ $$ LANGUAGE plpgsql;
 ## 5. 보안 및 규정 준수
 
 ### 5.1 암호화
+
 - **전송 중 암호화**: TLS 1.3
 - **저장 시 암호화**: AES-256 (AWS S3 SSE-S3)
 - **백업 파일 암호화**: GPG 암호화
 
 ### 5.2 접근 제어
+
 ```json
 {
   "Version": "2012-10-17",
@@ -379,11 +402,7 @@ $$ LANGUAGE plpgsql;
       "Principal": {
         "AWS": "arn:aws:iam::ACCOUNT:role/VideoplanetBackupRole"
       },
-      "Action": [
-        "s3:GetObject",
-        "s3:PutObject",
-        "s3:DeleteObject"
-      ],
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
       "Resource": "arn:aws:s3:::videoplanet-backups/*"
     }
   ]
@@ -391,6 +410,7 @@ $$ LANGUAGE plpgsql;
 ```
 
 ### 5.3 감사 로그
+
 ```sql
 -- 백업/복구 작업 로그 테이블
 CREATE TABLE backup_audit_log (
@@ -408,12 +428,14 @@ CREATE TABLE backup_audit_log (
 ## 6. 비용 최적화
 
 ### 6.1 스토리지 계층화
+
 - **Hot**: 7일간 STANDARD
 - **Warm**: 30일간 STANDARD_IA
 - **Cold**: 1년간 GLACIER
 - **Archive**: 1년 이후 DEEP_ARCHIVE
 
 ### 6.2 중복 제거
+
 ```bash
 # 중복 파일 제거로 스토리지 비용 절약
 rclone dedupe s3:videoplanet-backups --dedupe-mode newest --dry-run

@@ -1,22 +1,21 @@
 /**
- * Features Public API - 통합 버전
- * 모든 기능별 피처를 단일 진입점으로 관리
+ * Features Layer Public API
+ * 비즈니스 기능 모듈 export
  */
 
-// Auth Feature exports
-export { useAuth, AuthApi } from './auth.feature';
-export type { LoginResponse } from './auth.feature';
+// Auth 기능
+export * from './auth';
 
-// Story Generator Feature exports
-export {
-  useStoryGenerator,
-  StoryGeneratorApi,
-  StoryInput,
-  StoryOutput
-} from './story-generator.feature';
+// Story Generator 기능 (4단계 스토리)
+export * from './story-generator';
 
-// Storyboard Generator Feature exports
-export * from './storyboard-generator.feature';
+// Shots 기능 (12단계 숏트 시스템)
+export * from './shots';
 
-// Scenario Feature exports
+// Scenario 기능 (UserJourneyMap 3-4단계)
 export * from './scenario.feature';
+
+// Storyboard 기능
+export * from './storyboard';
+
+// 추가 기능 모듈들이 여기에 추가될 예정

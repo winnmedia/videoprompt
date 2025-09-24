@@ -158,14 +158,7 @@
 - **목적**: 신규/기존 사용자가 전 기능을 빠르게 이해·활용하도록 단계별 가이드와 모범 사례 제공
 - **레이아웃**: 좌측 고정 목차(섹션 앵커), 우측 본문. 브레드크럼과 상단 검색 입력 제공.
 - **콘텐츠 섹션(앵커 포함)**:
-cd /home/winnmedia/videoprompt && pnpm exec playwright install --with-deps chromium | cat && PW_BASE_URL=http://localhost:3100 pnpm exec playwright test -g "(header|nav|buttons|usability)" | cat  1. 시작하기: 계정/프로젝트 생성, 전역 테마, 네비 구조
-  2. AI 시나리오 개발: 스토리 입력 → 4단계 구성 → 12숏 분해, PDF 내보내기(Marp 명세)
-  3. 프롬프트 생성기: 4단계 구성 데이터를 로드해 키워드/타임라인 정제, JSON 출력
-  4. 영상 생성: 최신 프롬프트 로드, 제공자(Seedance/Veo3) 선택, 상태 조회
-  5. 영상 피드백: 플레이어 툴바(교체/공유/스크린샷/현재시점 코멘트), 버전 스위처와 메타데이터, 코멘트 범위
-  6. 콘텐츠 관리: 탭별 기본 컬럼(AI 시나리오/프롬프트/이미지/영상)과 필터 예시
-  7. 단축키 & 접근성: T(타임코드), 폼 `id/htmlFor`, `data-testid` 활용 규칙
-  8. 트러블슈팅: 업로드 실패 사유, 빌드/테스트 체크리스트
+  cd /home/winnmedia/videoprompt && pnpm exec playwright install --with-deps chromium | cat && PW_BASE_URL=http://localhost:3100 pnpm exec playwright test -g "(header|nav|buttons|usability)" | cat 1. 시작하기: 계정/프로젝트 생성, 전역 테마, 네비 구조 2. AI 시나리오 개발: 스토리 입력 → 4단계 구성 → 12숏 분해, PDF 내보내기(Marp 명세) 3. 프롬프트 생성기: 4단계 구성 데이터를 로드해 키워드/타임라인 정제, JSON 출력 4. 영상 생성: 최신 프롬프트 로드, 제공자(Seedance/Veo3) 선택, 상태 조회 5. 영상 피드백: 플레이어 툴바(교체/공유/스크린샷/현재시점 코멘트), 버전 스위처와 메타데이터, 코멘트 범위 6. 콘텐츠 관리: 탭별 기본 컬럼(AI 시나리오/프롬프트/이미지/영상)과 필터 예시 7. 단축키 & 접근성: T(타임코드), 폼 `id/htmlFor`, `data-testid` 활용 규칙 8. 트러블슈팅: 업로드 실패 사유, 빌드/테스트 체크리스트
 - **요구사항**:
   - 모든 섹션에 고유 앵커 제공(`#getting-started` 등), URL 해시로 직접 링크 가능
   - 본문 내 관련 기능으로의 딥링크 버튼 제공(예: “프롬프트 생성기로 이동” → `/prompt-generator`)
@@ -179,11 +172,11 @@ cd /home/winnmedia/videoprompt && pnpm exec playwright install --with-deps chrom
 - **접근 제어**: 초기에는 로컬/비공개 배포에서만 노출. 프로덕션은 IP/비밀 토큰 보호 예정
 - **데이터 소스**: Prisma(PostgreSQL), 백엔드 상태 API(`/api/health`, 외부 제공자 상태)
 - **핵심 위젯**:
-  1) 사용자(User) 개요: 총계, 최근 7일 증가, 관리자 수, 게스트 비율
-  2) 프로젝트/시나리오/프롬프트/영상 메트릭: 총계, 최근 생성 Top 5, 실패/보류 건수
-  3) 외부 제공자 상태: Seedance/Veo/Imagen 상태 핑, 평균 지연, 실패율
-  4) 큐/잡 상태: 영상 생성 상태 분포(`queued/processing/completed/failed`)
-  5) 최근 에러 로그 요약: 에러코드 Top, 최근 20개(PII 제외)
+  1. 사용자(User) 개요: 총계, 최근 7일 증가, 관리자 수, 게스트 비율
+  2. 프로젝트/시나리오/프롬프트/영상 메트릭: 총계, 최근 생성 Top 5, 실패/보류 건수
+  3. 외부 제공자 상태: Seedance/Veo/Imagen 상태 핑, 평균 지연, 실패율
+  4. 큐/잡 상태: 영상 생성 상태 분포(`queued/processing/completed/failed`)
+  5. 최근 에러 로그 요약: 에러코드 Top, 최근 20개(PII 제외)
 - **테이블 뷰**:
   - Users: id, email/username, role, createdAt, projectsCount(요약)
   - Projects: id, title, status, createdAt, updatedAt, owner
@@ -242,6 +235,7 @@ cd /home/winnmedia/videoprompt && pnpm exec playwright install --with-deps chrom
 - **입력 검증**: Zod를 통한 런타임 데이터 검증
 
 #### 계정/인증 전략 [결정]
+
 - **기본**: 게스트 가입/세션(무인증). 이메일·소셜 인증(OAuth/매직링크)은 추후 도입
 - **가입**: 별도 폼 없이 첫 진입 시 게스트 계정 생성(브라우저/디바이스 바인딩)
 - **로그인/로그아웃**: 로그인 없음. [데이터 초기화] 기능으로 세션 리셋(영구 삭제 경고 표기)
@@ -320,6 +314,7 @@ cd /home/winnmedia/videoprompt && pnpm exec playwright install --with-deps chrom
 ### 📝 변경 이력
 
 #### v1.4.0 (2025-09-20)
+
 - **상태 관리**: Zustand → Redux Toolkit 2.0으로 업데이트
 - **백엔드 통합**: Railway → Supabase 단일화 완료 반영
 - **인증 시스템**: Supabase Auth 추가

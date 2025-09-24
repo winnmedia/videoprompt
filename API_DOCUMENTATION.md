@@ -7,6 +7,7 @@ VideoPlanet API는 $300 사건 방지를 위한 강력한 비용 안전 미들�
 ## 보안 기능
 
 ### 1. 비용 안전 미들웨어
+
 - **위치**: `/app/api/_middleware/cost-safety.ts`
 - **기능**:
   - API 호출별 비용 추적
@@ -15,6 +16,7 @@ VideoPlanet API는 $300 사건 방지를 위한 강력한 비용 안전 미들�
   - 긴급 차단 시스템 (임계치 2배 초과 시)
 
 ### 2. Rate Limiting
+
 - **위치**: `/app/api/_middleware/rate-limit.ts`
 - **알고리즘**: 슬라이딩 윈도우
 - **기본 제한**: 분당 10회 (환경변수로 조정 가능)
@@ -29,11 +31,13 @@ VideoPlanet API는 $300 사건 방지를 위한 강력한 비용 안전 미들�
 ### 인증 (Authentication)
 
 #### 1. 게스트 사용자 생성
+
 ```
 POST /api/auth/guest
 ```
 
 **요청 본문**:
+
 ```json
 {
   "metadata": {
@@ -43,6 +47,7 @@ POST /api/auth/guest
 ```
 
 **응답**:
+
 ```json
 {
   "success": true,
@@ -62,11 +67,13 @@ POST /api/auth/guest
 ```
 
 #### 2. 이메일 로그인
+
 ```
 POST /api/auth/login
 ```
 
 **요청 본문**:
+
 ```json
 {
   "email": "user@example.com",
@@ -77,11 +84,13 @@ POST /api/auth/login
 **Rate Limit**: 분당 3회
 
 #### 3. 현재 사용자 정보
+
 ```
 GET /api/auth/me
 ```
 
 **헤더**:
+
 ```
 Authorization: Bearer <token>
 ```
@@ -91,11 +100,13 @@ Authorization: Bearer <token>
 ### 스토리 (Story)
 
 #### 1. AI 스토리 생성
+
 ```
 POST /api/story/generate
 ```
 
 **요청 본문**:
+
 ```json
 {
   "prompt": "아름다운 일몰 풍경을 배경으로 한 감동적인 이야기",
@@ -108,6 +119,7 @@ POST /api/story/generate
 **예상 비용**: $0.01 per request
 
 **응답**:
+
 ```json
 {
   "success": true,
@@ -135,16 +147,19 @@ POST /api/story/generate
 ```
 
 #### 2. 스토리 조회
+
 ```
 GET /api/story/{id}
 ```
 
 #### 3. 스토리 수정
+
 ```
 PUT /api/story/{id}
 ```
 
 **요청 본문**:
+
 ```json
 {
   "title": "수정된 제목",
@@ -154,6 +169,7 @@ PUT /api/story/{id}
 ```
 
 #### 4. 스토리 삭제
+
 ```
 DELETE /api/story/{id}
 ```
@@ -161,11 +177,13 @@ DELETE /api/story/{id}
 ### 콘텐츠 (Contents)
 
 #### 콘텐츠 목록 조회
+
 ```
 GET /api/contents
 ```
 
 **쿼리 파라미터**:
+
 - `type`: story | prompt | image | video
 - `page`: 페이지 번호 (기본: 1)
 - `limit`: 페이지당 항목 수 (기본: 10, 최대: 100)
@@ -174,6 +192,7 @@ GET /api/contents
 - `order`: asc | desc (기본: desc)
 
 **응답**:
+
 ```json
 {
   "success": true,
@@ -200,6 +219,7 @@ GET /api/contents
 ## 공통 응답 형식
 
 ### 성공 응답
+
 ```json
 {
   "success": true,
@@ -211,6 +231,7 @@ GET /api/contents
 ```
 
 ### 에러 응답
+
 ```json
 {
   "success": false,
@@ -225,22 +246,23 @@ GET /api/contents
 ## Rate Limit 헤더
 
 모든 API 응답에 포함:
+
 - `X-RateLimit-Limit`: 제한 횟수
 - `X-RateLimit-Remaining`: 남은 요청 수
 - `X-RateLimit-Reset`: 리셋 시간 (Unix timestamp)
 
 ## 에러 코드
 
-| 코드 | 설명 | HTTP 상태 |
-|------|------|-----------|
-| VALIDATION_ERROR | 입력 검증 실패 | 400 |
-| UNAUTHORIZED | 인증 필요 | 401 |
-| FORBIDDEN | 권한 없음 | 403 |
-| NOT_FOUND | 리소스 없음 | 404 |
-| RATE_LIMIT_EXCEEDED | Rate limit 초과 | 429 |
-| COST_LIMIT_EXCEEDED | 비용 한도 초과 | 429 |
-| EMERGENCY_BLOCK | 긴급 차단 | 503 |
-| INTERNAL_ERROR | 서버 오류 | 500 |
+| 코드                | 설명            | HTTP 상태 |
+| ------------------- | --------------- | --------- |
+| VALIDATION_ERROR    | 입력 검증 실패  | 400       |
+| UNAUTHORIZED        | 인증 필요       | 401       |
+| FORBIDDEN           | 권한 없음       | 403       |
+| NOT_FOUND           | 리소스 없음     | 404       |
+| RATE_LIMIT_EXCEEDED | Rate limit 초과 | 429       |
+| COST_LIMIT_EXCEEDED | 비용 한도 초과  | 429       |
+| EMERGENCY_BLOCK     | 긴급 차단       | 503       |
+| INTERNAL_ERROR      | 서버 오류       | 500       |
 
 ## 환경변수 설정
 

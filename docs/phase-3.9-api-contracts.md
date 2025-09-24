@@ -9,6 +9,7 @@ Phase 3.9 영상 피드백 기능 확장을 위한 API 엔드포인트 설계 �
 ### 1. 버전 관리 API
 
 #### 1.1 버전 업로드
+
 ```http
 POST /api/feedback/versions/upload
 Content-Type: multipart/form-data
@@ -54,6 +55,7 @@ Error Responses:
 ```
 
 #### 1.2 버전 활성화
+
 ```http
 POST /api/feedback/versions/activate
 Content-Type: application/json
@@ -72,6 +74,7 @@ Response 200:
 ```
 
 #### 1.3 버전 히스토리 조회
+
 ```http
 GET /api/feedback/sessions/{sessionId}/versions
 
@@ -122,6 +125,7 @@ Response 200:
 ```
 
 #### 1.4 버전 비교
+
 ```http
 POST /api/feedback/versions/compare
 Content-Type: application/json
@@ -157,6 +161,7 @@ Response 200:
 ```
 
 #### 1.5 버전 삭제
+
 ```http
 DELETE /api/feedback/versions/{versionId}
 Content-Type: application/json
@@ -181,6 +186,7 @@ Error Responses:
 ### 2. 스레드 댓글 API
 
 #### 2.1 스레드 댓글 생성
+
 ```http
 POST /api/feedback/comments/threaded
 Content-Type: application/json
@@ -235,6 +241,7 @@ Error Responses:
 ```
 
 #### 2.2 스레드 댓글 목록 조회
+
 ```http
 GET /api/feedback/sessions/{sessionId}/comments/threaded?slot={videoSlot}&version={versionId}&includeResolved={boolean}
 
@@ -305,6 +312,7 @@ Response 200:
 ```
 
 #### 2.3 댓글 수정
+
 ```http
 PATCH /api/feedback/comments/{commentId}
 Content-Type: application/json
@@ -330,6 +338,7 @@ Response 200:
 ```
 
 #### 2.4 댓글 해결/해결 취소
+
 ```http
 POST /api/feedback/comments/{commentId}/resolve
 Content-Type: application/json
@@ -365,6 +374,7 @@ Response 200:
 ### 3. 감정 반응 API
 
 #### 3.1 감정 반응 추가
+
 ```http
 POST /api/feedback/reactions
 Content-Type: application/json
@@ -393,6 +403,7 @@ Response 200:
 ```
 
 #### 3.2 감정 반응 제거
+
 ```http
 DELETE /api/feedback/reactions/{commentId}/{type}
 Content-Type: application/json
@@ -412,6 +423,7 @@ Response 200:
 ### 4. 고급 공유 API
 
 #### 4.1 고급 공유 링크 생성
+
 ```http
 POST /api/feedback/share/advanced
 Content-Type: application/json
@@ -459,6 +471,7 @@ Error Responses:
 ```
 
 #### 4.2 공유 링크 목록 조회
+
 ```http
 GET /api/feedback/sessions/{sessionId}/share
 
@@ -489,6 +502,7 @@ Response 200:
 ```
 
 #### 4.3 공유 링크 업데이트
+
 ```http
 PATCH /api/feedback/share/{token}
 Content-Type: application/json
@@ -516,6 +530,7 @@ Response 200:
 ```
 
 #### 4.4 공유 링크 비활성화/삭제
+
 ```http
 POST /api/feedback/share/{token}/deactivate
 Content-Type: application/json
@@ -549,6 +564,7 @@ Response 200:
 ```
 
 #### 4.5 공유 통계 조회
+
 ```http
 GET /api/feedback/sessions/{sessionId}/share/stats
 
@@ -587,6 +603,7 @@ Response 200:
 ### 5. 스크린샷 API
 
 #### 5.1 스크린샷 캡처
+
 ```http
 POST /api/feedback/screenshot
 Content-Type: application/json
@@ -632,6 +649,7 @@ Error Responses:
 ```
 
 #### 5.2 스크린샷 다운로드
+
 ```http
 GET /api/feedback/screenshot/{screenshotId}/download
 
@@ -645,6 +663,7 @@ Content-Disposition: attachment; filename="project-demo_TC011500_20250122T120000
 ### 6. QR 코드 API
 
 #### 6.1 QR 코드 생성
+
 ```http
 POST /api/feedback/share/qr-code
 Content-Type: application/json
@@ -662,6 +681,7 @@ Response 200:
 ```
 
 #### 6.2 QR 코드 다운로드
+
 ```http
 GET /api/feedback/share/{token}/qr-code/download?format=png
 
@@ -675,11 +695,13 @@ Content-Disposition: attachment; filename="qr-code.png"
 ## 🛡️ 인증 및 권한
 
 ### 인증 헤더
+
 ```http
 Authorization: Bearer {jwt_token}
 ```
 
 ### 권한 확인
+
 ```http
 POST /api/feedback/share/{token}/check-access
 Content-Type: application/json
@@ -710,6 +732,7 @@ Response 200:
 ## 📊 페이지네이션 및 필터링
 
 ### 댓글 목록 페이지네이션
+
 ```http
 GET /api/feedback/sessions/{sessionId}/comments/threaded?page=1&limit=20&sort=newest&filter=unresolved
 
@@ -734,18 +757,22 @@ Response 200:
 ## 🔄 실시간 이벤트 (WebSocket)
 
 ### 연결
+
 ```javascript
 const ws = new WebSocket('wss://api.videoprompt.com/feedback/realtime');
 
 // 인증
-ws.send(JSON.stringify({
-  type: 'auth',
-  token: 'jwt_token',
-  sessionId: 'session_uuid'
-}));
+ws.send(
+  JSON.stringify({
+    type: 'auth',
+    token: 'jwt_token',
+    sessionId: 'session_uuid',
+  })
+);
 ```
 
 ### 이벤트 타입
+
 ```typescript
 type RealtimeEventType =
   | 'version_uploaded'
@@ -757,10 +784,11 @@ type RealtimeEventType =
   | 'share_link_created'
   | 'share_link_accessed'
   | 'user_joined'
-  | 'user_left'
+  | 'user_left';
 ```
 
 ### 이벤트 구조
+
 ```json
 {
   "type": "comment_replied",
@@ -782,6 +810,7 @@ type RealtimeEventType =
 ## 🚨 에러 응답 표준
 
 ### 표준 에러 구조
+
 ```json
 {
   "error": {
@@ -806,6 +835,7 @@ type RealtimeEventType =
 ```
 
 ### HTTP 상태 코드
+
 - `200` OK: 성공
 - `201` Created: 생성 성공
 - `400` Bad Request: 잘못된 요청

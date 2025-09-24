@@ -1,61 +1,85 @@
 /**
- * Entities Public API - 통합 버전
- * 모든 도메인 엔티티를 단일 진입점으로 관리
- * 중복 export 방지를 위한 명시적 export
+ * Entities Layer Public API
+ * 도메인 모델 및 비즈니스 엔티티 export
  */
 
 // User Entity
+export type { User, UserPreferences } from './User';
 export {
-  type User,
-  type UserPreferences,
-  type UserState,
-  userSlice,
-  userReducer,
-  defaultPreferences,
-  setCurrentUser,
-  clearCurrentUser,
   createGuestUser,
-  setLoading as setUserLoading,
-  setUserError,
+  createRegisteredUser,
+  validateUser,
   updateUserPreferences,
-  restoreUserFromStorage,
-  selectUserState,
-  selectCurrentUser,
-  selectIsAuthenticated,
-  selectIsGuest,
-  selectUserLoading,
-  selectUserError,
-  selectUserPreferences,
-  selectUserInfo,
-  selectAuthStatus,
-} from './user';
+} from './User';
 
-// Story Entity
-export * from './story';
-
-// Shot Entity - alias conflicts 방지
+// Project Entity
+export type { Project } from './Project';
 export {
-  type Shot,
-  type ShotType,
-  type CameraAngle,
-  type ShotState,
-  shotSlice,
-  shotReducer,
-  addShot,
-  updateShot,
-  removeShot,
-  setError as setShotError,
-  selectAllShots,
-  selectShotById,
-  selectIsLoading as selectShotIsLoading,
-  selectError as selectShotError,
-} from './shot';
+  createProject,
+  updateProjectStatus,
+  validateProject,
+  attachStoryToProject,
+} from './Project';
+
+// Note: Story Entity removed - using FourActStory (story.ts) instead
+
+// Scene Entity
+export type { Scene } from './Scene';
+export {
+  createScene,
+  updateSceneOrder,
+  validateScene,
+  addShotToScene,
+  removeShotFromScene,
+} from './Scene';
+
+// Shot Entity (12단계 숏트 시스템)
+export type {
+  TwelveShot,
+  TwelveShotCollection,
+  ShotStoryboard,
+  ShotBreakdownParams,
+  ShotType,
+  CameraMovement,
+  ShotEmotion
+} from './Shot';
+export {
+  createTwelveShotCollection,
+  updateTwelveShotOrder,
+  updateTwelveShot,
+  updateShotStoryboard,
+  validateTwelveShotCollection
+} from './Shot';
+
+// 기존 Shot 호환성
+export type { Shot } from './Shot';
+export {
+  createShot,
+  updateShotOrder,
+  calculateTotalDuration,
+  validateShot,
+} from './Shot';
 
 // Storyboard Entity
-export * from './storyboard';
+export type { Storyboard } from './Storyboard';
+export {
+  createStoryboard,
+  updateStoryboardStatus,
+  validateStoryboard,
+  attachImageToStoryboard,
+  setConsistencyParams,
+} from './Storyboard';
 
-// Scenario Entity
+// Story Entity (4단계 스토리 시스템)
+export type { FourActStory, StoryAct, StoryGenerationParams } from './story';
+export {
+  createFourActStory,
+  updateStoryAct,
+  validateFourActStory,
+  extractThumbnailPrompt,
+  prepareForShotBreakdown,
+  ACT_TEMPLATES
+} from './story';
+
+// Scenario Entity (NEW - UserJourneyMap 3-4단계)
 export * from './scenario';
-
-// Prompt Entity
-export * from './prompt';

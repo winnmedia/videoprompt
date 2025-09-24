@@ -1,5 +1,7 @@
 /**
- * Shared Hooks - 모든 공통 훅 export
+ * Shared Hooks Public API
+ * 공통 훅들 export
  */
 
-export * from './redux';
+// Redux 타입 지정 훅들
+export { useAppDispatch, useAppSelector } from './redux';

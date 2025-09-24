@@ -7,6 +7,7 @@
 ## 시스템 요구사항
 
 ### 기능적 요구사항
+
 - **다중 영상 슬롯**: v1, v2, v3 슬롯을 통한 영상 비교 및 관리
 - **타임코드 기반 피드백**: 영상의 특정 시점에 댓글 및 반응 작성
 - **실시간 협업**: WebSocket을 통한 실시간 피드백 동기화
@@ -15,6 +16,7 @@
 - **링크 공유**: 공유 토큰을 통한 외부 사용자 초대
 
 ### 비기능적 요구사항
+
 - **성능**: 300MB 파일 업로드 지원, 실시간 동기화
 - **보안**: XSS 방지, Rate Limiting, 권한 검증
 - **확장성**: 최대 50명 동시 참여 지원
@@ -74,48 +76,50 @@ src/
 ### 1. 피드백 도메인 모델 (entities/feedback)
 
 #### 주요 타입
+
 ```typescript
 // 비디오 슬롯 (v1, v2, v3)
-export type VideoSlot = 'v1' | 'v2' | 'v3'
+export type VideoSlot = 'v1' | 'v2' | 'v3';
 
 // 참여자 유형
-export type ParticipantType = 'owner' | 'member' | 'guest'
+export type ParticipantType = 'owner' | 'member' | 'guest';
 
 // 감정 표현
-export type EmotionType = 'like' | 'dislike' | 'confused'
+export type EmotionType = 'like' | 'dislike' | 'confused';
 
 // 타임코드
 export interface Timecode {
-  readonly seconds: number
-  readonly formatted: string // "MM:SS" 또는 "HH:MM:SS"
+  readonly seconds: number;
+  readonly formatted: string; // "MM:SS" 또는 "HH:MM:SS"
 }
 
 // 타임코드 댓글
 export interface TimecodeComment {
-  readonly id: string
-  readonly sessionId: string
-  readonly videoSlot: VideoSlot
-  readonly timecode: Timecode
-  readonly authorId: string
-  readonly content: string
-  readonly isResolved: boolean
-  readonly parentId?: string
-  readonly createdAt: Date
-  readonly updatedAt: Date
+  readonly id: string;
+  readonly sessionId: string;
+  readonly videoSlot: VideoSlot;
+  readonly timecode: Timecode;
+  readonly authorId: string;
+  readonly content: string;
+  readonly isResolved: boolean;
+  readonly parentId?: string;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
 }
 
 // 피드백 세션
 export interface FeedbackSession {
-  readonly metadata: FeedbackSessionMetadata
-  readonly videoSlots: VideoSlotInfo[]
-  readonly participants: FeedbackParticipant[]
-  readonly comments: TimecodeComment[]
-  readonly reactions: EmotionReaction[]
-  readonly stats: FeedbackSessionStats
+  readonly metadata: FeedbackSessionMetadata;
+  readonly videoSlots: VideoSlotInfo[];
+  readonly participants: FeedbackParticipant[];
+  readonly comments: TimecodeComment[];
+  readonly reactions: EmotionReaction[];
+  readonly stats: FeedbackSessionStats;
 }
 ```
 
 #### 비즈니스 규칙
+
 - 최대 300MB 파일 크기 제한
 - 0.1초 단위 타임코드 정밀도
 - 최대 50명 참여자 제한
@@ -125,6 +129,7 @@ export interface FeedbackSession {
 ### 2. 파일 저장소 (Supabase Storage)
 
 #### 저장소 구조
+
 ```
 feedback-videos/
 └── sessions/
@@ -143,6 +148,7 @@ feedback-thumbnails/
 ```
 
 #### 주요 기능
+
 - **청크 업로드**: 대용량 파일 안정적 업로드
 - **자동 썸네일 생성**: 영상에서 썸네일 추출
 - **진행률 추적**: 실시간 업로드 진행 상황
@@ -152,26 +158,29 @@ feedback-thumbnails/
 ### 3. 실시간 협업 시스템
 
 #### WebSocket 이벤트
+
 ```typescript
 export type RealtimeEventType =
-  | 'comment_added'      // 댓글 추가
-  | 'comment_updated'    // 댓글 수정
-  | 'comment_deleted'    // 댓글 삭제
-  | 'reaction_added'     // 반응 추가
-  | 'reaction_removed'   // 반응 제거
+  | 'comment_added' // 댓글 추가
+  | 'comment_updated' // 댓글 수정
+  | 'comment_deleted' // 댓글 삭제
+  | 'reaction_added' // 반응 추가
+  | 'reaction_removed' // 반응 제거
   | 'participant_joined' // 참여자 입장
-  | 'participant_left'   // 참여자 퇴장
-  | 'video_uploaded'     // 영상 업로드
-  | 'video_deleted'      // 영상 삭제
-  | 'session_updated'    // 세션 설정 변경
+  | 'participant_left' // 참여자 퇴장
+  | 'video_uploaded' // 영상 업로드
+  | 'video_deleted' // 영상 삭제
+  | 'session_updated'; // 세션 설정 변경
 ```
 
 #### 충돌 해결 전략
+
 - **Last Write Wins**: 타임스탬프 기반 최신 우선
 - **Merge**: 댓글 내용 병합
 - **Manual**: 사용자 수동 해결
 
 #### 동기화 메커니즘
+
 - **이벤트 큐**: 오프라인 시 이벤트 저장
 - **시퀀스 번호**: 이벤트 순서 보장
 - **재연결**: 자동 재연결 및 상태 복구
@@ -180,6 +189,7 @@ export type RealtimeEventType =
 ### 4. 보안 및 권한 관리
 
 #### 권한 체계
+
 ```typescript
 // 소유자 권한
 OWNER_PERMISSIONS = {
@@ -187,8 +197,8 @@ OWNER_PERMISSIONS = {
   canReact: true,
   canEditSession: true,
   canManageVideos: true,
-  canInviteOthers: true
-}
+  canInviteOthers: true,
+};
 
 // 멤버 권한
 MEMBER_PERMISSIONS = {
@@ -196,8 +206,8 @@ MEMBER_PERMISSIONS = {
   canReact: true,
   canEditSession: false,
   canManageVideos: false,
-  canInviteOthers: false
-}
+  canInviteOthers: false,
+};
 
 // 게스트 권한 (세션 설정에 따라 동적)
 GUEST_PERMISSIONS = {
@@ -205,11 +215,12 @@ GUEST_PERMISSIONS = {
   canReact: session.allowGuestEmotions,
   canEditSession: false,
   canManageVideos: false,
-  canInviteOthers: false
-}
+  canInviteOthers: false,
+};
 ```
 
 #### 보안 정책
+
 - **Rate Limiting**: IP별 요청 제한
 - **입력 검증**: XSS 방지를 위한 내용 필터링
 - **토큰 기반**: 세션별 보안 토큰 관리
@@ -219,6 +230,7 @@ GUEST_PERMISSIONS = {
 ### 5. 타임코드 시스템
 
 #### 타임코드 유틸리티
+
 ```typescript
 // 초를 타임코드로 변환
 secondsToTimecode(125.5) // { seconds: 125.5, formatted: "02:05" }
@@ -237,6 +249,7 @@ calculateTimecodeDensity(timecodes, windowSize: 10)
 ```
 
 #### 키보드 단축키
+
 - `Ctrl/Cmd + Enter`: 댓글 작성 시작
 - `Ctrl/Cmd + J`: 다음 댓글로 이동
 - `Ctrl/Cmd + K`: 이전 댓글로 이동
@@ -383,6 +396,7 @@ CREATE INDEX idx_feedback_reactions_session_slot ON feedback_reactions(session_i
 ## 성능 최적화
 
 ### 클라이언트 사이드
+
 - **Redux 최적화**: Selector를 통한 불필요한 리렌더링 방지
 - **가상화**: 대량 댓글 목록 가상 스크롤링
 - **디바운싱**: 타임코드 업데이트 및 검색 최적화
@@ -390,6 +404,7 @@ CREATE INDEX idx_feedback_reactions_session_slot ON feedback_reactions(session_i
 - **레이지 로딩**: 필요한 컴포넌트만 동적 로드
 
 ### 서버 사이드
+
 - **연결 풀링**: 데이터베이스 연결 최적화
 - **쿼리 최적화**: 인덱스 활용 및 N+1 문제 해결
 - **WebSocket 스케일링**: Redis를 통한 다중 서버 동기화
@@ -399,6 +414,7 @@ CREATE INDEX idx_feedback_reactions_session_slot ON feedback_reactions(session_i
 ## 모니터링 및 로깅
 
 ### 주요 메트릭
+
 - **업로드 성공률**: 파일 업로드 성공/실패 비율
 - **WebSocket 연결 안정성**: 연결 지속 시간 및 재연결 빈도
 - **피드백 참여도**: 사용자당 평균 댓글/반응 수
@@ -406,6 +422,7 @@ CREATE INDEX idx_feedback_reactions_session_slot ON feedback_reactions(session_i
 - **에러율**: API 및 클라이언트 에러 발생 빈도
 
 ### 로깅 전략
+
 - **보안 이벤트**: 권한 위반, 비정상 접근 시도
 - **성능 이벤트**: 느린 쿼리, 업로드 시간 초과
 - **비즈니스 이벤트**: 세션 생성, 댓글 작성, 파일 업로드
@@ -414,6 +431,7 @@ CREATE INDEX idx_feedback_reactions_session_slot ON feedback_reactions(session_i
 ## 배포 및 운영
 
 ### 환경 설정
+
 ```env
 # 데이터베이스
 DATABASE_URL=postgresql://...
@@ -436,6 +454,7 @@ RATE_LIMIT_MAX_REQUESTS=100
 ```
 
 ### CI/CD 파이프라인
+
 1. **테스트**: 단위/통합/E2E 테스트 실행
 2. **빌드**: TypeScript 컴파일 및 번들링
 3. **보안 검사**: 의존성 취약점 스캔
@@ -443,6 +462,7 @@ RATE_LIMIT_MAX_REQUESTS=100
 5. **헬스체크**: 배포 후 API 엔드포인트 검증
 
 ### 백업 및 복구
+
 - **데이터베이스**: 일일 자동 백업 (Supabase)
 - **파일 스토리지**: 지역 복제를 통한 내구성 보장
 - **설정 백업**: 환경 변수 및 설정 파일 버전 관리
@@ -451,12 +471,14 @@ RATE_LIMIT_MAX_REQUESTS=100
 ## 확장성 고려사항
 
 ### 수평 확장
+
 - **WebSocket 서버**: Redis Pub/Sub을 통한 다중 인스턴스 동기화
 - **API 서버**: 로드 밸런서를 통한 무상태 서버 확장
 - **데이터베이스**: 읽기 복제본을 통한 읽기 성능 향상
 - **파일 서버**: CDN을 통한 전세계 배포
 
 ### 수직 확장
+
 - **메모리 최적화**: Redis 캐싱을 통한 빈번한 데이터 접근 최적화
 - **CPU 최적화**: 비동기 처리 및 멀티스레딩 활용
 - **저장소 최적화**: SSD 및 고성능 네트워크 스토리지 활용
@@ -464,18 +486,21 @@ RATE_LIMIT_MAX_REQUESTS=100
 ## 보안 고려사항
 
 ### 인증 및 인가
+
 - **JWT 토큰**: 사용자 인증
 - **세션 토큰**: 피드백 세션 접근 권한
 - **역할 기반**: 소유자/멤버/게스트 권한 체계
 - **토큰 갱신**: 자동 토큰 갱신 메커니즘
 
 ### 데이터 보호
+
 - **암호화**: HTTPS/WSS 전송 암호화
 - **입력 검증**: SQL 인젝션, XSS 방지
 - **파일 검증**: 악성 파일 업로드 방지
 - **접근 로깅**: 모든 접근 시도 기록
 
 ### 컴플라이언스
+
 - **GDPR**: 개인 정보 삭제 권리 지원
 - **데이터 지역화**: 필요시 특정 지역 데이터 저장
 - **감사 로그**: 데이터 접근 및 수정 이력 관리
@@ -483,16 +508,19 @@ RATE_LIMIT_MAX_REQUESTS=100
 ## 테스트 전략
 
 ### 단위 테스트 (70%)
+
 - **도메인 로직**: entities/feedback 비즈니스 규칙
 - **유틸리티**: 타임코드, 파일 처리 함수
 - **Redux**: 액션, 리듀서, 셀렉터
 
 ### 통합 테스트 (20%)
+
 - **API 엔드포인트**: 요청/응답 검증
 - **WebSocket**: 실시간 이벤트 전송/수신
 - **파일 업로드**: Supabase Storage 연동
 
 ### E2E 테스트 (10%)
+
 - **사용자 시나리오**: 세션 생성부터 피드백 완료까지
 - **크로스 브라우저**: Chrome, Firefox, Safari 호환성
 - **모바일**: 반응형 디자인 검증
@@ -502,6 +530,7 @@ RATE_LIMIT_MAX_REQUESTS=100
 본 아키텍처는 FSD(Feature-Sliced Design) 원칙을 준수하여 확장 가능하고 유지보수가 용이한 타임코드 기반 피드백 시스템을 제공합니다. 실시간 협업, 안정적인 파일 관리, 강력한 보안 정책을 통해 사용자에게 최적의 영상 피드백 경험을 제공할 수 있습니다.
 
 핵심 성공 요소:
+
 1. **명확한 도메인 분리**: 각 레이어의 책임 명확화
 2. **실시간 동기화**: 충돌 없는 협업 환경 제공
 3. **사용자 경험**: 직관적인 타임코드 네비게이션

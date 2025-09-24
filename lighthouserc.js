@@ -6,7 +6,11 @@
 module.exports = {
   ci: {
     collect: {
-      url: ['http://localhost:3000'],
+      url: [
+        'http://localhost:3000',
+        'http://localhost:3000/story-generator',
+        'http://localhost:3000/story-editor?id=test-story'
+      ],
       startServerCommand: 'pnpm start',
       startServerReadyPattern: 'ready on',
       numberOfRuns: 3,

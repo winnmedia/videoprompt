@@ -1,282 +1,298 @@
 /**
- * Shot Entity - 완전 통합 버전
- * 모델, 스토어, 선택자를 모두 포함
+ * 12단계 숏트 엔티티
+ * 4단계 스토리를 12개 숏트로 분할한 개별 숏트 정보
  */
 
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { createSelector } from '@reduxjs/toolkit';
-import { BaseEntity } from '@/shared/types';
+// 숏트 타입 정의
+export type ShotType =
+  | 'establishing' // 설정/환경
+  | 'closeUp'      // 클로즈업
+  | 'mediumShot'   // 미디엄 샷
+  | 'longShot'     // 롱 샷
+  | 'cutaway'      // 컷어웨이
+  | 'transition';  // 전환
 
-// ===== 모델 =====
-export type CameraAngle = 'medium' | 'close-up' | 'wide' | 'over-shoulder' | 'bird-eye' | 'low-angle' | 'high-angle';
-export type CameraOption = CameraAngle; // 호환성
-export type SceneType = 'dialogue' | 'action' | 'establishing' | 'insert' | 'montage';
-export type ShotType = SceneType; // 호환성 별칭
-export type StoryPhase = 'exposition' | 'rising_action' | 'climax' | 'resolution';
+// 카메라 앵글 타입
+export type CameraAngle =
+  | 'eyeLevel'     // 아이 레벨
+  | 'lowAngle'     // 로우 앵글
+  | 'highAngle'    // 하이 앵글
+  | 'birdEye'      // 버즈 아이
+  | 'dutch';       // 더치 앵글
 
-export interface ShotTransitions {
-  in?: string;
-  out?: string;
+// 감정 톤
+export type EmotionTone =
+  | 'tension'      // 긴장
+  | 'calm'         // 평온
+  | 'excitement'   // 흥분
+  | 'sadness'      // 슬픔
+  | 'hope'         // 희망
+  | 'fear';        // 공포
+
+// Act 타입 (4단계 구조)
+export type ActType = 'setup' | 'development' | 'climax' | 'resolution';
+
+// 스토리보드 상태
+export interface ShotStoryboard {
+  status: 'empty' | 'generating' | 'completed' | 'error';
+  imageUrl?: string;
+  prompt?: string;
+  generatedAt?: string;
+  error?: string;
 }
 
-export interface Shot {
+// 12단계 숏트 인터페이스
+export interface TwelveShot {
   id: string;
+  globalOrder: number; // 1-12 전체 순서
+  actType: ActType; // 속한 Act
+  actOrder: number; // Act 내 순서 (1-4)
+
+  // 숏트 기본 정보
   title: string;
   description: string;
   duration: number; // 초 단위
-  cameraAngle: CameraAngle;
-  sceneType: SceneType;
-  storyChapterRef: string; // 4막 구조 참조
-  storyPhase?: StoryPhase; // 호환성
-  visualElements: string[];
-  audioElements: string[];
-  transitions?: ShotTransitions;
-  cameraMovement?: string; // 호환성
-}
 
-export interface ShotSequence {
-  id: string;
-  title: string;
-  description: string;
-  shots: Shot[];
-  chapterRef: string; // 4막 구조 참조
-  totalDuration: number;
+  // 카메라 및 연출
+  shotType: ShotType;
+  cameraAngle: CameraAngle;
+  emotion: EmotionTone;
+
+  // 스토리보드
+  storyboard: ShotStoryboard;
+
+  // 메타데이터
+  isUserEdited: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
-// ===== 요청 타입 =====
-export interface CreateShotRequest {
-  title: string;
-  description: string;
-  duration: number;
-  cameraAngle: CameraAngle;
-  sceneType: SceneType;
-  storyChapterRef: string;
-  visualElements?: string[];
-  audioElements?: string[];
+// 12단계 숏트 생성 파라미터
+export interface ShotBreakdownParams {
+  storyId: string;
+  acts: {
+    setup: { content: string; duration: number; };
+    development: { content: string; duration: number; };
+    climax: { content: string; duration: number; };
+    resolution: { content: string; duration: number; };
+  };
+  pacing: 'slow' | 'medium' | 'fast';
+  style?: string;
+  targetDuration?: number; // 전체 영상 목표 시간 (초)
 }
 
-export interface CreateShotSequenceRequest {
-  title: string;
-  description: string;
-  chapterRef: string;
-  shots: CreateShotRequest[];
-}
+// Act별 숏트 분배 전략
+export const SHOT_DISTRIBUTION = {
+  slow: { setup: 4, development: 4, climax: 3, resolution: 1 },
+  medium: { setup: 3, development: 4, climax: 3, resolution: 2 },
+  fast: { setup: 2, development: 3, climax: 4, resolution: 3 }
+} as const;
 
-// ===== 상태 및 스토어 =====
-export interface ShotState {
-  sequences: ShotSequence[];
-  currentSequence: ShotSequence | null;
-  selectedShotId: string | null;
-  isLoading: boolean;
-  error: string | null;
-}
+// 숏트 타입별 기본 지속 시간 (초)
+export const SHOT_DURATION_DEFAULTS = {
+  establishing: 8,   // 설정 샷은 길게
+  closeUp: 4,        // 클로즈업은 짧게
+  mediumShot: 6,     // 미디엄은 중간
+  longShot: 10,      // 롱샷은 길게
+  cutaway: 3,        // 컷어웨이는 짧게
+  transition: 2      // 전환은 매우 짧게
+} as const;
 
-const initialState: ShotState = {
-  sequences: [],
-  currentSequence: null,
-  selectedShotId: null,
-  isLoading: false,
-  error: null,
-};
-
-export const shotSlice = createSlice({
-  name: 'shot',
-  initialState,
-  reducers: {
-    setSequences: (state, action: PayloadAction<ShotSequence[]>) => {
-      state.sequences = action.payload;
-    },
-
-    addSequence: (state, action: PayloadAction<ShotSequence>) => {
-      state.sequences.push(action.payload);
-    },
-
-    updateSequence: (state, action: PayloadAction<ShotSequence>) => {
-      const index = state.sequences.findIndex(s => s.id === action.payload.id);
-      if (index !== -1) {
-        state.sequences[index] = action.payload;
-      }
-      if (state.currentSequence?.id === action.payload.id) {
-        state.currentSequence = action.payload;
-      }
-    },
-
-    removeSequence: (state, action: PayloadAction<string>) => {
-      state.sequences = state.sequences.filter(s => s.id !== action.payload);
-      if (state.currentSequence?.id === action.payload) {
-        state.currentSequence = null;
-      }
-    },
-
-    setCurrentSequence: (state, action: PayloadAction<ShotSequence | null>) => {
-      state.currentSequence = action.payload;
-    },
-
-    setSelectedShotId: (state, action: PayloadAction<string | null>) => {
-      state.selectedShotId = action.payload;
-    },
-
-    updateShotInCurrentSequence: (state, action: PayloadAction<Shot>) => {
-      if (state.currentSequence) {
-        const shotIndex = state.currentSequence.shots.findIndex(s => s.id === action.payload.id);
-        if (shotIndex !== -1) {
-          state.currentSequence.shots[shotIndex] = action.payload;
-          state.currentSequence.totalDuration = state.currentSequence.shots.reduce(
-            (total, shot) => total + shot.duration, 0
-          );
-        }
-      }
-    },
-
-    setLoading: (state, action: PayloadAction<boolean>) => {
-      state.isLoading = action.payload;
-    },
-
-    setError: (state, action: PayloadAction<string | null>) => {
-      state.error = action.payload;
-    },
-
-    resetShotState: (state) => {
-      state.sequences = [];
-      state.currentSequence = null;
-      state.selectedShotId = null;
-      state.isLoading = false;
-      state.error = null;
-    },
+// Act별 권장 숏트 타입 분배
+export const ACT_SHOT_TYPE_RECOMMENDATIONS = {
+  setup: {
+    primary: ['establishing', 'longShot', 'mediumShot'] as ShotType[],
+    secondary: ['closeUp'] as ShotType[]
   },
-});
-
-export const {
-  setSequences,
-  addSequence,
-  updateSequence,
-  removeSequence,
-  setCurrentSequence,
-  setSelectedShotId,
-  updateShotInCurrentSequence,
-  setLoading,
-  setError,
-  resetShotState,
-} = shotSlice.actions;
-
-// Alias exports for entities/index.ts compatibility
-export const addShot = addSequence;
-export const updateShot = updateSequence;
-export const removeShot = removeSequence;
-
-export const shotReducer = shotSlice.reducer;
-
-// ===== 선택자 =====
-export const selectShotState = (state: { shot: ShotState }) => state.shot;
-export const selectSequences = (state: { shot: ShotState }) => state.shot.sequences;
-export const selectCurrentSequence = (state: { shot: ShotState }) => state.shot.currentSequence;
-export const selectSelectedShotId = (state: { shot: ShotState }) => state.shot.selectedShotId;
-export const selectIsLoading = (state: { shot: ShotState }) => state.shot.isLoading;
-export const selectError = (state: { shot: ShotState }) => state.shot.error;
-
-export const selectCurrentShot = createSelector(
-  [selectCurrentSequence, selectSelectedShotId],
-  (sequence, shotId) => {
-    if (!sequence || !shotId) return null;
-    return sequence.shots.find(shot => shot.id === shotId) || null;
+  development: {
+    primary: ['mediumShot', 'closeUp', 'cutaway'] as ShotType[],
+    secondary: ['longShot', 'transition'] as ShotType[]
+  },
+  climax: {
+    primary: ['closeUp', 'mediumShot', 'transition'] as ShotType[],
+    secondary: ['longShot', 'cutaway'] as ShotType[]
+  },
+  resolution: {
+    primary: ['longShot', 'establishing', 'mediumShot'] as ShotType[],
+    secondary: ['closeUp'] as ShotType[]
   }
-);
+} as const;
 
-// Alias exports for entities/index.ts compatibility
-export const selectAllShots = createSelector(
-  [selectSequences],
-  (sequences) => sequences.flatMap(seq => seq.shots)
-);
+// 감정별 권장 카메라 앵글
+export const EMOTION_CAMERA_MAPPING = {
+  tension: ['lowAngle', 'dutch'] as CameraAngle[],
+  calm: ['eyeLevel', 'highAngle'] as CameraAngle[],
+  excitement: ['lowAngle', 'dutch'] as CameraAngle[],
+  sadness: ['highAngle', 'eyeLevel'] as CameraAngle[],
+  hope: ['lowAngle', 'eyeLevel'] as CameraAngle[],
+  fear: ['dutch', 'lowAngle'] as CameraAngle[]
+} as const;
 
-export const selectShotById = (shotId: string) => createSelector(
-  [selectAllShots],
-  (shots) => shots.find(shot => shot.id === shotId) || null
-);
+// 12단계 숏트 생성 함수
+export function generateTwelveShots(params: ShotBreakdownParams): TwelveShot[] {
+  const shots: TwelveShot[] = [];
+  const distribution = SHOT_DISTRIBUTION[params.pacing];
+  const timestamp = new Date().toISOString();
 
-export const selectSequencesByChapter = createSelector(
-  [selectSequences],
-  (sequences) => {
-    return sequences.reduce((acc, sequence) => {
-      const chapter = sequence.chapterRef;
-      if (!acc[chapter]) acc[chapter] = [];
-      acc[chapter].push(sequence);
-      return acc;
-    }, {} as Record<string, ShotSequence[]>);
-  }
-);
+  let globalOrder = 1;
 
-export const selectTotalShotsCount = createSelector(
-  [selectSequences],
-  (sequences) => sequences.reduce((total, seq) => total + seq.shots.length, 0)
-);
+  // 각 Act별로 숏트 생성
+  (Object.keys(params.acts) as ActType[]).forEach((actType) => {
+    const act = params.acts[actType];
+    const shotCount = distribution[actType];
+    const actRecommendations = ACT_SHOT_TYPE_RECOMMENDATIONS[actType];
 
-export const selectTotalProjectDuration = createSelector(
-  [selectSequences],
-  (sequences) => sequences.reduce((total, seq) => total + seq.totalDuration, 0)
-);
+    for (let actOrder = 1; actOrder <= shotCount; actOrder++) {
+      // 숏트 타입 결정 (첫 번째와 마지막은 특별 처리)
+      let shotType: ShotType;
+      if (actOrder === 1 && actType === 'setup') {
+        shotType = 'establishing'; // 첫 번째는 무조건 establishing
+      } else if (actOrder === shotCount && actType === 'resolution') {
+        shotType = 'longShot'; // 마지막은 longShot
+      } else {
+        // 권장 타입에서 랜덤 선택
+        const availableTypes = Math.random() > 0.7 ?
+          actRecommendations.secondary : actRecommendations.primary;
+        shotType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+      }
 
-export const selectCameraAngleStats = createSelector(
-  [selectSequences],
-  (sequences) => {
-    const allShots = sequences.flatMap(seq => seq.shots);
-    return allShots.reduce((acc, shot) => {
-      acc[shot.cameraAngle] = (acc[shot.cameraAngle] || 0) + 1;
-      return acc;
-    }, {} as Record<CameraAngle, number>);
-  }
-);
+      // 감정 톤 결정 (Act에 따라)
+      let emotion: EmotionTone;
+      switch (actType) {
+        case 'setup': emotion = 'calm'; break;
+        case 'development': emotion = 'tension'; break;
+        case 'climax': emotion = 'excitement'; break;
+        case 'resolution': emotion = 'hope'; break;
+      }
 
-export const selectSceneTypeStats = createSelector(
-  [selectSequences],
-  (sequences) => {
-    const allShots = sequences.flatMap(seq => seq.shots);
-    return allShots.reduce((acc, shot) => {
-      acc[shot.sceneType] = (acc[shot.sceneType] || 0) + 1;
-      return acc;
-    }, {} as Record<SceneType, number>);
-  }
-);
+      // 카메라 앵글 결정
+      const recommendedAngles = EMOTION_CAMERA_MAPPING[emotion];
+      const cameraAngle = recommendedAngles[Math.floor(Math.random() * recommendedAngles.length)];
 
-// ===== 유틸리티 함수 =====
-export function createShot(request: CreateShotRequest): Omit<Shot, 'id'> {
+      // 지속 시간 계산
+      const baseDuration = SHOT_DURATION_DEFAULTS[shotType];
+      const duration = Math.round(baseDuration * (0.8 + Math.random() * 0.4)); // ±20% 변동
+
+      const shot: TwelveShot = {
+        id: `shot_${params.storyId}_${globalOrder}`,
+        globalOrder,
+        actType,
+        actOrder,
+        title: `${actType} ${actOrder}단계`,
+        description: act.content.substring(0, 100) + '...', // Act 내용의 일부
+        duration,
+        shotType,
+        cameraAngle,
+        emotion,
+        storyboard: {
+          status: 'empty'
+        },
+        isUserEdited: false,
+        createdAt: timestamp,
+        updatedAt: timestamp
+      };
+
+      shots.push(shot);
+      globalOrder++;
+    }
+  });
+
+  return shots;
+}
+
+// 숏트 업데이트 함수
+export function updateShot(
+  shot: TwelveShot,
+  updates: Partial<Omit<TwelveShot, 'id' | 'globalOrder' | 'createdAt'>>
+): TwelveShot {
   return {
-    title: request.title,
-    description: request.description,
-    duration: request.duration,
-    cameraAngle: request.cameraAngle,
-    sceneType: request.sceneType,
-    storyChapterRef: request.storyChapterRef,
-    visualElements: request.visualElements || [],
-    audioElements: request.audioElements || [],
+    ...shot,
+    ...updates,
+    isUserEdited: true,
+    updatedAt: new Date().toISOString()
   };
 }
 
-export function createShotSequence(request: CreateShotSequenceRequest): Omit<ShotSequence, 'id' | 'createdAt' | 'updatedAt'> {
-  const shots = request.shots.map((shotReq, index) => ({
-    ...createShot(shotReq),
-    id: `shot_${index + 1}`,
+// 스토리보드 상태 업데이트
+export function updateShotStoryboard(
+  shot: TwelveShot,
+  storyboard: Partial<ShotStoryboard>
+): TwelveShot {
+  return updateShot(shot, {
+    storyboard: {
+      ...shot.storyboard,
+      ...storyboard
+    }
+  });
+}
+
+// 숏트 순서 변경
+export function reorderShots(shots: TwelveShot[], fromIndex: number, toIndex: number): TwelveShot[] {
+  const result = [...shots];
+  const [removed] = result.splice(fromIndex, 1);
+  result.splice(toIndex, 0, removed);
+
+  // globalOrder 재정렬
+  return result.map((shot, index) => ({
+    ...shot,
+    globalOrder: index + 1,
+    updatedAt: new Date().toISOString()
   }));
+}
+
+// 숏트 유효성 검증
+export function validateShot(shot: TwelveShot): {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+} {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  // 필수 필드 검증
+  if (!shot.title.trim()) errors.push('숏트 제목은 필수입니다');
+  if (!shot.description.trim()) errors.push('숏트 설명은 필수입니다');
+  if (shot.duration <= 0) errors.push('지속 시간은 0보다 커야 합니다');
+
+  // 권장사항 검증
+  if (shot.duration > 15) warnings.push('15초를 초과하는 숏트는 너무 길 수 있습니다');
+  if (shot.description.length < 20) warnings.push('설명을 더 자세히 작성하면 좋겠습니다');
 
   return {
-    title: request.title,
-    description: request.description,
-    chapterRef: request.chapterRef,
-    shots,
-    totalDuration: shots.reduce((total, shot) => total + shot.duration, 0),
+    isValid: errors.length === 0,
+    errors,
+    warnings
   };
 }
 
-export function validateShotSequence(sequence: ShotSequence): boolean {
-  return sequence.shots.length > 0 && sequence.totalDuration > 0;
-}
+// 전체 12숏트 통계
+export function getShotsStats(shots: TwelveShot[]): {
+  totalDuration: number;
+  shotsByAct: Record<ActType, number>;
+  shotsByType: Record<ShotType, number>;
+  completedStoryboards: number;
+  averageDuration: number;
+} {
+  const totalDuration = shots.reduce((sum, shot) => sum + shot.duration, 0);
+  const shotsByAct = shots.reduce((acc, shot) => {
+    acc[shot.actType] = (acc[shot.actType] || 0) + 1;
+    return acc;
+  }, {} as Record<ActType, number>);
 
-export function addShotToSequence(sequence: ShotSequence, shot: Shot): ShotSequence {
+  const shotsByType = shots.reduce((acc, shot) => {
+    acc[shot.shotType] = (acc[shot.shotType] || 0) + 1;
+    return acc;
+  }, {} as Record<ShotType, number>);
+
+  const completedStoryboards = shots.filter(
+    shot => shot.storyboard.status === 'completed'
+  ).length;
+
   return {
-    ...sequence,
-    shots: [...sequence.shots, shot],
-    totalDuration: sequence.totalDuration + shot.duration,
-    updatedAt: new Date().toISOString(),
+    totalDuration,
+    shotsByAct,
+    shotsByType,
+    completedStoryboards,
+    averageDuration: Math.round(totalDuration / shots.length)
   };
 }

@@ -32,28 +32,78 @@ global.BroadcastChannel = class BroadcastChannel {
   }
 };
 
-// fetch polyfill
-global.fetch = jest.fn();
-global.Request = jest.fn();
-global.Response = jest.fn();
-global.Headers = jest.fn();
-
-// MSW Server 설정은 조건부로 로드
-if (process.env.NODE_ENV === 'test') {
+// fetch polyfill with undici for Node.js
+if (typeof fetch === 'undefined') {
   try {
-    const { server } = require('./src/shared/mocks/server');
+    const { fetch, Request, Response, Headers } = require('undici');
+    global.fetch = fetch;
+    global.Request = Request;
+    global.Response = Response;
+    global.Headers = Headers;
+  } catch (error) {
+    // undici가 없으면 간단한 fetch 폴리필 사용
+    console.warn('[Jest Setup] undici not found, using simple fetch polyfill');
+    global.fetch = jest.fn(() =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ message: 'Fetch polyfill response' }),
+        text: () => Promise.resolve('Fetch polyfill response'),
+      })
+    );
+    // Response 클래스를 정의해서 simple-server에서 사용할 수 있도록 함
+    global.Response = class MockResponse {
+      constructor(body, init = {}) {
+        this.body = body;
+        this.status = init.status || 200;
+        this.headers = init.headers || {};
+        this.ok = this.status >= 200 && this.status < 300;
+      }
+
+      async json() {
+        return typeof this.body === 'string' ? JSON.parse(this.body) : this.body;
+      }
+
+      async text() {
+        return typeof this.body === 'string' ? this.body : JSON.stringify(this.body);
+      }
+    };
+
+    global.Request = jest.fn();
+    global.Headers = jest.fn();
+  }
+}
+
+// 간단한 MSW 대체 서버 설정
+if (process.env.NODE_ENV === 'test') {
+  console.log('[Jest Setup] Loading simple MSW server...');
+  try {
+    const { setupSimpleMSW } = require('./src/shared/mocks/simple-server');
+    let mockServer;
 
     // Establish API mocking before all tests.
-    beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
+    beforeAll(() => {
+      console.log('[Jest Setup] Setting up mock server...');
+      mockServer = setupSimpleMSW();
+      mockServer.listen();
+      console.log('[Jest Setup] Mock server started');
+    });
 
     // Reset any request handlers that we may add during the tests,
     // so they don't affect other tests.
-    afterEach(() => server.resetHandlers());
+    afterEach(() => {
+      if (mockServer) mockServer.resetHandlers();
+    });
 
     // Clean up after the tests are finished.
-    afterAll(() => server.close());
+    afterAll(() => {
+      console.log('[Jest Setup] Closing mock server...');
+      if (mockServer) mockServer.close();
+    });
+
+    console.log('[Jest Setup] Simple MSW setup completed');
   } catch (error) {
-    console.warn('MSW setup skipped:', error.message);
+    console.warn('Simple MSW setup skipped:', error);
   }
 }
 
@@ -67,24 +117,13 @@ const localStorageMock = {
 
 global.localStorage = localStorageMock;
 
-// Mock Supabase
-jest.mock('@/shared/lib/supabase', () => ({
-  createSupabaseClient: jest.fn(() => ({
-    auth: {
-      signInWithOtp: jest.fn(),
-      signOut: jest.fn(),
-      getUser: jest.fn(),
-      getSession: jest.fn(),
-      onAuthStateChange: jest.fn(),
-    },
-  })),
-}));
+// Supabase mock은 필요할 때 개별 테스트에서 설정
 
 // Mock window.matchMedia (only in DOM environment)
 if (typeof window !== 'undefined') {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
-    value: jest.fn().mockImplementation(query => ({
+    value: jest.fn().mockImplementation((query) => ({
       matches: false,
       media: query,
       onchange: null,
